@@ -201,4 +201,20 @@ router.get("/media/files/:fileId", async (req, res): Promise<void> => {
   res.sendFile(filename);
 });
 
+router.delete("/media/files/:fileId", async (req, res): Promise<void> => {
+  const filename = await findMediaFile(req.params.fileId);
+  if (!filename) {
+    res.json({ fileId: req.params.fileId, deleted: false });
+    return;
+  }
+  try {
+    await unlink(filename);
+    req.log.info({ fileId: req.params.fileId }, "Media file deleted");
+    res.json({ fileId: req.params.fileId, deleted: true });
+  } catch (error) {
+    req.log.warn({ fileId: req.params.fileId, error: error instanceof Error ? error.message : "unknown" }, "Media file deletion failed");
+    res.status(500).json({ error: "The video file could not be deleted." });
+  }
+});
+
 export default router;

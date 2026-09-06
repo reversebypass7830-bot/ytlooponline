@@ -100,6 +100,11 @@ export interface MediaUploadResponse {
   playbackUrl: string;
 }
 
+export interface MediaDeleteResponse {
+  fileId: string;
+  deleted: boolean;
+}
+
 export interface YoutubeDownloadInput {
   /** @minLength 1 */
   url: string;

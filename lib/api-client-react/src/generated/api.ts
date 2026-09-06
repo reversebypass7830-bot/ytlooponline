@@ -27,6 +27,7 @@ import type {
   LicenseClientInput,
   LicenseListResponse,
   LicenseWorkspaceResponse,
+  MediaDeleteResponse,
   MediaUploadResponse,
   RenewLicenseForUserInput,
   RenewLicenseInput,
@@ -511,6 +512,77 @@ export function useGetMediaFile<TData = Awaited<ReturnType<typeof getMediaFile>>
 
 
 
+
+export const getDeleteMediaFileUrl = (fileId: string,) => {
+
+
+
+
+  return `/api/media/files/${fileId}`
+}
+
+/**
+ * @summary Delete an uploaded local media file
+ */
+export const deleteMediaFile = async (fileId: string, options?: Parameters<typeof customFetch>[1]): Promise<MediaDeleteResponse> => {
+
+  return customFetch<MediaDeleteResponse>(getDeleteMediaFileUrl(fileId),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getDeleteMediaFileMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteMediaFile>>, TError,{fileId: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteMediaFile>>, TError,{fileId: string}, TContext> => {
+
+const mutationKey = ['deleteMediaFile'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteMediaFile>>, {fileId: string}> = (props) => {
+          const {fileId} = props ?? {};
+
+          return  deleteMediaFile(fileId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteMediaFileMutationResult = NonNullable<Awaited<ReturnType<typeof deleteMediaFile>>>
+
+    export type DeleteMediaFileMutationError = ErrorType<void>
+
+    /**
+ * @summary Delete an uploaded local media file
+ */
+export const useDeleteMediaFile = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteMediaFile>>, TError,{fileId: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof deleteMediaFile>>,
+        TError,
+        {fileId: string},
+        TContext
+      > => {
+      return useMutation(getDeleteMediaFileMutationOptions(options));
+    }
 
 export const getDownloadYoutubeVideoUrl = () => {
 

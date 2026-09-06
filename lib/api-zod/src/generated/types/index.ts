@@ -14,6 +14,7 @@ export * from './licenseClientInput';
 export * from './licenseListResponse';
 export * from './licenseWorkspaceData';
 export * from './licenseWorkspaceResponse';
+export * from './mediaDeleteResponse';
 export * from './mediaUploadResponse';
 export * from './ownerPasswordParameter';
 export * from './renewLicenseForUserInput';

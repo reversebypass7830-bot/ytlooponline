@@ -131,6 +131,22 @@ export const GetMediaFileResponse = zod.unknown()
 
 
 /**
+ * @summary Delete an uploaded local media file
+ */
+
+
+
+export const DeleteMediaFileParams = zod.object({
+  "fileId": zod.coerce.string().min(1)
+})
+
+export const DeleteMediaFileResponse = zod.object({
+  "fileId": zod.string(),
+  "deleted": zod.boolean()
+})
+
+
+/**
  * @summary Download a YouTube video at the best available quality
  */
 

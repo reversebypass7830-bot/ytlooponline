@@ -147,6 +147,26 @@ paths:
                 format: binary
         "404":
           description: Media file not found
+    delete:
+      operationId: deleteMediaFile
+      tags: [media]
+      summary: Delete an uploaded local media file
+      parameters:
+        - name: fileId
+          in: path
+          required: true
+          schema:
+            type: string
+            minLength: 1
+      responses:
+        "200":
+          description: Media file deletion result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MediaDeleteResponse"
+        "400":
+          description: Invalid media file id
   /media/youtube-download:
     post:
       operationId: downloadYoutubeVideo
@@ -449,6 +469,16 @@ components:
         - filename
         - sourcePath
         - playbackUrl
+    MediaDeleteResponse:
+      type: object
+      properties:
+        fileId:
+          type: string
+        deleted:
+          type: boolean
+      required:
+        - fileId
+        - deleted
     YoutubeDownloadInput:
       type: object
       properties:
