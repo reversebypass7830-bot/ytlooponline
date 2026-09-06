@@ -285,14 +285,22 @@ function useWorkspace(license: LicenseSession | null, clearLicense: () => void) 
     ]).then(([workspaceResult, mediaResult]) => {
       if (cancelled) return;
       const base = normalizeWorkspace(workspaceResult.data);
-      const knownIds = new Set(base.videos.map((video) => getMediaFileId(video)));
+      const availableMediaIds = new Set(mediaResult.files.map((file) => file.fileId));
+      const existingVideos = base.videos.filter((video) => {
+        const mediaFileId = getMediaFileId(video);
+        return !mediaFileId || availableMediaIds.has(mediaFileId);
+      });
+      const workspaceBase = existingVideos.length === base.videos.length
+        ? base
+        : normalizeWorkspace({ ...base, videos: existingVideos });
+      const knownIds = new Set(workspaceBase.videos.map((video) => getMediaFileId(video)));
       const extraFiles = mediaResult.files.filter((file) => !knownIds.has(file.fileId));
       if (!extraFiles.length) {
-        setData(base);
+        setData(workspaceBase);
         setReady(true);
         return;
       }
-      let groups = [...base.groups];
+      let groups = [...workspaceBase.groups];
       const extraVideos = extraFiles.map((file, index) => {
         const folderName = file.folderName.trim();
         let group = folderName ? groups.find((item) => item.name.trim().toLowerCase() === folderName.toLowerCase()) : undefined;
@@ -321,7 +329,7 @@ function useWorkspace(license: LicenseSession | null, clearLicense: () => void) 
         }
         return video;
       });
-      setData(normalizeWorkspace({ ...base, groups, videos: [...base.videos, ...extraVideos] }));
+      setData(normalizeWorkspace({ ...workspaceBase, groups, videos: [...workspaceBase.videos, ...extraVideos] }));
       setReady(true);
     }).catch((reason) => {
       if (!cancelled) {
