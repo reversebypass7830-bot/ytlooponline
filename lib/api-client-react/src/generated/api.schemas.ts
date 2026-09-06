@@ -105,6 +105,25 @@ export interface MediaDeleteResponse {
   deleted: boolean;
 }
 
+export interface MediaFileRecord {
+  fileId: string;
+  filename: string;
+  sourcePath: string;
+  playbackUrl: string;
+  title: string;
+  duration: string;
+  licenseId: string;
+  licenseName: string;
+  folderName: string;
+  quality: string;
+  createdAt: string;
+  sizeBytes: number;
+}
+
+export interface MediaFileListResponse {
+  files: MediaFileRecord[];
+}
+
 export interface TrimMediaInput {
   /** @minimum 0 */
   startSeconds?: number;
@@ -120,9 +139,25 @@ export interface MediaTrimResponse {
   duration: string;
 }
 
+export type YoutubeDownloadInputQuality = typeof YoutubeDownloadInputQuality[keyof typeof YoutubeDownloadInputQuality];
+
+
+export const YoutubeDownloadInputQuality = {
+  best: 'best',
+  '2160p': '2160p',
+  '1440p': '1440p',
+  '1080p': '1080p',
+  '720p': '720p',
+  '480p': '480p',
+} as const;
+
 export interface YoutubeDownloadInput {
   /** @minLength 1 */
   url: string;
+  quality?: YoutubeDownloadInputQuality;
+  licenseId?: string;
+  licenseName?: string;
+  folderName?: string;
 }
 
 export interface YoutubeDownloadResponse {
@@ -132,6 +167,20 @@ export interface YoutubeDownloadResponse {
   playbackUrl: string;
   title: string;
   duration: string;
+  quality: string;
+  licenseId: string;
+  licenseName: string;
+  folderName: string;
+}
+
+export interface YoutubeFormatsInput {
+  /** @minLength 1 */
+  url: string;
+}
+
+export interface YoutubeFormatsResponse {
+  qualities: string[];
+  title: string;
 }
 
 export interface ExtractYoutubeChannelLinksInput {
@@ -212,4 +261,8 @@ export interface WorkspaceSaveResponse {
 }
 
 export type OwnerPasswordParameter = string;
+
+export type ListMediaFilesParams = {
+licenseId?: string;
+};
 

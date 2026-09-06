@@ -196,6 +196,31 @@ export const DeleteMediaFileResponse = zod.object({
 
 
 /**
+ * @summary List media files stored on the server
+ */
+export const ListMediaFilesQueryParams = zod.object({
+  "licenseId": zod.coerce.string().optional()
+})
+
+export const ListMediaFilesResponse = zod.object({
+  "files": zod.array(zod.object({
+  "fileId": zod.string(),
+  "filename": zod.string(),
+  "sourcePath": zod.string(),
+  "playbackUrl": zod.string(),
+  "title": zod.string(),
+  "duration": zod.string(),
+  "licenseId": zod.string(),
+  "licenseName": zod.string(),
+  "folderName": zod.string(),
+  "quality": zod.string(),
+  "createdAt": zod.coerce.date(),
+  "sizeBytes": zod.number()
+}))
+})
+
+
+/**
  * @summary Create a trimmed MP4 clip from a local media file
  */
 
@@ -230,10 +255,14 @@ export const TrimMediaFileResponse = zod.object({
  * @summary Download a YouTube video at the best available quality
  */
 
-
+export const downloadYoutubeVideoBodyQualityDefault = `best`;
 
 export const DownloadYoutubeVideoBody = zod.object({
-  "url": zod.string().min(1)
+  "url": zod.string().min(1),
+  "quality": zod.enum(['best', '2160p', '1440p', '1080p', '720p', '480p']).default(downloadYoutubeVideoBodyQualityDefault),
+  "licenseId": zod.string().optional(),
+  "licenseName": zod.string().optional(),
+  "folderName": zod.string().optional()
 })
 
 export const DownloadYoutubeVideoResponse = zod.object({
@@ -242,7 +271,27 @@ export const DownloadYoutubeVideoResponse = zod.object({
   "sourcePath": zod.string(),
   "playbackUrl": zod.string(),
   "title": zod.string(),
-  "duration": zod.string()
+  "duration": zod.string(),
+  "quality": zod.string(),
+  "licenseId": zod.string(),
+  "licenseName": zod.string(),
+  "folderName": zod.string()
+})
+
+
+/**
+ * @summary List available YouTube video qualities
+ */
+
+
+
+export const GetYoutubeFormatsBody = zod.object({
+  "url": zod.string().min(1)
+})
+
+export const GetYoutubeFormatsResponse = zod.object({
+  "qualities": zod.array(zod.string()),
+  "title": zod.string()
 })
 
 

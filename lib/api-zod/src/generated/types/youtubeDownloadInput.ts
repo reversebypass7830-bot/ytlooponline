@@ -5,8 +5,13 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { YoutubeDownloadInputQuality } from './youtubeDownloadInputQuality';
 
 export interface YoutubeDownloadInput {
   /** @minLength 1 */
   url: string;
+  quality?: YoutubeDownloadInputQuality;
+  licenseId?: string;
+  licenseName?: string;
+  folderName?: string;
 }

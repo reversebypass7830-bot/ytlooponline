@@ -190,6 +190,24 @@ paths:
                 $ref: "#/components/schemas/MediaDeleteResponse"
         "400":
           description: Invalid media file id
+  /media/files:
+    get:
+      operationId: listMediaFiles
+      tags: [media]
+      summary: List media files stored on the server
+      parameters:
+        - name: licenseId
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Stored media files
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MediaFileListResponse"
   /media/files/{fileId}/trim:
     post:
       operationId: trimMediaFile
@@ -237,6 +255,26 @@ paths:
                 $ref: "#/components/schemas/YoutubeDownloadResponse"
         "400":
           description: Invalid URL or download failure
+  /media/youtube-formats:
+    post:
+      operationId: getYoutubeFormats
+      tags: [media]
+      summary: List available YouTube video qualities
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/YoutubeFormatsInput"
+      responses:
+        "200":
+          description: Available video qualities
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/YoutubeFormatsResponse"
+        "400":
+          description: Invalid URL or format lookup failure
   /media/youtube-channel-links:
     post:
       operationId: extractYoutubeChannelLinks
@@ -549,6 +587,56 @@ components:
       required:
         - fileId
         - deleted
+    MediaFileRecord:
+      type: object
+      properties:
+        fileId:
+          type: string
+        filename:
+          type: string
+        sourcePath:
+          type: string
+        playbackUrl:
+          type: string
+        title:
+          type: string
+        duration:
+          type: string
+        licenseId:
+          type: string
+        licenseName:
+          type: string
+        folderName:
+          type: string
+        quality:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        sizeBytes:
+          type: number
+      required:
+        - fileId
+        - filename
+        - sourcePath
+        - playbackUrl
+        - title
+        - duration
+        - licenseId
+        - licenseName
+        - folderName
+        - quality
+        - createdAt
+        - sizeBytes
+    MediaFileListResponse:
+      type: object
+      properties:
+        files:
+          type: array
+          items:
+            $ref: "#/components/schemas/MediaFileRecord"
+      required:
+        - files
     TrimMediaInput:
       type: object
       properties:
@@ -586,6 +674,16 @@ components:
         url:
           type: string
           minLength: 1
+        quality:
+          type: string
+          enum: [best, 2160p, 1440p, 1080p, 720p, 480p]
+          default: best
+        licenseId:
+          type: string
+        licenseName:
+          type: string
+        folderName:
+          type: string
       required:
         - url
     YoutubeDownloadResponse:
@@ -603,6 +701,14 @@ components:
           type: string
         duration:
           type: string
+        quality:
+          type: string
+        licenseId:
+          type: string
+        licenseName:
+          type: string
+        folderName:
+          type: string
       required:
         - fileId
         - filename
@@ -610,6 +716,30 @@ components:
         - playbackUrl
         - title
         - duration
+        - quality
+        - licenseId
+        - licenseName
+        - folderName
+    YoutubeFormatsInput:
+      type: object
+      properties:
+        url:
+          type: string
+          minLength: 1
+      required:
+        - url
+    YoutubeFormatsResponse:
+      type: object
+      properties:
+        qualities:
+          type: array
+          items:
+            type: string
+        title:
+          type: string
+      required:
+        - qualities
+        - title
     ExtractYoutubeChannelLinksInput:
       type: object
       properties:

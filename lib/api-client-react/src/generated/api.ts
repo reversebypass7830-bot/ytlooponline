@@ -28,7 +28,9 @@ import type {
   LicenseClientInput,
   LicenseListResponse,
   LicenseWorkspaceResponse,
+  ListMediaFilesParams,
   MediaDeleteResponse,
+  MediaFileListResponse,
   MediaTrimResponse,
   MediaUploadResponse,
   RenewLicenseForUserInput,
@@ -41,7 +43,9 @@ import type {
   WorkspaceSaveResponse,
   YoutubeChannelLinksResponse,
   YoutubeDownloadInput,
-  YoutubeDownloadResponse
+  YoutubeDownloadResponse,
+  YoutubeFormatsInput,
+  YoutubeFormatsResponse
 } from './api.schemas';
 
 import { customFetch } from '../custom-fetch';
@@ -660,6 +664,90 @@ export const useDeleteMediaFile = <TError = ErrorType<void>,
       return useMutation(getDeleteMediaFileMutationOptions(options));
     }
 
+export const getListMediaFilesUrl = (params?: ListMediaFilesParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/media/files?${stringifiedParams}` : `/api/media/files`
+}
+
+/**
+ * @summary List media files stored on the server
+ */
+export const listMediaFiles = async (params?: ListMediaFilesParams, options?: Parameters<typeof customFetch>[1]): Promise<MediaFileListResponse> => {
+
+  return customFetch<MediaFileListResponse>(getListMediaFilesUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListMediaFilesQueryKey = (params?: ListMediaFilesParams,) => {
+    return [
+    `/api/media/files`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getListMediaFilesQueryOptions = <TData = Awaited<ReturnType<typeof listMediaFiles>>, TError = ErrorType<unknown>>(params?: ListMediaFilesParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listMediaFiles>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListMediaFilesQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listMediaFiles>>> = ({ signal }) => listMediaFiles(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listMediaFiles>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListMediaFilesQueryResult = NonNullable<Awaited<ReturnType<typeof listMediaFiles>>>
+export type ListMediaFilesQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List media files stored on the server
+ */
+
+export function useListMediaFiles<TData = Awaited<ReturnType<typeof listMediaFiles>>, TError = ErrorType<unknown>>(
+ params?: ListMediaFilesParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listMediaFiles>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListMediaFilesQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
 export const getTrimMediaFileUrl = (fileId: string,) => {
 
 
@@ -801,6 +889,77 @@ export const useDownloadYoutubeVideo = <TError = ErrorType<void>,
         TContext
       > => {
       return useMutation(getDownloadYoutubeVideoMutationOptions(options));
+    }
+
+export const getGetYoutubeFormatsUrl = () => {
+
+
+
+
+  return `/api/media/youtube-formats`
+}
+
+/**
+ * @summary List available YouTube video qualities
+ */
+export const getYoutubeFormats = async (youtubeFormatsInput: YoutubeFormatsInput, options?: Parameters<typeof customFetch>[1]): Promise<YoutubeFormatsResponse> => {
+
+  return customFetch<YoutubeFormatsResponse>(getGetYoutubeFormatsUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(youtubeFormatsInput)
+  }
+);}
+
+
+
+
+
+export const getGetYoutubeFormatsMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof getYoutubeFormats>>, TError,{data: BodyType<YoutubeFormatsInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof getYoutubeFormats>>, TError,{data: BodyType<YoutubeFormatsInput>}, TContext> => {
+
+const mutationKey = ['getYoutubeFormats'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof getYoutubeFormats>>, {data: BodyType<YoutubeFormatsInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  getYoutubeFormats(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type GetYoutubeFormatsMutationResult = NonNullable<Awaited<ReturnType<typeof getYoutubeFormats>>>
+    export type GetYoutubeFormatsMutationBody = BodyType<YoutubeFormatsInput>
+    export type GetYoutubeFormatsMutationError = ErrorType<void>
+
+    /**
+ * @summary List available YouTube video qualities
+ */
+export const useGetYoutubeFormats = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof getYoutubeFormats>>, TError,{data: BodyType<YoutubeFormatsInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof getYoutubeFormats>>,
+        TError,
+        {data: BodyType<YoutubeFormatsInput>},
+        TContext
+      > => {
+      return useMutation(getGetYoutubeFormatsMutationOptions(options));
     }
 
 export const getExtractYoutubeChannelLinksUrl = () => {

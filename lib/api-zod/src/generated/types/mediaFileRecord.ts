@@ -6,15 +6,17 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface YoutubeDownloadResponse {
+export interface MediaFileRecord {
   fileId: string;
   filename: string;
   sourcePath: string;
   playbackUrl: string;
   title: string;
   duration: string;
-  quality: string;
   licenseId: string;
   licenseName: string;
   folderName: string;
+  quality: string;
+  createdAt: Date;
+  sizeBytes: number;
 }
