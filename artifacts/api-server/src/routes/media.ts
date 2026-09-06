@@ -31,12 +31,54 @@ const configuredYoutubeCookies = process.env.YOUTUBE_COOKIES?.trim();
 const configuredYoutubeCookiesFile = process.env.YT_DLP_COOKIES_FILE?.trim();
 let youtubeCookiesFilePromise: Promise<string | undefined> | undefined;
 
+function normalizeYoutubeCookies(raw: string): string {
+  const trimmed = raw.trim();
+  if (!trimmed.startsWith("{") && !trimmed.startsWith("[")) return raw;
+  try {
+    const parsed = JSON.parse(trimmed) as unknown;
+    const cookies = Array.isArray(parsed)
+      ? parsed
+      : parsed && typeof parsed === "object" && Array.isArray((parsed as { cookies?: unknown }).cookies)
+        ? (parsed as { cookies: unknown[] }).cookies
+        : null;
+    if (!cookies) return raw;
+    const lines = [
+      "# Netscape HTTP Cookie File",
+      ...cookies.flatMap((item) => {
+        if (!item || typeof item !== "object") return [];
+        const cookie = item as {
+          domain?: unknown; path?: unknown; name?: unknown; value?: unknown;
+          expirationDate?: unknown; expires?: unknown; expiration?: unknown;
+          hostOnly?: unknown; includeSubdomains?: unknown; secure?: unknown;
+        };
+        if (typeof cookie.domain !== "string" || typeof cookie.name !== "string" || typeof cookie.value !== "string") return [];
+        const includeSubdomains = cookie.includeSubdomains === true || cookie.hostOnly !== true || cookie.domain.startsWith(".");
+        const expiry = [cookie.expirationDate, cookie.expires, cookie.expiration]
+          .map((value) => Number(value))
+          .find((value) => Number.isFinite(value) && value > 0);
+        return [[
+          cookie.domain,
+          includeSubdomains ? "TRUE" : "FALSE",
+          typeof cookie.path === "string" && cookie.path ? cookie.path : "/",
+          cookie.secure === true ? "TRUE" : "FALSE",
+          expiry ? String(Math.floor(expiry)) : "0",
+          cookie.name,
+          cookie.value,
+        ].join("\t")];
+      }),
+    ];
+    return lines.join("\n");
+  } catch {
+    return raw;
+  }
+}
+
 async function getYoutubeCookiesFile(): Promise<string | undefined> {
   if (configuredYoutubeCookiesFile) return configuredYoutubeCookiesFile;
   if (!configuredYoutubeCookies) return undefined;
   youtubeCookiesFilePromise ??= (async () => {
     const filePath = path.join("/tmp", `signal-desk-youtube-cookies-${randomUUID()}.txt`);
-    await writeFile(filePath, configuredYoutubeCookies, { encoding: "utf8", mode: 0o600 });
+    await writeFile(filePath, normalizeYoutubeCookies(configuredYoutubeCookies), { encoding: "utf8", mode: 0o600 });
     return filePath;
   })();
   return youtubeCookiesFilePromise;
@@ -518,12 +560,10 @@ async function inspectYoutubeFormats(url: string): Promise<{ qualities: string[]
         const flags = ({
           noPlaylist: true,
           noWarnings: true,
-          skipDownload: true,
-          dumpSingleJson: true,
+          listFormats: true,
           socketTimeout: 20,
           ...(cookiesFile ? { cookies: cookiesFile } : {}),
           extractorArgs: `youtube:player_client=${client}`,
-          format: "best",
         } as unknown) as Parameters<typeof youtubeDownloader.exec>[1];
         const child = youtubeDownloader.exec(url, flags);
         const promiseLike = child as typeof child & { catch?: (handler: () => void) => unknown };
@@ -539,14 +579,14 @@ async function inspectYoutubeFormats(url: string): Promise<{ qualities: string[]
             return;
           }
           try {
-            const info = JSON.parse(stdout) as { title?: unknown; formats?: Array<{ vcodec?: string; height?: number }> };
-            const heights = Array.from(new Set((info.formats || [])
-              .filter((format) => format.vcodec && format.vcodec !== "none" && Number.isFinite(format.height))
-              .map((format) => Number(format.height))))
+            const formatOutput = `${stdout}\n${stderr}`;
+            const heights = Array.from(new Set(Array.from(formatOutput.matchAll(/\b(?:\d{3,4}p|\d{3,4}x(\d{3,4}))\b/gi))
+              .map((match) => Number(match[1] || match[0].replace(/p$/i, "")))
+              .filter((height) => Number.isFinite(height))))
               .sort((a, b) => b - a);
             resolve({
               qualities: ["best", ...heights.map((height) => `${height}p`).filter((quality) => ["2160p", "1440p", "1080p", "720p", "480p"].includes(quality))],
-              title: typeof info.title === "string" ? info.title : "YouTube video",
+              title: "YouTube video",
             });
           } catch {
             reject(new Error("YouTube returned invalid quality data."));
