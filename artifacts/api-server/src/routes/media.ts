@@ -3,7 +3,8 @@ import { mkdir, readdir, stat, unlink } from "node:fs/promises";
 import path from "node:path";
 import { pipeline } from "node:stream/promises";
 import { Router, type IRouter } from "express";
-import { randomUUID } from "node:crypto";
+import { createHmac, randomUUID } from "node:crypto";
+import { Readable } from "node:stream";
 import { DownloadYoutubeVideoBody, DownloadYoutubeVideoResponse } from "@workspace/api-zod";
 import youtubeDl, { create as createYoutubeDl } from "youtube-dl-exec";
 import ffmpegPath from "ffmpeg-static";
@@ -36,6 +37,16 @@ function formatDuration(seconds: unknown): string {
   return hours > 0
     ? `${hours}:${String(minutes).padStart(2, "0")}:${String(remainder).padStart(2, "0")}`
     : `${String(minutes).padStart(2, "0")}:${String(remainder).padStart(2, "0")}`;
+}
+
+function normalizeDuration(value: unknown): string {
+  if (typeof value === "number") return formatDuration(value);
+  if (typeof value !== "string") return "00:00";
+  const parts = value.trim().split(":").map(Number);
+  if (parts.length < 2 || parts.some((part) => !Number.isFinite(part))) return "00:00";
+  const [first, second, third] = parts;
+  const seconds = parts.length === 3 ? first * 3600 + second * 60 + third : first * 60 + second;
+  return formatDuration(seconds);
 }
 
 function validateYoutubeUrl(rawUrl: string): string {
@@ -116,10 +127,192 @@ async function downloadYoutubeVideo(url: string, fileId: string): Promise<{ path
       };
     } catch (error) {
       lastError = error instanceof Error ? error.message : "YouTube video download failed.";
+      if (lastError.includes("Sign in to confirm") || lastError.includes("not a bot")) break;
     }
   }
 
-  throw new Error(lastError);
+  try {
+    return await downloadViaYtSave(url, fileId);
+  } catch (error) {
+    const fallbackError = error instanceof Error ? error.message : "YTSave fallback failed.";
+    throw new Error(`${lastError} YTSave fallback: ${fallbackError}`);
+  }
+}
+
+type YtSaveApi = {
+  status?: string;
+  message?: string;
+  title?: string;
+  progress?: string;
+  fileName?: string;
+  fileUrl?: string;
+  mediaItems?: Array<{
+    type?: string;
+    mediaUrl?: string;
+    mediaDuration?: string;
+    mediaFileSize?: string;
+  }>;
+};
+
+type YtSaveResponse = { api?: YtSaveApi };
+
+const ytsaveBaseUrl = "https://ytsave.to";
+const ytsaveUserAgent =
+  "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36";
+const ytsaveMintSecret = "bf735103af6bb295633270b05a7b0a42";
+
+function parseYtSaveSize(value: unknown): number | null {
+  if (typeof value !== "string") return null;
+  const match = value.trim().match(/^([\d.]+)\s*(KB|MB|GB)$/i);
+  if (!match) return null;
+  const amount = Number(match[1]);
+  if (!Number.isFinite(amount)) return null;
+  const unit = match[2].toUpperCase();
+  return amount * ({ KB: 1024 ** 1, MB: 1024 ** 2, GB: 1024 ** 3 }[unit] ?? 1);
+}
+
+function updateYtSaveCookies(response: Response, current: string): string {
+  const setCookie = response.headers.get("set-cookie");
+  if (!setCookie) return current;
+
+  const values = new Map(
+    current
+      .split(";")
+      .map((cookie) => cookie.trim().split("="))
+      .filter(([name, value]) => name && value)
+      .map(([name, ...value]) => [name, value.join("=")]),
+  );
+  for (const cookie of setCookie.split(/,(?=[^;,]+=)/)) {
+    const [name, ...value] = cookie.split(";", 1)[0].trim().split("=");
+    if (name && value.length) values.set(name, value.join("="));
+  }
+  return Array.from(values.entries())
+    .map(([name, value]) => `${name}=${value}`)
+    .join("; ");
+}
+
+async function ytsaveFetch(
+  endpoint: string,
+  options: { body?: string; cookies?: string; timeoutMs?: number } = {},
+): Promise<{ response: Response; cookies: string }> {
+  const response = await fetch(`${ytsaveBaseUrl}${endpoint}`, {
+    method: options.body === undefined ? "GET" : "POST",
+    headers: {
+      accept: "application/json, text/javascript, */*; q=0.01",
+      "content-type": "application/x-www-form-urlencoded; charset=UTF-8",
+      origin: ytsaveBaseUrl,
+      referer: `${ytsaveBaseUrl}/en2/`,
+      "user-agent": ytsaveUserAgent,
+      "x-requested-with": "XMLHttpRequest",
+      ...(options.cookies ? { cookie: options.cookies } : {}),
+    },
+    ...(options.body === undefined ? {} : { body: options.body }),
+    signal: AbortSignal.timeout(options.timeoutMs ?? 30_000),
+  });
+  return { response, cookies: updateYtSaveCookies(response, options.cookies ?? "") };
+}
+
+async function parseYtSaveResponse(response: Response): Promise<YtSaveResponse> {
+  const raw = await response.text();
+  let parsed: YtSaveResponse;
+  try {
+    parsed = JSON.parse(raw) as YtSaveResponse;
+  } catch {
+    throw new Error(`YTSave returned an invalid response (${response.status}).`);
+  }
+  if (!response.ok) {
+    throw new Error(parsed.api?.message || `YTSave request failed (${response.status}).`);
+  }
+  return parsed;
+}
+
+async function downloadViaYtSave(
+  url: string,
+  fileId: string,
+): Promise<{ path: string; title: string; duration: string }> {
+  const landing = await ytsaveFetch("/en2/", { timeoutMs: 30_000 });
+  const landingHtml = await landing.response.text();
+  if (!landing.response.ok) throw new Error(`YTSave landing page failed (${landing.response.status}).`);
+
+  const challenge = landingHtml.match(/data-ch="([^"]+)"/)?.[1];
+  if (!challenge) throw new Error("YTSave did not provide its verification challenge.");
+  const answer = createHmac("sha256", ytsaveMintSecret).update(challenge).digest("hex").slice(0, 32);
+  const minted = await ytsaveFetch("/mint.php", {
+    body: new URLSearchParams({ ch: challenge, answer }).toString(),
+    cookies: landing.cookies,
+    timeoutMs: 30_000,
+  });
+  const mintedJson = await parseYtSaveResponse(minted.response) as YtSaveResponse & { dt?: string };
+  if (!mintedJson.dt) throw new Error("YTSave verification did not return a download token.");
+
+  let cookies = minted.cookies;
+  const details = await ytsaveFetch("/proxy.php", {
+    body: new URLSearchParams({ url, dt: mintedJson.dt }).toString(),
+    cookies,
+    timeoutMs: 60_000,
+  });
+  cookies = details.cookies;
+  const detailsJson = await parseYtSaveResponse(details.response);
+  const api = detailsJson.api;
+  const videoOptions = api?.mediaItems?.filter((item) => item.type === "Video" && item.mediaUrl) ?? [];
+  const video =
+    videoOptions.find((item) => {
+      const size = parseYtSaveSize(item.mediaFileSize);
+      return size === null || size <= maxUploadBytes;
+    }) ?? videoOptions.at(-1);
+  if (api?.status !== "ok" || !video?.mediaUrl) {
+    throw new Error(api?.message || "YTSave could not prepare this YouTube video.");
+  }
+
+  let completed: YtSaveApi | undefined;
+  for (let attempt = 0; attempt < 900; attempt += 1) {
+    const poll = await ytsaveFetch("/proxy.php", {
+      body: new URLSearchParams({ url: video.mediaUrl, dt: mintedJson.dt }).toString(),
+      cookies,
+      timeoutMs: 60_000,
+    });
+    cookies = poll.cookies;
+    const pollApi = (await parseYtSaveResponse(poll.response)).api;
+    if (pollApi?.status === "completed" && pollApi.fileUrl) {
+      completed = pollApi;
+      break;
+    }
+    if (pollApi?.status === "error") {
+      throw new Error(pollApi.message || "YTSave could not render the selected quality.");
+    }
+    await new Promise((resolve) => setTimeout(resolve, 2_000));
+  }
+  if (!completed?.fileUrl) throw new Error("YTSave took too long to prepare the video.");
+
+  const fileResponse = await fetch(completed.fileUrl, {
+    headers: { referer: `${ytsaveBaseUrl}/en2/`, "user-agent": ytsaveUserAgent },
+    signal: AbortSignal.timeout(60 * 60 * 1000),
+  });
+  if (!fileResponse.ok || !fileResponse.body) {
+    throw new Error(`YTSave file download failed (${fileResponse.status}).`);
+  }
+  const size = Number(fileResponse.headers.get("content-length") || 0);
+  if (size > maxUploadBytes) throw new Error("The downloaded video is larger than 1.5 GB.");
+
+  const destination = path.join(mediaDir, `${fileId}.mp4`);
+  let received = 0;
+  const readable = Readable.fromWeb(fileResponse.body as import("node:stream/web").ReadableStream);
+  readable.on("data", (chunk: Buffer) => {
+    received += chunk.length;
+    if (received > maxUploadBytes) readable.destroy(new Error("The downloaded video is larger than 1.5 GB."));
+  });
+  try {
+    await pipeline(readable, createWriteStream(destination));
+  } catch (error) {
+    await unlink(destination).catch(() => undefined);
+    throw error;
+  }
+
+  return {
+    path: destination,
+    title: api.title?.trim() || "Downloaded YouTube video",
+    duration: normalizeDuration(video.mediaDuration),
+  };
 }
 
 router.post("/media/upload", async (req, res): Promise<void> => {
