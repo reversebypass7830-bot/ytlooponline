@@ -27,6 +27,20 @@ const youtubeDownloader = process.env.YT_DLP_BIN?.trim()
   ? createYoutubeDl(process.env.YT_DLP_BIN.trim())
   : youtubeDl;
 const mediaIndexPath = path.join(mediaDir, "media-index.json");
+const configuredYoutubeCookies = process.env.YOUTUBE_COOKIES?.trim();
+const configuredYoutubeCookiesFile = process.env.YT_DLP_COOKIES_FILE?.trim();
+let youtubeCookiesFilePromise: Promise<string | undefined> | undefined;
+
+async function getYoutubeCookiesFile(): Promise<string | undefined> {
+  if (configuredYoutubeCookiesFile) return configuredYoutubeCookiesFile;
+  if (!configuredYoutubeCookies) return undefined;
+  youtubeCookiesFilePromise ??= (async () => {
+    const filePath = path.join("/tmp", `signal-desk-youtube-cookies-${randomUUID()}.txt`);
+    await writeFile(filePath, configuredYoutubeCookies, { encoding: "utf8", mode: 0o600 });
+    return filePath;
+  })();
+  return youtubeCookiesFilePromise;
+}
 
 type MediaRecord = {
   fileId: string;
@@ -249,6 +263,7 @@ async function downloadYoutubeVideo(
   const outputTemplate = path.join(mediaDir, `${fileId}.%(ext)s`);
   const clients = ["android", "web_embedded", "mweb", "ios"];
   const requestedQuality = (context.quality || "best") as DownloadQuality;
+  const cookiesFile = await getYoutubeCookiesFile();
   let lastError = "YouTube video download failed.";
 
   for (const client of clients) {
@@ -271,6 +286,7 @@ async function downloadYoutubeVideo(
            concurrentFragments: 8,
            httpChunkSize: "10M",
            bufferSize: "16K",
+           ...(cookiesFile ? { cookies: cookiesFile } : {}),
           extractorArgs: `youtube:player_client=${client}`,
            format: youtubeFormat(requestedQuality),
           mergeOutputFormat: "mp4",
@@ -434,14 +450,15 @@ async function downloadViaYtSave(
   cookies = details.cookies;
   const detailsJson = await parseYtSaveResponse(details.response);
   const api = detailsJson.api;
-  const videoOptions = api?.mediaItems?.filter((item) => item.type === "Video" && item.mediaUrl) ?? [];
+  const mediaItems = Array.isArray(api?.mediaItems) ? api.mediaItems : [];
+  const videoOptions = mediaItems.filter((item) => item.type === "Video" && item.mediaUrl);
   const requestedHeight = qualityHeight((context.quality || "best") as DownloadQuality);
   const video = videoOptions.find((item) => {
     const label = item.quality || item.mediaUrl?.match(/(\d{3,4})p/i)?.[1];
     return requestedHeight ? Number(label) <= requestedHeight : true;
   }) || videoOptions[0];
   if (api?.status !== "ok" || !video?.mediaUrl) {
-    throw new Error(api?.message || "YTSave could not prepare this YouTube video.");
+    throw new Error(api?.message || "YTSave could not prepare this YouTube video. The fallback provider returned no downloadable formats.");
   }
 
   let completed: YtSaveApi | undefined;
@@ -493,6 +510,7 @@ async function downloadViaYtSave(
 
 async function inspectYoutubeFormats(url: string): Promise<{ qualities: string[]; title: string }> {
   const clients = ["android", "web_embedded"];
+  const cookiesFile = await getYoutubeCookiesFile();
   let lastError = "Could not inspect YouTube qualities.";
   for (const client of clients) {
     try {
@@ -503,6 +521,7 @@ async function inspectYoutubeFormats(url: string): Promise<{ qualities: string[]
           skipDownload: true,
           dumpSingleJson: true,
           socketTimeout: 20,
+          ...(cookiesFile ? { cookies: cookiesFile } : {}),
           extractorArgs: `youtube:player_client=${client}`,
           format: "best",
         } as unknown) as Parameters<typeof youtubeDownloader.exec>[1];
@@ -715,7 +734,7 @@ router.post("/media/youtube-download", async (req, res): Promise<void> => {
     const message = missingDownloader
       ? "The bundled YouTube downloader is unavailable. Redeploy the latest build and try again."
       : blockedByYoutube
-        ? "YouTube is blocking this video for the server right now. Try another public video, or upload the video file directly from Video Library. Private, age-restricted, region-restricted, and newly blocked videos need an authorized YouTube session."
+        ? "YouTube is blocking this video for the server. Add an authorized Netscape cookies file as the YOUTUBE_COOKIES secret, or upload the video directly from Video Library. Private, age-restricted, region-restricted, and newly blocked videos require an authorized YouTube session."
         : rawMessage;
     req.log.warn({ error: message }, "YouTube download failed");
     res.status(missingDownloader ? 503 : 400).json({ error: message });
