@@ -16,6 +16,7 @@ export type StreamRunnerInput = {
   faceSource?: string;
   faceSources?: string[];
   playbackSpeed?: number;
+  quality?: "4k" | "1080p";
   aspectRatio?: "shorts" | "full" | "square";
   facePosition?: "top-left" | "top-right" | "bottom-left" | "bottom-right" | "center";
   faceScale?: number;
@@ -128,15 +129,19 @@ function buildFfmpegArgs(
 ): string[] {
   const ingestUrl = validateIngestUrl(input.ingestUrl);
   const aspectRatio = input.aspectRatio ?? "full";
+  const quality = input.quality ?? "4k";
   const dimensions = {
     shorts: [1080, 1920],
-    full: [1920, 1080],
+    full: quality === "4k" ? [3840, 2160] : [1920, 1080],
     square: [1080, 1080],
   }[aspectRatio];
   const [width, height] = dimensions;
   const facePath = faceInput?.path;
   const playbackSpeed = Math.min(2, Math.max(0.5, input.playbackSpeed ?? 1));
-  const needsVideoFilter = aspectRatio !== "full" || Boolean(facePath) || playbackSpeed !== 1;
+  const needsVideoFilter = aspectRatio !== "full" || Boolean(facePath) || playbackSpeed !== 1 || quality === "1080p";
+  const videoBitrate = quality === "4k" && aspectRatio === "full" ? "28M" : "8M";
+  const videoBuffer = quality === "4k" && aspectRatio === "full" ? "56M" : "16M";
+  const videoLevel = quality === "4k" && aspectRatio === "full" ? "5.2" : "4.2";
 
   const inputArgs = [
     "-hide_banner",
@@ -194,17 +199,17 @@ function buildFfmpegArgs(
         "-tune",
         "zerolatency",
         "-b:v",
-        "8M",
+        videoBitrate,
         "-minrate",
-        "8M",
+        videoBitrate,
         "-maxrate",
-        "8M",
+        videoBitrate,
         "-bufsize",
-        "16M",
+        videoBuffer,
         "-profile:v",
         "high",
         "-level",
-        "4.2",
+        videoLevel,
         "-pix_fmt",
         "yuv420p",
         "-r",
@@ -226,7 +231,7 @@ function buildFfmpegArgs(
     "-c:a",
     "aac",
     "-b:a",
-    "160k",
+      "192k",
     "-ar",
     "44100",
     ...(playbackSpeed === 1 ? [] : ["-af", `atempo=${playbackSpeed}`]),

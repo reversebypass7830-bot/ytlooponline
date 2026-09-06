@@ -34,6 +34,7 @@ router.post("/stream/start", (req, res): void => {
       faceSource: parsed.data.faceSource,
       faceSources: parsed.data.faceSources,
       playbackSpeed: parsed.data.playbackSpeed,
+      quality: parsed.data.quality,
       aspectRatio: parsed.data.aspectRatio,
       facePosition: parsed.data.facePosition,
       faceScale: parsed.data.faceScale,

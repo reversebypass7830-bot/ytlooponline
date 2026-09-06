@@ -380,6 +380,10 @@ components:
           minimum: 0.5
           maximum: 2
           default: 1
+        quality:
+          type: string
+          enum: [4k, 1080p]
+          default: 4k
         aspectRatio:
           type: string
           enum: [shorts, full, square]

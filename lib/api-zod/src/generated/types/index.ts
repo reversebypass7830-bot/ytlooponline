@@ -24,6 +24,7 @@ export * from './streamControlResponseStatus';
 export * from './streamStartInput';
 export * from './streamStartInputAspectRatio';
 export * from './streamStartInputFacePosition';
+export * from './streamStartInputQuality';
 export * from './streamStopInput';
 export * from './workspaceSaveResponse';
 export * from './youtubeDownloadInput';

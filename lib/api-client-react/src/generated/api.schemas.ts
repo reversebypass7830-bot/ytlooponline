@@ -9,6 +9,14 @@ export interface HealthStatus {
   status: string;
 }
 
+export type StreamStartInputQuality = typeof StreamStartInputQuality[keyof typeof StreamStartInputQuality];
+
+
+export const StreamStartInputQuality = {
+  '4k': '4k',
+  '1080p': '1080p',
+} as const;
+
 export type StreamStartInputAspectRatio = typeof StreamStartInputAspectRatio[keyof typeof StreamStartInputAspectRatio];
 
 
@@ -47,6 +55,7 @@ export interface StreamStartInput {
      * @maximum 2
      */
   playbackSpeed?: number;
+  quality?: StreamStartInputQuality;
   aspectRatio?: StreamStartInputAspectRatio;
   facePosition?: StreamStartInputFacePosition;
   /**

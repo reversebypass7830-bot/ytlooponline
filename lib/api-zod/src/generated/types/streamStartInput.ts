@@ -7,6 +7,7 @@
  */
 import type { StreamStartInputAspectRatio } from './streamStartInputAspectRatio';
 import type { StreamStartInputFacePosition } from './streamStartInputFacePosition';
+import type { StreamStartInputQuality } from './streamStartInputQuality';
 
 export interface StreamStartInput {
   /** @minLength 1 */
@@ -26,6 +27,7 @@ export interface StreamStartInput {
      * @maximum 2
      */
   playbackSpeed?: number;
+  quality?: StreamStartInputQuality;
   aspectRatio?: StreamStartInputAspectRatio;
   facePosition?: StreamStartInputFacePosition;
   /**
