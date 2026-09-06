@@ -4,6 +4,7 @@ import { firebaseDelete, firebaseGet, firebasePut } from "../lib/firebase-rest";
 
 const router: IRouter = Router();
 const dayMs = 24 * 60 * 60 * 1000;
+const defaultOwnerPassword = "traderp1wer";
 
 type LicenseRecord = {
   id: string;
@@ -17,7 +18,7 @@ type LicenseRecord = {
 type LicenseMap = Record<string, Omit<LicenseRecord, "id">>;
 
 function configuredOwnerPassword(): string {
-  return process.env.OWNER_PASSWORD?.trim() || "";
+  return process.env.OWNER_PASSWORD?.trim() || defaultOwnerPassword;
 }
 
 function ownerAuthorized(req: Request): boolean {
