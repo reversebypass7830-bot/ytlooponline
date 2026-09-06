@@ -198,6 +198,23 @@ export const DownloadYoutubeVideoResponse = zod.object({
 
 
 /**
+ * @summary Extract public video links from a YouTube channel
+ */
+
+
+
+export const ExtractYoutubeChannelLinksBody = zod.object({
+  "url": zod.string().min(1)
+})
+
+export const ExtractYoutubeChannelLinksResponse = zod.object({
+  "channelUrl": zod.string(),
+  "links": zod.array(zod.string()),
+  "count": zod.number()
+})
+
+
+/**
  * @summary List licenses for the owner
  */
 export const ListLicensesHeader = zod.object({

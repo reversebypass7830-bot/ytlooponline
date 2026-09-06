@@ -9,6 +9,8 @@ import { Readable } from "node:stream";
 import {
   DownloadYoutubeVideoBody,
   DownloadYoutubeVideoResponse,
+  ExtractYoutubeChannelLinksBody,
+  ExtractYoutubeChannelLinksResponse,
   TrimMediaFileBody,
   TrimMediaFileResponse,
 } from "@workspace/api-zod";
@@ -85,6 +87,69 @@ function validateYoutubeUrl(rawUrl: string): string {
     throw new Error("Only YouTube video links are supported.");
   }
   return parsed.toString();
+}
+
+function validateYoutubeChannelUrl(rawUrl: string): string {
+  let parsed: URL;
+  try {
+    parsed = new URL(rawUrl);
+  } catch {
+    throw new Error("Enter a complete YouTube channel URL.");
+  }
+
+  const hostname = parsed.hostname.toLowerCase().replace(/^www\./, "");
+  const validHost = ["youtube.com", "m.youtube.com", "youtube-nocookie.com"].includes(hostname);
+  const channelPath = parsed.pathname.toLowerCase();
+  const validPath =
+    channelPath.startsWith("/@") ||
+    channelPath.startsWith("/channel/") ||
+    channelPath.startsWith("/c/") ||
+    channelPath.startsWith("/user/");
+  if (!validHost || !validPath) {
+    throw new Error("Enter a valid YouTube channel URL, such as https://www.youtube.com/@channel.");
+  }
+  return parsed.toString();
+}
+
+async function extractYoutubeChannelLinks(url: string): Promise<string[]> {
+  const response = await fetch("https://tubepilot.ai/wp-admin/admin-ajax.php", {
+    method: "POST",
+    headers: {
+      accept: "*/*",
+      "content-type": "application/x-www-form-urlencoded; charset=UTF-8",
+      origin: "https://tubepilot.ai",
+      referer: "https://tubepilot.ai/tools/youtube-channel-video-links-extractor/",
+      "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/152.0.0.0 Safari/537.36",
+      "x-requested-with": "XMLHttpRequest",
+    },
+    body: new URLSearchParams({ action: "video_links_extract", yt_url: url }).toString(),
+    signal: AbortSignal.timeout(60_000),
+  });
+  const html = await response.text();
+  if (!response.ok) throw new Error(`Channel link extractor failed (${response.status}).`);
+
+  const links = new Set<string>();
+  const hrefPattern = /href=['"]([^'"]+)['"]/gi;
+  for (const match of html.matchAll(hrefPattern)) {
+    const candidate = match[1].replace(/&amp;/g, "&");
+    try {
+      const parsed = new URL(candidate);
+      const hostname = parsed.hostname.toLowerCase().replace(/^www\./, "");
+      if (!["youtube.com", "m.youtube.com", "youtu.be"].includes(hostname)) continue;
+      if (hostname === "youtu.be" || parsed.pathname === "/watch" || parsed.pathname === "/shorts/") {
+        const videoId = hostname === "youtu.be"
+          ? parsed.pathname.slice(1)
+          : parsed.searchParams.get("v") || parsed.pathname.split("/").filter(Boolean).at(-1);
+        if (videoId && /^[\w-]{6,}$/.test(videoId)) {
+          links.add(`https://www.youtube.com/watch?v=${videoId}`);
+        }
+      }
+    } catch {
+      // Ignore unrelated links from the extractor's HTML response.
+    }
+  }
+  if (!links.size) throw new Error("No public video links were found for this channel.");
+  return Array.from(links);
 }
 
 async function downloadYoutubeVideo(url: string, fileId: string): Promise<{ path: string; title: string; duration: string }> {
@@ -349,6 +414,23 @@ router.post("/media/upload", async (req, res): Promise<void> => {
     await unlink(destination).catch(() => undefined);
     req.log.warn({ error: error instanceof Error ? error.message : "unknown error" }, "Media upload failed");
     res.status(400).json({ error: "The video upload could not be completed." });
+  }
+});
+
+router.post("/media/youtube-channel-links", async (req, res): Promise<void> => {
+  try {
+    const parsed = ExtractYoutubeChannelLinksBody.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ error: parsed.error.message });
+      return;
+    }
+    const url = validateYoutubeChannelUrl(parsed.data.url.trim());
+    const links = await extractYoutubeChannelLinks(url);
+    res.json(ExtractYoutubeChannelLinksResponse.parse({ channelUrl: url, links, count: links.length }));
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "The channel video links could not be extracted.";
+    req.log.warn({ error: message }, "YouTube channel link extraction failed");
+    res.status(400).json({ error: message });
   }
 });
 

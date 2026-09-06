@@ -22,6 +22,7 @@ import type {
 import type {
   CreateLicenseInput,
   DeleteLicenseResult,
+  ExtractYoutubeChannelLinksInput,
   HealthStatus,
   LicenseAccess,
   LicenseClientInput,
@@ -38,6 +39,7 @@ import type {
   StreamStopInput,
   TrimMediaInput,
   WorkspaceSaveResponse,
+  YoutubeChannelLinksResponse,
   YoutubeDownloadInput,
   YoutubeDownloadResponse
 } from './api.schemas';
@@ -727,6 +729,77 @@ export const useDownloadYoutubeVideo = <TError = ErrorType<void>,
         TContext
       > => {
       return useMutation(getDownloadYoutubeVideoMutationOptions(options));
+    }
+
+export const getExtractYoutubeChannelLinksUrl = () => {
+
+
+
+
+  return `/api/media/youtube-channel-links`
+}
+
+/**
+ * @summary Extract public video links from a YouTube channel
+ */
+export const extractYoutubeChannelLinks = async (extractYoutubeChannelLinksInput: ExtractYoutubeChannelLinksInput, options?: Parameters<typeof customFetch>[1]): Promise<YoutubeChannelLinksResponse> => {
+
+  return customFetch<YoutubeChannelLinksResponse>(getExtractYoutubeChannelLinksUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(extractYoutubeChannelLinksInput)
+  }
+);}
+
+
+
+
+
+export const getExtractYoutubeChannelLinksMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof extractYoutubeChannelLinks>>, TError,{data: BodyType<ExtractYoutubeChannelLinksInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof extractYoutubeChannelLinks>>, TError,{data: BodyType<ExtractYoutubeChannelLinksInput>}, TContext> => {
+
+const mutationKey = ['extractYoutubeChannelLinks'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof extractYoutubeChannelLinks>>, {data: BodyType<ExtractYoutubeChannelLinksInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  extractYoutubeChannelLinks(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ExtractYoutubeChannelLinksMutationResult = NonNullable<Awaited<ReturnType<typeof extractYoutubeChannelLinks>>>
+    export type ExtractYoutubeChannelLinksMutationBody = BodyType<ExtractYoutubeChannelLinksInput>
+    export type ExtractYoutubeChannelLinksMutationError = ErrorType<void>
+
+    /**
+ * @summary Extract public video links from a YouTube channel
+ */
+export const useExtractYoutubeChannelLinks = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof extractYoutubeChannelLinks>>, TError,{data: BodyType<ExtractYoutubeChannelLinksInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof extractYoutubeChannelLinks>>,
+        TError,
+        {data: BodyType<ExtractYoutubeChannelLinksInput>},
+        TContext
+      > => {
+      return useMutation(getExtractYoutubeChannelLinksMutationOptions(options));
     }
 
 export const getListLicensesUrl = () => {

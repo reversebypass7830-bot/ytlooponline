@@ -275,6 +275,9 @@ input:focus, textarea:focus, select:focus { border-color:#5fa49d; box-shadow:0 0
 .owner-create { margin-bottom:18px; }
 .owner-create-form { display:grid; grid-template-columns:minmax(0,1fr) 170px auto; gap:12px; align-items:end; }
 .owner-create-form .button { height:39px; white-space:nowrap; }
+.input-action-row { display:flex; align-items:center; gap:8px; }
+.input-action-row input { flex:1; min-width:0; }
+.input-action-row .button { flex:0 0 auto; white-space:nowrap; }
 .owner-list { min-height:220px; }
 .license-list { display:flex; flex-direction:column; gap:8px; }
 .license-row { display:grid; grid-template-columns:minmax(0,1fr) auto auto; gap:14px; align-items:center; padding:12px; border:1px solid #e5e9df; border-radius:9px; background:#fbfdf8; }
@@ -332,6 +335,8 @@ input:focus, textarea:focus, select:focus { border-color:#5fa49d; box-shadow:0 0
   .owner-content { padding:24px 16px 38px; }
   .owner-create-form { grid-template-columns:1fr; align-items:stretch; }
   .owner-create-form .button { width:100%; }
+  .input-action-row { align-items:stretch; flex-direction:column; }
+  .input-action-row .button { width:100%; }
   .license-row { grid-template-columns:1fr; gap:10px; }
   .license-row .actions { justify-content:flex-start; }
 }

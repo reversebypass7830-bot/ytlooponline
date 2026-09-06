@@ -134,6 +134,17 @@ export interface YoutubeDownloadResponse {
   duration: string;
 }
 
+export interface ExtractYoutubeChannelLinksInput {
+  /** @minLength 1 */
+  url: string;
+}
+
+export interface YoutubeChannelLinksResponse {
+  channelUrl: string;
+  links: string[];
+  count: number;
+}
+
 export interface CreateLicenseInput {
   /** @minLength 1 */
   name: string;

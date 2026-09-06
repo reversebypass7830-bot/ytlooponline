@@ -214,6 +214,26 @@ paths:
                 $ref: "#/components/schemas/YoutubeDownloadResponse"
         "400":
           description: Invalid URL or download failure
+  /media/youtube-channel-links:
+    post:
+      operationId: extractYoutubeChannelLinks
+      tags: [media]
+      summary: Extract public video links from a YouTube channel
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ExtractYoutubeChannelLinksInput"
+      responses:
+        "200":
+          description: Channel video links
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/YoutubeChannelLinksResponse"
+        "400":
+          description: Invalid channel URL or extraction failure
   /licenses:
     get:
       operationId: listLicenses
@@ -567,6 +587,29 @@ components:
         - playbackUrl
         - title
         - duration
+    ExtractYoutubeChannelLinksInput:
+      type: object
+      properties:
+        url:
+          type: string
+          minLength: 1
+      required:
+        - url
+    YoutubeChannelLinksResponse:
+      type: object
+      properties:
+        channelUrl:
+          type: string
+        links:
+          type: array
+          items:
+            type: string
+        count:
+          type: number
+      required:
+        - channelUrl
+        - links
+        - count
     CreateLicenseInput:
       type: object
       properties:

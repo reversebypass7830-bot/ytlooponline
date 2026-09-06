@@ -8,6 +8,7 @@
 
 export * from './createLicenseInput';
 export * from './deleteLicenseResult';
+export * from './extractYoutubeChannelLinksInput';
 export * from './healthStatus';
 export * from './licenseAccess';
 export * from './licenseClientInput';
@@ -30,5 +31,6 @@ export * from './streamStartInputQuality';
 export * from './streamStopInput';
 export * from './trimMediaInput';
 export * from './workspaceSaveResponse';
+export * from './youtubeChannelLinksResponse';
 export * from './youtubeDownloadInput';
 export * from './youtubeDownloadResponse';

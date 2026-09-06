@@ -10,7 +10,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/toaster";
 import NotFound from "@/pages/not-found";
-import { deleteMediaFile, downloadYoutubeVideo, getStreamStatus, startStream, stopStream, trimMediaFile } from "@workspace/api-client-react";
+import { deleteMediaFile, downloadYoutubeVideo, extractYoutubeChannelLinks, getStreamStatus, startStream, stopStream, trimMediaFile } from "@workspace/api-client-react";
 
 type LiveStatus = "live" | "scheduled" | "stopped";
 type VideoStatus = "published" | "draft" | "archived";
@@ -573,11 +573,24 @@ function formatDurationSeconds(value:number):string {
 
 function YoutubeDownloadModal({groups,defaultGroupId="",onSaveMany,onClose}:{groups:VideoGroup[];defaultGroupId?:string;onSaveMany:(videos:VideoItem[])=>void;onClose:()=>void}) {
   const [urls,setUrls]=useState(""); const [groupId,setGroupId]=useState(defaultGroupId); const [downloading,setDownloading]=useState(false);
-  const [progress,setProgress]=useState(0); const [error,setError]=useState("");
+  const [channelUrl,setChannelUrl]=useState(""); const [extracting,setExtracting]=useState(false); const [progress,setProgress]=useState(0); const [error,setError]=useState(""); const [extractedCount,setExtractedCount]=useState(0);
   const entries=urls.split(/\r?\n|,/).map(value=>value.trim()).filter(Boolean);
+  const extractChannel=async()=>{
+    if(!channelUrl.trim()||extracting||downloading)return;
+    setExtracting(true);setError("");setExtractedCount(0);
+    try{
+      const result=await extractYoutubeChannelLinks({url:channelUrl.trim()});
+      const existing=new Set(entries);
+      const fresh=result.links.filter(link=>!existing.has(link));
+      setUrls(current=>[current.trim(),...fresh].filter(Boolean).join("\n"));
+      setExtractedCount(fresh.length);
+      if(!fresh.length)setError("Those channel videos are already in the queue.");
+    }catch(reason){setError(reason instanceof Error?reason.message:"Channel links could not be extracted.");}
+    finally{setExtracting(false);}
+  };
   const submit=async(e:FormEvent)=>{
     e.preventDefault();
-    if(!entries.length||!groupId||downloading)return;
+    if(!entries.length||!groupId||downloading||extracting)return;
     setDownloading(true);setError("");setProgress(0);
     const videos:VideoItem[]=[]; const failures:string[]=[];
     for(let index=0;index<entries.length;index+=1){
@@ -592,7 +605,7 @@ function YoutubeDownloadModal({groups,defaultGroupId="",onSaveMany,onClose}:{gro
     setDownloading(false);
     setError(failures.length?`${videos.length} downloaded, ${failures.length} failed.\n${failures.join("\n")}`:`${videos.length} video${videos.length===1?"":"s"} downloaded and added in order.`);
   };
-  return <Modal title="YouTube bulk downloader" onClose={onClose} footer={<><button className="button ghost" onClick={onClose} disabled={downloading} data-testid="button-cancel-youtube-download">Close</button><button className="button" type="submit" form="youtube-download-form" disabled={downloading||!entries.length} data-testid="button-start-youtube-download">{downloading?`Downloading ${progress}/${entries.length}…`:"Download all videos"} {!downloading&&<Download size={14}/>}</button></>}><form id="youtube-download-form" onSubmit={submit}><div className="form-grid"><div className="field full"><label>Paste YouTube URLs</label><textarea autoFocus required value={urls} onChange={e=>setUrls(e.target.value)} placeholder={"Paste one URL per line\nhttps://www.youtube.com/watch?v=…\nhttps://youtu.be/…"} rows={6} data-testid="input-youtube-urls"/><span className="field-hint">{entries.length ? `${entries.length} URL${entries.length===1?"":"s"} queued · downloads run one by one in this order.` : "Paste multiple links, one per line. Shorts and regular videos are supported."}</span></div><div className="field full"><label>Save in category / folder</label><select required value={groupId} onChange={e=>setGroupId(e.target.value)} data-testid="select-youtube-group"><option value="">Select a category</option>{groups.map(g=><option value={g.id} key={g.id}>{g.name}</option>)}</select></div></div>{error&&<div className="error-note" style={{whiteSpace:"pre-line"}}>{error}</div>}<div className="form-note"><Download size={14} style={{verticalAlign:"-3px",marginRight:6}}/>Each video downloads at the highest available video and audio quality, is merged into MP4, and is added to the selected folder in the same order.</div></form></Modal>;
+  return <Modal title="YouTube bulk downloader" onClose={onClose} footer={<><button className="button ghost" onClick={onClose} disabled={downloading||extracting} data-testid="button-cancel-youtube-download">Close</button><button className="button" type="submit" form="youtube-download-form" disabled={downloading||extracting||!entries.length} data-testid="button-start-youtube-download">{downloading?`Downloading ${progress}/${entries.length}…`:"Download all videos"} {!downloading&&<Download size={14}/>}</button></>}><form id="youtube-download-form" onSubmit={submit}><div className="form-grid"><div className="field full"><label>Auto-fill from YouTube channel</label><div className="input-action-row"><input value={channelUrl} onChange={e=>setChannelUrl(e.target.value)} placeholder="https://www.youtube.com/@channel" data-testid="input-youtube-channel-url"/><button type="button" className="button secondary small" onClick={extractChannel} disabled={extracting||downloading||!channelUrl.trim()} data-testid="button-extract-channel-links">{extracting?"Extracting…":"Extract links"} {!extracting&&<Link2 size={13}/>}</button></div><span className="field-hint">{extractedCount ? `${extractedCount} new link${extractedCount===1?"":"s"} added to the queue.` : "Enter a public channel URL and click Extract links. Up to 1,000 links can be loaded at a time."}</span></div><div className="field full"><label>Video links queue</label><textarea autoFocus required value={urls} onChange={e=>setUrls(e.target.value)} placeholder={"Paste one URL per line\nhttps://www.youtube.com/watch?v=…\nhttps://youtu.be/…"} rows={6} data-testid="input-youtube-urls"/><span className="field-hint">{entries.length ? `${entries.length} URL${entries.length===1?"":"s"} queued · downloads run one by one in this order.` : "Paste multiple links manually, or auto-fill them from a channel above."}</span></div><div className="field full"><label>Save in category / folder</label><select required value={groupId} onChange={e=>setGroupId(e.target.value)} data-testid="select-youtube-group"><option value="">Select a category</option>{groups.map(g=><option value={g.id} key={g.id}>{g.name}</option>)}</select></div></div>{error&&<div className="error-note" style={{whiteSpace:"pre-line"}}>{error}</div>}<div className="form-note"><Download size={14} style={{verticalAlign:"-3px",marginRight:6}}/>Each video downloads at the highest available video and audio quality, is merged into MP4, and is added to the selected folder in the same order.</div></form></Modal>;
 }
 
 function BulkUploadModal({groups,defaultGroupId="",onSaveMany,onClose}:{groups:VideoGroup[];defaultGroupId?:string;onSaveMany:(videos:VideoItem[])=>void;onClose:()=>void}) {
