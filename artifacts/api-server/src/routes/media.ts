@@ -161,16 +161,6 @@ const ytsaveUserAgent =
   "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36";
 const ytsaveMintSecret = "bf735103af6bb295633270b05a7b0a42";
 
-function parseYtSaveSize(value: unknown): number | null {
-  if (typeof value !== "string") return null;
-  const match = value.trim().match(/^([\d.]+)\s*(KB|MB|GB)$/i);
-  if (!match) return null;
-  const amount = Number(match[1]);
-  if (!Number.isFinite(amount)) return null;
-  const unit = match[2].toUpperCase();
-  return amount * ({ KB: 1024 ** 1, MB: 1024 ** 2, GB: 1024 ** 3 }[unit] ?? 1);
-}
-
 function updateYtSaveCookies(response: Response, current: string): string {
   const setCookie = response.headers.get("set-cookie");
   if (!setCookie) return current;
@@ -255,11 +245,9 @@ async function downloadViaYtSave(
   const detailsJson = await parseYtSaveResponse(details.response);
   const api = detailsJson.api;
   const videoOptions = api?.mediaItems?.filter((item) => item.type === "Video" && item.mediaUrl) ?? [];
-  const video =
-    videoOptions.find((item) => {
-      const size = parseYtSaveSize(item.mediaFileSize);
-      return size === null || size <= maxUploadBytes;
-    }) ?? videoOptions.at(-1);
+  // YTSave returns video resolutions from highest to lowest. Do not apply the
+  // browser-upload cap here: downloads should use the best available quality.
+  const video = videoOptions[0];
   if (api?.status !== "ok" || !video?.mediaUrl) {
     throw new Error(api?.message || "YTSave could not prepare this YouTube video.");
   }
@@ -291,16 +279,9 @@ async function downloadViaYtSave(
   if (!fileResponse.ok || !fileResponse.body) {
     throw new Error(`YTSave file download failed (${fileResponse.status}).`);
   }
-  const size = Number(fileResponse.headers.get("content-length") || 0);
-  if (size > maxUploadBytes) throw new Error("The downloaded video is larger than 1.5 GB.");
 
   const destination = path.join(mediaDir, `${fileId}.mp4`);
-  let received = 0;
   const readable = Readable.fromWeb(fileResponse.body as import("node:stream/web").ReadableStream);
-  readable.on("data", (chunk: Buffer) => {
-    received += chunk.length;
-    if (received > maxUploadBytes) readable.destroy(new Error("The downloaded video is larger than 1.5 GB."));
-  });
   try {
     await pipeline(readable, createWriteStream(destination));
   } catch (error) {

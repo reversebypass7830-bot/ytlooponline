@@ -7,4 +7,4 @@ Use YTSave only as a fallback when yt-dlp is blocked by a YouTube bot challenge.
 
 **Why:** Direct server-side yt-dlp requests can be rejected even for a watchable public video, while the browser-style YTSave flow can prepare the same media.
 
-**How to apply:** Preserve the short-lived token/cookie flow, never expose signed URLs or tokens to users, and choose the highest returned quality within the app's file-size limit before polling.
+**How to apply:** Preserve the short-lived token/cookie flow, never expose signed URLs or tokens to users, and select YTSave's first (highest) returned video quality without downgrading it for the browser-upload size cap.
