@@ -144,6 +144,17 @@ function removeBundledGtaVideo(value: DataState): DataState {
   };
 }
 
+function rebuildGroupMembership(groups: VideoGroup[], videos: VideoItem[]): VideoGroup[] {
+  return groups.map((group) => {
+    const validVideoIds = new Set(videos.filter((video) => video.groupId === group.id).map((video) => video.id));
+    const orderedIds = group.videoIds.filter((id) => validVideoIds.has(id));
+    for (const video of videos) {
+      if (video.groupId === group.id && !orderedIds.includes(video.id)) orderedIds.push(video.id);
+    }
+    return { ...group, videoIds: orderedIds };
+  });
+}
+
 function normalizeWorkspace(value: unknown): DataState {
   if (!value || typeof value !== "object") return seed;
   const candidate = value as Partial<DataState>;
@@ -176,12 +187,7 @@ function normalizeWorkspace(value: unknown): DataState {
       views: typeof video.views === "number" ? video.views : 0,
       createdAt: typeof video.createdAt === "string" ? video.createdAt : now(),
     }));
-  const membership = new Map<string, Set<string>>();
-  for (const group of groups) membership.set(group.id, new Set(group.videoIds));
-  for (const video of videos) {
-    if (video.groupId && membership.has(video.groupId)) membership.get(video.groupId)?.add(video.id);
-  }
-  const repairedGroups = groups.map((group) => ({ ...group, videoIds: Array.from(membership.get(group.id) || []) }));
+  const repairedGroups = rebuildGroupMembership(groups, videos);
   return ensureBundledFaceVideo(removeBundledGtaVideo({
     channels: Array.isArray(candidate.channels) ? candidate.channels : [],
     videos,
@@ -766,7 +772,7 @@ function VideosPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}) {
   const filtered=useMemo(()=>data.videos.filter(v=>(!search||v.title.toLowerCase().includes(search.toLowerCase()))&&(status==="all"||v.status===status)&&(group==="all"||v.groupId===group)),[data.videos,search,status,group]);
   const openAddVideo=(groupId="")=>{setVideoGroupId(groupId);setVideoModal(true);};
   const openGroup=(groupId:string)=>{setGroup(groupId);setTab("library");};
-  const saveVideos=(items:VideoItem[])=>{if(!items.length)return;const itemIds=new Set(items.map(item=>item.id));let groups=data.groups.map(g=>({...g,videoIds:g.videoIds.filter(id=>!itemIds.has(id))}));for(const item of items){if(item.groupId)groups=groups.map(g=>g.id===item.groupId?{...g,videoIds:[...g.videoIds,item.id]}:g);}const byId=new Map(data.videos.map(video=>[video.id,video]));for(const item of items)byId.set(item.id,item);update({videos:Array.from(byId.values()),groups},{message:items.length===1?`${items[0].title} was added to the library`:`${items.length} videos were added in playlist order`,type:"video"});};
+   const saveVideos=(items:VideoItem[])=>{if(!items.length)return;const byId=new Map(data.videos.map(video=>[video.id,video]));for(const item of items)byId.set(item.id,item);const videos=Array.from(byId.values());const groups=rebuildGroupMembership(data.groups,videos);update({videos,groups},{message:items.length===1?`${items[0].title} was added to the library`:`${items.length} videos were added in playlist order`,type:"video"});};
   const saveVideo=(v:VideoItem)=>{saveVideos([v]);setVideoModal(false);setVideoGroupId("");setEditingVideo(undefined);};
   const openEditVideo=(video:VideoItem)=>{setEditingVideo(video);setVideoGroupId(video.groupId);setVideoModal(true);};
   const saveGroup=(g:VideoGroup)=>{const exists=data.groups.some(x=>x.id===g.id);update({groups:exists?data.groups.map(x=>x.id===g.id?g:x):[...data.groups,g]},{message:exists?`${g.name} was updated`:`${g.name} was created`,type:"group"});setGroupModal(false);setEditingGroup(undefined);};
