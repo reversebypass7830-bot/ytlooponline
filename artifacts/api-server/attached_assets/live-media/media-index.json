@@ -404,5 +404,19 @@
     "quality": "1080p",
     "createdAt": "2026-09-06T09:50:38.474Z",
     "sizeBytes": 321841790
+  },
+  {
+    "fileId": "8dfaad7b-ed50-4fde-9c62-bf0f2ae6ecc4",
+    "filename": "8dfaad7b-ed50-4fde-9c62-bf0f2ae6ecc4__dev__food__chauncey-wechsler-live-stream.mp4",
+    "sourcePath": "/home/runner/workspace/artifacts/api-server/attached_assets/live-media/8dfaad7b-ed50-4fde-9c62-bf0f2ae6ecc4__dev__food__chauncey-wechsler-live-stream.mp4",
+    "playbackUrl": "/api/media/files/8dfaad7b-ed50-4fde-9c62-bf0f2ae6ecc4",
+    "title": "Chauncey Wechsler Live Stream",
+    "duration": "47:52",
+    "licenseId": "lic-bba4943e-2194-41cb-9766-94d65cbbc2bd",
+    "licenseName": "dev",
+    "folderName": "food",
+    "quality": "1080p",
+    "createdAt": "2026-09-06T11:54:50.351Z",
+    "sizeBytes": 1600457995
   }
 ]
