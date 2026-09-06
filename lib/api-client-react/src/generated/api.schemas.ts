@@ -105,6 +105,21 @@ export interface MediaDeleteResponse {
   deleted: boolean;
 }
 
+export interface TrimMediaInput {
+  /** @minimum 0 */
+  startSeconds?: number;
+  /** @exclusiveMinimum 0 */
+  endSeconds: number;
+}
+
+export interface MediaTrimResponse {
+  fileId: string;
+  filename: string;
+  sourcePath: string;
+  playbackUrl: string;
+  duration: string;
+}
+
 export interface YoutubeDownloadInput {
   /** @minLength 1 */
   url: string;

@@ -167,6 +167,33 @@ paths:
                 $ref: "#/components/schemas/MediaDeleteResponse"
         "400":
           description: Invalid media file id
+  /media/files/{fileId}/trim:
+    post:
+      operationId: trimMediaFile
+      tags: [media]
+      summary: Create a trimmed MP4 clip from a local media file
+      parameters:
+        - name: fileId
+          in: path
+          required: true
+          schema:
+            type: string
+            minLength: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TrimMediaInput"
+      responses:
+        "201":
+          description: Trimmed media clip is ready for streaming
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MediaTrimResponse"
+        "400":
+          description: Invalid trim range or media file
   /media/youtube-download:
     post:
       operationId: downloadYoutubeVideo
@@ -479,6 +506,37 @@ components:
       required:
         - fileId
         - deleted
+    TrimMediaInput:
+      type: object
+      properties:
+        startSeconds:
+          type: number
+          minimum: 0
+          default: 0
+        endSeconds:
+          type: number
+          exclusiveMinimum: 0
+      required:
+        - endSeconds
+    MediaTrimResponse:
+      type: object
+      properties:
+        fileId:
+          type: string
+        filename:
+          type: string
+        sourcePath:
+          type: string
+        playbackUrl:
+          type: string
+        duration:
+          type: string
+      required:
+        - fileId
+        - filename
+        - sourcePath
+        - playbackUrl
+        - duration
     YoutubeDownloadInput:
       type: object
       properties:

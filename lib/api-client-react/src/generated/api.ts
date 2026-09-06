@@ -28,6 +28,7 @@ import type {
   LicenseListResponse,
   LicenseWorkspaceResponse,
   MediaDeleteResponse,
+  MediaTrimResponse,
   MediaUploadResponse,
   RenewLicenseForUserInput,
   RenewLicenseInput,
@@ -35,6 +36,7 @@ import type {
   StreamControlResponse,
   StreamStartInput,
   StreamStopInput,
+  TrimMediaInput,
   WorkspaceSaveResponse,
   YoutubeDownloadInput,
   YoutubeDownloadResponse
@@ -582,6 +584,78 @@ export const useDeleteMediaFile = <TError = ErrorType<void>,
         TContext
       > => {
       return useMutation(getDeleteMediaFileMutationOptions(options));
+    }
+
+export const getTrimMediaFileUrl = (fileId: string,) => {
+
+
+
+
+  return `/api/media/files/${fileId}/trim`
+}
+
+/**
+ * @summary Create a trimmed MP4 clip from a local media file
+ */
+export const trimMediaFile = async (fileId: string,
+    trimMediaInput: TrimMediaInput, options?: Parameters<typeof customFetch>[1]): Promise<MediaTrimResponse> => {
+
+  return customFetch<MediaTrimResponse>(getTrimMediaFileUrl(fileId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(trimMediaInput)
+  }
+);}
+
+
+
+
+
+export const getTrimMediaFileMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof trimMediaFile>>, TError,{fileId: string;data: BodyType<TrimMediaInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof trimMediaFile>>, TError,{fileId: string;data: BodyType<TrimMediaInput>}, TContext> => {
+
+const mutationKey = ['trimMediaFile'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof trimMediaFile>>, {fileId: string;data: BodyType<TrimMediaInput>}> = (props) => {
+          const {fileId,data} = props ?? {};
+
+          return  trimMediaFile(fileId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type TrimMediaFileMutationResult = NonNullable<Awaited<ReturnType<typeof trimMediaFile>>>
+    export type TrimMediaFileMutationBody = BodyType<TrimMediaInput>
+    export type TrimMediaFileMutationError = ErrorType<void>
+
+    /**
+ * @summary Create a trimmed MP4 clip from a local media file
+ */
+export const useTrimMediaFile = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof trimMediaFile>>, TError,{fileId: string;data: BodyType<TrimMediaInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof trimMediaFile>>,
+        TError,
+        {fileId: string;data: BodyType<TrimMediaInput>},
+        TContext
+      > => {
+      return useMutation(getTrimMediaFileMutationOptions(options));
     }
 
 export const getDownloadYoutubeVideoUrl = () => {

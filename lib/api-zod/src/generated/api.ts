@@ -147,6 +147,37 @@ export const DeleteMediaFileResponse = zod.object({
 
 
 /**
+ * @summary Create a trimmed MP4 clip from a local media file
+ */
+
+
+
+export const TrimMediaFileParams = zod.object({
+  "fileId": zod.coerce.string().min(1)
+})
+
+export const trimMediaFileBodyStartSecondsDefault = 0;
+export const trimMediaFileBodyStartSecondsMin = 0;
+
+export const trimMediaFileBodyEndSecondsExclusiveMin = 0;
+
+
+
+export const TrimMediaFileBody = zod.object({
+  "startSeconds": zod.number().min(trimMediaFileBodyStartSecondsMin).default(trimMediaFileBodyStartSecondsDefault),
+  "endSeconds": zod.number().gt(trimMediaFileBodyEndSecondsExclusiveMin)
+})
+
+export const TrimMediaFileResponse = zod.object({
+  "fileId": zod.string(),
+  "filename": zod.string(),
+  "sourcePath": zod.string(),
+  "playbackUrl": zod.string(),
+  "duration": zod.string()
+})
+
+
+/**
  * @summary Download a YouTube video at the best available quality
  */
 

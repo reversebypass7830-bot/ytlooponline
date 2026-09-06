@@ -1,3 +1,4 @@
+import { spawn } from "node:child_process";
 import { createWriteStream } from "node:fs";
 import { mkdir, readdir, stat, unlink } from "node:fs/promises";
 import path from "node:path";
@@ -5,7 +6,12 @@ import { pipeline } from "node:stream/promises";
 import { Router, type IRouter } from "express";
 import { createHmac, randomUUID } from "node:crypto";
 import { Readable } from "node:stream";
-import { DownloadYoutubeVideoBody, DownloadYoutubeVideoResponse } from "@workspace/api-zod";
+import {
+  DownloadYoutubeVideoBody,
+  DownloadYoutubeVideoResponse,
+  TrimMediaFileBody,
+  TrimMediaFileResponse,
+} from "@workspace/api-zod";
 import youtubeDl, { create as createYoutubeDl } from "youtube-dl-exec";
 import ffmpegPath from "ffmpeg-static";
 
@@ -47,6 +53,23 @@ function normalizeDuration(value: unknown): string {
   const [first, second, third] = parts;
   const seconds = parts.length === 3 ? first * 3600 + second * 60 + third : first * 60 + second;
   return formatDuration(seconds);
+}
+
+function runFfmpeg(args: string[]): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const child = spawn(ffmpegPath ?? "ffmpeg", args, { stdio: ["ignore", "ignore", "pipe"] });
+    let stderr = "";
+    child.stderr?.on("data", (chunk: Buffer) => { stderr += chunk.toString(); });
+    child.on("error", reject);
+    child.on("close", (code) => {
+      if (code === 0) {
+        resolve();
+        return;
+      }
+      const detail = stderr.trim().split(/\r?\n/).filter(Boolean).at(-1);
+      reject(new Error(detail || `FFmpeg exited with code ${code ?? "unknown"}.`));
+    });
+  });
 }
 
 function validateYoutubeUrl(rawUrl: string): string {
@@ -359,6 +382,60 @@ router.post("/media/youtube-download", async (req, res): Promise<void> => {
         : rawMessage;
     req.log.warn({ error: message }, "YouTube download failed");
     res.status(missingDownloader ? 503 : 400).json({ error: message });
+  }
+});
+
+router.post("/media/files/:fileId/trim", async (req, res): Promise<void> => {
+  const parsed = TrimMediaFileBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.message });
+    return;
+  }
+
+  const input = await findMediaFile(req.params.fileId);
+  if (!input) {
+    res.status(404).json({ error: "Media file not found." });
+    return;
+  }
+
+  const startSeconds = parsed.data.startSeconds;
+  const endSeconds = parsed.data.endSeconds;
+  if (!Number.isFinite(startSeconds) || !Number.isFinite(endSeconds) || startSeconds >= endSeconds) {
+    res.status(400).json({ error: "End time must be greater than start time." });
+    return;
+  }
+
+  await mkdir(mediaDir, { recursive: true });
+  const fileId = randomUUID();
+  const destination = path.join(mediaDir, `${fileId}.mp4`);
+  try {
+    await runFfmpeg([
+      "-y",
+      "-ss", String(startSeconds),
+      "-i", input,
+      "-t", String(endSeconds - startSeconds),
+      "-map", "0:v:0",
+      "-map", "0:a?",
+      "-c:v", "libx264",
+      "-preset", "veryfast",
+      "-crf", "18",
+      "-c:a", "aac",
+      "-b:a", "192k",
+      "-movflags", "+faststart",
+      destination,
+    ]);
+
+    res.status(201).json(TrimMediaFileResponse.parse({
+      fileId,
+      filename: path.basename(destination),
+      sourcePath: destination,
+      playbackUrl: `/api/media/files/${fileId}`,
+      duration: formatDuration(endSeconds - startSeconds),
+    }));
+  } catch (error) {
+    await unlink(destination).catch(() => undefined);
+    req.log.warn({ fileId: req.params.fileId, error: error instanceof Error ? error.message : "unknown" }, "Media trim failed");
+    res.status(400).json({ error: "The video clip could not be created. Check the start and end times." });
   }
 });
 
