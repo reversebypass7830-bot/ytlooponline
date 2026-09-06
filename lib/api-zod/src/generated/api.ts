@@ -85,6 +85,55 @@ export const StopStreamResponse = zod.object({
 
 
 /**
+ * Rebuilds the active FFmpeg playlist so videos added to or removed from a category take effect while streaming.
+ * @summary Update the playlist of a running stream
+ */
+
+
+
+
+export const updateStreamBodyPlaybackSpeedDefault = 1;
+export const updateStreamBodyPlaybackSpeedMin = 0.5;
+export const updateStreamBodyPlaybackSpeedMax = 2;
+
+export const updateStreamBodyQualityDefault = `4k`;
+export const updateStreamBodyAspectRatioDefault = `full`;
+export const updateStreamBodyFacePositionDefault = `bottom-right`;
+export const updateStreamBodyFaceScaleDefault = 0.25;
+export const updateStreamBodyFaceScaleMin = 0.1;
+export const updateStreamBodyFaceScaleMax = 0.6;
+
+export const updateStreamBodyDurationMinutesMax = 1440;
+
+export const updateStreamBodyAutoRestartDefault = false;
+
+export const UpdateStreamBody = zod.object({
+  "streamId": zod.string().min(1),
+  "ingestUrl": zod.string().min(1),
+  "category": zod.string().min(1),
+  "videoSource": zod.string().optional(),
+  "videoSources": zod.array(zod.string().min(1)).optional(),
+  "faceCategory": zod.string().optional(),
+  "faceSource": zod.string().optional(),
+  "faceSources": zod.array(zod.string()).optional(),
+  "playbackSpeed": zod.number().min(updateStreamBodyPlaybackSpeedMin).max(updateStreamBodyPlaybackSpeedMax).default(updateStreamBodyPlaybackSpeedDefault),
+  "quality": zod.enum(['4k', '1080p']).default(updateStreamBodyQualityDefault),
+  "aspectRatio": zod.enum(['shorts', 'full', 'square']).default(updateStreamBodyAspectRatioDefault),
+  "facePosition": zod.enum(['top-left', 'top-right', 'bottom-left', 'bottom-right', 'center']).default(updateStreamBodyFacePositionDefault),
+  "faceScale": zod.number().min(updateStreamBodyFaceScaleMin).max(updateStreamBodyFaceScaleMax).default(updateStreamBodyFaceScaleDefault),
+  "durationMinutes": zod.number().min(1).max(updateStreamBodyDurationMinutesMax).optional(),
+  "autoRestart": zod.boolean().default(updateStreamBodyAutoRestartDefault)
+})
+
+export const UpdateStreamResponse = zod.object({
+  "streamId": zod.string(),
+  "status": zod.enum(['running', 'stopped', 'failed']),
+  "message": zod.string(),
+  "pid": zod.number().nullable()
+})
+
+
+/**
  * @summary Get stream process status
  */
 export const GetStreamStatusParams = zod.object({

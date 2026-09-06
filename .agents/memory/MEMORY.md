@@ -4,5 +4,6 @@
 - [YouTube downloader clients](youtube-downloader-clients.md) — some public videos fail yt-dlp's default client; keep the Android player-client fallback for downloads.
 - [YTSave fallback flow](youtube-ytsave-fallback.md) — when YouTube blocks server-side extraction, mint YTSave's short-lived token and choose a size-safe quality before polling.
 - [TubePilot channel extraction](tubepilot-channel-extraction.md) — the public channel extractor currently returns video anchors as HTML from its AJAX endpoint.
+- [Live playlist refresh](live-playlist-refresh.md) — playlist edits during a broadcast are applied by restarting FFmpeg with the current ordered source list.
 - [Firebase licensing security](firebase-licensing-security.md) — public Realtime Database rules make app-level owner passwords non-secure; harden rules/auth before production.
 - [Public media builds](public-media-builds.md) — ignored local media must not be statically imported by the frontend; clean public checkouts should use runtime uploads/API media.

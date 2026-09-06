@@ -75,6 +75,29 @@ paths:
                 $ref: "#/components/schemas/StreamControlResponse"
         "404":
           description: Stream is not running
+  /stream/update:
+    post:
+      operationId: updateStream
+      tags: [streaming]
+      summary: Update the playlist of a running stream
+      description: Rebuilds the active FFmpeg playlist so videos added to or removed from a category take effect while streaming.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StreamStartInput"
+      responses:
+        "202":
+          description: Stream playlist update accepted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StreamControlResponse"
+        "400":
+          description: Invalid stream playlist
+        "404":
+          description: Stream is not running
   /stream/status/{streamId}:
     get:
       operationId: getStreamStatus

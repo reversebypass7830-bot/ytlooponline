@@ -292,6 +292,78 @@ export const useStopStream = <TError = ErrorType<void>,
       return useMutation(getStopStreamMutationOptions(options));
     }
 
+export const getUpdateStreamUrl = () => {
+
+
+
+
+  return `/api/stream/update`
+}
+
+/**
+ * Rebuilds the active FFmpeg playlist so videos added to or removed from a category take effect while streaming.
+ * @summary Update the playlist of a running stream
+ */
+export const updateStream = async (streamStartInput: StreamStartInput, options?: Parameters<typeof customFetch>[1]): Promise<StreamControlResponse> => {
+
+  return customFetch<StreamControlResponse>(getUpdateStreamUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(streamStartInput)
+  }
+);}
+
+
+
+
+
+export const getUpdateStreamMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateStream>>, TError,{data: BodyType<StreamStartInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateStream>>, TError,{data: BodyType<StreamStartInput>}, TContext> => {
+
+const mutationKey = ['updateStream'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateStream>>, {data: BodyType<StreamStartInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  updateStream(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateStreamMutationResult = NonNullable<Awaited<ReturnType<typeof updateStream>>>
+    export type UpdateStreamMutationBody = BodyType<StreamStartInput>
+    export type UpdateStreamMutationError = ErrorType<void>
+
+    /**
+ * @summary Update the playlist of a running stream
+ */
+export const useUpdateStream = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateStream>>, TError,{data: BodyType<StreamStartInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateStream>>,
+        TError,
+        {data: BodyType<StreamStartInput>},
+        TContext
+      > => {
+      return useMutation(getUpdateStreamMutationOptions(options));
+    }
+
 export const getGetStreamStatusUrl = (streamId: string,) => {
 
 

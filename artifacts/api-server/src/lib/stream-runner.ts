@@ -39,10 +39,10 @@ type StreamProcess = {
   durationTimer?: NodeJS.Timeout;
   restartTimer?: NodeJS.Timeout;
   playlistPaths?: string[];
+  playlistUpdateRequested?: boolean;
 };
 
 const assetNamesByCategory: Record<string, string> = {
-  gta: "ytvid_-M47B7wsm7c_1080p60.mp4",
   "gtv 5 face": "WhatsApp Video 2026-09-04 at 11.30.43 PM.mp4",
   gtv5face: "WhatsApp Video 2026-09-04 at 11.30.43 PM.mp4",
 };
@@ -81,9 +81,10 @@ function getVideoPath(category: string, explicitSource?: string): string {
 
 function getVideoPaths(category: string, explicitSources?: string[], explicitSource?: string): string[] {
   const sources = explicitSources?.length ? explicitSources : explicitSource ? [explicitSource] : [];
-  return sources.length
-    ? sources.map((source) => getVideoPath(category, source))
-    : [getVideoPath(category)];
+  if (!sources.length) {
+    throw new Error(`The ${category} category has no server-ready videos.`);
+  }
+  return sources.map((source) => getVideoPath(category, source));
 }
 
 function escapePlaylistPath(filePath: string): string {
@@ -314,6 +315,20 @@ function launchProcess(process: StreamProcess): void {
     }
     if (process.status !== "running") return;
 
+    if (process.playlistUpdateRequested) {
+      process.playlistUpdateRequested = false;
+      try {
+        launchProcess(process);
+      } catch (error) {
+        process.status = "failed";
+        logger.error(
+          { streamId: process.input.streamId, error: error instanceof Error ? error.message : "unknown error" },
+          "Stream playlist update rejected",
+        );
+      }
+      return;
+    }
+
     if (process.input.autoRestart && process.input.durationMinutes) {
       logger.info({ streamId: process.input.streamId, code, signal }, "Stream duration reached; restarting FFmpeg");
       process.restartTimer = setTimeout(() => {
@@ -360,11 +375,39 @@ export function startStream(input: StreamRunnerInput): StreamRunnerResult {
   return resultFor(input.streamId, streamProcess, "FFmpeg stream process started.");
 }
 
+export function updateStream(input: StreamRunnerInput): StreamRunnerResult {
+  const current = processes.get(input.streamId);
+  if (!current || current.status !== "running") {
+    throw new Error("This channel is not currently streaming.");
+  }
+
+  getVideoPaths(input.category, input.videoSources, input.videoSource);
+  if (input.faceCategory) getVideoPaths(input.faceCategory, input.faceSources, input.faceSource);
+
+  if (current.durationTimer) {
+    clearTimeout(current.durationTimer);
+    current.durationTimer = undefined;
+  }
+  if (current.restartTimer) {
+    clearTimeout(current.restartTimer);
+    current.restartTimer = undefined;
+  }
+  current.input = input;
+  current.playlistUpdateRequested = true;
+  current.child?.kill("SIGTERM");
+  if (!current.child) {
+    current.playlistUpdateRequested = false;
+    launchProcess(current);
+  }
+  return resultFor(input.streamId, current, "FFmpeg playlist update accepted.");
+}
+
 export function stopStream(streamId: string): StreamRunnerResult | null {
   const streamProcess = processes.get(streamId);
   if (!streamProcess) return null;
 
   streamProcess.status = "stopped";
+  streamProcess.playlistUpdateRequested = false;
   if (streamProcess.durationTimer) clearTimeout(streamProcess.durationTimer);
   if (streamProcess.restartTimer) clearTimeout(streamProcess.restartTimer);
   streamProcess.child?.kill("SIGTERM");

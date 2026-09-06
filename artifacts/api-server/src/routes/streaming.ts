@@ -11,6 +11,7 @@ import {
   getStreamStatus,
   startStream,
   stopStream,
+  updateStream,
 } from "../lib/stream-runner";
 
 const router: IRouter = Router();
@@ -64,6 +65,41 @@ router.post("/stream/stop", (req, res): void => {
     return;
   }
   res.json(StopStreamResponse.parse(result));
+});
+
+router.post("/stream/update", (req, res): void => {
+  const parsed = StartStreamBody.safeParse(req.body);
+  if (!parsed.success) {
+    req.log.warn({ errors: parsed.error.message }, "Invalid stream update request");
+    res.status(400).json({ error: parsed.error.message });
+    return;
+  }
+
+  try {
+    const result = updateStream({
+      streamId: parsed.data.streamId,
+      ingestUrl: parsed.data.ingestUrl,
+      category: parsed.data.category,
+      videoSource: parsed.data.videoSource,
+      videoSources: parsed.data.videoSources,
+      faceCategory: parsed.data.faceCategory,
+      faceSource: parsed.data.faceSource,
+      faceSources: parsed.data.faceSources,
+      playbackSpeed: parsed.data.playbackSpeed,
+      quality: parsed.data.quality,
+      aspectRatio: parsed.data.aspectRatio,
+      facePosition: parsed.data.facePosition,
+      faceScale: parsed.data.faceScale,
+      durationMinutes: parsed.data.durationMinutes,
+      autoRestart: parsed.data.autoRestart,
+    });
+    res.status(202).json(StartStreamResponse.parse(result));
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unable to update stream playlist.";
+    const status = message.includes("not currently streaming") ? 404 : 400;
+    req.log.warn({ streamId: parsed.data.streamId, status }, "Stream update rejected");
+    res.status(status).json({ error: message });
+  }
 });
 
 router.get("/stream/status/:streamId", (req, res): void => {
