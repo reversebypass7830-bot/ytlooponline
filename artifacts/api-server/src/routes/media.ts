@@ -56,47 +56,70 @@ function validateYoutubeUrl(rawUrl: string): string {
 async function downloadYoutubeVideo(url: string, fileId: string): Promise<{ path: string; title: string; duration: string }> {
   await mkdir(mediaDir, { recursive: true });
   const outputTemplate = path.join(mediaDir, `${fileId}.%(ext)s`);
-  return new Promise((resolve, reject) => {
-    const flags = ({
-      noPlaylist: true,
-      noWarnings: true,
-      noProgress: true,
-      socketTimeout: 30,
-      extractorArgs: "youtube:player_client=android",
-      format: "bestvideo*+bestaudio/best",
-      mergeOutputFormat: "mp4",
-      ffmpegLocation: ffmpegPath ?? undefined,
-      output: outputTemplate,
-      printJson: true,
-    } as unknown) as Parameters<typeof youtubeDownloader.exec>[1];
-    const child = youtubeDownloader.exec(url, flags);
-    let stdout = "";
-    let stderr = "";
-    child.stdout?.on("data", (chunk: Buffer) => { stdout += chunk.toString(); });
-    child.stderr?.on("data", (chunk: Buffer) => { stderr += chunk.toString(); });
-    child.on("error", reject);
-    child.on("close", async (code) => {
-      if (code !== 0) {
-        reject(new Error(stderr.trim().split("\n").filter(Boolean).at(-1) || "YouTube download failed."));
-        return;
-      }
+  const clients = ["android", "web_embedded", "mweb", "ios"];
+  let lastError = "YouTube video download failed.";
 
-      const info = stdout.split(/\r?\n/).map((line) => {
-        try { return JSON.parse(line) as { title?: unknown; duration?: unknown }; } catch { return null; }
-      }).find(Boolean);
+  for (const client of clients) {
+    await Promise.all(
+      (await readdir(mediaDir).catch(() => []))
+        .filter((entry) => entry.startsWith(`${fileId}.`))
+        .map((entry) => unlink(path.join(mediaDir, entry)).catch(() => undefined)),
+    );
+
+    try {
+      const result = await new Promise<{ title: string; duration: string }>((resolve, reject) => {
+        const flags = ({
+          noPlaylist: true,
+          noWarnings: true,
+          noProgress: true,
+          retries: 3,
+          fragmentRetries: 3,
+          fileAccessRetries: 3,
+          socketTimeout: 30,
+          extractorArgs: `youtube:player_client=${client}`,
+          format: "bestvideo*+bestaudio/best",
+          mergeOutputFormat: "mp4",
+          ffmpegLocation: ffmpegPath ?? undefined,
+          output: outputTemplate,
+          printJson: true,
+        } as unknown) as Parameters<typeof youtubeDownloader.exec>[1];
+        const child = youtubeDownloader.exec(url, flags);
+        const promiseLike = child as typeof child & { catch?: (handler: () => void) => unknown };
+        promiseLike.catch?.(() => undefined);
+        let stdout = "";
+        let stderr = "";
+        child.stdout?.on("data", (chunk: Buffer) => { stdout += chunk.toString(); });
+        child.stderr?.on("data", (chunk: Buffer) => { stderr += chunk.toString(); });
+        child.on("error", (error) => reject(error));
+        child.on("close", async (code) => {
+          if (code !== 0) {
+            reject(new Error(stderr.trim().split("\n").filter(Boolean).at(-1) || "YouTube download failed."));
+            return;
+          }
+          const info = stdout.split(/\r?\n/).map((line) => {
+            try { return JSON.parse(line) as { title?: unknown; duration?: unknown }; } catch { return null; }
+          }).find(Boolean);
+          resolve({
+            title: typeof info?.title === "string" && info.title.trim() ? info.title.trim() : "Downloaded YouTube video",
+            duration: formatDuration(info?.duration),
+          });
+        });
+      });
+
       const files = await readdir(mediaDir).catch(() => []);
       const filename = files.find((entry) => entry.startsWith(`${fileId}.`) && !entry.endsWith(".part"));
-      if (!filename) {
-        reject(new Error("YouTube download finished without creating a video file."));
-        return;
-      }
-      resolve({
+      if (!filename) throw new Error("YouTube download finished without creating a video file.");
+      return {
         path: path.join(mediaDir, filename),
-        title: typeof info?.title === "string" && info.title.trim() ? info.title.trim() : "Downloaded YouTube video",
-        duration: formatDuration(info?.duration),
-      });
-    });
-  });
+        title: result.title,
+        duration: result.duration,
+      };
+    } catch (error) {
+      lastError = error instanceof Error ? error.message : "YouTube video download failed.";
+    }
+  }
+
+  throw new Error(lastError);
 }
 
 router.post("/media/upload", async (req, res): Promise<void> => {
@@ -154,9 +177,12 @@ router.post("/media/youtube-download", async (req, res): Promise<void> => {
     const rawMessage = error instanceof Error ? error.message : "The YouTube video could not be downloaded.";
     const errorCode = error instanceof Error ? (error as NodeJS.ErrnoException).code : undefined;
     const missingDownloader = errorCode === "ENOENT" || rawMessage.includes("spawn yt-dlp ENOENT");
+    const blockedByYoutube = rawMessage.includes("Sign in to confirm") || rawMessage.includes("not a bot");
     const message = missingDownloader
       ? "The bundled YouTube downloader is unavailable. Redeploy the latest build and try again."
-      : rawMessage;
+      : blockedByYoutube
+        ? "YouTube is blocking this video for the server right now. Try another public video, or upload the video file directly from Video Library. Private, age-restricted, region-restricted, and newly blocked videos need an authorized YouTube session."
+        : rawMessage;
     req.log.warn({ error: message }, "YouTube download failed");
     res.status(missingDownloader ? 503 : 400).json({ error: message });
   }
