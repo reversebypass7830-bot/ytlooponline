@@ -139,11 +139,28 @@ function ensureBundledFaceVideo(value: DataState): DataState {
 function normalizeWorkspace(value: unknown): DataState {
   if (!value || typeof value !== "object") return seed;
   const candidate = value as Partial<DataState>;
+  const groups: VideoGroup[] = (Array.isArray(candidate.groups) ? candidate.groups : [])
+    .filter((group): group is VideoGroup => Boolean(group && typeof group === "object"))
+    .map((group, index) => ({
+      id: typeof group.id === "string" && group.id ? group.id : `group-${index + 1}`,
+      name: typeof group.name === "string" && group.name.trim() ? group.name : "Untitled folder",
+      description: typeof group.description === "string" ? group.description : "",
+      videoIds: Array.isArray(group.videoIds) ? group.videoIds.filter((id): id is string => typeof id === "string") : [],
+      createdAt: typeof group.createdAt === "string" ? group.createdAt : now(),
+    }));
+  const activities: Activity[] = (Array.isArray(candidate.activities) ? candidate.activities : [])
+    .filter((activity): activity is Activity => Boolean(activity && typeof activity === "object"))
+    .map((activity, index) => ({
+      id: typeof activity.id === "string" && activity.id ? activity.id : `activity-${index + 1}`,
+      type: typeof activity.type === "string" ? activity.type : "edit",
+      message: typeof activity.message === "string" ? activity.message : "Workspace updated",
+      time: typeof activity.time === "string" ? activity.time : "Recently",
+    }));
   return ensureBundledFaceVideo({
     channels: Array.isArray(candidate.channels) ? candidate.channels : [],
     videos: Array.isArray(candidate.videos) ? candidate.videos : [],
-    groups: Array.isArray(candidate.groups) ? candidate.groups : [],
-    activities: Array.isArray(candidate.activities) ? candidate.activities : [],
+    groups,
+    activities,
   });
 }
 

@@ -8,3 +8,5 @@ The current license flow intentionally works against the provided Firebase Realt
 **Why:** The user explicitly chose not to provide a Firebase service-account JSON, so server-side Admin authentication was deferred rather than blocking the requested feature.
 
 **How to apply:** Before production use, add Firebase Authentication or a server-side Admin connection, lock down Realtime Database rules, and move the owner password to a rotatable secret. Re-test license CRUD, renewal, and workspace isolation after hardening.
+
+Firebase workspace records may be older or partially shaped; load-time normalization should restore missing collection fields such as folder video lists and activity entries before rendering.
