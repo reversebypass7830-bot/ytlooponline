@@ -511,8 +511,8 @@ function ChannelModal({ channel, groups, videos, onSave, onClose }: {channel?:Li
   const set=(key:string,value:string|number|boolean)=>setForm(f=>({...f,[key]:value}));
   const selectedGroup = groups.find(g=>g.id===form.groupId);
   const faceGroup = groups.find(g=>g.id===form.faceGroupId);
-  const mainVideos = selectedGroup?.videoIds.map(id=>videos.find(v=>v.id===id)).filter((video): video is VideoItem=>Boolean(video)) || [];
-  const faceVideos = faceGroup?.videoIds.map(id=>videos.find(v=>v.id===id)).filter((video): video is VideoItem=>Boolean(video)) || [];
+  const mainVideos = videosForGroup(form.groupId, groups, videos);
+  const faceVideos = videosForGroup(form.faceGroupId, groups, videos);
   const mainVideo = mainVideos[0];
   const faceVideo = faceVideos[0];
   const mainServerReady = mainVideos.length > 0 && mainVideos.every(video=>Boolean(video.serverSource));
@@ -556,11 +556,27 @@ function streamIdFor(clientId:string, channelId:string):string {
   return `${clientId}:${channelId}`;
 }
 
+function videosForGroup(groupId: string | undefined, groups: VideoGroup[], videos: VideoItem[]): VideoItem[] {
+  if (!groupId) return [];
+  const group = groups.find((item) => item.id === groupId);
+  if (!group) return [];
+  const byId = new Map(videos.map((video) => [video.id, video]));
+  const ordered: VideoItem[] = [];
+  for (const id of group.videoIds) {
+    const video = byId.get(id);
+    if (video?.groupId === groupId) ordered.push(video);
+  }
+  for (const video of videos) {
+    if (video.groupId === groupId && !ordered.some((item) => item.id === video.id)) ordered.push(video);
+  }
+  return ordered;
+}
+
 function playlistFor(channel:LiveChannel, groups:VideoGroup[], videos:VideoItem[]) {
   const mainGroup=groups.find(group=>group.id===channel.groupId);
   const faceGroup=channel.faceGroupId?groups.find(group=>group.id===channel.faceGroupId):undefined;
-  const mainVideos=(mainGroup?.videoIds||[]).map(id=>videos.find(video=>video.id===id)).filter((video): video is VideoItem=>Boolean(video));
-  const faceVideos=(faceGroup?.videoIds||[]).map(id=>videos.find(video=>video.id===id)).filter((video): video is VideoItem=>Boolean(video));
+  const mainVideos=videosForGroup(channel.groupId, groups, videos);
+  const faceVideos=videosForGroup(channel.faceGroupId, groups, videos);
   return {
     category:mainGroup?.name,
     mainVideos,

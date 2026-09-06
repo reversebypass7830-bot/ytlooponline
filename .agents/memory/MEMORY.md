@@ -8,3 +8,4 @@
 - [Firebase licensing security](firebase-licensing-security.md) — public Realtime Database rules make app-level owner passwords non-secure; harden rules/auth before production.
 - [Public media builds](public-media-builds.md) — ignored local media must not be statically imported by the frontend; clean public checkouts should use runtime uploads/API media.
 - [Media library recovery](media-library-recovery.md) — server media needs an index plus workspace rehydration so existing files and folder counts survive browser/license workspace drift.
+- [Live playlist folder scope](live-playlist-folder-scope.md) — live streams must derive playlist membership from each video's groupId, not only cached folder arrays.
