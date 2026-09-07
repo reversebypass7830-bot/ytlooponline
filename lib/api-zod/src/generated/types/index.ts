@@ -8,6 +8,8 @@
 
 export * from './createLicenseInput';
 export * from './deleteLicenseResult';
+export * from './directDownloadInput';
+export * from './directDownloadResponse';
 export * from './extractYoutubeChannelLinksInput';
 export * from './healthStatus';
 export * from './licenseAccess';

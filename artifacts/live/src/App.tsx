@@ -10,7 +10,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/toaster";
 import NotFound from "@/pages/not-found";
-import { deleteMediaFile, downloadYoutubeVideo, extractYoutubeChannelLinks, getStreamStatus, startStream, stopStream, trimMediaFile, updateStream } from "@workspace/api-client-react";
+import { deleteMediaFile, downloadDirectVideo, downloadYoutubeVideo, extractYoutubeChannelLinks, getStreamStatus, startStream, stopStream, trimMediaFile, updateStream } from "@workspace/api-client-react";
 
 type LiveStatus = "live" | "scheduled" | "stopped";
 type VideoStatus = "published" | "draft" | "archived";
@@ -23,6 +23,7 @@ type LiveChannel = {
   streamUrl: string; streamKey: string; viewers: number; startedAt: string | null;
   thumbnailColor: string; createdAt: string; aspectRatio?: AspectRatio; playbackSpeed?: number; faceGroupId?: string;
   facePosition?: FacePosition; faceSize?: number; durationHours?: number; autoRestart?: boolean; streamQuality?: StreamQuality;
+  playlistVideoIds?: string[];
 };
 type VideoItem = {
   id: string; title: string; duration: string; status: VideoStatus; groupId: string;
@@ -504,6 +505,7 @@ function ChannelPreview({ mainUrl, faceUrl, ratio, facePosition, faceSize }: { m
 }
 
 function ChannelModal({ channel, groups, videos, onSave, onClose }: {channel?:LiveChannel; groups:VideoGroup[]; videos:VideoItem[]; onSave:(c:LiveChannel)=>void; onClose:()=>void}) {
+  const existingVideos = channel ? videosForGroup(channel.groupId, groups, videos) : [];
   const [form,setForm] = useState({
     groupId:channel?.groupId||"",
     streamUrl:channel?.streamUrl||"https://a.upload.youtube.com/http_upload_hls?cid=&copy=0&file=",
@@ -515,19 +517,31 @@ function ChannelModal({ channel, groups, videos, onSave, onClose }: {channel?:Li
      streamQuality:channel?.streamQuality||"4k" as StreamQuality,
     durationHours:channel?.durationHours||1,
     autoRestart:channel?.autoRestart||false,
+    playlistVideoIds: channel?.playlistVideoIds?.length ? channel.playlistVideoIds : existingVideos.map((video) => video.id),
   });
   const set=(key:string,value:string|number|boolean)=>setForm(f=>({...f,[key]:value}));
   const selectedGroup = groups.find(g=>g.id===form.groupId);
   const faceGroup = groups.find(g=>g.id===form.faceGroupId);
   const mainVideos = videosForGroup(form.groupId, groups, videos);
   const faceVideos = videosForGroup(form.faceGroupId, groups, videos);
-  const mainVideo = mainVideos[0];
+  const selectedMainVideos = form.playlistVideoIds
+    .map((id) => mainVideos.find((video) => video.id === id))
+    .filter((video): video is VideoItem => Boolean(video));
+  const mainVideo = selectedMainVideos[0];
   const faceVideo = faceVideos[0];
-  const mainServerReady = mainVideos.length > 0 && mainVideos.every(video=>Boolean(video.serverSource));
+  const mainServerReady = selectedMainVideos.length > 0 && selectedMainVideos.every(video=>Boolean(video.serverSource));
   const faceServerReady = !form.faceGroupId || (faceVideos.length > 0 && faceVideos.every(video=>Boolean(video.serverSource)));
+  const togglePlaylistVideo = (videoId: string) => {
+    setForm((current) => ({
+      ...current,
+      playlistVideoIds: current.playlistVideoIds.includes(videoId)
+        ? current.playlistVideoIds.filter((id) => id !== videoId)
+        : [...current.playlistVideoIds, videoId],
+    }));
+  };
   const submit=(e:FormEvent)=>{
     e.preventDefault();
-    if(!form.streamUrl.trim() || !form.groupId) return;
+    if(!form.streamUrl.trim() || !form.groupId || !form.playlistVideoIds.length) return;
     const platform=platformFromUrl(form.streamUrl);
     onSave({
       id:channel?.id||uid("ch"), title:channel?.title||`${platform} channel`, platform,
@@ -536,16 +550,29 @@ function ChannelModal({ channel, groups, videos, onSave, onClose }: {channel?:Li
       thumbnailColor:channel?.thumbnailColor||colors[0], createdAt:channel?.createdAt||now(),
        aspectRatio:form.aspectRatio, playbackSpeed:Number(form.playbackSpeed), faceGroupId:form.faceGroupId || undefined,
       facePosition:form.facePosition, faceSize:Number(form.faceSize), durationHours:Number(form.durationHours),
-       autoRestart:form.autoRestart, streamQuality:form.streamQuality,
+        autoRestart:form.autoRestart, streamQuality:form.streamQuality, playlistVideoIds:form.playlistVideoIds,
     });
   };
-  return <Modal title={channel ? "Update channel" : "Add live channel"} onClose={onClose} footer={<><button className="button ghost" onClick={onClose} data-testid="button-cancel-channel">Cancel</button><button className="button" type="submit" form="channel-form" data-testid="button-save-channel">{channel ? "Save changes" : "Add channel"} <Check size={14}/></button></>}><form id="channel-form" onSubmit={submit}>
+   return <Modal title={channel ? "Update channel" : "Add live channel"} onClose={onClose} footer={<><button className="button ghost" onClick={onClose} data-testid="button-cancel-channel">Cancel</button><button className="button" type="submit" form="channel-form" disabled={!form.streamUrl.trim() || !form.groupId || !form.playlistVideoIds.length} data-testid="button-save-channel">{channel ? "Save changes" : "Add channel"} <Check size={14}/></button></>}><form id="channel-form" onSubmit={submit}>
     <div className="form-grid">
       <div className="field full"><label>Live URL</label><input autoFocus required value={form.streamUrl} onChange={e=>set("streamUrl",e.target.value)} placeholder="https://a.upload.youtube.com/http_upload_hls?...&file=" data-testid="input-stream-url"/></div>
-      <div className="field"><label>Main video category</label><select required value={form.groupId} onChange={e=>set("groupId",e.target.value)} data-testid="select-channel-group"><option value="">Select a category</option>{groups.map(g=><option key={g.id} value={g.id}>{g.name}</option>)}</select></div>
+       <div className="field"><label>Main video folder</label><select required value={form.groupId} onChange={e=>{const groupId=e.target.value;setForm(current=>({...current,groupId,playlistVideoIds:[]}));}} data-testid="select-channel-group"><option value="">Select a folder</option>{groups.map(g=><option key={g.id} value={g.id}>{g.name}</option>)}</select></div>
        <div className="field"><label>Live format</label><select value={form.aspectRatio} onChange={e=>set("aspectRatio",e.target.value as AspectRatio)} data-testid="select-channel-ratio"><option value="shorts">Shorts · 9:16 vertical</option><option value="full">Big live · 16:9 landscape</option><option value="square">Square · 1:1</option></select></div>
        <div className="field"><label>Video speed</label><select value={form.playbackSpeed} onChange={e=>set("playbackSpeed",Number(e.target.value))} data-testid="select-channel-speed"><option value="0.5">0.5× slow</option><option value="0.75">0.75×</option><option value="1">1× normal</option><option value="1.25">1.25×</option><option value="1.5">1.5×</option><option value="2">2× fast</option></select></div>
        <div className="field"><label>Broadcast quality</label><select value={form.streamQuality} onChange={e=>set("streamQuality",e.target.value as StreamQuality)} data-testid="select-channel-quality"><option value="4k">4K · highest available</option><option value="1080p">Full HD · 1080p</option></select></div>
+       <div className="field full"><label>Playlist videos <span className="label-optional">{form.playlistVideoIds.length ? `· ${form.playlistVideoIds.length} selected` : "· tick videos in play order"}</span></label>
+         {!form.groupId ? <div className="playlist-empty">Select a folder to see its videos.</div> : mainVideos.length === 0 ? <div className="playlist-empty">This folder has no videos yet.</div> : <div className="playlist-picker">{mainVideos.map((video) => {
+           const queueNumber = form.playlistVideoIds.indexOf(video.id);
+           const checked = queueNumber !== -1;
+           return <label className={`playlist-item ${checked ? "selected" : ""}`} key={video.id}>
+             <input type="checkbox" checked={checked} onChange={() => togglePlaylistVideo(video.id)} />
+             <span className="playlist-number">{checked ? queueNumber + 1 : "—"}</span>
+             <span className="playlist-copy"><strong>{video.title}</strong><small>{video.duration} · {video.quality || "local video"}</small></span>
+             {checked && <Check size={14} />}
+           </label>;
+         })}</div>}
+         <span className="field-hint">Tick the first video, then the second, third, and so on. The live stream follows this queue exactly and repeats from video 1 after the last one.</span>
+       </div>
       <div className="field full"><label>Face video category <span className="label-optional">optional overlay</span></label><select value={form.faceGroupId} onChange={e=>set("faceGroupId",e.target.value)} data-testid="select-channel-face-group"><option value="">No face overlay</option>{groups.map(g=><option key={g.id} value={g.id}>{g.name}</option>)}</select></div>
       <div className="field"><label>Face position</label><select disabled={!form.faceGroupId} value={form.facePosition} onChange={e=>set("facePosition",e.target.value as FacePosition)} data-testid="select-face-position"><option value="top-left">Top left</option><option value="top-right">Top right</option><option value="bottom-left">Bottom left</option><option value="bottom-right">Bottom right</option><option value="center">Center</option></select></div>
       <div className="field"><label>Face size · {form.faceSize}%</label><input disabled={!form.faceGroupId} type="range" min="10" max="60" step="1" value={form.faceSize} onChange={e=>set("faceSize",Number(e.target.value))} data-testid="input-face-size"/></div>
@@ -553,8 +580,8 @@ function ChannelModal({ channel, groups, videos, onSave, onClose }: {channel?:Li
       <div className="field field-check"><label>After duration</label><label className="check-control"><input type="checkbox" checked={form.autoRestart} onChange={e=>set("autoRestart",e.target.checked)} data-testid="toggle-auto-restart"/><span><strong>Auto-start again</strong><small>Restart the stream after the selected duration.</small></span></label></div>
     </div>
     <ChannelPreview mainUrl={mainVideo?.sourceUrl} faceUrl={faceVideo?.sourceUrl} ratio={form.aspectRatio} facePosition={form.facePosition} faceSize={Number(form.faceSize)} />
-    {(!mainServerReady || !faceServerReady) && <div className="error-note stream-source-warning"><ShieldCheck size={14} style={{verticalAlign:"-3px",marginRight:6}}/>Preview is ready, but Start needs this category to be server-ready. Re-add the video from Video library once so the local stream server can use it.</div>}
-     <div className="form-note"><ShieldCheck size={14} style={{verticalAlign:"-3px",marginRight:6}}/>Videos in the selected category play in their saved order and loop back to the first after the last. Face placement and size are shown in the preview. Browser-added videos are available for preview here; server streaming currently requires a server-side source.</div>
+     {(!mainServerReady || !faceServerReady) && <div className="error-note stream-source-warning"><ShieldCheck size={14} style={{verticalAlign:"-3px",marginRight:6}}/>Preview is ready, but Start needs every selected video to be server-ready. Re-add missing videos from Video library once so the local stream server can use them.</div>}
+      <div className="form-note"><ShieldCheck size={14} style={{verticalAlign:"-3px",marginRight:6}}/>Only ticked videos enter this channel's queue. They play in the tick order, one after another, then loop back to the first. Face placement and size are shown in the preview.</div>
   </form></Modal>;
 }
 
@@ -583,7 +610,10 @@ function videosForGroup(groupId: string | undefined, groups: VideoGroup[], video
 function playlistFor(channel:LiveChannel, groups:VideoGroup[], videos:VideoItem[]) {
   const mainGroup=groups.find(group=>group.id===channel.groupId);
   const faceGroup=channel.faceGroupId?groups.find(group=>group.id===channel.faceGroupId):undefined;
-  const mainVideos=videosForGroup(channel.groupId, groups, videos);
+  const folderVideos=videosForGroup(channel.groupId, groups, videos);
+  const mainVideos=channel.playlistVideoIds?.length
+    ? channel.playlistVideoIds.map((id) => folderVideos.find((video) => video.id === id)).filter((video): video is VideoItem => Boolean(video))
+    : folderVideos;
   const faceVideos=videosForGroup(channel.faceGroupId, groups, videos);
   return {
     category:mainGroup?.name,
@@ -606,8 +636,8 @@ function LivePage({workspace}:{workspace:ReturnType<typeof useWorkspace>}) {
      const mainVideo=playlist.mainVideos[0];
      const faceVideo=playlist.faceVideos[0];
      if(!category)throw new Error("Choose a video category before starting.");
-     if(!playlist.mainVideos.length)throw new Error("Choose a category with at least one video before starting.");
-     if(!playlist.mainVideos.every(video=>video.serverSource))throw new Error("Every video in the selected category must be server-ready before starting.");
+      if(!playlist.mainVideos.length)throw new Error("Tick at least one video in the selected folder before starting.");
+      if(!playlist.mainVideos.every(video=>video.serverSource))throw new Error("Every ticked video in the selected folder must be server-ready before starting.");
      if(playlist.faceVideos.length&&!playlist.faceVideos.every(video=>video.serverSource))throw new Error("Every video in the face category must be server-ready before starting.");
      const scopedStreamId=streamIdFor(workspace.clientId,c.id);
     const result=await startStream({
@@ -628,7 +658,7 @@ function LivePage({workspace}:{workspace:ReturnType<typeof useWorkspace>}) {
    useEffect(()=>{const liveChannels=data.channels.filter(c=>c.status==="live");void Promise.all(liveChannels.map(async c=>{const scopedStreamId=streamIdFor(workspace.clientId,c.id);const playlist=playlistFor(c,data.groups,data.videos);if(!playlist.category)return;const signature=JSON.stringify({videoSources:playlist.videoSources,faceSources:playlist.faceSources});if(playlistSignatures.current.get(scopedStreamId)===signature)return;if(!playlist.videoSources.length){try{await stopStream({streamId:scopedStreamId});playlistSignatures.current.set(scopedStreamId,signature);update({channels:data.channels.map(x=>x.id===c.id?{...x,status:"stopped",viewers:0}:x)},{message:`${c.title} stopped because its playlist is empty`,type:"edit"});}catch(error){workspace.setToast(error instanceof Error?error.message:"The empty live playlist could not be stopped.");}return;}try{await updateStream({streamId:scopedStreamId,ingestUrl:c.streamUrl,category:playlist.category,videoSources:playlist.videoSources,faceCategory:playlist.faceSources.length?playlist.faceCategory:undefined,faceSources:playlist.faceSources,playbackSpeed:c.playbackSpeed||1,quality:c.streamQuality||"4k",aspectRatio:c.aspectRatio||"full",facePosition:c.facePosition||"bottom-right",faceScale:(c.faceSize||25)/100,durationMinutes:(c.durationHours||1)*60,autoRestart:Boolean(c.autoRestart)});playlistSignatures.current.set(scopedStreamId,signature);workspace.setToast(`${c.title} playlist updated while live`);}catch(error){workspace.setToast(error instanceof Error?error.message:"The live playlist could not be updated.");}}));},[data.channels,data.groups,data.videos,workspace.clientId,workspace.setToast,update]);
   const groupsById=useMemo(()=>Object.fromEntries(data.groups.map(g=>[g.id,g.name])),[data.groups]);
   return <AppShell title="Live channels" workspace={workspace}><div className="page"><div className="page-head"><div><p className="eyebrow">Broadcast operations</p><h1>Live channels</h1><p className="subtle">Prepare your destinations, then take the room live with confidence.</p></div><button className="button" onClick={()=>{setEditing(undefined);setShowForm(true)}} data-testid="button-add-channel"><Plus size={16}/> Add channel</button></div>
-     <div className="card section-card"><div className="section-head"><div><h2 className="section-title">{data.channels.length} channel{data.channels.length===1?"":"s"}</h2><p className="subtle" style={{margin:"5px 0 0",fontSize:11}}>{data.channels.filter(c=>c.status==="live").length} currently broadcasting · {data.channels.filter(c=>c.status==="scheduled").length} scheduled</p></div><div className="status live"><span className="status-dot"/>{data.channels.filter(c=>c.status==="live").length ? "Room monitored" : "Room quiet"}</div></div>{data.channels.length===0?<EmptyState icon={<MonitorPlay size={21}/>} title="Your live room is empty" copy="Add a destination to start preparing your first broadcast." action="Add first channel" onClick={()=>setShowForm(true)}/>:<div className="table-wrap"><table className="data-table"><thead><tr><th>Channel</th><th>Platform</th><th>Status</th><th>Category</th><th>Live URL</th><th/></tr></thead><tbody>{data.channels.map(c=><tr key={c.id} data-testid={`row-channel-${c.id}`}><td><div style={{display:"flex",alignItems:"center",gap:10}}><div className="thumb" style={{background:c.thumbnailColor,width:34,height:34}}><Radio size={14}/></div><div><div className="table-title">{c.title}</div><div className="table-sub">{c.status==="live" ? `Live for ${fmtTime(c.startedAt)}` : "Ready to broadcast"}</div></div></div></td><td><span className="mono" style={{fontSize:11}}>{c.platform}</span></td><td><div className={`status ${c.status}`}><span className="status-dot"/>{c.status}</div></td><td><span className="table-sub">{groupsById[c.groupId]||"Unassigned"}</span></td><td><span className="table-sub url-cell" title={c.streamUrl}>{c.streamUrl}</span></td><td><div className="actions">{c.status==="live"?<button className="button warn small" onClick={()=>stop(c)} data-testid={`button-stop-${c.id}`}><Square size={12}/> Stop</button>:<button className="button secondary small" onClick={()=>start(c)} data-testid={`button-start-${c.id}`}><Play size={12}/> Start</button>}<button className="icon-button" style={{width:30,height:30}} onClick={()=>{setEditing(c);setShowForm(true)}} title="Edit channel" data-testid={`button-edit-channel-${c.id}`}><Pencil size={13}/></button><button className="icon-button" style={{width:30,height:30}} onClick={()=>setDeleting(c)} title="Delete channel" data-testid={`button-delete-channel-${c.id}`}><Trash2 size={13}/></button></div></td></tr>)}</tbody></table></div>}</div>
+     <div className="card section-card"><div className="section-head"><div><h2 className="section-title">{data.channels.length} channel{data.channels.length===1?"":"s"}</h2><p className="subtle" style={{margin:"5px 0 0",fontSize:11}}>{data.channels.filter(c=>c.status==="live").length} currently broadcasting · {data.channels.filter(c=>c.status==="scheduled").length} scheduled</p></div><div className="status live"><span className="status-dot"/>{data.channels.filter(c=>c.status==="live").length ? "Room monitored" : "Room quiet"}</div></div>{data.channels.length===0?<EmptyState icon={<MonitorPlay size={21}/>} title="Your live room is empty" copy="Add a destination to start preparing your first broadcast." action="Add first channel" onClick={()=>setShowForm(true)}/>:<div className="table-wrap"><table className="data-table"><thead><tr><th>Channel</th><th>Platform</th><th>Status</th><th>Playlist</th><th>Live URL</th><th/></tr></thead><tbody>{data.channels.map(c=><tr key={c.id} data-testid={`row-channel-${c.id}`}><td><div style={{display:"flex",alignItems:"center",gap:10}}><div className="thumb" style={{background:c.thumbnailColor,width:34,height:34}}><Radio size={14}/></div><div><div className="table-title">{c.title}</div><div className="table-sub">{c.status==="live" ? `Live for ${fmtTime(c.startedAt)}` : "Ready to broadcast"}</div></div></div></td><td><span className="mono" style={{fontSize:11}}>{c.platform}</span></td><td><div className={`status ${c.status}`}><span className="status-dot"/>{c.status}</div></td><td><span className="table-sub">{groupsById[c.groupId]||"Unassigned"} · {c.playlistVideoIds?.length || videosForGroup(c.groupId,data.groups,data.videos).length} video{(c.playlistVideoIds?.length || videosForGroup(c.groupId,data.groups,data.videos).length)===1?"":"s"}</span></td><td><span className="table-sub url-cell" title={c.streamUrl}>{c.streamUrl}</span></td><td><div className="actions">{c.status==="live"?<button className="button warn small" onClick={()=>stop(c)} data-testid={`button-stop-${c.id}`}><Square size={12}/> Stop</button>:<button className="button secondary small" onClick={()=>start(c)} data-testid={`button-start-${c.id}`}><Play size={12}/> Start</button>}<button className="icon-button" style={{width:30,height:30}} onClick={()=>{setEditing(c);setShowForm(true)}} title="Edit channel" data-testid={`button-edit-channel-${c.id}`}><Pencil size={13}/></button><button className="icon-button" style={{width:30,height:30}} onClick={()=>setDeleting(c)} title="Delete channel" data-testid={`button-delete-channel-${c.id}`}><Trash2 size={13}/></button></div></td></tr>)}</tbody></table></div>}</div>
     <div className="card section-card" style={{marginTop:18}}><div className="section-head"><div><h2 className="section-title">Signal checklist</h2><p className="subtle" style={{margin:"5px 0 0",fontSize:11}}>A few calm checks before you go on air.</p></div><Clipboard size={17} color="#6c8b83"/></div><div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(190px,1fr))",gap:10}}>{["Live URL is saved locally","At least one destination is ready","Stream process status is monitored"].map((t)=><div key={t} style={{display:"flex",gap:9,alignItems:"center",fontSize:11,color:"#60736c",padding:11,background:"#f5f8f1",borderRadius:8}}><span style={{width:20,height:20,borderRadius:"50%",display:"grid",placeItems:"center",background:"#dcefe1",color:"#2a7a72"}}><Check size={12}/></span>{t}</div>)}</div></div>
   </div>{showForm&&<ChannelModal channel={editing} groups={data.groups} videos={data.videos} onSave={save} onClose={()=>{setShowForm(false);setEditing(undefined)}}/>}{deleting&&<ConfirmModal title="Delete this channel?" copy={`“${deleting.title}” and its stream settings will be removed from this workspace. Any live signal must be stopped first.`} onClose={()=>setDeleting(undefined)} onConfirm={()=>{update({channels:data.channels.filter(c=>c.id!==deleting.id)},{message:`${deleting.title} was deleted`,type:"edit"});setDeleting(undefined)}}/>}</AppShell>;
 }
@@ -703,7 +733,7 @@ function TrimModal({video,onCreate,onClose}:{video:VideoItem;onCreate:(clip:Vide
 
 function YoutubeDownloadModal({groups,defaultGroupId="",licenseId="",licenseName="",onSaveMany,onClose}:{groups:VideoGroup[];defaultGroupId?:string;licenseId?:string;licenseName?:string;onSaveMany:(videos:VideoItem[])=>void;onClose:()=>void}) {
   const [urls,setUrls]=useState(""); const [groupId,setGroupId]=useState(defaultGroupId); const [quality,setQuality]=useState<DownloadQuality>("best"); const [availableQualities,setAvailableQualities]=useState<string[]>(["best","2160p","1440p","1080p","720p","480p"]); const [checkingQuality,setCheckingQuality]=useState(false);
-  const [channelUrl,setChannelUrl]=useState(""); const [linkLimit,setLinkLimit]=useState<"all"|"5"|"10">("all"); const [extracting,setExtracting]=useState(false); const [downloading,setDownloading]=useState(false); const [progress,setProgress]=useState(0); const [error,setError]=useState(""); const [extractedCount,setExtractedCount]=useState(0);
+  const [channelUrl,setChannelUrl]=useState(""); const [linkLimit,setLinkLimit]=useState<"all"|"5"|"10">("all"); const [extracting,setExtracting]=useState(false); const [downloading,setDownloading]=useState(false); const [directDownloading,setDirectDownloading]=useState(false); const [directUrl,setDirectUrl]=useState(""); const [progress,setProgress]=useState(0); const [error,setError]=useState(""); const [extractedCount,setExtractedCount]=useState(0);
   const entries=urls.split(/\r?\n|,/).map(value=>value.trim()).filter(Boolean);
   const folderName=groups.find(group=>group.id===groupId)?.name||"";
   const checkQuality=async()=>{
@@ -732,7 +762,7 @@ function YoutubeDownloadModal({groups,defaultGroupId="",licenseId="",licenseName
   };
   const submit=async(e:FormEvent)=>{
     e.preventDefault();
-     if(!entries.length||!groupId||downloading||extracting||checkingQuality)return;
+     if(!entries.length||!groupId||downloading||directDownloading||extracting||checkingQuality)return;
     setDownloading(true);setError("");setProgress(0);
     const videos:VideoItem[]=[]; const failures:string[]=[];
     for(let index=0;index<entries.length;index+=1){
@@ -747,7 +777,18 @@ function YoutubeDownloadModal({groups,defaultGroupId="",licenseId="",licenseName
     setDownloading(false);
     setError(failures.length?`${videos.length} downloaded, ${failures.length} failed.\n${failures.join("\n")}`:`${videos.length} video${videos.length===1?"":"s"} downloaded and added in order.`);
   };
-   return <Modal title="YouTube bulk downloader" onClose={onClose} footer={<><button className="button ghost" onClick={onClose} disabled={downloading||extracting||checkingQuality} data-testid="button-cancel-youtube-download">Close</button><button className="button" type="submit" form="youtube-download-form" disabled={downloading||extracting||checkingQuality||!entries.length} data-testid="button-start-youtube-download">{downloading?`Downloading ${progress}/${entries.length}…`:"Download all videos"} {!downloading&&<Download size={14}/>}</button></>}><form id="youtube-download-form" onSubmit={submit}><div className="form-grid"><div className="field full"><label>Auto-fill from YouTube channel</label><div className="input-action-row"><input value={channelUrl} onChange={e=>setChannelUrl(e.target.value)} placeholder="https://www.youtube.com/@channel" data-testid="input-youtube-channel-url"/><button type="button" className="button secondary small" onClick={extractChannel} disabled={extracting||downloading||!channelUrl.trim()} data-testid="button-extract-channel-links">{extracting?"Extracting…":"Extract links"} {!extracting&&<Link2 size={13}/>}</button></div><span className="field-hint">Enter a public channel URL, choose how many links to add, then extract them.</span></div><div className="field"><label>Links to add</label><select value={linkLimit} onChange={e=>setLinkLimit(e.target.value as "all"|"5"|"10")} disabled={extracting||downloading} data-testid="select-youtube-link-limit"><option value="all">All links</option><option value="5">First 5 links</option><option value="10">First 10 links</option></select></div><div className="field"><label>Save in category / folder</label><select required value={groupId} onChange={e=>setGroupId(e.target.value)} data-testid="select-youtube-group"><option value="">Select a category</option>{groups.map(g=><option value={g.id} key={g.id}>{g.name}</option>)}</select></div><div className="field"><label>Download quality</label><select value={quality} onChange={e=>setQuality(e.target.value as DownloadQuality)} disabled={checkingQuality||downloading} data-testid="select-youtube-quality">{availableQualities.map(item=><option value={item} key={item}>{item==="best"?"Best available":item}</option>)}</select><span className="field-hint">Choose quality for every queued video.</span></div><div className="field"><label>Check this link's qualities</label><button type="button" className="button secondary small" onClick={checkQuality} disabled={checkingQuality||downloading||!entries.length} data-testid="button-check-youtube-quality">{checkingQuality?"Checking…":"Show available quality"} <Gauge size={13}/></button></div><div className="field full"><label>Video links queue</label><textarea autoFocus required value={urls} onChange={e=>setUrls(e.target.value)} placeholder={"Paste one URL per line\nhttps://www.youtube.com/watch?v=…\nhttps://youtu.be/…"} rows={6} data-testid="input-youtube-urls"/><span className="field-hint">{extractedCount ? `${extractedCount} new link${extractedCount===1?"":"s"} added to the queue.` : entries.length ? `${entries.length} URL${entries.length===1?"":"s"} queued · downloads run one by one in this order.` : "Paste multiple links manually, or auto-fill them from a channel above."}</span></div></div>{error&&<div className="error-note" style={{whiteSpace:"pre-line"}}>{error}</div>}<div className="form-note"><Download size={14} style={{verticalAlign:"-3px",marginRight:6}}/>Downloads use the selected quality, faster parallel fragments, MP4 merge, and the server media index. Files are named with the license and folder so they remain identifiable in live-media.</div></form></Modal>;
+  const downloadDirect=async()=>{
+    if(!directUrl.trim()||!groupId||downloading||directDownloading)return;
+    setDirectDownloading(true);setError("");
+    try{
+      const result=await downloadDirectVideo({url:directUrl.trim(),licenseId,licenseName,folderName});
+      onSaveMany([{id:uid("vid"),title:result.title,duration:result.duration,status:"published",groupId,sourceUrl:result.playbackUrl,serverSource:result.sourcePath,thumbnailColor:colors[0],views:0,createdAt:now(),licenseId,licenseName,folderName,quality:result.quality}]);
+      setDirectUrl("");
+      setError("Direct video downloaded and added to the selected folder.");
+    }catch(reason){setError(reason instanceof Error?reason.message:"Direct video download failed.");}
+    finally{setDirectDownloading(false);}
+  };
+   return <Modal title="YouTube bulk downloader" onClose={onClose} footer={<><button className="button ghost" onClick={onClose} disabled={downloading||directDownloading||extracting||checkingQuality} data-testid="button-cancel-youtube-download">Close</button><button className="button" type="submit" form="youtube-download-form" disabled={downloading||directDownloading||extracting||checkingQuality||!entries.length} data-testid="button-start-youtube-download">{downloading?`Downloading ${progress}/${entries.length}…`:"Download all videos"} {!downloading&&<Download size={14}/>}</button></>}><form id="youtube-download-form" onSubmit={submit}><div className="form-grid"><div className="field full"><label>Auto-fill from YouTube channel</label><div className="input-action-row"><input value={channelUrl} onChange={e=>setChannelUrl(e.target.value)} placeholder="https://www.youtube.com/@channel" data-testid="input-youtube-channel-url"/><button type="button" className="button secondary small" onClick={extractChannel} disabled={extracting||downloading||directDownloading||!channelUrl.trim()} data-testid="button-extract-channel-links">{extracting?"Extracting…":"Extract links"} {!extracting&&<Link2 size={13}/>}</button></div><span className="field-hint">Enter a public channel URL, choose how many links to add, then extract them.</span></div><div className="field"><label>Links to add</label><select value={linkLimit} onChange={e=>setLinkLimit(e.target.value as "all"|"5"|"10")} disabled={extracting||downloading||directDownloading} data-testid="select-youtube-link-limit"><option value="all">All links</option><option value="5">First 5 links</option><option value="10">First 10 links</option></select></div><div className="field"><label>Save in category / folder</label><select required value={groupId} onChange={e=>setGroupId(e.target.value)} disabled={downloading||directDownloading} data-testid="select-youtube-group"><option value="">Select a category</option>{groups.map(g=><option value={g.id} key={g.id}>{g.name}</option>)}</select></div><div className="field"><label>Download quality</label><select value={quality} onChange={e=>setQuality(e.target.value as DownloadQuality)} disabled={checkingQuality||downloading||directDownloading} data-testid="select-youtube-quality">{availableQualities.map(item=><option value={item} key={item}>{item==="best"?"Best available":item}</option>)}</select><span className="field-hint">Choose quality for every queued video.</span></div><div className="field"><label>Check this link's qualities</label><button type="button" className="button secondary small" onClick={checkQuality} disabled={checkingQuality||downloading||directDownloading||!entries.length} data-testid="button-check-youtube-quality">{checkingQuality?"Checking…":"Show available quality"} <Gauge size={13}/></button></div><div className="field full"><label>Video links queue</label><textarea autoFocus required value={urls} onChange={e=>setUrls(e.target.value)} placeholder={"Paste one URL per line\nhttps://www.youtube.com/watch?v=…\nhttps://youtu.be/…"} rows={6} data-testid="input-youtube-urls"/><span className="field-hint">{extractedCount ? `${extractedCount} new link${extractedCount===1?"":"s"} added to the queue.` : entries.length ? `${entries.length} URL${entries.length===1?"":"s"} queued · downloads run one by one in this order.` : "Paste multiple links manually, or auto-fill them from a channel above."}</span></div><div className="field full"><label>Direct video URL</label><div className="input-action-row"><input value={directUrl} onChange={e=>setDirectUrl(e.target.value)} placeholder="https://files.ytcontent.com/…"/><button type="button" className="button secondary small" onClick={()=>void downloadDirect()} disabled={directDownloading||downloading||!directUrl.trim()||!groupId} data-testid="button-download-direct-video">{directDownloading?"Downloading…":"Download direct URL"} <Download size={13}/></button></div><span className="field-hint">Paste a direct video file link such as files.ytcontent.com. It will be saved in the selected category.</span></div></div>{error&&<div className="error-note" style={{whiteSpace:"pre-line"}}>{error}</div>}<div className="form-note"><Download size={14} style={{verticalAlign:"-3px",marginRight:6}}/>YouTube links use the selected quality. Direct file links are downloaded as-is, saved with the license and folder, and become available to live playlists.</div></form></Modal>;
 }
 
 function BulkUploadModal({groups,defaultGroupId="",licenseId="",licenseName="",onSaveMany,onClose}:{groups:VideoGroup[];defaultGroupId?:string;licenseId?:string;licenseName?:string;onSaveMany:(videos:VideoItem[])=>void;onClose:()=>void}) {

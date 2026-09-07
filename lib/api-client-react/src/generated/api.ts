@@ -22,6 +22,8 @@ import type {
 import type {
   CreateLicenseInput,
   DeleteLicenseResult,
+  DirectDownloadInput,
+  DirectDownloadResponse,
   ExtractYoutubeChannelLinksInput,
   HealthStatus,
   LicenseAccess,
@@ -889,6 +891,77 @@ export const useDownloadYoutubeVideo = <TError = ErrorType<void>,
         TContext
       > => {
       return useMutation(getDownloadYoutubeVideoMutationOptions(options));
+    }
+
+export const getDownloadDirectVideoUrl = () => {
+
+
+
+
+  return `/api/media/direct-download`
+}
+
+/**
+ * @summary Download a direct video file URL
+ */
+export const downloadDirectVideo = async (directDownloadInput: DirectDownloadInput, options?: Parameters<typeof customFetch>[1]): Promise<DirectDownloadResponse> => {
+
+  return customFetch<DirectDownloadResponse>(getDownloadDirectVideoUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(directDownloadInput)
+  }
+);}
+
+
+
+
+
+export const getDownloadDirectVideoMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof downloadDirectVideo>>, TError,{data: BodyType<DirectDownloadInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof downloadDirectVideo>>, TError,{data: BodyType<DirectDownloadInput>}, TContext> => {
+
+const mutationKey = ['downloadDirectVideo'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof downloadDirectVideo>>, {data: BodyType<DirectDownloadInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  downloadDirectVideo(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DownloadDirectVideoMutationResult = NonNullable<Awaited<ReturnType<typeof downloadDirectVideo>>>
+    export type DownloadDirectVideoMutationBody = BodyType<DirectDownloadInput>
+    export type DownloadDirectVideoMutationError = ErrorType<void>
+
+    /**
+ * @summary Download a direct video file URL
+ */
+export const useDownloadDirectVideo = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof downloadDirectVideo>>, TError,{data: BodyType<DirectDownloadInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof downloadDirectVideo>>,
+        TError,
+        {data: BodyType<DirectDownloadInput>},
+        TContext
+      > => {
+      return useMutation(getDownloadDirectVideoMutationOptions(options));
     }
 
 export const getGetYoutubeFormatsUrl = () => {

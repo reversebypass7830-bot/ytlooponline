@@ -255,6 +255,26 @@ paths:
                 $ref: "#/components/schemas/YoutubeDownloadResponse"
         "400":
           description: Invalid URL or download failure
+  /media/direct-download:
+    post:
+      operationId: downloadDirectVideo
+      tags: [media]
+      summary: Download a direct video file URL
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DirectDownloadInput"
+      responses:
+        "201":
+          description: Direct video file downloaded and ready for streaming
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DirectDownloadResponse"
+        "400":
+          description: Invalid URL or download failure
   /media/youtube-formats:
     post:
       operationId: getYoutubeFormats
@@ -687,6 +707,54 @@ components:
       required:
         - url
     YoutubeDownloadResponse:
+      type: object
+      properties:
+        fileId:
+          type: string
+        filename:
+          type: string
+        sourcePath:
+          type: string
+        playbackUrl:
+          type: string
+        title:
+          type: string
+        duration:
+          type: string
+        quality:
+          type: string
+        licenseId:
+          type: string
+        licenseName:
+          type: string
+        folderName:
+          type: string
+      required:
+        - fileId
+        - filename
+        - sourcePath
+        - playbackUrl
+        - title
+        - duration
+        - quality
+        - licenseId
+        - licenseName
+        - folderName
+    DirectDownloadInput:
+      type: object
+      properties:
+        url:
+          type: string
+          minLength: 1
+        licenseId:
+          type: string
+        licenseName:
+          type: string
+        folderName:
+          type: string
+      required:
+        - url
+    DirectDownloadResponse:
       type: object
       properties:
         fileId:

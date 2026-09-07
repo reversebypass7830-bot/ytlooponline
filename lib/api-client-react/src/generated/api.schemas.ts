@@ -173,6 +173,27 @@ export interface YoutubeDownloadResponse {
   folderName: string;
 }
 
+export interface DirectDownloadInput {
+  /** @minLength 1 */
+  url: string;
+  licenseId?: string;
+  licenseName?: string;
+  folderName?: string;
+}
+
+export interface DirectDownloadResponse {
+  fileId: string;
+  filename: string;
+  sourcePath: string;
+  playbackUrl: string;
+  title: string;
+  duration: string;
+  quality: string;
+  licenseId: string;
+  licenseName: string;
+  folderName: string;
+}
+
 export interface YoutubeFormatsInput {
   /** @minLength 1 */
   url: string;
