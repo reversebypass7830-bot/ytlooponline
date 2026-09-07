@@ -11,6 +11,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/toaster";
 import NotFound from "@/pages/not-found";
 import { deleteMediaFile, downloadDirectVideo, downloadYoutubeVideo, extractYoutubeChannelLinks, getStreamStatus, startStream, stopStream, trimMediaFile, updateStream } from "@workspace/api-client-react";
+import logoImage from "@assets/image_1788788255512.png";
 
 type LiveStatus = "live" | "scheduled" | "stopped";
 type VideoStatus = "published" | "draft" | "archived";
@@ -363,7 +364,7 @@ function useWorkspace(license: LicenseSession | null, clearLicense: () => void) 
 
 function Brand({ compact = false }: { compact?: boolean }) {
   return <div className="brand" data-testid="brand">
-    <div className="brand-mark"><Radio size={18} strokeWidth={2.5} /></div>
+    <div className="brand-mark"><img src={logoImage} alt="Signal Desk logo" /></div>
     {!compact && <div><div className="brand-name">Signal Desk</div><div className="brand-note">licensed control room</div></div>}
   </div>;
 }
@@ -415,7 +416,7 @@ function LicenseGate({ license, busy, error, onActivate, onRenew }: { license:Li
   };
   return <div className="login-page license-page">
     <section className="login-visual">
-      <div className="login-logo"><div className="brand-mark"><Radio size={18}/></div><div><div className="brand-name">Signal Desk</div><div className="brand-note">licensed control room</div></div></div>
+      <div className="login-logo"><div className="brand-mark"><img src={logoImage} alt="Signal Desk logo" /></div><div><div className="brand-name">Signal Desk</div><div className="brand-note">licensed control room</div></div></div>
       <div className="login-copy"><div className="signal-line"><span/>LICENSED ACCESS · READY</div><h1>Bring your<br/><em>room on air.</em></h1><p>Enter your license key to open your private live control room. Your channels, videos, and settings stay separate from every other license.</p></div>
       <div className="signal-line"><span/>ONE LICENSE · ONE PRIVATE WORKSPACE</div>
     </section>
