@@ -712,5 +712,19 @@
     "quality": "1080p",
     "createdAt": "2026-09-07T13:02:44.744Z",
     "sizeBytes": 386356622
+  },
+  {
+    "fileId": "57458c12-aaea-473b-be84-c3b8326cfc39",
+    "filename": "57458c12-aaea-473b-be84-c3b8326cfc39__dev__gta__i-wasn-t-expecting-this.mp4",
+    "sourcePath": "/home/runner/workspace/artifacts/api-server/attached_assets/live-media/57458c12-aaea-473b-be84-c3b8326cfc39__dev__gta__i-wasn-t-expecting-this.mp4",
+    "playbackUrl": "/api/media/files/57458c12-aaea-473b-be84-c3b8326cfc39",
+    "title": "I wasn't expecting This 😕❤️‍🩹",
+    "duration": "00:23",
+    "licenseId": "lic-bba4943e-2194-41cb-9766-94d65cbbc2bd",
+    "licenseName": "dev",
+    "folderName": "GTA",
+    "quality": "1080p",
+    "createdAt": "2026-09-07T14:24:59.355Z",
+    "sizeBytes": 12316704
   }
 ]
