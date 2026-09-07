@@ -54,3 +54,6 @@ attached_assets/ytvid_-M47B7wsm7c_1080p60.mp4
 *.mov
 *.webm
 *.mkv
+
+# Private bot token used only for local URL notifications
+/bottoken.txt

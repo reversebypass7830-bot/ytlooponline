@@ -7,6 +7,7 @@ const scriptDirectory = path.dirname(fileURLToPath(import.meta.url));
 const projectDirectory = path.resolve(scriptDirectory, '..');
 const workspaceDirectory = path.resolve(projectDirectory, '..', '..');
 const linkFile = path.join(workspaceDirectory, 'cloudflare.txt');
+const botTokenFile = path.join(workspaceDirectory, 'bottoken.txt');
 const port = Number(process.env.PORT || 26180);
 const basePath = process.env.BASE_PATH || '/';
 const command = process.platform === 'win32' ? 'pnpm.cmd' : 'pnpm';
@@ -17,9 +18,69 @@ const environment = {
 };
 
 let shuttingDown = false;
+let botNotified = false;
 
 async function writeLinkFile(contents) {
   await fs.writeFile(linkFile, `${contents.trim()}\n`, 'utf8');
+}
+
+async function notifyBot(url) {
+  let token;
+  try {
+    token = (await fs.readFile(botTokenFile, 'utf8')).trim();
+  } catch {
+    console.log('[bot] bottoken.txt was not found; URL was saved locally only.');
+    return;
+  }
+
+  if (!token) {
+    console.log('[bot] bottoken.txt is empty; URL was saved locally only.');
+    return;
+  }
+
+  try {
+    const updatesResponse = await fetch(
+      `https://api.telegram.org/bot${token}/getUpdates?limit=20&timeout=0`,
+    );
+    const updatesPayload = await updatesResponse.json();
+    if (!updatesResponse.ok || updatesPayload.ok !== true) {
+      console.log('[bot] Could not read recent bot chats; URL was saved locally only.');
+      return;
+    }
+
+    const chatIds = [
+      ...new Set(
+        (updatesPayload.result || [])
+          .map((update) => update.message?.chat?.id ?? update.channel_post?.chat?.id)
+          .filter((chatId) => chatId !== undefined && chatId !== null),
+      ),
+    ];
+    const chatId = chatIds.at(-1);
+    if (chatId === undefined) {
+      console.log('[bot] No recent chat found. Send /start to the bot, then restart the website.');
+      return;
+    }
+
+    const messageResponse = await fetch(
+      `https://api.telegram.org/bot${token}/sendMessage`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chat_id: chatId,
+          text: `Reverse Bypass Cloudflare URL:\n${url}`,
+        }),
+      },
+    );
+    const messagePayload = await messageResponse.json();
+    if (!messageResponse.ok || messagePayload.ok !== true) {
+      console.log('[bot] URL could not be sent to the bot chat.');
+      return;
+    }
+    console.log('[bot] Cloudflare URL sent to the latest bot chat.');
+  } catch {
+    console.log('[bot] Bot notification failed; URL was saved locally only.');
+  }
 }
 
 function stopProcesses(exitCode = 0) {
@@ -67,11 +128,13 @@ function handleTunnelOutput(chunk) {
   process.stdout.write(`[cloudflare] ${output}`);
 
   const url = output.match(/https:\/\/[a-z0-9-]+\.trycloudflare\.com/i)?.[0];
-  if (url) {
+  if (url && !botNotified) {
+    botNotified = true;
     writeLinkFile(url).catch((error) => {
       console.error(`Could not write ${linkFile}:`, error);
     });
     console.log(`Cloudflare Tunnel URL saved to ${linkFile}: ${url}`);
+    void notifyBot(url);
   }
 }
 
