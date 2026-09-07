@@ -698,5 +698,19 @@
     "quality": "360p",
     "createdAt": "2026-09-07T12:44:47.348Z",
     "sizeBytes": 360422207
+  },
+  {
+    "fileId": "299aad9b-1376-447c-b4cb-efa23fe91011",
+    "filename": "299aad9b-1376-447c-b4cb-efa23fe91011__fx__axa__minecraft-parkour-gameplay-no-copyright.mp4",
+    "sourcePath": "/home/runner/workspace/artifacts/api-server/attached_assets/live-media/299aad9b-1376-447c-b4cb-efa23fe91011__fx__axa__minecraft-parkour-gameplay-no-copyright.mp4",
+    "playbackUrl": "/api/media/files/299aad9b-1376-447c-b4cb-efa23fe91011",
+    "title": "Minecraft Parkour Gameplay No Copyright",
+    "duration": "10:19",
+    "licenseId": "lic-e5453dc8-66f5-4505-972b-f17f0e7d2df6",
+    "licenseName": "Fx",
+    "folderName": "Axa",
+    "quality": "1080p",
+    "createdAt": "2026-09-07T13:02:44.744Z",
+    "sizeBytes": 386356622
   }
 ]
