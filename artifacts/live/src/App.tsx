@@ -444,7 +444,10 @@ function OwnerPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const load = async (ownerPassword: string) => {
-    const result = await apiJson<{ licenses: LicenseSession[] }>("/api/licenses", { headers: { "X-Owner-Password": ownerPassword } });
+    const result = await apiJson<{ licenses?: LicenseSession[] }>("/api/licenses", { headers: { "X-Owner-Password": ownerPassword } });
+    if (!Array.isArray(result?.licenses)) {
+      throw new Error("License list could not be loaded. Please try again.");
+    }
     setLicenses(result.licenses);
   };
   const signIn = async (event:FormEvent) => {
