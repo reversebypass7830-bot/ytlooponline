@@ -19,73 +19,14 @@ import {
   TrimMediaFileBody,
   TrimMediaFileResponse,
 } from "@workspace/api-zod";
-import youtubeDl, { create as createYoutubeDl } from "youtube-dl-exec";
+import { ReplitConnectors } from "@replit/connectors-sdk";
 import ffmpegPath from "ffmpeg-static";
 
 const router: IRouter = Router();
+const apifyConnectors = new ReplitConnectors();
 const mediaDir = path.resolve(process.cwd(), "attached_assets", "live-media");
 const maxUploadBytes = 1.5 * 1024 * 1024 * 1024;
-const youtubeDownloader = process.env.YT_DLP_BIN?.trim()
-  ? createYoutubeDl(process.env.YT_DLP_BIN.trim())
-  : youtubeDl;
 const mediaIndexPath = path.join(mediaDir, "media-index.json");
-const configuredYoutubeCookies = process.env.YOUTUBE_COOKIES?.trim();
-const configuredYoutubeCookiesFile = process.env.YT_DLP_COOKIES_FILE?.trim();
-let youtubeCookiesFilePromise: Promise<string | undefined> | undefined;
-const youtubeBridgePath = path.resolve(process.cwd(), "youtube-downloader-bridge/bin/Release/net10.0/YoutubeDownloaderBridge.dll");
-
-function normalizeYoutubeCookies(raw: string): string {
-  const trimmed = raw.trim();
-  if (!trimmed.startsWith("{") && !trimmed.startsWith("[")) return raw;
-  try {
-    const parsed = JSON.parse(trimmed) as unknown;
-    const cookies = Array.isArray(parsed)
-      ? parsed
-      : parsed && typeof parsed === "object" && Array.isArray((parsed as { cookies?: unknown }).cookies)
-        ? (parsed as { cookies: unknown[] }).cookies
-        : null;
-    if (!cookies) return raw;
-    const lines = [
-      "# Netscape HTTP Cookie File",
-      ...cookies.flatMap((item) => {
-        if (!item || typeof item !== "object") return [];
-        const cookie = item as {
-          domain?: unknown; path?: unknown; name?: unknown; value?: unknown;
-          expirationDate?: unknown; expires?: unknown; expiration?: unknown;
-          hostOnly?: unknown; includeSubdomains?: unknown; secure?: unknown;
-        };
-        if (typeof cookie.domain !== "string" || typeof cookie.name !== "string" || typeof cookie.value !== "string") return [];
-        const includeSubdomains = cookie.includeSubdomains === true || cookie.hostOnly !== true || cookie.domain.startsWith(".");
-        const expiry = [cookie.expirationDate, cookie.expires, cookie.expiration]
-          .map((value) => Number(value))
-          .find((value) => Number.isFinite(value) && value > 0);
-        return [[
-          cookie.domain,
-          includeSubdomains ? "TRUE" : "FALSE",
-          typeof cookie.path === "string" && cookie.path ? cookie.path : "/",
-          cookie.secure === true ? "TRUE" : "FALSE",
-          expiry ? String(Math.floor(expiry)) : "0",
-          cookie.name,
-          cookie.value,
-        ].join("\t")];
-      }),
-    ];
-    return lines.join("\n");
-  } catch {
-    return raw;
-  }
-}
-
-async function getYoutubeCookiesFile(): Promise<string | undefined> {
-  if (configuredYoutubeCookiesFile) return configuredYoutubeCookiesFile;
-  if (!configuredYoutubeCookies) return undefined;
-  youtubeCookiesFilePromise ??= (async () => {
-    const filePath = path.join("/tmp", `signal-desk-youtube-cookies-${randomUUID()}.txt`);
-    await writeFile(filePath, normalizeYoutubeCookies(configuredYoutubeCookies), { encoding: "utf8", mode: 0o600 });
-    return filePath;
-  })();
-  return youtubeCookiesFilePromise;
-}
 
 type MediaRecord = {
   fileId: string;
@@ -456,324 +397,106 @@ async function extractYoutubeChannelLinks(url: string): Promise<string[]> {
 
 type DownloadQuality = "best" | "2160p" | "1440p" | "1080p" | "720p" | "480p";
 
-function qualityHeight(quality: DownloadQuality): number | undefined {
-  return quality === "best" ? undefined : Number.parseInt(quality, 10);
-}
-
 function normalizeQualityLabel(value: string | undefined, fallback: string): string {
   const match = value?.match(/(\d{3,4})p?/i);
   return match ? `${match[1]}p` : fallback;
 }
 
-function youtubeFormat(quality: DownloadQuality): string {
-  const height = qualityHeight(quality);
-  // Prefer separate video/audio streams so yt-dlp does not silently fall back
-  // to a low-resolution combined format when a higher stream is available.
-  return height
-    ? `bestvideo[height<=${height}]+bestaudio/best[height<=${height}]/best`
-    : "bestvideo+bestaudio/best";
-}
-
-async function downloadViaYoutubeExplode(
-  url: string,
-  fileId: string,
-  context: MediaContext,
-): Promise<{ path: string; title: string; duration: string; quality: string }> {
-  await mkdir(mediaDir, { recursive: true });
-  const outputPath = path.join(mediaDir, `${fileId}.mp4`);
-  const requestedQuality = context.quality || "best";
-
-  const result = await new Promise<{ title: string; duration: string; quality: string }>((resolve, reject) => {
-    const child = spawn("dotnet", [youtubeBridgePath, url, outputPath, requestedQuality], {
-      env: {
-        ...process.env,
-        ...(configuredYoutubeCookies ? { YOUTUBE_COOKIES: configuredYoutubeCookies } : {}),
-        ...(ffmpegPath ? { FFMPEG_PATH: ffmpegPath } : {}),
-      },
-      stdio: ["ignore", "pipe", "pipe"],
-    });
-    let stdout = "";
-    let stderr = "";
-    child.stdout.on("data", (chunk: Buffer) => { stdout += chunk.toString(); });
-    child.stderr.on("data", (chunk: Buffer) => { stderr += chunk.toString(); });
-    child.on("error", reject);
-    child.on("close", (code) => {
-      if (code === 0) {
-        const line = stdout.trim().split(/\r?\n/).filter(Boolean).at(-1);
-        try {
-          const parsed = line ? JSON.parse(line) as { title?: unknown; duration?: unknown; quality?: unknown } : {};
-          resolve({
-            title: typeof parsed.title === "string" && parsed.title.trim() ? parsed.title.trim() : "Downloaded YouTube video",
-            duration: typeof parsed.duration === "string" ? parsed.duration : "00:00",
-            quality: typeof parsed.quality === "string" ? parsed.quality : requestedQuality,
-          });
-        } catch {
-          reject(new Error("The GitHub downloader returned invalid video metadata."));
-        }
-        return;
-      }
-      const detail = stderr.trim().split(/\r?\n/).filter(Boolean).at(-1) || "The GitHub YouTube downloader failed.";
-      reject(new Error(detail.slice(-1200)));
-    });
-  });
-
-  try {
-    const title = result.title;
-    const finalPath = await finalizeMediaFile(fileId, outputPath, title, context);
-    return { path: finalPath, title, duration: result.duration, quality: result.quality };
-  } catch (error) {
-    await unlink(outputPath).catch(() => undefined);
-    throw error;
-  }
-}
-
-type YtDlpMetadata = {
+type ApifyVideoResult = {
+  id?: unknown;
   title?: unknown;
+  name?: unknown;
   duration?: unknown;
-  duration_string?: unknown;
-  height?: unknown;
-  resolution?: unknown;
-  requested_downloads?: Array<{ height?: unknown }>;
+  durationString?: unknown;
+  downloadedFileUrl?: unknown;
+  fileUrl?: unknown;
+  url?: unknown;
+  input?: unknown;
+  [key: string]: unknown;
 };
 
-function youtubeFormatForYtDlp(quality: DownloadQuality): string {
-  const height = qualityHeight(quality);
-  return height
-    ? `bv*[height<=${height}]+ba/b[height<=${height}]/b`
-    : "bv*+ba/b";
+function apifyQuality(quality: DownloadQuality): string | undefined {
+  return quality === "best" ? undefined : quality;
 }
 
-async function downloadViaYtDlp(
-  url: string,
-  fileId: string,
-  context: MediaContext,
-): Promise<{ path: string; title: string; duration: string; quality: string }> {
-  await mkdir(mediaDir, { recursive: true });
-  const outputPath = path.join(mediaDir, `${fileId}.mp4`);
-  const requestedQuality = (context.quality || "best") as DownloadQuality;
-  const cookiesFile = await getYoutubeCookiesFile();
-  const metadata = await youtubeDownloader.exec(
-    url,
-    {
-      noPlaylist: true,
-      noWarnings: true,
-      noProgress: true,
-      printJson: true,
-      format: youtubeFormatForYtDlp(requestedQuality),
-      mergeOutputFormat: "mp4",
-      output: outputPath,
-      ...(cookiesFile ? { cookies: cookiesFile } : {}),
-      ...(ffmpegPath ? { ffmpegLocation: path.dirname(ffmpegPath) } : {}),
-    },
-    {
-      env: {
-        ...process.env,
-        ...(cookiesFile ? { YOUTUBE_COOKIES: undefined } : {}),
-      },
-    },
-  ) as YtDlpMetadata;
-
+function isApifyStorageUrl(rawUrl: string): boolean {
   try {
-    const title = typeof metadata?.title === "string" && metadata.title.trim()
-      ? metadata.title.trim()
-      : "Downloaded YouTube video";
-    const durationValue = typeof metadata?.duration_string === "string"
-      ? metadata.duration_string
-      : metadata?.duration;
-    const duration = typeof durationValue === "string"
-      ? normalizeDuration(durationValue)
-      : formatDuration(durationValue);
-    const height = typeof metadata?.height === "number"
-      ? metadata.height
-      : metadata?.requested_downloads?.find((item) => typeof item.height === "number")?.height;
-    const quality = typeof height === "number" && height > 0
-      ? `${height}p`
-      : normalizeQualityLabel(typeof metadata?.resolution === "string" ? metadata.resolution : undefined, requestedQuality);
-    const finalPath = await finalizeMediaFile(fileId, outputPath, title, context);
-    return { path: finalPath, title, duration, quality };
-  } catch (error) {
-    await unlink(outputPath).catch(() => undefined);
-    throw error;
-  }
-}
-
-type YtSaveApi = {
-  status?: string;
-  message?: string;
-  title?: string;
-  progress?: string;
-  fileName?: string;
-  fileUrl?: string;
-  mediaItems?: Array<{
-    type?: string;
-    mediaUrl?: string;
-    mediaDuration?: string;
-    mediaFileSize?: string;
-    quality?: string;
-  }>;
-};
-
-type YtSaveResponse = { api?: YtSaveApi };
-
-const ytsaveBaseUrl = "https://ytsave.to";
-const ytsaveUserAgent =
-  "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36";
-const ytsaveMintSecret = "bf735103af6bb295633270b05a7b0a42";
-
-function updateYtSaveCookies(response: Response, current: string): string {
-  const setCookie = response.headers.get("set-cookie");
-  if (!setCookie) return current;
-
-  const values = new Map(
-    current
-      .split(";")
-      .map((cookie) => cookie.trim().split("="))
-      .filter(([name, value]) => name && value)
-      .map(([name, ...value]) => [name, value.join("=")]),
-  );
-  for (const cookie of setCookie.split(/,(?=[^;,]+=)/)) {
-    const [name, ...value] = cookie.split(";", 1)[0].trim().split("=");
-    if (name && value.length) values.set(name, value.join("="));
-  }
-  return Array.from(values.entries())
-    .map(([name, value]) => `${name}=${value}`)
-    .join("; ");
-}
-
-async function ytsaveFetch(
-  endpoint: string,
-  options: { body?: string; cookies?: string; timeoutMs?: number } = {},
-): Promise<{ response: Response; cookies: string }> {
-  const response = await fetch(`${ytsaveBaseUrl}${endpoint}`, {
-    method: options.body === undefined ? "GET" : "POST",
-    headers: {
-      accept: "application/json, text/javascript, */*; q=0.01",
-      "content-type": "application/x-www-form-urlencoded; charset=UTF-8",
-      origin: ytsaveBaseUrl,
-      referer: `${ytsaveBaseUrl}/en2/`,
-      "user-agent": ytsaveUserAgent,
-      "x-requested-with": "XMLHttpRequest",
-      ...(options.cookies ? { cookie: options.cookies } : {}),
-    },
-    ...(options.body === undefined ? {} : { body: options.body }),
-    signal: AbortSignal.timeout(options.timeoutMs ?? 30_000),
-  });
-  return { response, cookies: updateYtSaveCookies(response, options.cookies ?? "") };
-}
-
-async function parseYtSaveResponse(response: Response): Promise<YtSaveResponse> {
-  const raw = await response.text();
-  let parsed: YtSaveResponse;
-  try {
-    parsed = JSON.parse(raw) as YtSaveResponse;
+    const hostname = new URL(rawUrl).hostname.toLowerCase();
+    return hostname === "api.apify.com"
+      || hostname === "apify.com"
+      || hostname.endsWith(".apify.com")
+      || hostname.endsWith(".apifyusercontent.com");
   } catch {
-    throw new Error(`YTSave returned an invalid response (${response.status}).`);
+    return false;
   }
-  if (!response.ok) {
-    throw new Error(parsed.api?.message || `YTSave request failed (${response.status}).`);
-  }
-  return parsed;
 }
 
-async function downloadViaYtSave(
+async function downloadViaApify(
   url: string,
   fileId: string,
   context: MediaContext,
 ): Promise<{ path: string; title: string; duration: string; quality: string }> {
-  const landing = await ytsaveFetch("/en2/", { timeoutMs: 30_000 });
-  const landingHtml = await landing.response.text();
-  if (!landing.response.ok) throw new Error(`YTSave landing page failed (${landing.response.status}).`);
-
-  const challenge = landingHtml.match(/data-ch="([^"]+)"/)?.[1];
-  if (!challenge) throw new Error("YTSave did not provide its verification challenge.");
-  const answer = createHmac("sha256", ytsaveMintSecret).update(challenge).digest("hex").slice(0, 32);
-  const minted = await ytsaveFetch("/mint.php", {
-    body: new URLSearchParams({ ch: challenge, answer }).toString(),
-    cookies: landing.cookies,
-    timeoutMs: 30_000,
-  });
-  const mintedJson = await parseYtSaveResponse(minted.response) as YtSaveResponse & { dt?: string };
-  if (!mintedJson.dt) throw new Error("YTSave verification did not return a download token.");
-
-  let cookies = minted.cookies;
-  const details = await ytsaveFetch("/proxy.php", {
-    body: new URLSearchParams({ url, dt: mintedJson.dt }).toString(),
-    cookies,
-    timeoutMs: 60_000,
-  });
-  cookies = details.cookies;
-  const detailsJson = await parseYtSaveResponse(details.response);
-  const api = detailsJson.api;
-  const mediaItems = Array.isArray(api?.mediaItems) ? api.mediaItems : [];
-   const videoOptions = mediaItems
-     .filter((item) => item.type === "Video" && item.mediaUrl)
-     .map((item) => ({
-       item,
-       height: Number(item.quality?.match(/\d{3,4}/)?.[0] || item.mediaUrl?.match(/(\d{3,4})p/i)?.[1] || 0),
-     }))
-     .sort((a, b) => b.height - a.height);
-  const requestedHeight = qualityHeight((context.quality || "best") as DownloadQuality);
-   const selectedOptions = requestedHeight
-     ? videoOptions.filter((option) => !option.height || option.height <= requestedHeight)
-     : videoOptions;
-   const video = (selectedOptions[0] || videoOptions[0])?.item;
-  if (api?.status !== "ok" || !video?.mediaUrl) {
-    throw new Error(api?.message || "YTSave could not prepare this YouTube video. The fallback provider returned no downloadable formats.");
+  const requestedQuality = (context.quality || "best") as DownloadQuality;
+  const input = {
+    videos: [{ url }],
+    preferredFormat: "mp4",
+    ...(apifyQuality(requestedQuality) ? { preferredQuality: apifyQuality(requestedQuality) } : {}),
+    storeInKVStore: true,
+    filenameTemplateParts: ["title"],
+  };
+  const response = await apifyConnectors.proxy(
+    "apify",
+    "/v2/actors/streamers~youtube-video-downloader/run-sync-get-dataset-items?format=json&clean=true",
+    {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(input),
+    },
+  );
+  const raw = await response.text();
+  if (!response.ok) {
+    throw new Error(`Apify downloader failed (${response.status}).`);
   }
 
-  let completed: YtSaveApi | undefined;
-  for (let attempt = 0; attempt < 900; attempt += 1) {
-    const poll = await ytsaveFetch("/proxy.php", {
-      body: new URLSearchParams({ url: video.mediaUrl, dt: mintedJson.dt }).toString(),
-      cookies,
-      timeoutMs: 60_000,
-    });
-    cookies = poll.cookies;
-    const pollApi = (await parseYtSaveResponse(poll.response)).api;
-    if (pollApi?.status === "completed" && pollApi.fileUrl) {
-      completed = pollApi;
-      break;
-    }
-    if (pollApi?.status === "error") {
-      throw new Error(pollApi.message || "YTSave could not render the selected quality.");
-    }
-    await new Promise((resolve) => setTimeout(resolve, 2_000));
-  }
-  if (!completed?.fileUrl) throw new Error("YTSave took too long to prepare the video.");
-
-  const fileResponse = await fetch(completed.fileUrl, {
-    headers: { referer: `${ytsaveBaseUrl}/en2/`, "user-agent": ytsaveUserAgent },
-    signal: AbortSignal.timeout(60 * 60 * 1000),
-  });
-  if (!fileResponse.ok || !fileResponse.body) {
-    throw new Error(`YTSave file download failed (${fileResponse.status}).`);
-  }
-
-  const destination = path.join(mediaDir, `${fileId}.mp4`);
-  const readable = Readable.fromWeb(fileResponse.body as import("node:stream/web").ReadableStream);
+  let parsed: unknown;
   try {
-    await pipeline(readable, createWriteStream(destination));
+    parsed = JSON.parse(raw);
+  } catch {
+    throw new Error("Apify returned an invalid downloader response.");
+  }
+  const item = (Array.isArray(parsed) ? parsed[0] : parsed) as ApifyVideoResult | undefined;
+  const mediaUrl = [item?.downloadedFileUrl, item?.fileUrl]
+    .find((candidate): candidate is string => typeof candidate === "string" && candidate.trim().length > 0);
+  if (!mediaUrl || !isApifyStorageUrl(mediaUrl)) {
+    throw new Error("Apify did not return a downloadable MP4 file.");
+  }
+
+  const parsedMediaUrl = new URL(mediaUrl);
+  const fileResponse = await apifyConnectors.proxy(
+    "apify",
+    `${parsedMediaUrl.pathname}${parsedMediaUrl.search}`,
+    { method: "GET" },
+  );
+  if (!fileResponse.ok || !fileResponse.body) {
+    throw new Error(`Apify file download failed (${fileResponse.status}).`);
+  }
+
+  const title = [item?.title, item?.name]
+    .find((candidate): candidate is string => typeof candidate === "string" && candidate.trim().length > 0)
+    ?.trim() || "Downloaded YouTube video";
+  const durationValue = typeof item?.durationString === "string" ? item.durationString : item?.duration;
+  const duration = typeof durationValue === "string" ? normalizeDuration(durationValue) : formatDuration(durationValue);
+  const temporaryPath = path.join(mediaDir, `${fileId}.mp4`);
+  await mkdir(mediaDir, { recursive: true });
+  try {
+    const readable = Readable.fromWeb(fileResponse.body as import("node:stream/web").ReadableStream);
+    await pipeline(readable, createWriteStream(temporaryPath));
+    const finalPath = await finalizeMediaFile(fileId, temporaryPath, title, context);
+    return { path: finalPath, title, duration, quality: normalizeQualityLabel(requestedQuality, requestedQuality) };
   } catch (error) {
-    await unlink(destination).catch(() => undefined);
+    await unlink(temporaryPath).catch(() => undefined);
     throw error;
   }
-
-  const title = api.title?.trim() || "Downloaded YouTube video";
-  const finalPath = await finalizeMediaFile(fileId, destination, title, context);
-  return {
-    path: finalPath,
-    title,
-    duration: normalizeDuration(video.mediaDuration),
-    quality: normalizeQualityLabel(video.quality || video.mediaUrl?.match(/(\d{3,4})p/i)?.[1], context.quality || "best"),
-  };
-}
-
-function downloadErrorMessage(error: unknown): string {
-  return (error instanceof Error ? error.message : String(error)).trim().slice(-1200);
-}
-
-function isYoutubeBlocked(message: string): boolean {
-  return /sign in to confirm|not a bot|bot|po token|player response|requested format is not available|video unavailable/i.test(message);
 }
 
 async function downloadYoutubeVideo(
@@ -781,63 +504,15 @@ async function downloadYoutubeVideo(
   fileId: string,
   context: MediaContext,
 ): Promise<{ path: string; title: string; duration: string; quality: string }> {
-  const outputPath = path.join(mediaDir, `${fileId}.mp4`);
-  const failures: string[] = [];
-
-  for (const attempt of [
-    () => downloadViaYoutubeExplode(url, fileId, context),
-    () => downloadViaYtDlp(url, fileId, context),
-    () => downloadViaYtSave(url, fileId, context),
-  ]) {
-    try {
-      return await attempt();
-    } catch (error) {
-      const message = downloadErrorMessage(error);
-      failures.push(message);
-      await unlink(outputPath).catch(() => undefined);
-    }
-  }
-
-  const lastFailure = failures.at(-1) || "The YouTube video could not be downloaded.";
-  if (failures.some(isYoutubeBlocked)) {
-    throw new Error(
-      "YouTube is blocking this video for the server. Add an authorized YOUTUBE_COOKIES secret, or upload the video directly. " +
-      lastFailure,
-    );
-  }
-  throw new Error(lastFailure);
+  return downloadViaApify(url, fileId, context);
 }
 
 async function inspectYoutubeFormats(url: string): Promise<{ qualities: string[]; title: string }> {
-  return await new Promise((resolve, reject) => {
-    const child = spawn("dotnet", [youtubeBridgePath, "--formats", url], {
-      env: {
-        ...process.env,
-        ...(configuredYoutubeCookies ? { YOUTUBE_COOKIES: configuredYoutubeCookies } : {}),
-      },
-      stdio: ["ignore", "pipe", "pipe"],
-    });
-    let stdout = "";
-    let stderr = "";
-    child.stdout.on("data", (chunk: Buffer) => { stdout += chunk.toString(); });
-    child.stderr.on("data", (chunk: Buffer) => { stderr += chunk.toString(); });
-    child.on("error", reject);
-    child.on("close", (code) => {
-      if (code !== 0) {
-        reject(new Error(stderr.trim().split(/\r?\n/).filter(Boolean).at(-1) || "YouTube qualities could not be loaded."));
-        return;
-      }
-      try {
-        const parsed = JSON.parse(stdout.trim().split(/\r?\n/).filter(Boolean).at(-1) || "{}") as { qualities?: unknown; title?: unknown };
-        resolve({
-          qualities: Array.isArray(parsed.qualities) ? parsed.qualities.filter((quality): quality is string => typeof quality === "string") : ["best"],
-          title: typeof parsed.title === "string" ? parsed.title : "YouTube video",
-        });
-      } catch {
-        reject(new Error("The GitHub downloader returned invalid quality data."));
-      }
-    });
-  });
+  validateYoutubeUrl(url);
+  return {
+    qualities: ["best", "2160p", "1440p", "1080p", "720p", "480p"],
+    title: "YouTube video",
+  };
 }
 
 router.get("/media/files", async (req, res): Promise<void> => {
@@ -1025,16 +700,11 @@ router.post("/media/youtube-download", async (req, res): Promise<void> => {
     }));
   } catch (error) {
     const rawMessage = error instanceof Error ? error.message : "The YouTube video could not be downloaded.";
-    const errorCode = error instanceof Error ? (error as NodeJS.ErrnoException).code : undefined;
-    const missingDownloader = errorCode === "ENOENT" || rawMessage.includes("spawn yt-dlp ENOENT");
-    const blockedByYoutube = isYoutubeBlocked(rawMessage);
-    const message = missingDownloader
-      ? "The bundled YouTube downloader is unavailable. Redeploy the latest build and try again."
-      : blockedByYoutube
-        ? "YouTube is blocking this video for the server. Add an authorized Netscape cookies file as the YOUTUBE_COOKIES secret, or upload the video directly from Video Library. Private, age-restricted, region-restricted, and newly blocked videos require an authorized YouTube session."
-        : rawMessage;
+    const message = rawMessage.startsWith("Apify")
+      ? rawMessage
+      : "Apify could not download this YouTube video. Please try again or use a direct video URL.";
     req.log.warn({ error: message }, "YouTube download failed");
-    res.status(missingDownloader ? 503 : 400).json({ error: message });
+    res.status(400).json({ error: message });
   }
 });
 
