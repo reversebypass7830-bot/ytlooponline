@@ -1,0 +1,167 @@
+import {z} from 'zod'
+import {IPC_CHANNELS} from '@shared/ipc.js'
+import {queueArraySchema, queueLaneSchema, queueSelectionActionSchema, localizedErrorSchemaShape} from '@shared/schemas.js'
+import {ok} from '@shared/result.js'
+import type {QueueService} from '@main/services/QueueService.js'
+import type {ProbeService} from '@main/services/ProbeService.js'
+import {PROBE_TIMEOUT_MS} from '@shared/constants.js'
+import {handle, handleRaw, toUnknownFailure} from './utils.js'
+
+const itemIdSchema = z.object({itemId: z.string()})
+const cancelInputSchema = z.object({itemId: z.string().nullable()})
+const setLaneInputSchema = z.object({itemId: z.string(), lane: queueLaneSchema})
+const applySelectionActionInputSchema = z.object({action: queueSelectionActionSchema, itemIds: z.array(z.string())})
+const changeOutputTargetInputSchema = z.object({itemIds: z.array(z.string()), outputDir: z.string().trim().min(1)})
+const probeFailedInputSchema = z.object({itemId: z.string().min(1), error: localizedErrorSchemaShape})
+const replaceProbingInputSchema = z.object({itemId: z.string().min(1), items: queueArraySchema})
+
+export function registerQueueHandlers(queueService: QueueService, probeService: ProbeService): void {
+	// A probing item's cancellation aborts exactly its own probe — never the
+	// wizard's in-flight probe (keyed owners in ProbeService).
+	queueService.onProbeAbort(itemId => probeService.cancelProbe(itemId))
+	// Deferred title backfill: placeholder rows resolve their real title via a
+	// full video probe on the pinned 180s budget (slow-link probes need it).
+	// Non-video results and blank titles resolve nothing — the row keeps its flag.
+	queueService.setTitleBackfillProbe(async url => {
+		const result = await probeService.probe(url, {playlistMode: 'video', timeoutMs: PROBE_TIMEOUT_MS})
+		if (!result.ok || result.data.kind !== 'video') return null
+		const title = result.data.title.trim()
+		return title === '' ? null : title
+	})
+
+	handle(IPC_CHANNELS.queueCmdAdd, queueArraySchema, items => {
+		try {
+			return Promise.resolve(queueService.add(items))
+		} catch (err) {
+			return Promise.resolve(toUnknownFailure(err))
+		}
+	})
+
+	handle(IPC_CHANNELS.queueCmdProbeFailed, probeFailedInputSchema, ({itemId, error}) => {
+		try {
+			return Promise.resolve(queueService.probeFailed(itemId, error))
+		} catch (err) {
+			return Promise.resolve(toUnknownFailure(err))
+		}
+	})
+
+	// Atomic probe-stage swap for the hotkey placeholder — refuses (enqueueing
+	// nothing) unless the placeholder is still probing.
+	handle(IPC_CHANNELS.queueCmdReplaceProbing, replaceProbingInputSchema, ({itemId, items}) => {
+		try {
+			return Promise.resolve(queueService.replaceProbing(itemId, items))
+		} catch (err) {
+			return Promise.resolve(toUnknownFailure(err))
+		}
+	})
+
+	handle(IPC_CHANNELS.queueCmdStart, itemIdSchema, async ({itemId}) => {
+		try {
+			const result = await queueService.start(itemId)
+			return result.ok ? ok(undefined) : result
+		} catch (err) {
+			return toUnknownFailure(err)
+		}
+	})
+
+	handle(IPC_CHANNELS.queueCmdPause, itemIdSchema, async ({itemId}) => {
+		try {
+			const result = await queueService.pause(itemId)
+			return result.ok ? ok(undefined) : result
+		} catch (err) {
+			return toUnknownFailure(err)
+		}
+	})
+
+	handle(IPC_CHANNELS.queueCmdResume, itemIdSchema, async ({itemId}) => {
+		try {
+			const result = await queueService.resume(itemId)
+			return result.ok ? ok(undefined) : result
+		} catch (err) {
+			return toUnknownFailure(err)
+		}
+	})
+
+	handle(IPC_CHANNELS.queueCmdCancel, cancelInputSchema, async ({itemId}) => {
+		try {
+			const result = await queueService.cancel(itemId)
+			return result.ok ? ok(undefined) : result
+		} catch (err) {
+			return toUnknownFailure(err)
+		}
+	})
+
+	handle(IPC_CHANNELS.queueCmdRetry, itemIdSchema, async ({itemId}) => {
+		try {
+			const result = await queueService.retry(itemId)
+			return result.ok ? ok(undefined) : result
+		} catch (err) {
+			return toUnknownFailure(err)
+		}
+	})
+
+	handleRaw(IPC_CHANNELS.queueCmdGetSnapshot, () => {
+		return Promise.resolve(ok(queueService.snapshotPayload()))
+	})
+
+	handleRaw(IPC_CHANNELS.queueCmdClearCompleted, async () => {
+		try {
+			const result = await queueService.clearCompleted()
+			return result.ok ? ok(undefined) : result
+		} catch (err) {
+			return toUnknownFailure(err)
+		}
+	})
+
+	handle(IPC_CHANNELS.queueCmdRemove, itemIdSchema, async ({itemId}) => {
+		try {
+			const result = await queueService.remove(itemId)
+			return result.ok ? ok(undefined) : result
+		} catch (err) {
+			return toUnknownFailure(err)
+		}
+	})
+
+	handle(IPC_CHANNELS.queueCmdSetLane, setLaneInputSchema, async ({itemId, lane}) => {
+		try {
+			const result = await queueService.setLane(itemId, lane)
+			return result.ok ? ok(undefined) : result
+		} catch (err) {
+			return toUnknownFailure(err)
+		}
+	})
+
+	handle(IPC_CHANNELS.queueCmdApplySelectionAction, applySelectionActionInputSchema, async ({action, itemIds}) => {
+		try {
+			return await queueService.applySelectionAction(action, itemIds)
+		} catch (err) {
+			return toUnknownFailure(err)
+		}
+	})
+
+	handle(IPC_CHANNELS.queueCmdChangeOutputTarget, changeOutputTargetInputSchema, async ({itemIds, outputDir}) => {
+		try {
+			return await queueService.changeOutputTarget(itemIds, outputDir)
+		} catch (err) {
+			return toUnknownFailure(err)
+		}
+	})
+
+	handleRaw(IPC_CHANNELS.queueCmdPauseAll, async () => {
+		try {
+			await queueService.pauseAll()
+			return ok(undefined)
+		} catch (err) {
+			return toUnknownFailure(err)
+		}
+	})
+
+	handleRaw(IPC_CHANNELS.queueCmdResumeAll, async () => {
+		try {
+			await queueService.resumeAll()
+			return ok(undefined)
+		} catch (err) {
+			return toUnknownFailure(err)
+		}
+	})
+}

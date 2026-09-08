@@ -1,0 +1,3174 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: Arroxy\n"
+"Report-Msgid-Bugs-To: https://github.com/antonio-orionus/Arroxy/issues\n"
+"Language: uk\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+msgctxt "about.button"
+msgid "About"
+msgstr "Про програму"
+
+msgctxt "about.githubLink"
+msgid "GitHub"
+msgstr "GitHub"
+
+msgctxt "about.licenseLine"
+msgid "MIT License · by Antonio Orionus"
+msgstr "Ліцензія MIT · by Antonio Orionus"
+
+msgctxt "about.openTitle"
+msgid "About Arroxy"
+msgstr "Про програму Arroxy"
+
+msgctxt "about.tagline"
+msgid "Fast, friendly downloader for YouTube and 2000+ other sites."
+msgstr "Швидкий і зручний завантажувач для YouTube та ще 2000+ сайтів."
+
+msgctxt "about.thirdPartyNotices"
+msgid "View third-party notices"
+msgstr "Переглянути повідомлення про сторонні компоненти"
+
+msgctxt "about.websiteLink"
+msgid "Website"
+msgstr "Сайт"
+
+msgctxt "app.feedback"
+msgid "Feedback"
+msgstr "Зворотний зв'язок"
+
+msgctxt "app.feedbackNudge"
+msgid "Enjoying Arroxy? I'd love to hear from you! 💬"
+msgstr "Подобається Arroxy? Я б залюбки почув твою думку! 💬"
+
+msgctxt "app.logs"
+msgid "Logs"
+msgstr "Журнали"
+
+msgctxt "app.zoomIn"
+msgid "Zoom in"
+msgstr "Збільшити"
+
+msgctxt "app.zoomOut"
+msgid "Zoom out"
+msgstr "Зменшити"
+
+msgctxt "common.back"
+msgid "Back"
+msgstr "Назад"
+
+msgctxt "common.cancel"
+msgid "Cancel"
+msgstr "Скасувати"
+
+msgctxt "common.continue"
+msgid "Continue"
+msgstr "Продовжити"
+
+msgctxt "common.loading"
+msgid "Loading"
+msgstr "Завантаження…"
+
+msgctxt "common.retry"
+msgid "Retry"
+msgstr "Повторити"
+
+msgctxt "common.startOver"
+msgid "Start over"
+msgstr "Почати спочатку"
+
+msgctxt "dialogs.closeToTray.detail"
+msgid "Arroxy keeps running and finishes active downloads. Change this later in Advanced settings."
+msgstr "Arroxy продовжить роботу і завершить активні завантаження. Змінити в розширених налаштуваннях."
+
+msgctxt "dialogs.closeToTray.hide"
+msgid "Hide to tray"
+msgstr "Приховати в трей"
+
+msgctxt "dialogs.closeToTray.message"
+msgid "Hide Arroxy to the system tray when closing?"
+msgstr "Приховувати Arroxy в системний трей при закритті?"
+
+msgctxt "dialogs.closeToTray.quit"
+msgid "Quit"
+msgstr "Вийти"
+
+msgctxt "dialogs.closeToTray.remember"
+msgid "Don't ask again"
+msgstr "Більше не питати"
+
+msgctxt "dialogs.quitWithActiveDownloads.confirm"
+msgid "Cancel Downloads & Quit"
+msgstr "Скасувати завантаження й вийти"
+
+msgctxt "dialogs.quitWithActiveDownloads.detail"
+msgid "Pause to resume later, or cancel to discard progress."
+msgstr "Призупиніть, щоб продовжити пізніше, або скасуйте, щоб відкинути прогрес."
+
+msgctxt "dialogs.quitWithActiveDownloads.keep"
+msgid "Keep Downloading"
+msgstr "Продовжити завантаження"
+
+msgctxt "dialogs.quitWithActiveDownloads.message_one"
+msgid "{{count}} download in progress"
+msgstr "Триває {{count}} завантаження"
+
+msgctxt "dialogs.quitWithActiveDownloads.message_other"
+msgid "{{count}} downloads in progress"
+msgstr "Триває завантажень: {{count}}"
+
+msgctxt "dialogs.quitWithActiveDownloads.pause"
+msgid "Pause Downloads & Quit"
+msgstr "Призупинити завантаження й вийти"
+
+msgctxt "dialogs.rendererCrashed.detail"
+msgid "The renderer process crashed ({{reason}}). Reload to try again."
+msgstr "Процес рендерера завершився аварійно ({{reason}}). Перезавантажте, щоб спробувати ще раз."
+
+msgctxt "dialogs.rendererCrashed.message"
+msgid "Arroxy encountered a problem"
+msgstr "Arroxy зіткнувся з проблемою"
+
+msgctxt "dialogs.rendererCrashed.quit"
+msgid "Quit"
+msgstr "Вийти"
+
+msgctxt "dialogs.rendererCrashed.reload"
+msgid "Reload"
+msgstr "Перезавантажити"
+
+msgctxt "errors.ytdlp.ageRestricted"
+msgid "This video is age-restricted and cannot be downloaded without a signed-in account."
+msgstr "Це відео має віковий ценз — без авторизації завантажити неможливо."
+
+msgctxt "errors.ytdlp.botBlock"
+msgid "Bot protection triggered. The IP you're using is most likely flagged (datacenter range or busy VPN exit). Change your IP or pick a different VPN endpoint and retry. If it keeps failing, this may be a temporary site-side change — Arroxy auto-updates yt-dlp on launch, so the fix lands automatically once upstream ships it."
+msgstr "Спрацював захист від ботів. IP-адреса, яку ти використовуєш, найімовірніше заблокована (діапазон датацентру або перевантажений вихідний вузол VPN). Зміни IP або вибери інший сервер VPN і повтори спробу. Якщо помилка повторюється, можливо, це тимчасова зміна на боці YouTube — Arroxy автоматично оновлює yt-dlp під час запуску, тож виправлення з'явиться само після виходу оновлення."
+
+msgctxt "errors.ytdlp.chunkTransferFailure"
+msgid "The server kept cutting the download mid-stream and yt-dlp gave up after retrying. This usually hits the largest video formats (4K HDR / high-bitrate VP9). Retry, switch network/VPN, or pick a lower-resolution format."
+msgstr "Сервер постійно обривав завантаження посередині потоку, і yt-dlp здався після кількох спроб. Найчастіше це трапляється з найважчими форматами (4K HDR / VP9 з високим бітрейтом). Спробуй ще раз, зміни мережу або VPN, або вибери формат з нижчою роздільною здатністю."
+
+msgctxt "errors.ytdlp.drmProtected"
+msgid "This video is DRM-protected. yt-dlp can't strip DRM, so the file can't be downloaded."
+msgstr "Це відео захищене DRM. yt-dlp не може зняти захист DRM, тому файл неможливо завантажити."
+
+msgctxt "errors.ytdlp.geoBlocked"
+msgid "This video is not available in your region."
+msgstr "Це відео недоступне у твоєму регіоні."
+
+msgctxt "errors.ytdlp.ipBlock"
+msgid "Your IP address appears to be blocked. Try again later or use a VPN."
+msgstr "YouTube, схоже, заблокував твою IP-адресу. Спробуй пізніше або скористайся VPN."
+
+msgctxt "errors.ytdlp.loginRequired"
+msgid "This video requires a signed-in account. Set up a cookies.txt (Settings → Cookies) and retry."
+msgstr "Для цього відео потрібен авторизований акаунт. Налаштуй cookies.txt (Налаштування → Cookies) і повтори спробу."
+
+msgctxt "errors.ytdlp.missingDependency"
+msgid "yt-dlp could not find ffmpeg or ffprobe. Repair the bundled binaries or set an FFmpeg location, then retry."
+msgstr "yt-dlp не знайшов ffmpeg або ffprobe. Віднови вбудовані бінарні файли або вкажи розташування FFmpeg, а потім повтори спробу."
+
+msgctxt "errors.ytdlp.network"
+msgid "Network error. Check your connection and retry."
+msgstr "Помилка мережі. Перевір з’єднання та спробуй ще раз."
+
+msgctxt "errors.ytdlp.outOfDiskSpace"
+msgid "Not enough disk space. Free up space and retry."
+msgstr "Недостатньо місця на диску. Звільни місце та спробуй ще раз."
+
+msgctxt "errors.ytdlp.parse"
+msgid "Couldn't parse the response from the site. yt-dlp's extractor may have drifted. Arroxy auto-updates yt-dlp on launch — retry in a few minutes once the fix ships."
+msgstr "Не вдалося розібрати відповідь сайту. Можливо, екстрактор yt-dlp застарів. Arroxy автоматично оновлює yt-dlp при запуску — спробуй ще раз за кілька хвилин, коли виправлення буде доставлено."
+
+msgctxt "errors.ytdlp.postprocessFailure"
+msgid "yt-dlp finished downloading but post-processing (merge / mux / convert) failed. Often this is a transient ffmpeg issue — retry, and if it persists try a different format combination."
+msgstr "yt-dlp завершив завантаження, але пост-обробка (злиття / mux / конвертація) не вдалася. Зазвичай це тимчасова проблема ffmpeg — спробуй ще раз, а якщо помилка повторюється, вибери іншу комбінацію форматів."
+
+msgctxt "errors.ytdlp.rateLimit"
+msgid "Site is rate-limiting requests. Wait a minute then retry."
+msgstr "YouTube обмежує кількість запитів. Зачекай хвилину і повтори."
+
+msgctxt "errors.ytdlp.unavailable"
+msgid "This video is unavailable — it may be private, deleted, or region-locked."
+msgstr "Це відео недоступне — можливо, воно приватне, видалене або обмежене за регіоном."
+
+msgctxt "errors.ytdlp.unknown"
+msgid "Download failed. See the raw output below."
+msgstr "Завантаження не вдалося. Дивись необроблений вивід нижче."
+
+msgctxt "errors.ytdlp.unsupportedUrl"
+msgid "That URL isn't supported by yt-dlp. Try a different link from any of yt-dlp's supported sites."
+msgstr "Цей URL не підтримується yt-dlp. Спробуйте інше посилання з будь-якого сайту, який підтримує yt-dlp."
+
+msgctxt "filenameTemplate.description"
+msgid "Choose how downloaded files are named. Click a token to insert it. Use / to sort downloads into folders."
+msgstr "Виберіть, як називаються завантажені файли. Натисніть на токен, щоб вставити його. Використовуйте /, щоб розкладати завантаження по теках."
+
+msgctxt "filenameTemplate.error.empty"
+msgid "Enter a filename template."
+msgstr "Введіть шаблон імені файлу."
+
+msgctxt "filenameTemplate.error.empty-segment"
+msgid "Remove the extra / — every folder needs a name."
+msgstr "Приберіть зайву / — кожна тека потребує назви."
+
+msgctxt "filenameTemplate.error.forbidden-char"
+msgid "Remove characters that aren't allowed in filenames: \\ : * ? \" < > |"
+msgstr "Приберіть символи, які не дозволені в іменах файлів: \\ : * ? \" < > |"
+
+msgctxt "filenameTemplate.error.invalid-segment"
+msgid "That folder name isn't allowed. Avoid . and .. and reserved names like CON."
+msgstr "Така назва теки не дозволена. Уникайте . і .. та зарезервованих назв на кшталт CON."
+
+msgctxt "filenameTemplate.error.no-unique-token"
+msgid "Add {title} or {id} to the filename so each download gets its own name."
+msgstr "Додайте {title} або {id} до імені файлу, щоб кожне завантаження мало власне ім'я."
+
+msgctxt "filenameTemplate.error.resolution-in-dir"
+msgid "{resolution} can't name a folder — the quality isn't known until the download starts."
+msgstr "{resolution} не може бути назвою теки — якість відома лише після початку завантаження."
+
+msgctxt "filenameTemplate.error.stray-brace"
+msgid "Unmatched { or } — wrap tokens like {title}."
+msgstr "Незакрита { або } — пишіть елементи як {title}."
+
+msgctxt "filenameTemplate.error.too-long"
+msgid "Template is too long."
+msgstr "Шаблон задовгий."
+
+msgctxt "filenameTemplate.error.unknown-token"
+msgid "Unknown token {{token}}."
+msgstr "Невідомий елемент {{token}}."
+
+msgctxt "filenameTemplate.idWarning"
+msgid "Without {id}, Arroxy can't detect already-downloaded playlist items or generate .m3u playlists."
+msgstr "Без {id} Arroxy не може виявляти вже завантажені елементи плейлиста та створювати плейлисти .m3u."
+
+msgctxt "filenameTemplate.label"
+msgid "Filename template"
+msgstr "Шаблон імені файлу"
+
+msgctxt "filenameTemplate.m3uDisabled"
+msgid "Unavailable because your filename template either doesn't include {id} or sorts downloads into folders."
+msgstr "Недоступно, бо ваш шаблон імені файлу або не містить {id}, або розкладає завантаження по теках."
+
+msgctxt "filenameTemplate.previewPlaylist"
+msgid "In a playlist"
+msgstr "У плейлисті"
+
+msgctxt "filenameTemplate.previewSingle"
+msgid "Single video"
+msgstr "Одне відео"
+
+msgctxt "filenameTemplate.profileOverrideDescription"
+msgid "Leave empty to inherit the global template."
+msgstr "Залиште порожнім, щоб успадкувати загальний шаблон."
+
+msgctxt "filenameTemplate.profileOverrideLabel"
+msgid "Filename template"
+msgstr "Шаблон імені файлу"
+
+msgctxt "formatLabel.audioFallback"
+msgid "Audio"
+msgstr "Аудіо"
+
+msgctxt "formatLabel.audioOnlyDot"
+msgid "Audio only · {{audio}}"
+msgstr "Тільки аудіо · {{audio}}"
+
+msgctxt "formatLabel.videoDot"
+msgid "{{resolution}} · {{audio}}"
+msgstr "{{resolution}} · {{audio}}"
+
+msgctxt "language.label"
+msgid "Language"
+msgstr "Мова"
+
+msgctxt "notifications.filenameFolderTooDeep"
+msgid "This folder is too deep for your system. The download may still fail — pick a shorter folder."
+msgstr "Ця тека вкладена надто глибоко для вашої системи. Завантаження все одно може не вдатися — виберіть коротшу теку."
+
+msgctxt "notifications.filenameTemplateCannotFit"
+msgid "This video's name can't fit every part of your template, so the default name was used."
+msgstr "Назва цього відео не вміщується в усі частини шаблону, тому використано типову назву."
+
+msgctxt "notifications.folderSelectFailed"
+msgid "Could not open the folder picker."
+msgstr "Не вдалося відкрити вибір теки."
+
+msgctxt "notifications.hotkey.alreadyQueued"
+msgid "Already in the queue — no copy added"
+msgstr "Вже в черзі — копію не додано"
+
+msgctxt "notifications.hotkey.busy"
+msgid "Still working on the previous link"
+msgstr "Ще обробляється попереднє посилання"
+
+msgctxt "notifications.hotkey.invalidClipboard"
+msgid "No link on your clipboard — copy one first"
+msgstr "У буфері обміну немає посилання — скопіюйте його спочатку"
+
+msgctxt "notifications.hotkey.multipleUrls"
+msgid "Multiple links copied — use Bulk URLs in Arroxy"
+msgstr "Скопійовано кілька посилань — скористайтеся «Масові URL» в Arroxy"
+
+msgctxt "notifications.hotkey.needsReview"
+msgid "That link needs a quick review — open Arroxy and paste it again"
+msgstr "Це посилання потребує швидкої перевірки — відкрийте Arroxy і вставте його знову"
+
+msgctxt "notifications.hotkey.queued"
+msgid "Download queued from clipboard"
+msgstr "Завантаження додано з буфера обміну"
+
+msgctxt "notifications.hotkey.submissionFailed"
+msgid "Could not add that link — try again in Arroxy"
+msgstr "Не вдалося додати це посилання — спробуйте ще раз у Arroxy"
+
+msgctxt "notifications.playlistFolderRejected"
+msgid "That folder can't be used for this playlist."
+msgstr "Цю теку не можна використати для цього плейлиста."
+
+msgctxt "notifications.settingsSaveFailed"
+msgid "Could not save your settings."
+msgstr "Не вдалося зберегти налаштування."
+
+msgctxt "notifications.shellActionFailed"
+msgid "Could not open that."
+msgstr "Не вдалося це відкрити."
+
+msgctxt "notifications.warmupFailed"
+msgid "Setup did not finish. Some downloads may fail until it does."
+msgstr "Налаштування не завершено. Деякі завантаження можуть не працювати, доки воно не завершиться."
+
+msgctxt "playlistPresets.audioFormat.best"
+msgid "Audio (best)"
+msgstr "Audio (best)"
+
+msgctxt "playlistPresets.audioFormat.m4a"
+msgid "M4A"
+msgstr "M4A"
+
+msgctxt "playlistPresets.audioFormat.mp3"
+msgid "MP3"
+msgstr "MP3"
+
+msgctxt "playlistPresets.audioFormat.opus"
+msgid "Opus"
+msgstr "Opus"
+
+msgctxt "playlistPresets.audioFormatBitrate"
+msgid "Audio ({{format}} {{kbps}}K)"
+msgstr "Audio ({{format}} {{kbps}}K)"
+
+msgctxt "playlistPresets.audioFormatDesc.best"
+msgid "Native best audio, no re-encode"
+msgstr "Найкраще оригінальне аудіо, без перекодування"
+
+msgctxt "playlistPresets.audioFormatDesc.m4a"
+msgid "Convert to M4A (AAC)"
+msgstr "Перетворити на M4A (AAC)"
+
+msgctxt "playlistPresets.audioFormatDesc.mp3"
+msgid "Convert to MP3"
+msgstr "Перетворити на MP3"
+
+msgctxt "playlistPresets.audioFormatDesc.opus"
+msgid "Convert to Opus"
+msgstr "Перетворити на Opus"
+
+msgctxt "playlistPresets.mp4Cap"
+msgid "H.264 above 1080p is not available on YouTube — capped to 1080p automatically"
+msgstr "H.264 вище 1080p недоступний на YouTube — автоматично обмежується 1080p"
+
+msgctxt "playlistPresets.tier.1080"
+msgid "Up to 1080p"
+msgstr "До 1080p"
+
+msgctxt "playlistPresets.tier.144"
+msgid "Up to 144p"
+msgstr "До 144p"
+
+msgctxt "playlistPresets.tier.1440"
+msgid "Up to 1440p"
+msgstr "До 1440p"
+
+msgctxt "playlistPresets.tier.2160"
+msgid "Up to 4K"
+msgstr "До 4K"
+
+msgctxt "playlistPresets.tier.240"
+msgid "Up to 240p"
+msgstr "До 240p"
+
+msgctxt "playlistPresets.tier.360"
+msgid "Up to 360p"
+msgstr "До 360p"
+
+msgctxt "playlistPresets.tier.480"
+msgid "Up to 480p"
+msgstr "До 480p"
+
+msgctxt "playlistPresets.tier.720"
+msgid "Up to 720p"
+msgstr "До 720p"
+
+msgctxt "playlistPresets.tier.best"
+msgid "Best quality"
+msgstr "Best quality"
+
+msgctxt "playlistPresets.tierDesc.1080"
+msgid "Capped at 1080p, falls back to lower per item"
+msgstr "Обмежено 1080p, знижується окремо для кожного елемента"
+
+msgctxt "playlistPresets.tierDesc.144"
+msgid "Smallest possible files"
+msgstr "Найменші можливі файли"
+
+msgctxt "playlistPresets.tierDesc.1440"
+msgid "Capped at 2K, falls back to lower per item"
+msgstr "Обмежено 2K, знижується окремо для кожного елемента"
+
+msgctxt "playlistPresets.tierDesc.2160"
+msgid "Capped at 2160p, falls back to lower per item"
+msgstr "Обмежено 2160p, знижується окремо для кожного елемента"
+
+msgctxt "playlistPresets.tierDesc.240"
+msgid "Very small files, low quality"
+msgstr "Дуже малі файли, низька якість"
+
+msgctxt "playlistPresets.tierDesc.360"
+msgid "Small files for tight bandwidth"
+msgstr "Малі файли для обмеженого трафіку"
+
+msgctxt "playlistPresets.tierDesc.480"
+msgid "Low bandwidth"
+msgstr "Low bandwidth"
+
+msgctxt "playlistPresets.tierDesc.720"
+msgid "Smaller files, broad compatibility"
+msgstr "Менші файли, широка сумісність"
+
+msgctxt "playlistPresets.tierDesc.best"
+msgid "Highest available video + audio per item"
+msgstr "Найкраще доступне відео + аудіо для кожного елемента"
+
+msgctxt "playlistPresets.type.audio"
+msgid "Audio"
+msgstr "Audio"
+
+msgctxt "playlistPresets.type.video"
+msgid "Video"
+msgstr "Video"
+
+msgctxt "playlistPresets.videoFormat.best"
+msgid "Best native"
+msgstr "Best codec"
+
+msgctxt "playlistPresets.videoFormat.mp4"
+msgid "Smart TV H.264 MP4"
+msgstr "Смарт-ТВ H.264 MP4"
+
+msgctxt "playlistPresets.videoFormatDesc.best"
+msgid "Best available container and codecs per item"
+msgstr "Найвищий доступний кодек для кожного елемента"
+
+msgctxt "playlistPresets.videoFormatDesc.mp4"
+msgid "Prefer H.264 video + AAC audio in MP4 when possible"
+msgstr "Перевага H.264 + AAC, контейнер MP4 · наскільки можливо"
+
+msgctxt "presets.audio-only.desc"
+msgid "No video, best audio"
+msgstr "Без відео, найкраще аудіо"
+
+msgctxt "presets.audio-only.label"
+msgid "Audio only"
+msgstr "Тільки аудіо"
+
+msgctxt "presets.balanced.desc"
+msgid "720p max + good audio"
+msgstr "720p макс. + гарне аудіо"
+
+msgctxt "presets.balanced.label"
+msgid "Balanced"
+msgstr "Збалансовано"
+
+msgctxt "presets.best-quality.desc"
+msgid "Highest resolution + best audio"
+msgstr "Максимальна роздільна здатність + найкраще аудіо"
+
+msgctxt "presets.best-quality.label"
+msgid "Best quality"
+msgstr "Найкраща якість"
+
+msgctxt "presets.small-file.desc"
+msgid "Lowest resolution + low audio"
+msgstr "Найнижча роздільна здатність + слабке аудіо"
+
+msgctxt "presets.small-file.label"
+msgid "Small file"
+msgstr "Малий файл"
+
+msgctxt "presets.subtitle-only.desc"
+msgid "No video, no audio, only subtitles"
+msgstr "Без відео та аудіо, лише субтитри"
+
+msgctxt "presets.subtitle-only.label"
+msgid "Subtitles only"
+msgstr "Тільки субтитри"
+
+msgctxt "queue.artifact.companion"
+msgid "Companion"
+msgstr "Супровідний файл"
+
+msgctxt "queue.artifact.description"
+msgid "Description"
+msgstr "Опис"
+
+msgctxt "queue.artifact.media"
+msgid "Media"
+msgstr "Медіа"
+
+msgctxt "queue.artifact.missing"
+msgid "Missing"
+msgstr "Відсутній"
+
+msgctxt "queue.artifact.subtitle"
+msgid "Subtitle"
+msgstr "Субтитр"
+
+msgctxt "queue.artifact.thumbnail"
+msgid "Thumbnail"
+msgstr "Мініатюра"
+
+msgctxt "queue.artifact.unknown"
+msgid "Artifact"
+msgstr "Файл"
+
+msgctxt "queue.cancelAllTitle"
+msgid "Cancel all active and pending downloads"
+msgstr "Скасувати всі активні та очікувані завантаження"
+
+msgctxt "queue.clearTitle"
+msgid "Clear completed downloads"
+msgstr "Очистити завершені завантаження"
+
+msgctxt "queue.empty"
+msgid "Queued downloads will appear here"
+msgstr "Завантаження в черзі з’являться тут"
+
+msgctxt "queue.filterAll"
+msgid "All"
+msgstr "Усе"
+
+msgctxt "queue.filtersLabel"
+msgid "Queue status filters"
+msgstr "Фільтри стану черги"
+
+msgctxt "queue.globalActionsLabel"
+msgid "All items"
+msgstr "Усі елементи"
+
+msgctxt "queue.header"
+msgid "Downloads"
+msgstr "Завантаження"
+
+msgctxt "queue.item.cancel"
+msgid "Cancel"
+msgstr "Скасувати"
+
+msgctxt "queue.item.defaultError"
+msgid "Download failed"
+msgstr "Не вдалося завантажити"
+
+msgctxt "queue.item.openDestinationFolder"
+msgid "Open destination folder"
+msgstr "Відкрити папку призначення"
+
+msgctxt "queue.item.pause"
+msgid "Pause"
+msgstr "Пауза"
+
+msgctxt "queue.item.pendingOnly"
+msgid "Pending only"
+msgstr "Лише очікувані"
+
+msgctxt "queue.item.pullNow"
+msgid "Pull now — skip the queue"
+msgstr "Завантажити зараз — пропустити чергу"
+
+msgctxt "queue.item.remove"
+msgid "Remove"
+msgstr "Видалити"
+
+msgctxt "queue.item.resume"
+msgid "Resume"
+msgstr "Продовжити"
+
+msgctxt "queue.item.retry"
+msgid "Retry"
+msgstr "Повторити"
+
+msgctxt "queue.item.retryingSoon"
+msgid "retrying automatically (attempt {{attempt}})"
+msgstr "автоматичний повтор (спроба {{attempt}})"
+
+msgctxt "queue.item.setLocation"
+msgid "Set location"
+msgstr "Установити розташування"
+
+msgctxt "queue.item.setLocationHint"
+msgid "Select pending items to set location."
+msgstr "Виберіть елементи в очікуванні, щоб установити розташування."
+
+msgctxt "queue.item.statusCancelled"
+msgid "Cancelled"
+msgstr "Скасовано"
+
+msgctxt "queue.item.statusDone"
+msgid "Done"
+msgstr "Готово"
+
+msgctxt "queue.item.statusError"
+msgid "Error"
+msgstr "Помилка"
+
+msgctxt "queue.item.statusHeld"
+msgid "Held"
+msgstr "Утримано"
+
+msgctxt "queue.item.statusPaused"
+msgid "Paused"
+msgstr "На паузі"
+
+msgctxt "queue.item.statusPending"
+msgid "Waiting"
+msgstr "Очікує"
+
+msgctxt "queue.item.statusProbing"
+msgid "Fetching details"
+msgstr "Отримання відомостей"
+
+msgctxt "queue.item.statusRunning"
+msgid "Downloading"
+msgstr "Завантажується"
+
+msgctxt "queue.pauseAllTitle"
+msgid "Pause every active download and stop new ones from starting"
+msgstr "Призупинити всі активні завантаження"
+
+msgctxt "queue.pausedBanner"
+msgid "The queue is paused — waiting items won't start until you resume it"
+msgstr "Черга на паузі — завантаження в очікуванні не почнуться, доки ви її не відновите"
+
+msgctxt "queue.resumeAllTitle"
+msgid "Resume paused downloads and let the queue keep going"
+msgstr "Продовжити призупинені завантаження й дати черзі рухатися далі"
+
+msgctxt "queue.resumeQueueAction"
+msgid "Resume queue"
+msgstr "Відновити чергу"
+
+msgctxt "queue.selectedActionsLabel"
+msgid "Selected items"
+msgstr "Вибрані елементи"
+
+msgctxt "queue.selectionSummary"
+msgid "{{selected}} selected · {{total}} total"
+msgstr "{{selected}} вибрано · усього {{total}}"
+
+msgctxt "queue.tabLabel"
+msgid "Downloads"
+msgstr "Завантаження"
+
+msgctxt "queue.table.added"
+msgid "Added"
+msgstr "Додано"
+
+msgctxt "queue.table.artifacts"
+msgid "Artifacts"
+msgstr "Вихідні файли"
+
+msgctxt "queue.table.columns"
+msgid "Columns"
+msgstr "Стовпці"
+
+msgctxt "queue.table.finished"
+msgid "Finished"
+msgstr "Завершено"
+
+msgctxt "queue.table.format"
+msgid "Format"
+msgstr "Формат"
+
+msgctxt "queue.table.hideArtifactsFor"
+msgid "Hide artifacts for {{title}}"
+msgstr "Сховати файли для {{title}}"
+
+msgctxt "queue.table.notAvailable"
+msgid "—"
+msgstr "—"
+
+msgctxt "queue.table.outputTarget"
+msgid "Output target"
+msgstr "Папка виводу"
+
+msgctxt "queue.table.progress"
+msgid "Progress"
+msgstr "Прогрес"
+
+msgctxt "queue.table.showArtifactsFor"
+msgid "Show artifacts for {{title}}"
+msgstr "Показати файли для {{title}}"
+
+msgctxt "queue.table.sortBy"
+msgid "Sort by {{label}}"
+msgstr "Сортувати за {{label}}"
+
+msgctxt "queue.table.status"
+msgid "Status"
+msgstr "Стан"
+
+msgctxt "queue.table.title"
+msgid "Title"
+msgstr "Назва"
+
+msgctxt "queue.tabTip"
+msgid "Downloads live in the Downloads tab now — open it anytime to track progress."
+msgstr "Завантаження тепер у вкладці «Завантаження» — відкривай її будь-коли, щоб стежити за прогресом."
+
+msgctxt "releaseNotes.continue"
+msgid "Continue"
+msgstr "Продовжити"
+
+msgctxt "releaseNotes.description"
+msgid "You're running a fresh update. Here are the highlights."
+msgstr "Ви використовуєте свіже оновлення. Ось головне."
+
+msgctxt "releaseNotes.fullNotes"
+msgid "Full release notes ↗"
+msgstr "Повні примітки до випуску ↗"
+
+msgctxt "releaseNotes.title"
+msgid "What's new in Arroxy {{version}}"
+msgstr "Що нового в Arroxy {{version}}"
+
+msgctxt "repair.actions.cancel"
+msgid "Cancel"
+msgstr "Скасувати"
+
+msgctxt "repair.actions.chooseExecutable"
+msgid "Choose executable"
+msgstr "Вибрати виконуваний файл"
+
+msgctxt "repair.actions.installWithHomebrew"
+msgid "Install with Homebrew"
+msgstr "Установити через Homebrew"
+
+msgctxt "repair.actions.installWithWinget"
+msgid "Install with WinGet"
+msgstr "Установити через WinGet"
+
+msgctxt "repair.actions.openDependencyFolder"
+msgid "Open dependency folder"
+msgstr "Відкрити папку залежностей"
+
+msgctxt "repair.actions.resetToDefault"
+msgid "Reset to default"
+msgstr "Скинути до стандартного"
+
+msgctxt "repair.actions.retrySetup"
+msgid "Retry setup"
+msgstr "Повторити налаштування"
+
+msgctxt "repair.actions.viewSetupLog"
+msgid "View setup log"
+msgstr "Переглянути журнал налаштування"
+
+msgctxt "repair.deps.ffmpeg"
+msgid "FFmpeg"
+msgstr "FFmpeg"
+
+msgctxt "repair.deps.ffprobe"
+msgid "FFprobe"
+msgstr "FFprobe"
+
+msgctxt "repair.deps.ytDlp"
+msgid "yt-dlp"
+msgstr "yt-dlp"
+
+msgctxt "repair.hints.badExitCode"
+msgid "The binary did not respond to --version. It may be corrupt or the wrong build."
+msgstr "Двійковий файл не відповів на --version. Можливо, він пошкоджений або призначений для іншої платформи."
+
+msgctxt "repair.hints.blockedOrQuarantined"
+msgid "Windows blocked the file (SmartScreen / Defender). Pick an installed copy or whitelist the runtime folder."
+msgstr "Windows заблокувала файл (SmartScreen / Defender). Вибери встановлену копію або додай папку середовища виконання у виключення."
+
+msgctxt "repair.hints.downloadFailed"
+msgid "Download failed. Check your internet connection and retry."
+msgstr "Завантаження не вдалося. Перевір підключення до інтернету та спробуй ще раз."
+
+msgctxt "repair.hints.extractFailed"
+msgid "Archive extraction failed. The download may be corrupt — retry."
+msgstr "Не вдалося розпакувати архів. Можливо, завантаження пошкоджено — спробуй ще раз."
+
+msgctxt "repair.hints.hashFailed"
+msgid "Checksum mismatch on the downloaded file. Retry the download."
+msgstr "Контрольна сума завантаженого файлу не збігається. Повтори завантаження."
+
+msgctxt "repair.hints.pairIncomplete"
+msgid "ffmpeg and ffprobe must both be set as a matched pair."
+msgstr "ffmpeg і ffprobe мають бути вказані разом як пов'язана пара."
+
+msgctxt "repair.hints.permissionDenied"
+msgid "The system refused to run the file. Pick a copy you trust or retry as admin."
+msgstr "Система відмовила у запуску файлу. Вибери копію, якій довіряєш, або повтори від імені адміністратора."
+
+msgctxt "repair.hints.spawnFailed"
+msgid "The file is missing or could not be launched. Pick a working copy."
+msgstr "Файл відсутній або не вдалося запустити. Вибери робочу копію."
+
+msgctxt "repair.hints.timeout"
+msgid "The version probe timed out. The file may be hung — retry."
+msgstr "Перевірка версії завершилася з тайм-аутом. Файл може зависнути — спробуй ще раз."
+
+msgctxt "repair.hints.unknown"
+msgid "Could not be verified."
+msgstr "Не вдалося перевірити."
+
+msgctxt "repair.title"
+msgid "Setup needs your help"
+msgstr "Налаштування потребує твоєї допомоги"
+
+msgctxt "share.copied"
+msgid "Copied!"
+msgstr "Скопійовано!"
+
+msgctxt "share.copyLink"
+msgid "Copy link"
+msgstr "Скопіювати посилання"
+
+msgctxt "share.defaultMessage"
+msgid ""
+"Arroxy — free, open-source video downloader for Windows, macOS & Linux. Works with YouTube, Vimeo, Twitch, and 2000+ sites.\n"
+"4K · HDR · MP3 · Shorts · Subtitles · SponsorBlock"
+msgstr ""
+"Arroxy — безкоштовний завантажувач відео з відкритим кодом для Windows, macOS і Linux. Працює з YouTube, Vimeo, Twitch та понад 2000 сайтами.\n"
+"4K · HDR · MP3 · Shorts · Subtitles · SponsorBlock"
+
+msgctxt "share.description"
+msgid "Arroxy is free and open-source. Sharing helps more people discover it."
+msgstr "Arroxy — безкоштовний і відкритий. Поділившись, ти допомагаєш більшій кількості людей дізнатися про нього."
+
+msgctxt "share.footerLabel"
+msgid "Share"
+msgstr "Поділитися"
+
+msgctxt "share.footerTooltip"
+msgid "Share Arroxy"
+msgstr "Поділитися Arroxy"
+
+msgctxt "share.shareAction"
+msgid "Share Arroxy"
+msgstr "Поділитися Arroxy"
+
+msgctxt "share.title"
+msgid "Share Arroxy"
+msgstr "Поділитися Arroxy"
+
+msgctxt "splash.cancel"
+msgid "Having trouble? Set it up manually"
+msgstr "Виникли проблеми? Налаштувати вручну"
+
+msgctxt "splash.downloading"
+msgid "Downloading {{binary}}…"
+msgstr "Завантаження {{binary}}…"
+
+msgctxt "splash.greeting"
+msgid "Hey, welcome back!"
+msgstr "Привіт, з поверненням!"
+
+msgctxt "splash.verifyFirstCheck"
+msgid "First check of this version — this one is slow. Usually about a minute."
+msgstr "Перша перевірка цієї версії — вона повільна. Зазвичай близько хвилини."
+
+msgctxt "splash.verifying"
+msgid "Checking {{binary}}…"
+msgstr "Перевірка {{binary}}…"
+
+msgctxt "splash.warmup"
+msgid "Preparing downloads…"
+msgstr "Підготовка завантажень…"
+
+msgctxt "splash.warmupFailedNoDiag"
+msgid "Setup failed. Open the setup log for details."
+msgstr "Налаштування не вдалося. Відкрий журнал налаштування для деталей."
+
+msgctxt "status.cancelled"
+msgid "Download cancelled"
+msgstr "Завантаження скасовано"
+
+msgctxt "status.complete"
+msgid "Download complete"
+msgstr "Завантаження завершено"
+
+msgctxt "status.convertingVideo"
+msgid "Converting video…"
+msgstr "Конвертація відео…"
+
+msgctxt "status.diskSpaceInsufficient"
+msgid "Not enough disk space — need {{required}}, only {{free}} available"
+msgstr "Недостатньо місця на диску — потрібно {{required}}, доступно лише {{free}}"
+
+msgctxt "status.downloadingBinary"
+msgid "Downloading {{name}} binary…"
+msgstr "Завантаження бінарника {{name}}…"
+
+msgctxt "status.downloadingMedia"
+msgid "Downloading video & audio…"
+msgstr "Завантаження відео та аудіо…"
+
+msgctxt "status.embeddingMetadata"
+msgid "Embedding metadata…"
+msgstr "Вбудовування метаданих…"
+
+msgctxt "status.extractingAudio"
+msgid "Converting audio…"
+msgstr "Конвертація аудіо…"
+
+msgctxt "status.fetchingSponsorBlock"
+msgid "Contacting SponsorBlock…"
+msgstr "Підключення до SponsorBlock…"
+
+msgctxt "status.fetchingSubtitles"
+msgid "Fetching subtitles…"
+msgstr "Отримання субтитрів…"
+
+msgctxt "status.mergingFormats"
+msgid "Merging audio and video…"
+msgstr "Об'єднання аудіо та відео…"
+
+msgctxt "status.mintingToken"
+msgid "Minting YouTube token…"
+msgstr "Створення токена YouTube…"
+
+msgctxt "status.movingFiles"
+msgid "Moving files…"
+msgstr "Переміщення файлів…"
+
+msgctxt "status.preparingBinaries"
+msgid "Preparing binaries…"
+msgstr "Підготовка бінарників…"
+
+msgctxt "status.remintingToken"
+msgid "Re-minting token…"
+msgstr "Оновлення токена…"
+
+msgctxt "status.retryingSponsorBlock"
+msgid "SponsorBlock unavailable, retrying ({{attempt}}/{{total}})…"
+msgstr "SponsorBlock недоступний, повторна спроба ({{attempt}}/{{total}})…"
+
+msgctxt "status.sleepingBetweenRequests"
+msgid "Waiting {{seconds}}s to avoid rate limits…"
+msgstr "Очікування {{seconds}}с для уникнення лімітів…"
+
+msgctxt "status.startingYtdlp"
+msgid "Starting yt-dlp process…"
+msgstr "Запуск процесу yt-dlp…"
+
+msgctxt "status.subtitlesFailed"
+msgid "Video saved — some subtitles could not be downloaded"
+msgstr "Відео збережено — деякі субтитри не завантажилися"
+
+msgctxt "status.unknownStartupFailure"
+msgid "Unknown download startup failure"
+msgstr "Невідома помилка під час запуску завантаження"
+
+msgctxt "status.usedExtractorFallback"
+msgid "Downloaded with relaxed extractor — set up a cookies.txt for more reliable downloads"
+msgstr "Завантажено зі спрощеним екстрактором — налаштуй cookies.txt для надійніших завантажень"
+
+msgctxt "status.ytdlpExitCode"
+msgid "yt-dlp exited with code {{code}}"
+msgstr "yt-dlp завершився з кодом {{code}}"
+
+msgctxt "status.ytdlpProcessError"
+msgid "yt-dlp process error: {{error}}"
+msgstr "Помилка процесу yt-dlp: {{error}}"
+
+msgctxt "theme.dark"
+msgid "Dark mode"
+msgstr "Темна тема"
+
+msgctxt "theme.light"
+msgid "Light mode"
+msgstr "Світла тема"
+
+msgctxt "theme.system"
+msgid "System default"
+msgstr "Системна"
+
+msgctxt "titleBar.close"
+msgid "Close"
+msgstr "Закрити"
+
+msgctxt "titleBar.maximize"
+msgid "Maximize"
+msgstr "Розгорнути"
+
+msgctxt "titleBar.minimize"
+msgid "Minimize"
+msgstr "Згорнути"
+
+msgctxt "titleBar.restore"
+msgid "Restore"
+msgstr "Відновити"
+
+msgctxt "tray.menu.downloadFromClipboard"
+msgid "Download from clipboard"
+msgstr "Завантажити з буфера обміну"
+
+msgctxt "tray.menu.open"
+msgid "Open Arroxy"
+msgstr "Відкрити Arroxy"
+
+msgctxt "tray.menu.quit"
+msgid "Quit Arroxy"
+msgstr "Вийти з Arroxy"
+
+msgctxt "tray.menu.statusActive_one"
+msgid "1 downloading · {{percent}}%"
+msgstr "1 завантажується · {{percent}}%"
+
+msgctxt "tray.menu.statusActive_other"
+msgid "{{count}} downloading · {{percent}}%"
+msgstr "{{count}} завантажуються · {{percent}}%"
+
+msgctxt "tray.menu.statusIdle"
+msgid "Idle"
+msgstr "Очікування"
+
+msgctxt "tray.tooltip"
+msgid "Arroxy"
+msgstr "Arroxy"
+
+msgctxt "update.appVersion"
+msgid "Arroxy {{version}}"
+msgstr "Arroxy {{version}}"
+
+msgctxt "update.copied"
+msgid "Copied command to clipboard"
+msgstr "Команду скопійовано в буфер обміну"
+
+msgctxt "update.copy"
+msgid "Copy command to clipboard"
+msgstr "Скопіювати команду в буфер обміну"
+
+msgctxt "update.dismiss"
+msgid "Dismiss update banner"
+msgstr "Закрити сповіщення про оновлення"
+
+msgctxt "update.download"
+msgid "Download ↗"
+msgstr "Завантажити ↗"
+
+msgctxt "update.downloadDmg"
+msgid "Download DMG ↗"
+msgstr "Завантажити DMG ↗"
+
+msgctxt "update.downloading"
+msgid "Downloading…"
+msgstr "Завантаження…"
+
+msgctxt "update.install"
+msgid "Install & Restart"
+msgstr "Встановити й перезапустити"
+
+msgctxt "update.installFailed"
+msgid "Update failed"
+msgstr "Помилка оновлення"
+
+msgctxt "update.isAvailable"
+msgid "is available"
+msgstr "доступна"
+
+msgctxt "update.message.generic"
+msgid "Arroxy {{version}} is available — you have {{currentVersion}}."
+msgstr "Arroxy {{version}} доступна — у вас {{currentVersion}}."
+
+msgctxt "update.message.homebrew"
+msgid "Arroxy {{version}} is available — update with Homebrew."
+msgstr "Arroxy {{version}} доступна — оновіть через Homebrew."
+
+msgctxt "update.message.macosDirect"
+msgid "Arroxy {{version}} is available — download the new DMG."
+msgstr "Arroxy {{version}} доступна — завантажте новий DMG."
+
+msgctxt "update.message.portable"
+msgid "Arroxy {{version}} is available — download the new build."
+msgstr "Arroxy {{version}} доступна — завантажте нову збірку."
+
+msgctxt "update.retry"
+msgid "Retry"
+msgstr "Повторити"
+
+msgctxt "update.youHave"
+msgid "— you have {{currentVersion}}"
+msgstr "— у тебе {{currentVersion}}"
+
+msgctxt "videoCard.titlePlaceholder"
+msgid "Loading…"
+msgstr "Завантаження…"
+
+msgctxt "wizard.bulk.acceptedCount"
+msgid "Ready"
+msgstr "Готово"
+
+msgctxt "wizard.bulk.description"
+msgid "Paste video, playlist, channel, search, or audio URLs. Arroxy will clean duplicates before queueing."
+msgstr "Вставте URL відео, плейлиста, каналу, пошуку або аудіо. Arroxy очистить дублікати перед додаванням у чергу."
+
+msgctxt "wizard.bulk.emptyPreview"
+msgid "Paste one or more URLs to preview the batch."
+msgstr "Вставте один або кілька URL, щоб переглянути пакет."
+
+msgctxt "wizard.bulk.ignoredCount"
+msgid "Ignored"
+msgstr "Пропущено"
+
+msgctxt "wizard.bulk.needsAtLeastOne"
+msgid "Add at least one supported URL to continue."
+msgstr "Додайте щонайменше один підтримуваний URL, щоб продовжити."
+
+msgctxt "wizard.bulk.reject.duplicate"
+msgid "Duplicate"
+msgstr "Дублікат"
+
+msgctxt "wizard.bulk.textareaLabel"
+msgid "URL list"
+msgstr "Список URL"
+
+msgctxt "wizard.bulk.textareaPlaceholder"
+msgid ""
+"https://example.com/video-1\n"
+"https://example.com/video-2\n"
+"https://example.com/video-3"
+msgstr ""
+"https://video.example/one\n"
+"https://video.example/two\n"
+"https://video.example/three"
+
+msgctxt "wizard.bulk.title"
+msgid "Bulk URLs"
+msgstr "Масові URL"
+
+msgctxt "wizard.confirm.addToQueue"
+msgid "+ Queue"
+msgstr "+ У чергу"
+
+msgctxt "wizard.confirm.addToQueueTooltip"
+msgid "Adds to the queue — starts when the active download finishes"
+msgstr "Запуститься, коли завершаться інші завантаження — на повній швидкості"
+
+msgctxt "wizard.confirm.audioOnly"
+msgid "Audio only"
+msgstr "Тільки аудіо"
+
+msgctxt "wizard.confirm.itemsValue_one"
+msgid "{{count}} of {{total}} video"
+msgstr "{{count}} з {{total}} відео"
+
+msgctxt "wizard.confirm.itemsValue_other"
+msgid "{{count}} of {{total}} videos"
+msgstr "{{count}} з {{total}} відео"
+
+msgctxt "wizard.confirm.itemsValueAudio_one"
+msgid "{{count}} of {{total}} track"
+msgstr "{{count}} з {{total}} треку"
+
+msgctxt "wizard.confirm.itemsValueAudio_other"
+msgid "{{count}} of {{total}} tracks"
+msgstr "{{count}} з {{total}} треків"
+
+msgctxt "wizard.confirm.itemsValueBulk_one"
+msgid "{{count}} of {{total}} URL"
+msgstr "{{count}} з {{total}} URL"
+
+msgctxt "wizard.confirm.itemsValueBulk_other"
+msgid "{{count}} of {{total}} URLs"
+msgstr "{{count}} з {{total}} URL"
+
+msgctxt "wizard.confirm.labelAudio"
+msgid "Audio"
+msgstr "Аудіо"
+
+msgctxt "wizard.confirm.labelBulk"
+msgid "Batch"
+msgstr "Масові URL"
+
+msgctxt "wizard.confirm.labelItems"
+msgid "Items"
+msgstr "Елементи"
+
+msgctxt "wizard.confirm.labelPlaylist"
+msgid "Playlist"
+msgstr "Плейлист"
+
+msgctxt "wizard.confirm.labelPreset"
+msgid "Preset"
+msgstr "Пресет"
+
+msgctxt "wizard.confirm.labelSaveTo"
+msgid "Save to"
+msgstr "Папка"
+
+msgctxt "wizard.confirm.labelSize"
+msgid "Size"
+msgstr "Розмір"
+
+msgctxt "wizard.confirm.labelSubtitles"
+msgid "Subtitles"
+msgstr "Субтитри"
+
+msgctxt "wizard.confirm.labelVideo"
+msgid "Video"
+msgstr "Відео"
+
+msgctxt "wizard.confirm.landIn"
+msgid "Your file will land in"
+msgstr "Файл потрапить у"
+
+msgctxt "wizard.confirm.landInMultiProfile_one"
+msgid "It'll land in the destination below"
+msgstr "Він потрапить у місце призначення нижче"
+
+msgctxt "wizard.confirm.landInMultiProfile_other"
+msgid "They'll land in the {{count}} destinations below"
+msgstr "Вони потраплять у {{count}} місця призначення нижче"
+
+msgctxt "wizard.confirm.nothingToDownload"
+msgid "Subtitles only preset is active but no subtitle language is selected — nothing will be downloaded."
+msgstr "Пресет «Тільки субтитри» активний, але мову субтитрів не вибрано — нічого не буде завантажено."
+
+msgctxt "wizard.confirm.profileBreakdownCount_one"
+msgid "{{count}} item"
+msgstr "{{count}} елемент"
+
+msgctxt "wizard.confirm.profileBreakdownCount_other"
+msgid "{{count}} items"
+msgstr "{{count}} елементів"
+
+msgctxt "wizard.confirm.profileBreakdownHeading"
+msgid "Profiles in this batch"
+msgstr "Профілі в цій партії"
+
+msgctxt "wizard.confirm.pullIt"
+msgid "Pull it! ↓"
+msgstr "Качаємо! ↓"
+
+msgctxt "wizard.confirm.pullItTooltip"
+msgid "Skips the queue — starts now, runs alongside other active downloads"
+msgstr "Запускається миттєво — паралельно з іншими активними завантаженнями"
+
+msgctxt "wizard.confirm.readyHeadline"
+msgid "Ready to pull it in!"
+msgstr "Готово до завантаження!"
+
+msgctxt "wizard.confirm.sizeUnknown"
+msgid "Unknown"
+msgstr "Невідомо"
+
+msgctxt "wizard.confirm.subtitleEmbedAudioOnly"
+msgid "Subtitle embed changed to sidecar — audio tracks do not support embedded subtitle streams."
+msgstr "Subtitle embed змінено на sidecar — аудіодоріжки не підтримують вбудовані потоки субтитрів."
+
+msgctxt "wizard.confirm.subtitlesNone"
+msgid "—"
+msgstr "—"
+
+msgctxt "wizard.confirm.thumbnailEmbedNotSupported"
+msgid "Thumbnail embed skipped — output container does not support it."
+msgstr "Thumbnail embed пропущено — вихідний container це не підтримує."
+
+msgctxt "wizard.folder.custom"
+msgid "Custom…"
+msgstr "Обрати…"
+
+msgctxt "wizard.folder.desktop"
+msgid "Desktop"
+msgstr "Робочий стіл"
+
+msgctxt "wizard.folder.documents"
+msgid "Documents"
+msgstr "Документи"
+
+msgctxt "wizard.folder.downloads"
+msgid "Downloads"
+msgstr "Завантаження"
+
+msgctxt "wizard.folder.heading"
+msgid "Save to"
+msgstr "Зберегти у"
+
+msgctxt "wizard.folder.home"
+msgid "Home"
+msgstr "Домашня папка"
+
+msgctxt "wizard.folder.music"
+msgid "Music"
+msgstr "Музика"
+
+msgctxt "wizard.folder.pictures"
+msgid "Pictures"
+msgstr "Зображення"
+
+msgctxt "wizard.folder.subfolder.invalid"
+msgid "Folder name has invalid characters"
+msgstr "Назва папки містить недопустимі символи"
+
+msgctxt "wizard.folder.subfolder.placeholder"
+msgid "e.g. lo-fi rips"
+msgstr "напр. lo-fi rips"
+
+msgctxt "wizard.folder.subfolder.toggle"
+msgid "Save inside subfolder"
+msgstr "Зберегти у вкладеній папці"
+
+msgctxt "wizard.folder.videos"
+msgid "Movies"
+msgstr "Відео"
+
+msgctxt "wizard.formats.audio"
+msgid "Audio"
+msgstr "Аудіо"
+
+msgctxt "wizard.formats.audioOnly"
+msgid "Audio only"
+msgstr "Тільки аудіо"
+
+msgctxt "wizard.formats.audioOnlyOption"
+msgid "Audio only (no video)"
+msgstr "Тільки аудіо (без відео)"
+
+msgctxt "wizard.formats.botWall.bodyDisabled"
+msgid "Cookies are configured but turned off. Enable them and retry to get the full list, or change network and retry."
+msgstr "Cookies налаштовані, але вимкнені. Увімкни їх і спробуй ще раз, щоб отримати повний список, або зміни мережу та повтори."
+
+msgctxt "wizard.formats.botWall.bodyEnabled"
+msgid "Even with cookies, YouTube limited this probe. Try again later or switch network."
+msgstr "Навіть з cookies YouTube обмежив цей запит. Спробуй пізніше або зміни мережу."
+
+msgctxt "wizard.formats.botWall.bodyUnconfigured"
+msgid "The format list may be incomplete. Set up cookies in advanced settings, or change network and retry."
+msgstr "Список форматів може бути неповним. Налаштуй cookies у розширених налаштуваннях або зміни мережу та спробуй ще раз."
+
+msgctxt "wizard.formats.botWall.enableRetryCta"
+msgid "Enable cookies and retry"
+msgstr "Увімкнути cookies і повторити"
+
+msgctxt "wizard.formats.botWall.heading"
+msgid "Probe was limited"
+msgstr "YouTube обмежив цей запит"
+
+msgctxt "wizard.formats.botWall.retryCta"
+msgid "Retry"
+msgstr "Повторити"
+
+msgctxt "wizard.formats.convert.bitrate"
+msgid "Bitrate"
+msgstr "Бітрейт"
+
+msgctxt "wizard.formats.convert.label"
+msgid "Convert"
+msgstr "Конвертувати"
+
+msgctxt "wizard.formats.convert.lossyLabel"
+msgid "{{target}} {{bitrate}} kbps"
+msgstr "{{target}} {{bitrate}} kbps"
+
+msgctxt "wizard.formats.convert.requiresAudioOnly"
+msgid "Audio conversion requires audio-only mode (deselect the video pick)."
+msgstr "Конвертація аудіо потребує режиму «Тільки аудіо» (зніміть вибір відео)."
+
+msgctxt "wizard.formats.convert.requiresLossy"
+msgid "A native stream is selected — bitrate only applies when converting to mp3, m4a, or opus."
+msgstr "Вибрано нативний потік — бітрейт застосовується лише при конвертації в mp3, m4a або opus."
+
+msgctxt "wizard.formats.convert.uncompressed"
+msgid "Convert · uncompressed"
+msgstr "Конвертувати · без стиснення"
+
+msgctxt "wizard.formats.convert.wavLabel"
+msgid "WAV (uncompressed)"
+msgstr "WAV (uncompressed)"
+
+msgctxt "wizard.formats.cookiesError.currentModeBrowser"
+msgid "Browser"
+msgstr "Браузер"
+
+msgctxt "wizard.formats.cookiesError.currentModeFile"
+msgid "File"
+msgstr "Файл"
+
+msgctxt "wizard.formats.cookiesError.currentModeLabel"
+msgid "Cookies source"
+msgstr "Джерело cookies"
+
+msgctxt "wizard.formats.cookiesError.dpapi.docsLinkLabel"
+msgid "yt-dlp docs (issue #10927)"
+msgstr "Документація yt-dlp (issue #10927)"
+
+msgctxt "wizard.formats.cookiesError.dpapi.explanation"
+msgid "Chrome 127 and newer encrypts cookies in a way other apps can't read on Windows. Try one of the workarounds below."
+msgstr "Chrome 127 і новіші версії шифрують cookies так, що інші застосунки не можуть їх прочитати у Windows. Спробуй одне із рішень нижче."
+
+msgctxt "wizard.formats.cookiesError.dpapi.fixFileBody"
+msgid "Export cookies from Chrome with a browser extension, then switch this app to File mode and pick the exported file."
+msgstr "Експортуй cookies з Chrome за допомогою браузерного розширення, потім переключи цей застосунок у режим «Файл» і вибери експортований файл."
+
+msgctxt "wizard.formats.cookiesError.dpapi.fixFileLabel"
+msgid "Export cookies.txt"
+msgstr "Експортувати cookies.txt"
+
+msgctxt "wizard.formats.cookiesError.dpapi.fixFirefoxBody"
+msgid "Firefox doesn't use App-Bound Encryption. Open cookies settings and pick Firefox from the browser list."
+msgstr "Firefox не використовує App-Bound Encryption. Відкрий налаштування cookies і вибери Firefox зі списку браузерів."
+
+msgctxt "wizard.formats.cookiesError.dpapi.fixFirefoxLabel"
+msgid "Switch to Firefox"
+msgstr "Перейти на Firefox"
+
+msgctxt "wizard.formats.cookiesError.dpapi.fixUnsafeBody"
+msgid "Add --disable-features=LockProfileCookieDatabase to Chrome's launch shortcut. Warning: this invalidates previously encrypted cookies, so you'll be signed out of every site and need to log in again."
+msgstr "Додай --disable-features=LockProfileCookieDatabase до ярлика запуску Chrome. Увага: це анулює раніше зашифровані cookies, тому ти вийдеш з усіх сайтів і тобі доведеться увійти знову."
+
+msgctxt "wizard.formats.cookiesError.dpapi.fixUnsafeLabel"
+msgid "Launch Chrome with App-Bound Encryption disabled"
+msgstr "Запустити Chrome з вимкненим App-Bound Encryption"
+
+msgctxt "wizard.formats.cookiesError.dpapi.heading"
+msgid "Chrome cookies blocked by Windows encryption"
+msgstr "Cookies Chrome заблоковані шифруванням Windows"
+
+msgctxt "wizard.formats.cookiesError.explanationBrowser"
+msgid "Cookies are read directly from the browser. If the browser is currently running, its cookie database may be locked (Chromium-family). The browser must also be signed in to YouTube. Try closing the browser, switching to a different browser, switching to File mode, or turning cookies off."
+msgstr "Cookies зчитуються безпосередньо з браузера. Якщо браузер зараз відкритий, його база даних cookies може бути заблокована (Chromium-сімейство). Браузер також має бути авторизований у YouTube. Спробуй закрити браузер, перейти на інший браузер, перейти в режим «Файл» або вимкнути cookies."
+
+msgctxt "wizard.formats.cookiesError.explanationFile"
+msgid "Your cookies file might be empty, expired, or in the wrong format (yt-dlp expects Netscape cookies.txt). Try re-exporting cookies, picking a different file, switching to Browser mode, or turning cookies off."
+msgstr "Файл cookies може бути порожнім, застарілим або у неправильному форматі (yt-dlp очікує Netscape cookies.txt). Спробуй повторно експортувати cookies, вибрати інший файл, перейти в режим «Браузер» або вимкнути cookies."
+
+msgctxt "wizard.formats.cookiesError.heading"
+msgid "Cookies might be the cause"
+msgstr "Причина може бути в cookies"
+
+msgctxt "wizard.formats.cookiesError.needsCookies.body"
+msgid "yt-dlp couldn't access this video without authentication. Configure cookies in advanced settings — point them at a browser you're already signed in to, or import a cookies.txt file."
+msgstr "yt-dlp не зміг отримати доступ до цього відео без автентифікації. Налаштуй cookies у розширених налаштуваннях — вкажи браузер, у якому ти вже увійшов, або імпортуй файл cookies.txt."
+
+msgctxt "wizard.formats.cookiesError.needsCookies.heading"
+msgid "This site requires sign-in"
+msgstr "Цей сайт вимагає авторизації"
+
+msgctxt "wizard.formats.cookiesError.openSettingsCta"
+msgid "Open cookies settings"
+msgstr "Відкрити налаштування cookies"
+
+msgctxt "wizard.formats.keepAudio"
+msgid "Keep as-is"
+msgstr "Залишити як є"
+
+msgctxt "wizard.formats.keepAudioMeta"
+msgid "Built-in audio"
+msgstr "Вбудоване аудіо"
+
+msgctxt "wizard.formats.loadingAria"
+msgid "Loading formats"
+msgstr "Завантаження форматів"
+
+msgctxt "wizard.formats.loadingHint"
+msgid "Please wait until probing finishes — playlists and searches can take a while."
+msgstr "Зачекайте, поки завершиться перевірка — плейлисти та пошуки можуть зайняти деякий час."
+
+msgctxt "wizard.formats.mascot"
+msgid "Best + Best = max quality. I'd pick that!"
+msgstr "Найкраще + найкраще = максимальна якість. Я б обрав саме це!"
+
+msgctxt "wizard.formats.noAudio"
+msgid "No audio"
+msgstr "Без аудіо"
+
+msgctxt "wizard.formats.quality.high"
+msgid "High quality"
+msgstr "Висока якість"
+
+msgctxt "wizard.formats.quality.low"
+msgid "Low quality"
+msgstr "Низька якість"
+
+msgctxt "wizard.formats.quality.medium"
+msgid "Medium quality"
+msgstr "Середня якість"
+
+msgctxt "wizard.formats.quickPresets"
+msgid "Quick presets"
+msgstr "Швидкі пресети"
+
+msgctxt "wizard.formats.sizeUnknown"
+msgid "Size unknown"
+msgstr "Розмір невідомий"
+
+msgctxt "wizard.formats.skipToConfirm"
+msgid "Skip to confirm"
+msgstr "Перейти до підтвердження"
+
+msgctxt "wizard.formats.skipToConfirmTooltip"
+msgid "Uses your saved preferences for all remaining steps. To change a setting, continue step by step instead — your choice will be saved for next time."
+msgstr "Використовує збережені налаштування для всіх кроків, що залишились. Щоб змінити параметр, продовжуйте крок за кроком — ваш вибір буде збережено на наступний раз."
+
+msgctxt "wizard.formats.sniffing"
+msgid "Sniffing out the best formats for you…"
+msgstr "Шукаю для тебе найкращі формати…"
+
+msgctxt "wizard.formats.total"
+msgid "Total"
+msgstr "Усього"
+
+msgctxt "wizard.formats.video"
+msgid "Video"
+msgstr "Відео"
+
+msgctxt "wizard.formats.videoOnly"
+msgid "Video only"
+msgstr "Тільки відео"
+
+msgctxt "wizard.mixedPrompt.body"
+msgid "Want only the video you clicked, or pick from the playlist? You'll choose specific videos or a range next."
+msgstr "Хочеш завантажити лише те відео, на яке натиснув, чи вибрати з Playlist? Далі зможеш вказати конкретні відео або діапазон."
+
+msgctxt "wizard.mixedPrompt.pickFromPlaylist"
+msgid "Pick from playlist"
+msgstr "Вибрати з Playlist"
+
+msgctxt "wizard.mixedPrompt.playlistLimit"
+msgid "Playlist probe limit: {{count}} items"
+msgstr "Ліміт перевірки плейлиста: {{count}} елементів"
+
+msgctxt "wizard.mixedPrompt.playlistTooltip"
+msgid "Uses yt-dlp playlist mode and fetches up to your playlist probe limit before showing the picker."
+msgstr "Використовує режим плейлиста yt-dlp і завантажує елементи до твого ліміту перед показом вибору."
+
+msgctxt "wizard.mixedPrompt.quickBody"
+msgid "Download only this video, or queue the whole playlist with your active Quick Download profile."
+msgstr "Завантажити лише це відео або поставити весь плейлист у чергу з активним профілем Швидкого завантаження."
+
+msgctxt "wizard.mixedPrompt.quickLimitDescription"
+msgid "Maximum entries Arroxy scans before queueing a playlist, channel, or search result."
+msgstr "Максимальна кількість записів, які Arroxy сканує перед додаванням плейлиста, каналу або результату пошуку в чергу."
+
+msgctxt "wizard.mixedPrompt.quickPlaylistTooltip"
+msgid "Queues every loaded playlist item with the active Quick Download profile. If the scan hits your limit, Arroxy asks before queueing."
+msgstr "Додає в чергу кожен завантажений елемент плейлиста з активним профілем Швидкого завантаження. Якщо сканування досягне твого ліміту, Arroxy запитає перед додаванням у чергу."
+
+msgctxt "wizard.mixedPrompt.quickSingleTooltip"
+msgid "Queues one download and ignores the playlist attached to this URL."
+msgstr "Додає в чергу одне завантаження й ігнорує плейлист, прикріплений до цього URL."
+
+msgctxt "wizard.mixedPrompt.quickSingleVideo"
+msgid "Download this video"
+msgstr "Завантажити це відео"
+
+msgctxt "wizard.mixedPrompt.quickWholePlaylist"
+msgid "Download whole playlist"
+msgstr "Завантажити весь плейлист"
+
+msgctxt "wizard.mixedPrompt.singleTooltip"
+msgid "Uses yt-dlp single-video mode so the playlist attached to this URL is ignored."
+msgstr "Використовує режим одного відео yt-dlp, тому плейлист у цьому URL ігнорується."
+
+msgctxt "wizard.mixedPrompt.singleVideo"
+msgid "Just this one"
+msgstr "Лише це одне"
+
+msgctxt "wizard.mixedPrompt.title"
+msgid "This link has a playlist"
+msgstr "Це посилання з Playlist"
+
+msgctxt "wizard.output.embedChapters.description"
+msgid "Chapter markers navigable in any modern player."
+msgstr "Маркери розділів, доступні для навігації в будь-якому сучасному плеєрі."
+
+msgctxt "wizard.output.embedChapters.label"
+msgid "Embed chapters"
+msgstr "Вбудувати розділи"
+
+msgctxt "wizard.output.embedMetadata.description"
+msgid "Title, artist, description, and upload date written into the file."
+msgstr "Назва, виконавець, опис і дата завантаження записуються у файл."
+
+msgctxt "wizard.output.embedMetadata.label"
+msgid "Embed metadata"
+msgstr "Вбудувати метадані"
+
+msgctxt "wizard.output.embedThumbnail.description"
+msgid "Cover art inside the file. WebM video will be remuxed to MKV; skipped when subtitles are embedded."
+msgstr "Обкладинка всередині файлу. WebM відео буде перепакована в MKV; пропускається при вбудованих субтитрах."
+
+msgctxt "wizard.output.embedThumbnail.label"
+msgid "Embed thumbnail"
+msgstr "Вбудувати мініатюру"
+
+msgctxt "wizard.output.writeDescription.description"
+msgid "Saves the video description as a .description text file next to the download."
+msgstr "Зберігає опис відео як файл .description поруч із завантаженням."
+
+msgctxt "wizard.output.writeDescription.label"
+msgid "Save description"
+msgstr "Зберегти опис"
+
+msgctxt "wizard.output.writeM3u.description"
+msgid "Save an .m3u playlist alongside the videos so they open in order in your media player."
+msgstr "Зберігає .m3u поруч із відео, щоб вони відкривалися в медіаплеєрі по порядку."
+
+msgctxt "wizard.output.writeM3u.label"
+msgid "Generate .m3u playlist file"
+msgstr "Створити файл плейлиста .m3u"
+
+msgctxt "wizard.output.writeThumbnail.description"
+msgid "Saves the thumbnail as a .jpg image file next to the download."
+msgstr "Зберігає мініатюру як файл .jpg поруч із завантаженням."
+
+msgctxt "wizard.output.writeThumbnail.label"
+msgid "Save thumbnail"
+msgstr "Зберегти мініатюру"
+
+msgctxt "wizard.playlist.allRemovedDescription"
+msgid "Restore them to continue."
+msgstr "Відновіть їх, щоб продовжити."
+
+msgctxt "wizard.playlist.allRemovedTitle"
+msgid "Every item was removed"
+msgstr "Усі елементи видалено"
+
+msgctxt "wizard.playlist.alreadyDownloaded"
+msgid "Already downloaded"
+msgstr "Уже завантажено"
+
+msgctxt "wizard.playlist.bulkHeading"
+msgid "Bulk URLs"
+msgstr "Масові URL"
+
+msgctxt "wizard.playlist.bulkMetadataOptional"
+msgid "No need to wait — files queued now still get their real names when they download."
+msgstr "Чекати не потрібно — файли, додані до черги зараз, однаково отримають справжні імена під час завантаження."
+
+msgctxt "wizard.playlist.bulkMetadataResolving"
+msgid "Fetching video details… {{done}}/{{total}}"
+msgstr "Отримання відомостей про відео… {{done}}/{{total}}"
+
+msgctxt "wizard.playlist.bulkRowFailed"
+msgid "Details unavailable"
+msgstr "Відомості недоступні"
+
+msgctxt "wizard.playlist.bulkRowResolving"
+msgid "Fetching details"
+msgstr "Отримання відомостей"
+
+msgctxt "wizard.playlist.bulkRowWaiting"
+msgid "Waiting"
+msgstr "Очікування"
+
+msgctxt "wizard.playlist.durationUnknown"
+msgid "live"
+msgstr "live"
+
+msgctxt "wizard.playlist.heading"
+msgid "Playlist items"
+msgstr "Елементи Playlist"
+
+msgctxt "wizard.playlist.headingGeneric"
+msgid "Videos to download"
+msgstr "Відео для завантаження"
+
+msgctxt "wizard.playlist.itemCount_one"
+msgid "{{count}} video"
+msgstr "{{count}} відео"
+
+msgctxt "wizard.playlist.itemCount_other"
+msgid "{{count}} videos"
+msgstr "{{count}} відео"
+
+msgctxt "wizard.playlist.itemCountAudio_one"
+msgid "{{count}} track"
+msgstr "{{count}} трек"
+
+msgctxt "wizard.playlist.itemCountAudio_other"
+msgid "{{count}} tracks"
+msgstr "{{count}} треків"
+
+msgctxt "wizard.playlist.itemCountBulk_one"
+msgid "{{count}} URL"
+msgstr "{{count}} URL"
+
+msgctxt "wizard.playlist.itemCountBulk_other"
+msgid "{{count}} URLs"
+msgstr "{{count}} URL"
+
+msgctxt "wizard.playlist.loadingItems"
+msgid "Fetching playlist…"
+msgstr "Завантаження Playlist…"
+
+msgctxt "wizard.playlist.loadingItemsGeneric"
+msgid "Fetching videos…"
+msgstr "Отримуємо відео…"
+
+msgctxt "wizard.playlist.loadingLimitHint"
+msgid "Limited to first {{count}} items"
+msgstr "Обмежено першими {{count}} елементами"
+
+msgctxt "wizard.playlist.loadingPagesFound_one"
+msgid "{{count}} page found"
+msgstr "Знайдено {{count}} сторінку"
+
+msgctxt "wizard.playlist.loadingPagesFound_other"
+msgid "{{count}} pages found"
+msgstr "Знайдено {{count}} сторінок"
+
+msgctxt "wizard.playlist.loadingPhaseItems"
+msgid "Collecting videos"
+msgstr "Збирання відео"
+
+msgctxt "wizard.playlist.loadingPhasePages"
+msgid "Scanning channel pages"
+msgstr "Сканування сторінок каналу"
+
+msgctxt "wizard.playlist.multiProfileEntry"
+msgid "Assign profiles per item"
+msgstr "Призначити профілі для кожного елемента"
+
+msgctxt "wizard.playlist.multiProfileEntryTooltip"
+msgid "Skips Quality, SponsorBlock, Output, and Save — assign a download profile per item instead"
+msgstr "Пропускає Якість, SponsorBlock, Вивід і Зберегти — натомість призначає профіль завантаження для кожного елемента"
+
+msgctxt "wizard.playlist.nestedPlaylistBadge"
+msgid "Playlist"
+msgstr "Плейлист"
+
+msgctxt "wizard.playlist.nestedPlaylistHint_one"
+msgid "{{count}} of these is a playlist, not a video — paste its link on its own to download it."
+msgstr "{{count}} із них — плейлист, а не відео. Вставте його посилання окремо, щоб завантажити."
+
+msgctxt "wizard.playlist.nestedPlaylistHint_other"
+msgid "{{count}} of these are playlists, not videos — paste their links one at a time to download them."
+msgstr "{{count}} із них — плейлисти, а не відео. Вставляйте їхні посилання по одному, щоб завантажити."
+
+msgctxt "wizard.playlist.noSelection"
+msgid "Select at least one video to continue"
+msgstr "Вибери хоча б одне відео, щоб продовжити"
+
+msgctxt "wizard.playlist.probeLimitAlertDesc"
+msgid "Showing first {{count}} items. Increase the load limit to see more."
+msgstr "Arroxy знайшов більше {{count}} елементів, тому поточний ліміт сканування приховує решту."
+
+msgctxt "wizard.playlist.probeLimitAlertTitle"
+msgid "Playlist scan is capped"
+msgstr "Сканування плейлиста обмежено"
+
+msgctxt "wizard.playlist.probeLimitAlertTitleGeneric"
+msgid "Scan is capped"
+msgstr "Сканування обмежено"
+
+msgctxt "wizard.playlist.rangeApply"
+msgid "Apply range"
+msgstr "Застосувати діапазон"
+
+msgctxt "wizard.playlist.rangeFrom"
+msgid "From"
+msgstr "Від"
+
+msgctxt "wizard.playlist.rangeTo"
+msgid "To"
+msgstr "До"
+
+msgctxt "wizard.playlist.removedCount_one"
+msgid "{{count}} removed"
+msgstr "{{count}} видалено"
+
+msgctxt "wizard.playlist.removedCount_other"
+msgid "{{count}} removed"
+msgstr "{{count}} видалено"
+
+msgctxt "wizard.playlist.removeFromListCount_one"
+msgid "Remove {{count}} from list"
+msgstr "Видалити {{count}} зі списку"
+
+msgctxt "wizard.playlist.removeFromListCount_other"
+msgid "Remove {{count}} from list"
+msgstr "Видалити {{count}} зі списку"
+
+msgctxt "wizard.playlist.restore"
+msgid "Restore"
+msgstr "Відновити"
+
+msgctxt "wizard.playlist.selectAll"
+msgid "Select all"
+msgstr "Вибрати всі"
+
+msgctxt "wizard.playlist.selectedCount_one"
+msgid "{{count}} selected"
+msgstr "{{count}} вибрано"
+
+msgctxt "wizard.playlist.selectedCount_other"
+msgid "{{count}} selected"
+msgstr "{{count}} вибрано"
+
+msgctxt "wizard.playlist.selectNone"
+msgid "Select none"
+msgstr "Зняти вибір"
+
+msgctxt "wizard.playlist.sortApi"
+msgid "Playlist order"
+msgstr "Порядок плейлиста"
+
+msgctxt "wizard.playlist.sortFetchingDates"
+msgid "Fetching upload dates…"
+msgstr "Завантаження дат публікації…"
+
+msgctxt "wizard.playlist.sortLabel"
+msgid "Sort"
+msgstr "Сортування"
+
+msgctxt "wizard.playlist.sortUploadAsc"
+msgid "Oldest first"
+msgstr "Спочатку старі"
+
+msgctxt "wizard.playlist.sortUploadDesc"
+msgid "Newest first"
+msgstr "Спочатку нові"
+
+msgctxt "wizard.playlist.syncApply"
+msgid "Apply sync"
+msgstr "Застосувати синхронізацію"
+
+msgctxt "wizard.playlist.syncChange"
+msgid "Change folder…"
+msgstr "Змінити папку…"
+
+msgctxt "wizard.playlist.syncFoundDesc"
+msgid "{{n}} of these videos are already in {{dir}}. Sync to download only the new ones?"
+msgstr "{{n}} із цих відео вже є в {{dir}}. Синхронізувати, щоб завантажити лише нові?"
+
+msgctxt "wizard.playlist.syncFoundTitle"
+msgid "Already in folder"
+msgstr "Уже в папці"
+
+msgctxt "wizard.playlist.syncNoneDesc"
+msgid "No videos from this playlist were found in {{dir}}."
+msgstr "Відео з цього плейлиста не знайдено в {{dir}}."
+
+msgctxt "wizard.playlist.syncNoneDescGeneric"
+msgid "No videos from this source were found in {{dir}}."
+msgstr "У {{dir}} не знайдено відео з цього джерела."
+
+msgctxt "wizard.playlist.syncNoneTitle"
+msgid "Nothing downloaded yet"
+msgstr "Поки нічого не завантажено"
+
+msgctxt "wizard.playlist.syncScanning"
+msgid "Checking folder…"
+msgstr "Перевіряємо папку…"
+
+msgctxt "wizard.playlist.thumbnailAlt"
+msgid "Video thumbnail"
+msgstr "Мініатюра відео"
+
+msgctxt "wizard.playlistPresets.heading"
+msgid "Pick quality for the batch"
+msgstr "Вибери якість для пакетного завантаження"
+
+msgctxt "wizard.playlistPresets.itemCount_one"
+msgid "{{count}} item"
+msgstr "{{count}} елемент"
+
+msgctxt "wizard.playlistPresets.itemCount_other"
+msgid "{{count}} items"
+msgstr "{{count}} елементів"
+
+msgctxt "wizard.playlistPresets.subhead"
+msgid "Each video resolves the chosen tier independently — heterogeneous playlists work without surprises."
+msgstr "Кожне відео самостійно підбирає відповідний рівень якості — неоднорідні плейлисти працюють без сюрпризів."
+
+msgctxt "wizard.playlistProfiles.assignAria"
+msgid "Assign {{profileName}}"
+msgstr "Призначити {{profileName}}"
+
+msgctxt "wizard.playlistProfiles.assignTrigger"
+msgid "Assign to selection"
+msgstr "Призначити вибраним"
+
+msgctxt "wizard.playlistProfiles.columnDuration"
+msgid "Duration"
+msgstr "Тривалість"
+
+msgctxt "wizard.playlistProfiles.columnProfile"
+msgid "Profile"
+msgstr "Профіль"
+
+msgctxt "wizard.playlistProfiles.editProfile"
+msgid "Edit {{name}}"
+msgstr "Редагувати {{name}}"
+
+msgctxt "wizard.playlistProfiles.empty"
+msgid "No items match this filter"
+msgstr "Немає елементів, що відповідають цьому фільтру"
+
+msgctxt "wizard.playlistProfiles.filterChip"
+msgid "{{name}} · {{count}}"
+msgstr "{{name}} · {{count}}"
+
+msgctxt "wizard.playlistProfiles.filtersLabel"
+msgid "Profile filters"
+msgstr "Фільтри профілів"
+
+msgctxt "wizard.playlistProfiles.heading"
+msgid "Assign download profiles"
+msgstr "Призначити профілі завантаження"
+
+msgctxt "wizard.playlistProfiles.hintBody"
+msgid "Shift-click for a range, {{modifier}}-click to add one, or drag across rows. Then pick a profile above, or right-click the selection."
+msgstr "Shift-клік для діапазону, {{modifier}}-клік, щоб додати один, або перетягніть по рядках. Потім виберіть профіль вище або клацніть правою кнопкою миші на виділенні."
+
+msgctxt "wizard.playlistProfiles.hintTitle"
+msgid "Assign profiles to several videos at once"
+msgstr "Призначити профілі декільком відео одразу"
+
+msgctxt "wizard.playlistProfiles.selectedSummary"
+msgid "{{selected}} of {{total}} selected"
+msgstr "Вибрано {{selected}} з {{total}}"
+
+msgctxt "wizard.profileEditor.action.addLanguage"
+msgid "Add"
+msgstr "Додати"
+
+msgctxt "wizard.profileEditor.action.changeGlobalShort"
+msgid "Change global"
+msgstr "Змінити загальний"
+
+msgctxt "wizard.profileEditor.action.chooseFolder"
+msgid "Choose destination folder"
+msgstr "Вибрати теку призначення"
+
+msgctxt "wizard.profileEditor.action.chooseIcon"
+msgid "Choose profile icon"
+msgstr "Вибрати значок профілю"
+
+msgctxt "wizard.profileEditor.action.removeLanguage"
+msgid "Remove {{code}}"
+msgstr "Видалити {{code}}"
+
+msgctxt "wizard.profileEditor.action.reset"
+msgid "Reset profile"
+msgstr "Скинути профіль"
+
+msgctxt "wizard.profileEditor.action.save"
+msgid "Save profile"
+msgstr "Зберегти профіль"
+
+msgctxt "wizard.profileEditor.action.setOverride"
+msgid "Set profile override"
+msgstr "Задати перевизначення профілю"
+
+msgctxt "wizard.profileEditor.action.setOverrideShort"
+msgid "Set override"
+msgstr "Задати перевизначення"
+
+msgctxt "wizard.profileEditor.action.useGlobalDefault"
+msgid "Use global default"
+msgstr "Використовувати загальне значення"
+
+msgctxt "wizard.profileEditor.audioFormat.best"
+msgid "Best"
+msgstr "Найкраще"
+
+msgctxt "wizard.profileEditor.audioFormat.wav"
+msgid "WAV"
+msgstr "WAV"
+
+msgctxt "wizard.profileEditor.audioQuality.128"
+msgid "Up to 128K"
+msgstr "До 128K"
+
+msgctxt "wizard.profileEditor.audioQuality.192"
+msgid "Up to 192K"
+msgstr "До 192K"
+
+msgctxt "wizard.profileEditor.audioQuality.320"
+msgid "Up to 320K"
+msgstr "До 320K"
+
+msgctxt "wizard.profileEditor.audioQuality.best"
+msgid "Best quality"
+msgstr "Найкраща якість"
+
+msgctxt "wizard.profileEditor.destination.global"
+msgid "Global destination"
+msgstr "Загальне місце збереження"
+
+msgctxt "wizard.profileEditor.destination.override"
+msgid "Profile override"
+msgstr "Перевизначення профілю"
+
+msgctxt "wizard.profileEditor.destination.resolved"
+msgid "Resolved destination"
+msgstr "Підсумкове місце збереження"
+
+msgctxt "wizard.profileEditor.dialogDescription"
+msgid "One reusable setup for Quick Download, Bulk URLs, and playlists."
+msgstr "Одне багаторазове налаштування для швидкого завантаження, списків посилань і плейлистів."
+
+msgctxt "wizard.profileEditor.dialogTitle"
+msgid "Download Profile"
+msgstr "Профіль завантаження"
+
+msgctxt "wizard.profileEditor.error.changeGlobalDestination"
+msgid "Could not change global destination."
+msgstr "Не вдалося змінити загальне місце збереження."
+
+msgctxt "wizard.profileEditor.error.reset"
+msgid "Could not reset profile settings."
+msgstr "Не вдалося скинути налаштування профілю."
+
+msgctxt "wizard.profileEditor.error.save"
+msgid "Could not save profile settings."
+msgstr "Не вдалося зберегти налаштування профілю."
+
+msgctxt "wizard.profileEditor.field.compatibility"
+msgid "Compatibility"
+msgstr "Сумісність"
+
+msgctxt "wizard.profileEditor.field.delivery"
+msgid "Delivery"
+msgstr "Спосіб збереження"
+
+msgctxt "wizard.profileEditor.field.icon"
+msgid "Profile icon"
+msgstr "Значок профілю"
+
+msgctxt "wizard.profileEditor.field.languageCodes"
+msgid "Subtitle language codes"
+msgstr "Коди мов субтитрів"
+
+msgctxt "wizard.profileEditor.field.languages"
+msgid "Languages"
+msgstr "Мови"
+
+msgctxt "wizard.profileEditor.field.name"
+msgid "Profile name"
+msgstr "Назва профілю"
+
+msgctxt "wizard.profileEditor.field.nameAndIcon"
+msgid "Profile name and icon"
+msgstr "Назва та значок профілю"
+
+msgctxt "wizard.profileEditor.field.overridePath"
+msgid "Profile override path"
+msgstr "Шлях перевизначення профілю"
+
+msgctxt "wizard.profileEditor.field.quality"
+msgid "Quality"
+msgstr "Якість"
+
+msgctxt "wizard.profileEditor.field.resolution"
+msgid "Resolution"
+msgstr "Роздільність"
+
+msgctxt "wizard.profileEditor.field.source"
+msgid "Source"
+msgstr "Джерело"
+
+msgctxt "wizard.profileEditor.field.subfolderName"
+msgid "Subfolder name"
+msgstr "Назва підтеки"
+
+msgctxt "wizard.profileEditor.field.subtitleDownloads"
+msgid "Subtitle downloads"
+msgstr "Завантаження субтитрів"
+
+msgctxt "wizard.profileEditor.icon.archive"
+msgid "Archive"
+msgstr "Архів"
+
+msgctxt "wizard.profileEditor.icon.audio"
+msgid "Audio"
+msgstr "Аудіо"
+
+msgctxt "wizard.profileEditor.icon.captions"
+msgid "Captions"
+msgstr "Субтитри"
+
+msgctxt "wizard.profileEditor.icon.classes"
+msgid "Classes"
+msgstr "Заняття"
+
+msgctxt "wizard.profileEditor.icon.clip"
+msgid "Clip"
+msgstr "Кліп"
+
+msgctxt "wizard.profileEditor.icon.controls"
+msgid "Controls"
+msgstr "Регулятори"
+
+msgctxt "wizard.profileEditor.icon.download"
+msgid "Download"
+msgstr "Завантаження"
+
+msgctxt "wizard.profileEditor.icon.music"
+msgid "Music"
+msgstr "Музика"
+
+msgctxt "wizard.profileEditor.icon.podcast"
+msgid "Podcast"
+msgstr "Подкаст"
+
+msgctxt "wizard.profileEditor.icon.video"
+msgid "Video"
+msgstr "Відео"
+
+msgctxt "wizard.profileEditor.mediaMode.audioOnly.description"
+msgid "Music or podcasts"
+msgstr "Музика або подкасти"
+
+msgctxt "wizard.profileEditor.mediaMode.audioOnly.label"
+msgid "Audio only"
+msgstr "Лише аудіо"
+
+msgctxt "wizard.profileEditor.mediaMode.subtitlesOnly.description"
+msgid "Caption files only"
+msgstr "Лише файли субтитрів"
+
+msgctxt "wizard.profileEditor.mediaMode.subtitlesOnly.label"
+msgid "Subs only"
+msgstr "Лише субтитри"
+
+msgctxt "wizard.profileEditor.mediaMode.videoAudio.description"
+msgid "Normal video files"
+msgstr "Звичайні відеофайли"
+
+msgctxt "wizard.profileEditor.mediaMode.videoAudio.label"
+msgid "Video + audio"
+msgstr "Відео + аудіо"
+
+msgctxt "wizard.profileEditor.mediaMode.videoOnly.description"
+msgid "Silent video only"
+msgstr "Лише відео без звуку"
+
+msgctxt "wizard.profileEditor.mediaMode.videoOnly.label"
+msgid "Video, no audio"
+msgstr "Відео, без аудіо"
+
+msgctxt "wizard.profileEditor.note.autoCaptionsSrt"
+msgid "Auto-captions will be saved as SRT instead of ASS."
+msgstr "Автоматичні субтитри буде збережено у SRT замість ASS."
+
+msgctxt "wizard.profileEditor.note.noLanguages"
+msgid "No languages selected"
+msgstr "Мови не вибрано"
+
+msgctxt "wizard.profileEditor.note.noSubtitles"
+msgid "No subtitle files or embedded subtitle tracks will be requested for this profile."
+msgstr "Для цього профілю не запитуватимуться ні файли субтитрів, ні вбудовані доріжки субтитрів."
+
+msgctxt "wizard.profileEditor.note.skippedForOutputType"
+msgid "Skipped for this output type."
+msgstr "Пропущено для цього типу виводу."
+
+msgctxt "wizard.profileEditor.note.subtitlesOnly"
+msgid "This profile queues subtitle files only. Video, audio, SponsorBlock, and media conversion are skipped."
+msgstr "Цей профіль ставить у чергу лише файли субтитрів. Відео, аудіо, SponsorBlock і конвертація медіа пропускаються."
+
+msgctxt "wizard.profileEditor.panel.advanced.description"
+msgid "Profiles inherit the global destination unless you set a profile override."
+msgstr "Профілі успадковують загальне місце збереження, якщо ви не задасте перевизначення профілю."
+
+msgctxt "wizard.profileEditor.panel.advanced.title"
+msgid "Advanced options"
+msgstr "Додаткові параметри"
+
+msgctxt "wizard.profileEditor.panel.downloadType.description"
+msgid "Choose the primary way you want to download."
+msgstr "Виберіть основний спосіб завантаження."
+
+msgctxt "wizard.profileEditor.panel.downloadType.title"
+msgid "Download type"
+msgstr "Тип завантаження"
+
+msgctxt "wizard.profileEditor.panel.identity.description"
+msgid "Name and icon shown in Quick Download, Bulk URLs, and profile lists."
+msgstr "Назва та значок, що показуються у швидкому завантаженні, списках посилань і списках профілів."
+
+msgctxt "wizard.profileEditor.panel.identity.title"
+msgid "Profile identity"
+msgstr "Ідентифікація профілю"
+
+msgctxt "wizard.profileEditor.panel.output.title"
+msgid "Output options"
+msgstr "Параметри виводу"
+
+msgctxt "wizard.profileEditor.panel.sponsorBlock.title"
+msgid "SponsorBlock"
+msgstr "SponsorBlock"
+
+msgctxt "wizard.profileEditor.placeholder.folder"
+msgid "Choose a folder for this profile"
+msgstr "Виберіть теку для цього профілю"
+
+msgctxt "wizard.profileEditor.skipped"
+msgid "Skipped"
+msgstr "Пропущено"
+
+msgctxt "wizard.profileEditor.sponsorBlockHint.mark"
+msgid "Marks sponsor segments as chapters (non-destructive)."
+msgstr "Позначає спонсорські сегменти як розділи (без зміни файлу)."
+
+msgctxt "wizard.profileEditor.sponsorBlockHint.off"
+msgid "No SponsorBlock — video plays as uploaded."
+msgstr "Без SponsorBlock — відео відтворюється як завантажено."
+
+msgctxt "wizard.profileEditor.sponsorBlockHint.remove"
+msgid "Cuts sponsor segments from the video using FFmpeg."
+msgstr "Вирізає спонсорські сегменти з відео за допомогою FFmpeg."
+
+msgctxt "wizard.profileEditor.subtitleFormat.ass"
+msgid "ASS"
+msgstr "ASS"
+
+msgctxt "wizard.profileEditor.subtitleFormat.srt"
+msgid "SRT"
+msgstr "SRT"
+
+msgctxt "wizard.profileEditor.subtitleFormat.vtt"
+msgid "VTT"
+msgstr "VTT"
+
+msgctxt "wizard.profileEditor.subtitleSource.autoOnly"
+msgid "Auto-generated only"
+msgstr "Лише автоматичні"
+
+msgctxt "wizard.profileEditor.subtitleSource.manualFirst"
+msgid "Manual first, then auto"
+msgstr "Спершу ручні, потім автоматичні"
+
+msgctxt "wizard.profileEditor.subtitleSource.manualOnly"
+msgid "Manual only"
+msgstr "Лише ручні"
+
+msgctxt "wizard.profileEditor.videoAudioFormat.m4a"
+msgid "M4A / AAC"
+msgstr "M4A / AAC"
+
+msgctxt "wizard.profileSwitchRow.helpAria"
+msgid "{{label}} help"
+msgstr "Довідка: {{label}}"
+
+msgctxt "wizard.quickProgress.cancel"
+msgid "Cancel preparation"
+msgstr "Скасувати підготовку"
+
+msgctxt "wizard.quickProgress.currentFallback"
+msgid "Current link"
+msgstr "Поточне посилання"
+
+msgctxt "wizard.quickProgress.description"
+msgid "Arroxy is reading the link and applying {{profileName}}."
+msgstr "Arroxy читає посилання та застосовує {{profileName}}."
+
+msgctxt "wizard.quickProgress.failedCount_one"
+msgid "{{count}} failed"
+msgstr "{{count}} не вдалося"
+
+msgctxt "wizard.quickProgress.failedCount_other"
+msgid "{{count}} failed"
+msgstr "{{count}} не вдалося"
+
+msgctxt "wizard.quickProgress.phase.probing"
+msgid "Fetching details"
+msgstr "Отримання відомостей"
+
+msgctxt "wizard.quickProgress.phase.queueing"
+msgid "Adding to queue"
+msgstr "Додавання до черги"
+
+msgctxt "wizard.quickProgress.title"
+msgid "Preparing Quick Download"
+msgstr "Підготовка швидкого завантаження"
+
+msgctxt "wizard.quickProgress.waitHint"
+msgid "Keep this open while Arroxy prepares the queue."
+msgstr "Залиште це вікно відкритим, поки Arroxy готує чергу."
+
+msgctxt "wizard.sponsorblock.cat.filler"
+msgid "Filler"
+msgstr "Заповнювач"
+
+msgctxt "wizard.sponsorblock.cat.intro"
+msgid "Intro"
+msgstr "Інтро"
+
+msgctxt "wizard.sponsorblock.cat.music_offtopic"
+msgid "Music off-topic"
+msgstr "Музика не по темі"
+
+msgctxt "wizard.sponsorblock.cat.outro"
+msgid "Outro"
+msgstr "Аутро"
+
+msgctxt "wizard.sponsorblock.cat.preview"
+msgid "Preview"
+msgstr "Перегляд"
+
+msgctxt "wizard.sponsorblock.cat.selfpromo"
+msgid "Self-promo"
+msgstr "Самореклама"
+
+msgctxt "wizard.sponsorblock.cat.sponsor"
+msgid "Sponsor"
+msgstr "Спонсор"
+
+msgctxt "wizard.sponsorblock.categoriesHeading"
+msgid "Categories"
+msgstr "Категорії"
+
+msgctxt "wizard.sponsorblock.mode.mark"
+msgid "Mark as chapters"
+msgstr "Позначити як розділи"
+
+msgctxt "wizard.sponsorblock.mode.off"
+msgid "Off"
+msgstr "Вимк"
+
+msgctxt "wizard.sponsorblock.mode.remove"
+msgid "Remove segments"
+msgstr "Видалити сегменти"
+
+msgctxt "wizard.sponsorblock.modeHeading"
+msgid "Sponsor filtering"
+msgstr "Фільтрація спонсорів"
+
+msgctxt "wizard.sponsorblock.modeHint.mark"
+msgid "Marks sponsor segments as chapters (non-destructive)."
+msgstr "Позначає спонсорські сегменти як розділи (не деструктивно)."
+
+msgctxt "wizard.sponsorblock.modeHint.off"
+msgid "No SponsorBlock — video plays as uploaded."
+msgstr "Без SponsorBlock — відео відтворюється як завантажено."
+
+msgctxt "wizard.sponsorblock.modeHint.remove"
+msgid "Cuts sponsor segments from the video using FFmpeg."
+msgstr "Вирізає спонсорські сегменти за допомогою FFmpeg."
+
+msgctxt "wizard.steps.confirm"
+msgid "Confirm"
+msgstr "Підтвердити"
+
+msgctxt "wizard.steps.folder"
+msgid "Save"
+msgstr "Зберегти"
+
+msgctxt "wizard.steps.formats"
+msgid "Format"
+msgstr "Формат"
+
+msgctxt "wizard.steps.output"
+msgid "Output"
+msgstr "Вивід"
+
+msgctxt "wizard.steps.playlistItems"
+msgid "Playlist"
+msgstr "Плейлист"
+
+msgctxt "wizard.steps.playlistItemsGeneric"
+msgid "Videos"
+msgstr "Відео"
+
+msgctxt "wizard.steps.playlistPresets"
+msgid "Quality"
+msgstr "Якість"
+
+msgctxt "wizard.steps.playlistProfiles"
+msgid "Profiles"
+msgstr "Профілі"
+
+msgctxt "wizard.steps.sponsorblock"
+msgid "SponsorBlock"
+msgstr "SponsorBlock"
+
+msgctxt "wizard.steps.subtitles"
+msgid "Subtitles"
+msgstr "Субтитри"
+
+msgctxt "wizard.steps.url"
+msgid "URL"
+msgstr "Посилання"
+
+msgctxt "wizard.subtitles.autoAssNote"
+msgid "Auto-captions will be saved as SRT instead of ASS — for YouTube videos they're cleaned of rolling-cue duplication, which our ASS converter can't replicate yet."
+msgstr "Авто-субтитри будуть збережені як SRT замість ASS — вони завжди очищаються від роллінгових дублів YouTube, а наш ASS-конвертер поки такого не повторює."
+
+msgctxt "wizard.subtitles.autoBadge"
+msgid "Auto"
+msgstr "Авто"
+
+msgctxt "wizard.subtitles.clearAll"
+msgid "Clear all"
+msgstr "Очистити все"
+
+msgctxt "wizard.subtitles.embedNote"
+msgid "Embed mode saves output as .mkv so subtitle tracks embed reliably."
+msgstr "Режим вбудовування зберігає файл як .mkv, щоб доріжки субтитрів вбудовувалися надійно."
+
+msgctxt "wizard.subtitles.format.heading"
+msgid "Format"
+msgstr "Format"
+
+msgctxt "wizard.subtitles.mascot"
+msgid "Pick zero, one, or many — totally up to you ✨"
+msgstr "Нуль, одну або кілька мов — вирішуй сам ✨"
+
+msgctxt "wizard.subtitles.noLanguages"
+msgid "No subtitles available for this video"
+msgstr "Для цього відео субтитри недоступні"
+
+msgctxt "wizard.subtitles.noMatches"
+msgid "No languages match"
+msgstr "Мови не знайдено"
+
+msgctxt "wizard.subtitles.noSelected"
+msgid "No subtitles selected"
+msgstr "Субтитри не вибрані"
+
+msgctxt "wizard.subtitles.removeLanguage"
+msgid "Remove {{name}}"
+msgstr "Видалити {{name}}"
+
+msgctxt "wizard.subtitles.saveMode.embed"
+msgid "Embed into video"
+msgstr "Вбудувати у відео"
+
+msgctxt "wizard.subtitles.saveMode.heading"
+msgid "Save as"
+msgstr "Зберегти як"
+
+msgctxt "wizard.subtitles.saveMode.sidecar"
+msgid "Next to video"
+msgstr "Поруч із відео"
+
+msgctxt "wizard.subtitles.saveMode.subfolder"
+msgid "subtitles/ subfolder"
+msgstr "Підпапка subtitles/"
+
+msgctxt "wizard.subtitles.searchPlaceholder"
+msgid "Search languages…"
+msgstr "Пошук мов…"
+
+msgctxt "wizard.subtitles.sectionAuto"
+msgid "Auto-generated"
+msgstr "Автоматичні"
+
+msgctxt "wizard.subtitles.sectionManual"
+msgid "Manual"
+msgstr "Ручні"
+
+msgctxt "wizard.subtitles.selectedNote_one"
+msgid "{{count}} subtitle will be downloaded"
+msgstr "Буде завантажено {{count}} субтитр"
+
+msgctxt "wizard.subtitles.selectedNote_other"
+msgid "{{count}} subtitles will be downloaded"
+msgstr "Буде завантажено субтитрів: {{count}}"
+
+msgctxt "wizard.subtitles.skip"
+msgid "Skip"
+msgstr "Пропустити"
+
+msgctxt "wizard.subtitles.skipSubs"
+msgid "Skip for this video"
+msgstr "Пропустити для цього відео"
+
+msgctxt "wizard.tabsNavAria"
+msgid "Download profile navigation"
+msgstr "Навігація профілями завантаження"
+
+msgctxt "wizard.url.advanced"
+msgid "Advanced"
+msgstr "Додатково"
+
+msgctxt "wizard.url.analytics.toggle"
+msgid "Send anonymous usage stats"
+msgstr "Надсилати анонімну статистику"
+
+msgctxt "wizard.url.analytics.toggleDescription"
+msgid "Reports crashes, failures, and feedback anonymously. No URLs, video titles, or filenames."
+msgstr "Анонімно повідомляє про збої, помилки та відгуки. Без URL, назв відео чи імен файлів."
+
+msgctxt "wizard.url.autoRetry.description"
+msgid "Automatically tries again after a network or server hiccup, waiting longer between each attempt. Downloads blocked by the site are never retried automatically."
+msgstr "Автоматично повторює спробу після збою мережі або сервера, чекаючи довше перед кожною наступною. Завантаження, заблоковані сайтом, автоматично не повторюються."
+
+msgctxt "wizard.url.autoRetry.label"
+msgid "Retry failed downloads"
+msgstr "Повторювати невдалі завантаження"
+
+msgctxt "wizard.url.autoRetry.unit"
+msgid "times"
+msgstr "разів"
+
+msgctxt "wizard.url.backdrop.cssOnlyDescription"
+msgid "CSS only, no canvas rendering."
+msgstr "Лише CSS, без рендерингу canvas."
+
+msgctxt "wizard.url.backdrop.cssOnlyLabel"
+msgid "Best performance"
+msgstr "Найкраща продуктивність"
+
+msgctxt "wizard.url.backdrop.gpuDescription"
+msgid "Animated WebGL backdrop when supported."
+msgstr "Анімоване тло WebGL, якщо підтримується."
+
+msgctxt "wizard.url.backdrop.gpuLabel"
+msgid "Most beautiful"
+msgstr "Найгарніше"
+
+msgctxt "wizard.url.backdrop.modeDescription"
+msgid "Move from the most animated look to best performance."
+msgstr "Від найанімованішого вигляду до найкращої продуктивності."
+
+msgctxt "wizard.url.backdrop.modeLabel"
+msgid "Backdrop quality"
+msgstr "Якість тла"
+
+msgctxt "wizard.url.backdrop.panelDescription"
+msgid "Choose how much motion Arroxy uses for the animated backdrop."
+msgstr "Виберіть, скільки руху Arroxy використовує для анімованого тла."
+
+msgctxt "wizard.url.backdrop.panelTitle"
+msgid "Appearance and performance"
+msgstr "Вигляд і продуктивність"
+
+msgctxt "wizard.url.backdrop.runtimeFallbackNotice"
+msgid "Hardware WebGL is unavailable on this device, so Arroxy is using the performance backdrop."
+msgstr "Апаратний WebGL недоступний на цьому пристрої, тому Arroxy використовує фон для кращої продуктивності."
+
+msgctxt "wizard.url.bulkButton"
+msgid "Bulk URLs"
+msgstr "Масові URL"
+
+msgctxt "wizard.url.bulkTooltip"
+msgid "Add and queue multiple URLs."
+msgstr "Додайте кілька URL і поставте їх у чергу."
+
+msgctxt "wizard.url.clearAria"
+msgid "Clear URL"
+msgstr "Очистити URL"
+
+msgctxt "wizard.url.clipboard.autofilledLink"
+msgid "Link added from clipboard"
+msgstr "Посилання додано з буфера обміну"
+
+msgctxt "wizard.url.clipboard.bulkHint"
+msgid "Multiple links copied — use Bulk URLs to add them"
+msgstr "Скопійовано кілька посилань — додайте їх через «Масові URL»"
+
+msgctxt "wizard.url.clipboard.dialog.cancelButton"
+msgid "Cancel"
+msgstr "Скасувати"
+
+msgctxt "wizard.url.clipboard.dismissCopiedLink"
+msgid "Dismiss copied link"
+msgstr "Приховати скопійоване посилання"
+
+msgctxt "wizard.url.clipboard.pendingLinkReady"
+msgid "Copied link ready"
+msgstr "Скопійоване посилання готове"
+
+msgctxt "wizard.url.clipboard.toggle"
+msgid "Watch clipboard"
+msgstr "Стежити за буфером обміну"
+
+msgctxt "wizard.url.clipboard.toggleDescription"
+msgid "Auto-fill the URL field when you copy a video link."
+msgstr "Автоматично підставляє посилання YouTube у поле URL при копіюванні."
+
+msgctxt "wizard.url.clipboard.useCopiedLink"
+msgid "Use copied link"
+msgstr "Використати скопійоване посилання"
+
+msgctxt "wizard.url.closeToTray.toggle"
+msgid "Hide to tray on close"
+msgstr "Приховувати в трей при закритті"
+
+msgctxt "wizard.url.closeToTray.toggleDescription"
+msgid "Continue downloads in the background after closing the window."
+msgstr "Продовжувати завантаження у фоні після закриття вікна."
+
+msgctxt "wizard.url.concurrentDownloads.description"
+msgid "How many queued items download at the same time. More at once finishes a long queue sooner, but raises the chance a site limits you."
+msgstr "Скільки елементів черги завантажується одночасно. Більше за раз — довга черга завершиться швидше, але зростає ймовірність обмежень з боку сайту."
+
+msgctxt "wizard.url.concurrentDownloads.label"
+msgid "Downloads at once"
+msgstr "Завантажень одночасно"
+
+msgctxt "wizard.url.concurrentDownloads.unit"
+msgid "downloads"
+msgstr "завантажень"
+
+msgctxt "wizard.url.cookies.banWarning"
+msgid "Sites like YouTube may flag — and sometimes ban — accounts whose cookies are used by yt-dlp. Use a throwaway account when possible."
+msgstr "YouTube може позначити — і іноді забанити — акаунти, чиї cookies використовує yt-dlp. По можливості використовуй одноразовий акаунт."
+
+msgctxt "wizard.url.cookies.browserHelp"
+msgid "Reads cookies directly from the browser. The browser must be closed for Chromium-family browsers."
+msgstr "Зчитує cookies безпосередньо з браузера. Браузери на основі Chromium мають бути закриті."
+
+msgctxt "wizard.url.cookies.browserLabel"
+msgid "Browser"
+msgstr "Браузер"
+
+msgctxt "wizard.url.cookies.browserPlaceholder"
+msgid "Pick a browser…"
+msgstr "Вибери браузер…"
+
+msgctxt "wizard.url.cookies.choose"
+msgid "Choose…"
+msgstr "Обрати…"
+
+msgctxt "wizard.url.cookies.clear"
+msgid "Clear"
+msgstr "Скинути"
+
+msgctxt "wizard.url.cookies.enabledButNoBrowser"
+msgid "Pick a browser to use cookies"
+msgstr "Вибери браузер, щоб використовувати cookies"
+
+msgctxt "wizard.url.cookies.enabledButNoFile"
+msgid "Pick a file to use cookies"
+msgstr "Обери файл, щоб використовувати cookies"
+
+msgctxt "wizard.url.cookies.extensionChrome"
+msgid "Get cookies.txt LOCALLY (Chrome)"
+msgstr "Отримати cookies.txt ЛОКАЛЬНО (Chrome)"
+
+msgctxt "wizard.url.cookies.extensionFirefox"
+msgid "cookies.txt (Firefox)"
+msgstr "cookies.txt (Firefox)"
+
+msgctxt "wizard.url.cookies.fileLabel"
+msgid "Cookies file"
+msgstr "Файл cookies"
+
+msgctxt "wizard.url.cookies.helpLink"
+msgid "How do I export cookies?"
+msgstr "Як експортувати cookies?"
+
+msgctxt "wizard.url.cookies.placeholder"
+msgid "No file selected"
+msgstr "Файл не обрано"
+
+msgctxt "wizard.url.cookies.risk"
+msgid "Risk: a cookies.txt contains every logged-in session for that browser — keep it private."
+msgstr "Ризик: cookies.txt містить усі активні сесії браузера — тримай його в таємниці."
+
+msgctxt "wizard.url.cookies.sourceBrowser"
+msgid "Browser"
+msgstr "Браузер"
+
+msgctxt "wizard.url.cookies.sourceFile"
+msgid "File"
+msgstr "Файл"
+
+msgctxt "wizard.url.cookies.sourceLabel"
+msgid "Cookies source"
+msgstr "Джерело cookies"
+
+msgctxt "wizard.url.cookies.sourceOff"
+msgid "Off"
+msgstr "Вимк"
+
+msgctxt "wizard.url.cookies.toggleDescription"
+msgid "Helps with age-restricted, members-only, and account-private videos."
+msgstr "Допомагає з відео з віковим обмеженням, лише для учасників і приватними у твоєму акаунті."
+
+msgctxt "wizard.url.downloadConnections.description"
+msgid "Speeds up large downloads by fetching several parts of a video at once. Higher values raise the chance a site limits you."
+msgstr "Прискорює великі завантаження, отримуючи кілька частин відео одночасно. Вищі значення підвищують імовірність обмежень з боку сайту."
+
+msgctxt "wizard.url.downloadConnections.label"
+msgid "Download connections"
+msgstr "З'єднання для завантаження"
+
+msgctxt "wizard.url.downloadConnections.unit"
+msgid "connections"
+msgstr "з'єднань"
+
+msgctxt "wizard.url.features.always.audioOnly"
+msgid "Audio only"
+msgstr "Тільки аудіо"
+
+msgctxt "wizard.url.features.always.subtitles"
+msgid "Subtitles"
+msgstr "Субтитри"
+
+msgctxt "wizard.url.features.anySite.heading"
+msgid "2000+ sites"
+msgstr "2000+ сайтів"
+
+msgctxt "wizard.url.features.anySite.musicPlaylist"
+msgid "Music playlists"
+msgstr "Музичні плейлисти"
+
+msgctxt "wizard.url.features.anySite.video"
+msgid "Videos"
+msgstr "Відео"
+
+msgctxt "wizard.url.features.anySite.videoPlaylist"
+msgid "Video playlists"
+msgstr "Відеоплейлисти"
+
+msgctxt "wizard.url.features.heading"
+msgid "What Arroxy can pull"
+msgstr "Що Arroxy вміє завантажувати"
+
+msgctxt "wizard.url.features.youtube.channel"
+msgid "Channels"
+msgstr "Канали"
+
+msgctxt "wizard.url.features.youtube.heading"
+msgid "YouTube"
+msgstr "YouTube"
+
+msgctxt "wizard.url.features.youtube.music"
+msgid "Music"
+msgstr "Музика"
+
+msgctxt "wizard.url.features.youtube.playlist"
+msgid "Playlists"
+msgstr "Плейлисти"
+
+msgctxt "wizard.url.features.youtube.podcast"
+msgid "Podcasts"
+msgstr "Подкасти"
+
+msgctxt "wizard.url.features.youtube.short"
+msgid "Shorts"
+msgstr "Shorts"
+
+msgctxt "wizard.url.features.youtube.video"
+msgid "Videos"
+msgstr "Відео"
+
+msgctxt "wizard.url.fetchFormatsTooltip"
+msgid "Step-by-step wizard. Choose format, quality, and more."
+msgstr "Покроковий майстер. Виберіть формат, якість та інші параметри."
+
+msgctxt "wizard.url.heading"
+msgid "Download from URL"
+msgstr "Завантажити з URL"
+
+msgctxt "wizard.url.hotkey.changeShortcut"
+msgid "Change shortcut"
+msgstr "Змінити сполучення"
+
+msgctxt "wizard.url.hotkey.conflict"
+msgid "This shortcut is taken by another app — pick another one."
+msgstr "Це сполучення вже зайняте іншою програмою — виберіть інше."
+
+msgctxt "wizard.url.hotkey.hintLabel"
+msgid "Or press"
+msgstr "Або натисніть"
+
+msgctxt "wizard.url.hotkey.hintTooltip"
+msgid "Copy a video link anywhere, press this shortcut, and Arroxy queues it with your active profile — no need to switch windows."
+msgstr "Скопіюйте посилання на відео будь-де, натисніть це сполучення клавіш, і Arroxy поставить його в чергу з активним профілем — перемикати вікна не потрібно."
+
+msgctxt "wizard.url.hotkey.hintTooltipSettings"
+msgid "Change or turn it off in Settings."
+msgstr "Змініть його або вимкніть у Налаштуваннях."
+
+msgctxt "wizard.url.hotkey.recording"
+msgid "Press keys…"
+msgstr "Натискайте клавіші…"
+
+msgctxt "wizard.url.hotkey.reset"
+msgid "Reset to default"
+msgstr "Скинути до стандартного"
+
+msgctxt "wizard.url.hotkey.sectionDescription"
+msgid "Download whatever link you copy, from any app, without opening Arroxy."
+msgstr "Завантажуйте будь-яке скопійоване посилання з будь-якої програми, не відкриваючи Arroxy."
+
+msgctxt "wizard.url.hotkey.sectionTitle"
+msgid "Global hotkey"
+msgstr "Глобальна гаряча клавіша"
+
+msgctxt "wizard.url.hotkey.test"
+msgid "Test"
+msgstr "Перевірити"
+
+msgctxt "wizard.url.hotkey.toggle"
+msgid "Enable global hotkey"
+msgstr "Увімкнути гарячу клавішу"
+
+msgctxt "wizard.url.hotkey.toggleDescription"
+msgid "Press the shortcut with a video link on your clipboard."
+msgstr "Натисніть сполучення клавіш, коли посилання на відео в буфері обміну."
+
+msgctxt "wizard.url.interactiveDownload"
+msgid "Interactive Download"
+msgstr "Отримати формати"
+
+msgctxt "wizard.url.limitRate.activeWarning"
+msgid "Active downloads keep their current limit. Pause + Resume to apply changes."
+msgstr "Активні завантаження зберігають поточний ліміт. Пауза + Продовжити застосує зміни."
+
+msgctxt "wizard.url.limitRate.custom"
+msgid "Custom…"
+msgstr "Власне…"
+
+msgctxt "wizard.url.limitRate.customPlaceholder"
+msgid "e.g. 750K or 1.5M"
+msgstr "наприклад 750K або 1.5M"
+
+msgctxt "wizard.url.limitRate.description"
+msgid "Cap bandwidth for media downloads. Request pacing below is usually the stronger rate-limit lever."
+msgstr "Обмежує пропускну здатність для медіазавантажень. Інтервали запитів нижче зазвичай сильніше впливають на ліміти."
+
+msgctxt "wizard.url.limitRate.invalid"
+msgid "Use a number followed by K or M (e.g. 500K, 1.5M)"
+msgstr "Введи число з K або M (наприклад 500K, 1.5M)"
+
+msgctxt "wizard.url.limitRate.label"
+msgid "Download speed limit"
+msgstr "Обмеження швидкості завантаження"
+
+msgctxt "wizard.url.limitRate.off"
+msgid "Off"
+msgstr "Вимкнено"
+
+msgctxt "wizard.url.mascotBusy"
+msgid "Downloading in the background… I can multitask 😎"
+msgstr "Завантажую у фоні… можу робити кілька справ одночасно 😎"
+
+msgctxt "wizard.url.mascotIdle"
+msgid "Drop a link and let Arroxy pull it ✨"
+msgstr "Кинь посилання, а Arroxy його забере ✨"
+
+msgctxt "wizard.url.nativeAudioPreference.compatible"
+msgid "Compatible stereo"
+msgstr "Сумісне стерео"
+
+msgctxt "wizard.url.nativeAudioPreference.description"
+msgid "Controls what Best native chooses. Manual audio rows and M4A/AAC stay explicit."
+msgstr "Визначає, що вибирає «Найкращий нативний». Ручні аудіорядки та M4A/AAC залишаються явним вибором."
+
+msgctxt "wizard.url.nativeAudioPreference.label"
+msgid "Native audio preference"
+msgstr "Налаштування нативного аудіо"
+
+msgctxt "wizard.url.nativeAudioPreference.surround"
+msgid "Prefer surround / Dolby"
+msgstr "Надавати перевагу surround / Dolby"
+
+msgctxt "wizard.url.networkPacing.description"
+msgid "Add small waits during each download so Arroxy does not hit the site too aggressively. Values are in seconds."
+msgstr "Додає невеликі паузи під час кожного завантаження, щоб Arroxy не звертався до сайту надто агресивно. Значення в секундах."
+
+msgctxt "wizard.url.networkPacing.fields.maxSleepInterval"
+msgid "Pause before media starts: max"
+msgstr "Пауза перед початком медіа: макс"
+
+msgctxt "wizard.url.networkPacing.fields.sleepInterval"
+msgid "Pause before media starts: min"
+msgstr "Пауза перед початком медіа: мін"
+
+msgctxt "wizard.url.networkPacing.fields.sleepRequests"
+msgid "Wait between metadata checks"
+msgstr "Очікування між перевірками метаданих"
+
+msgctxt "wizard.url.networkPacing.fields.sleepSubtitles"
+msgid "Wait before subtitle files"
+msgstr "Очікування перед файлами субтитрів"
+
+msgctxt "wizard.url.networkPacing.heading"
+msgid "Gentle downloads"
+msgstr "Бережні завантаження"
+
+msgctxt "wizard.url.networkPacing.presetLabel"
+msgid "How cautious should Arroxy be?"
+msgstr "Наскільки обережним має бути Arroxy?"
+
+msgctxt "wizard.url.networkPacing.presets.balanced"
+msgid "Balanced"
+msgstr "Збалансовано"
+
+msgctxt "wizard.url.networkPacing.presets.careful"
+msgid "Careful"
+msgstr "Обережно"
+
+msgctxt "wizard.url.networkPacing.presets.custom"
+msgid "Custom"
+msgstr "Налаштувати"
+
+msgctxt "wizard.url.networkPacing.presets.off"
+msgid "Off"
+msgstr "Вимк"
+
+msgctxt "wizard.url.networkPacing.summary"
+msgid "Waits: {{requests}} between checks, {{downloads}} before media starts, {{subtitles}} before subtitle files."
+msgstr "Паузи: {{requests}} між перевірками, {{downloads}} перед початком медіа, {{subtitles}} перед файлами субтитрів."
+
+msgctxt "wizard.url.networkPacing.tooltip"
+msgid "These waits happen inside each download. How many downloads run at the same time is set separately, under Downloads at once."
+msgstr "Ці паузи відбуваються всередині кожного завантаження. Скільки завантажень іде одночасно, налаштовується окремо — у налаштуванні «Завантажень одночасно»."
+
+msgctxt "wizard.url.networkPacing.tooltips.balanced"
+msgid "Default. Adds short pauses between requests and before media starts."
+msgstr "За замовчуванням. Додає короткі паузи між запитами та перед початком медіа."
+
+msgctxt "wizard.url.networkPacing.tooltips.careful"
+msgid "Adds longer pauses for large playlists or networks that frequently hit limits."
+msgstr "Додає довші паузи для великих плейлистів або мереж, які часто упираються в ліміти."
+
+msgctxt "wizard.url.networkPacing.tooltips.custom"
+msgid "Tune the advanced per-download controls yourself."
+msgstr "Налаштуйте розширені параметри кожного завантаження самостійно."
+
+msgctxt "wizard.url.networkPacing.tooltips.off"
+msgid "Uses only the small baseline pauses Arroxy keeps for media and subtitles."
+msgstr "Використовує лише невеликі базові паузи Arroxy для медіа та субтитрів."
+
+msgctxt "wizard.url.networkPacing.units.seconds"
+msgid "sec"
+msgstr "сек"
+
+msgctxt "wizard.url.placeholder"
+msgid "https://..."
+msgstr "https://www.youtube.com/watch?v=..."
+
+msgctxt "wizard.url.playlistProbeLimit.current"
+msgid "Current limit: {{count}} items"
+msgstr "Поточний ліміт: {{count}} елементів"
+
+msgctxt "wizard.url.playlistProbeLimit.custom"
+msgid "Custom…"
+msgstr "Власне…"
+
+msgctxt "wizard.url.playlistProbeLimit.customDialogCancel"
+msgid "Cancel"
+msgstr "Скасувати"
+
+msgctxt "wizard.url.playlistProbeLimit.customDialogDescription"
+msgid "Use a whole number from {{min}} to {{max}}."
+msgstr "Введи ціле число від {{min}} до {{max}}."
+
+msgctxt "wizard.url.playlistProbeLimit.customDialogSave"
+msgid "Save limit"
+msgstr "Зберегти ліміт"
+
+msgctxt "wizard.url.playlistProbeLimit.customDialogTitle"
+msgid "Custom playlist scan limit"
+msgstr "Власний ліміт сканування плейлиста"
+
+msgctxt "wizard.url.playlistProbeLimit.customValue"
+msgid "Custom: {{count}} items"
+msgstr "Власне: {{count}} елементів"
+
+msgctxt "wizard.url.playlistProbeLimit.description"
+msgid "Maximum entries Arroxy loads when a playlist, channel, or search result is opened."
+msgstr "Максимальна кількість записів, які Arroxy завантажує під час відкриття плейлиста, каналу або результатів пошуку."
+
+msgctxt "wizard.url.playlistProbeLimit.invalid"
+msgid "Use a whole number from 1 to 5000"
+msgstr "Введи ціле число від 1 до 5000"
+
+msgctxt "wizard.url.playlistProbeLimit.label"
+msgid "Playlist items to scan"
+msgstr "Елементів плейлиста для сканування"
+
+msgctxt "wizard.url.playlistProbeLimit.option"
+msgid "{{count}} items"
+msgstr "{{count}} елементів"
+
+msgctxt "wizard.url.playlistProbeLimit.tooltip"
+msgid "Maps to yt-dlp --playlist-end: Arroxy only asks for this many playlist, channel, or search entries while building the picker."
+msgstr "Відповідає параметру yt-dlp --playlist-end: Arroxy запитує лише таку кількість записів плейлиста, каналу або пошуку під час побудови вибірки."
+
+msgctxt "wizard.url.profile.activeLabel"
+msgid "Active profile"
+msgstr "Активний профіль"
+
+msgctxt "wizard.url.profile.badgeBuiltIn"
+msgid "Built-in"
+msgstr "Вбудований"
+
+msgctxt "wizard.url.profile.badgeCustom"
+msgid "Custom"
+msgstr "Власний"
+
+msgctxt "wizard.url.profile.badgeDisabled"
+msgid "Hidden"
+msgstr "Приховано"
+
+msgctxt "wizard.url.profile.badgeModified"
+msgid "Modified"
+msgstr "Змінено"
+
+msgctxt "wizard.url.profile.changeGlobalDestination"
+msgid "Change global destination"
+msgstr "Змінити глобальну теку призначення"
+
+msgctxt "wizard.url.profile.destinationFallback"
+msgid "Destination"
+msgstr "Тека призначення"
+
+msgctxt "wizard.url.profile.edit"
+msgid "Edit"
+msgstr "Редагувати"
+
+msgctxt "wizard.url.profile.editActive"
+msgid "Edit active profile"
+msgstr "Редагувати активний профіль"
+
+msgctxt "wizard.url.profile.enableHint"
+msgid "Hidden profiles stay here but disappear from every profile picker."
+msgstr "Приховані профілі залишаються тут, але зникають з усіх списків."
+
+msgctxt "wizard.url.profile.enableToggleAria"
+msgid "Show profile in pickers: {{profileName}}"
+msgstr "Показати профіль у списках: {{profileName}}"
+
+msgctxt "wizard.url.profile.lastEnabledHint"
+msgid "Keep at least one profile available."
+msgstr "Залиште доступним хоча б один профіль."
+
+msgctxt "wizard.url.profile.manageProfiles"
+msgid "Manage profiles"
+msgstr "Керувати профілями"
+
+msgctxt "wizard.url.profile.menuDescription"
+msgid "Change the active profile for Quick Download, Bulk URLs, and playlists."
+msgstr "Змініть активний профіль для Quick Download, масових URL і списків відтворення."
+
+msgctxt "wizard.url.profile.menuTitle"
+msgid "Switch profile"
+msgstr "Перемкнути профіль"
+
+msgctxt "wizard.url.profile.newProfile"
+msgid "New profile"
+msgstr "Новий профіль"
+
+msgctxt "wizard.url.profile.panelDescription"
+msgid "Create, select, edit, or remove reusable download setups."
+msgstr "Створюйте, вибирайте, редагуйте або видаляйте багаторазові налаштування завантаження."
+
+msgctxt "wizard.url.profile.panelTitle"
+msgid "Download Profiles"
+msgstr "Профілі завантаження"
+
+msgctxt "wizard.url.profile.remove"
+msgid "Remove"
+msgstr "Видалити"
+
+msgctxt "wizard.url.profile.reset"
+msgid "Reset"
+msgstr "Скинути"
+
+msgctxt "wizard.url.profile.switchAria"
+msgid "Switch download profile: {{profileName}}"
+msgstr "Перемкнути профіль завантаження: {{profileName}}"
+
+msgctxt "wizard.url.profile.switchTitle"
+msgid "Switch download profile"
+msgstr "Перемкнути профіль завантаження"
+
+msgctxt "wizard.url.proxy.clear"
+msgid "Clear"
+msgstr "Очистити"
+
+msgctxt "wizard.url.proxy.description"
+msgid "Route traffic through a proxy — useful for geo-restricted content."
+msgstr "Направляти трафік через проксі — корисно для контенту з географічними обмеженнями."
+
+msgctxt "wizard.url.proxy.label"
+msgid "Proxy URL"
+msgstr "Proxy URL"
+
+msgctxt "wizard.url.proxy.placeholder"
+msgid "http://host:port"
+msgstr "http://host:port"
+
+msgctxt "wizard.url.quickBulkAllFailed"
+msgid "None of those URLs could be prepared"
+msgstr "Жоден із цих URL не вдалося підготувати"
+
+msgctxt "wizard.url.quickDownload"
+msgid "Quick Download"
+msgstr "Швидке завантаження"
+
+msgctxt "wizard.url.quickDownloadTooltip"
+msgid "Will download using: {{profileName}}"
+msgstr "Буде завантажено через: {{profileName}}"
+
+msgctxt "wizard.url.quickFailed"
+msgid "Couldn't add this one: {{error}}"
+msgstr "Не вдалося додати: {{error}}"
+
+msgctxt "wizard.url.quickPartialFailed_one"
+msgid "Queued what worked. {{count}} URL could not be prepared."
+msgstr "Те, що спрацювало, додано до черги. {{count}} URL не вдалося підготувати."
+
+msgctxt "wizard.url.quickPartialFailed_other"
+msgid "Queued what worked. {{count}} URLs could not be prepared."
+msgstr "Те, що спрацювало, додано до черги. {{count}} URL не вдалося підготувати."
+
+msgctxt "wizard.url.quickPrepareFailed"
+msgid "Queue item could not be prepared"
+msgstr "Не вдалося підготувати елемент черги"
+
+msgctxt "wizard.url.quickPreparing"
+msgid "Preparing"
+msgstr "Підготовка"
+
+msgctxt "wizard.url.quickProbeFailed"
+msgid "Probe failed"
+msgstr "Перевірка не вдалася"
+
+msgctxt "wizard.url.quickQueued"
+msgid "Added to queue"
+msgstr "Додано в чергу"
+
+msgctxt "wizard.url.quickSingleOnly"
+msgid "Paste a video, playlist, channel, or search URL to get started."
+msgstr "Вставте URL відео, плейлиста, каналу або пошуку, щоб почати."
+
+msgctxt "wizard.url.settings.behaviorDescription"
+msgid "Global behavior that affects profile-driven downloads too."
+msgstr "Глобальна поведінка, що впливає також на завантаження, керовані профілями."
+
+msgctxt "wizard.url.settings.behaviorHeading"
+msgid "Download behavior"
+msgstr "Поведінка завантаження"
+
+msgctxt "wizard.url.settings.inputHeading"
+msgid "Input"
+msgstr "Введення"
+
+msgctxt "wizard.url.tabs.profiles"
+msgid "Profiles"
+msgstr "Профілі"
+
+msgctxt "wizard.url.tabs.settings"
+msgid "Settings"
+msgstr "Налаштування"

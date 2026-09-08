@@ -1,0 +1,103 @@
+node_modules/
+package-lock.json
+out/
+dist/
+dist-electron/
+playwright-report/
+test-results/
+tests/browser/screenshots/
+__pycache__/
+*.py[cod]
+.vscode/
+.DS_Store
+*.log
+*.tmp
+workers/**/.wrangler/
+workers/**/worker-startup.cpuprofile
+coverage/
+refs
+# Local environment variables (API keys — never commit)
+.env
+.env.local
+
+# Local tool-version overrides and optional repo-local browser cache
+mise.local.toml
+.mise.local.toml
+.playwright-browsers/
+
+# Runtime binary cache (BinaryManager)
+runtime-cache/
+
+# Electron app-data style local testing cache
+.electron-user-data/
+
+# Local-only URL inventory + smoke targets — see youtube-urls.local.txt
+*.local.txt
+
+# Existing packaged artifacts
+*.exe
+*.zip
+*.tar.gz
+
+# Claude Code / agent metadata
+.playwright-mcp/
+.worktrees/
+docs/my
+docs/superpowers/*
+.claude/scheduled_tasks.lock
+.claude/*.lock
+.claude/CLAUDE.md
+.claude/settings.json
+.claude/settings.local.json
+.claude/skills/
+.codegraph/
+.mcp.json
+opencode.jsonc
+
+# Project-owned agent memory is tracked. Third-party skills are restored from
+# skills-lock.json via `bun run agents:skills:restore`; only tiny custom skills
+# stay in Git.
+.agents/skills/*
+!.agents/skills/clarify/
+!.agents/skills/clarify/**
+!.agents/skills/find-test-gaps/
+!.agents/skills/find-test-gaps/**
+!.agents/skills/remember/
+!.agents/skills/remember/**
+
+# Local agent/design artifacts
+# Anchored to the repo root on purpose: an unanchored `design/` would also swallow
+# any nested design directory that belongs in the repo, the way `test-binaries/`
+# once silently matched scripts/test-binaries/.
+/design/
+/scripts/spike/
+.superpowers/
+.backups/
+.github/skills/
+.impeccable/
+/output/
+/*.png
+# Flatpak build artifacts (relative to flatpak/ subdir, or repo root if built from there)
+flatpak/.flatpak-builder/
+flatpak/builddir/
+flatpak/repo/
+flatpak/flathub.json
+flatpak/io.github.antonio_orionus.Arroxy.yml
+flatpak/io.github.antonio_orionus.Arroxy.metainfo.xml
+flatpak/*.flatpak
+flatpak/Arroxy-*.tar.gz
+.flatpak-builder/
+build-dir/
+private
+
+# Local reference checkouts used for comparison/debugging; never part of releases.
+.ref
+
+# Smoke harness output (root-only — scripts/test-binaries/ contains
+# the harness scripts themselves and must stay tracked)
+/test-binaries/
+
+# Build-time embedded ffmpeg/ffprobe (scripts/build/fetch-embedded.sh output)
+# Use **/ prefix so it matches both <root>/build/embedded/ and any accidental
+# copies (e.g. src/build/embedded/ if a tool resolves cwd wrong).
+**/build/embedded/*

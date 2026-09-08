@@ -1,0 +1,552 @@
+import type {AppSettings, DependencyDiagnostic, DependencyId, DownloadProfile, DownloadProfileRef, HotkeyRegistrationStatus, HotkeyState} from '@shared/types.js'
+import type {SettingsPatch} from '@shared/api.js'
+import {DEFAULTS} from '@shared/constants.js'
+import {DEFAULT_DOWNLOAD_PROFILES_PREFS, normalizeDownloadProfilesPrefs, removeDownloadProfileFromPrefs, saveDownloadProfileToPrefs, setDownloadProfileEnabled as setProfileEnabledInPrefs} from '@shared/downloadProfiles.js'
+import {i18next, pickLanguage, isRtl} from '@shared/i18n/index.js'
+import type {GetState, SetState, ShareTrigger, SystemSlice} from './types.js'
+import {bindQueueProjection, projectQueueSnapshot} from './queueProjection.js'
+import {handleHotkeyTrigger} from './wizard/hotkeyTrigger.js'
+import {notify} from '../lib/notify.js'
+import {track} from '../lib/analytics.js'
+
+let unbindWarmupProgress: (() => void) | null = null
+let unbindQueueProjection: (() => void) | null = null
+let unbindHotkeyTrigger: (() => void) | null = null
+let unbindHotkeyOutcome: (() => void) | null = null
+let unbindProbeProgress: (() => void) | null = null
+let hotkeyStatusRequest = 0
+
+const SHARE_MILESTONES: readonly number[] = [3, 25, 100]
+const SHARE_MILESTONE_SET = new Set(SHARE_MILESTONES)
+
+function handleCompletedDownloadMilestones(doneIncrements: number, prevMilestoneCount: number, get: GetState, set: SetState): void {
+	const nextCount = prevMilestoneCount + doneIncrements
+	commonPatch(get, set, {successfulDownloadCount: nextCount})
+	for (let c = prevMilestoneCount + 1; c <= nextCount; c++) {
+		if (SHARE_MILESTONE_SET.has(c)) {
+			openShareDialogInternal(set, 'milestone')
+			break
+		}
+	}
+}
+
+// Every settings write goes through one queue. Writes used to run concurrently
+// and roll back on failure to a snapshot taken before the patch — which is only
+// canonical while nothing else is in flight. Overlapping, a failure rolled back
+// over a sibling's persisted value or over a newer patch to the same field, and
+// the renderer disagreed with disk until the next initialize(). Serializing
+// removes the class rather than guarding each symptom.
+let settingsWriteQueue: Promise<void> = Promise.resolve()
+
+function queueSettingsWrite(run: () => Promise<void>): Promise<void> {
+	const next = settingsWriteQueue.then(run)
+	settingsWriteQueue = next.catch(() => undefined)
+	return next
+}
+
+// Mirrors main's deepMerge one level down: each section named by the patch
+// merges field by field over the current one, the rest are left alone.
+function optimisticSettings(previous: AppSettings, patch: SettingsPatch): AppSettings {
+	return {
+		...previous,
+		common: patch.common ? {...previous.common, ...patch.common} : previous.common,
+		single: patch.single ? {...previous.single, ...patch.single} : previous.single,
+		playlist: patch.playlist ? {...previous.playlist, ...patch.playlist} : previous.playlist,
+		profiles: patch.profiles ? {...previous.profiles, ...patch.profiles} : previous.profiles
+	}
+}
+
+// Rollback target after a failed write. Restoring a snapshot taken before the
+// patch is what made overlapping writes unsound; main is the only thing that
+// knows what actually landed. Optimistic patches still queued behind this one
+// re-assert themselves when their own write returns.
+async function restoreCanonicalSettings(set: SetState): Promise<void> {
+	const canonical = await window.appApi.settings.get()
+	if (canonical.ok) set({settings: canonical.data})
+}
+
+// The optimistic patch is applied by the caller, synchronously: the UI has to
+// see it in the tick it acted, before this ever reaches the queue.
+async function writeSettings(set: SetState, label: string, patch: SettingsPatch): Promise<void> {
+	const result = await window.appApi.settings.update(patch)
+	if (!result.ok) {
+		await restoreCanonicalSettings(set)
+		notify.settingsSaveFailed(label, result.error)
+		return
+	}
+	set({settings: result.data})
+}
+
+function applyOptimistic(get: GetState, set: SetState, patch: SettingsPatch): void {
+	const previous = get().settings
+	if (previous) set({settings: optimisticSettings(previous, patch)})
+}
+
+function commonPatch(get: GetState, set: SetState, patch: Partial<AppSettings['common']>): void {
+	void applyCommonPatchAsync(get, set, 'share', patch)
+}
+
+// Shared pattern for setCookiesPath/setProxyUrl/...
+function applyCommonPatchAsync(get: GetState, set: SetState, label: string, patch: Partial<AppSettings['common']>): Promise<void> {
+	applyOptimistic(get, set, {common: patch})
+	return queueSettingsWrite(() => writeSettings(set, label, {common: patch}))
+}
+
+function hotkeyStatusFor(settings: AppSettings | null, state: HotkeyState): HotkeyRegistrationStatus {
+	const common = settings?.common
+	if (!common?.hotkeyEnabled) return 'off'
+	const accelerator = common.hotkeyAccelerator ?? DEFAULTS.hotkeyAccelerator
+	return state.registered && state.accelerator === accelerator ? 'registered' : 'conflict'
+}
+
+async function refreshHotkeyRegistration(get: GetState, set: SetState): Promise<void> {
+	const request = ++hotkeyStatusRequest
+	if (!get().settings?.common.hotkeyEnabled) {
+		set({hotkeyRegistration: 'off'})
+		return
+	}
+	set({hotkeyRegistration: 'pending'})
+	try {
+		const result = await window.appApi.hotkey.getState()
+		if (request !== hotkeyStatusRequest) return
+		set({hotkeyRegistration: result.ok ? hotkeyStatusFor(get().settings, result.data) : 'conflict'})
+	} catch {
+		if (request === hotkeyStatusRequest) set({hotkeyRegistration: 'conflict'})
+	}
+}
+
+function applyHotkeyPatchAsync(get: GetState, set: SetState, label: string, patch: Partial<AppSettings['common']>): Promise<void> {
+	const nextEnabled = patch.hotkeyEnabled ?? get().settings?.common.hotkeyEnabled ?? false
+	// Invalidate any refresh started before this patch: its answer describes the
+	// chord we are about to replace.
+	++hotkeyStatusRequest
+	applyOptimistic(get, set, {common: patch})
+	set({hotkeyRegistration: nextEnabled ? 'pending' : 'off'})
+	// Both outcomes end by re-deriving registration from whatever settings the
+	// store ends up holding — canonical on success, re-read from main on
+	// failure. A pre-patch snapshot would be stale for the same reason the
+	// settings one was.
+	return queueSettingsWrite(async () => {
+		await writeSettings(set, label, {common: patch})
+		await refreshHotkeyRegistration(get, set)
+	})
+}
+
+function applyProfilesPatchAsync(get: GetState, set: SetState, label: string, profiles: AppSettings['profiles']): Promise<void> {
+	applyOptimistic(get, set, {profiles})
+	return queueSettingsWrite(() => writeSettings(set, label, {profiles}))
+}
+
+function currentProfiles(settings: AppSettings | null): AppSettings['profiles'] {
+	return normalizeDownloadProfilesPrefs(settings?.profiles ?? DEFAULT_DOWNLOAD_PROFILES_PREFS)
+}
+
+function openShareDialogInternal(set: SetState, trigger: ShareTrigger): void {
+	set({shareDialogOpen: true, shareDialogTrigger: trigger})
+	track('share_dialog_opened', {via: trigger})
+}
+
+const OVERRIDE_KEY: Record<DependencyId, 'ytDlp' | 'ffmpeg' | 'ffprobe'> = {'yt-dlp': 'ytDlp', ffmpeg: 'ffmpeg', ffprobe: 'ffprobe'}
+
+function makeBinaryOverridePatch(id: DependencyId, path: string | undefined): {common: {binaryOverrides: Record<string, string | undefined>}} {
+	return {common: {binaryOverrides: {[OVERRIDE_KEY[id]]: path}}}
+}
+
+export function createSystemSlice(set: SetState, get: GetState): SystemSlice {
+	return {
+		initialized: false,
+		initializing: false,
+		splashDismissed: false,
+		warmupDiagnostics: null,
+		warmupBlocking: [],
+		warmupRunning: false,
+		warmupCancellable: false,
+		warmupProgress: null,
+		settings: null,
+		hotkeyRegistration: 'off',
+		graphicsPolicy: null,
+		// Guard `navigator` so vitest's node-env tests (e.g. format-selection-view)
+		// can construct the store at module-load time without DOM globals.
+		// initialize() reassigns from settingsResult.common.language anyway.
+		language: typeof navigator !== 'undefined' ? pickLanguage(navigator.language) : pickLanguage('en'),
+		commonPaths: undefined,
+		shareDialogOpen: false,
+		shareDialogTrigger: null,
+
+		initialize: async () => {
+			if (get().initialized || get().initializing) return
+			set({initializing: true, splashDismissed: false})
+
+			// Detach prior queue projection binding (defense for a future re-init flow).
+			unbindQueueProjection?.()
+			unbindQueueProjection = bindQueueProjection({
+				events: window.appApi.queue.events,
+				get,
+				set,
+				schedule: callback => requestAnimationFrame(callback),
+				readSuccessfulDownloadCount: () => get().settings?.common?.successfulDownloadCount ?? 0,
+				onDoneIncrements: (doneIncrements, prevMilestoneCount) => handleCompletedDownloadMilestones(doneIncrements, prevMilestoneCount, get, set)
+			})
+
+			// The warmup-progress listener stays bound for the lifetime of the
+			// process — repair flows trigger another warmup run without re-entering
+			// initialize, so we can't unbind it here like the original did.
+			unbindWarmupProgress?.()
+			unbindWarmupProgress = window.appApi.events.onWarmupProgress(event => {
+				set(state => ({warmupProgress: {...(state.warmupProgress ?? {}), [event.binary]: event}}))
+			})
+
+			// Hotkey trigger listener: lifetime-bound like warmup progress. Main
+			// presses the bell; the outcome flows back through reportOutcome.
+			unbindHotkeyTrigger?.()
+			unbindHotkeyTrigger = window.appApi.events.onHotkeyTrigger(trigger => {
+				void handleHotkeyTrigger(trigger, get)
+			})
+
+			// Outcome feedback: the renderer shows a toast only when focused —
+			// main fires the OS notification for hidden/unfocused windows, so
+			// each attempt is acknowledged exactly once through exactly one
+			// channel.
+			unbindHotkeyOutcome?.()
+			unbindHotkeyOutcome = window.appApi.events.onHotkeyOutcome(event => {
+				if (!event.toast) return
+				notify.hotkeyOutcome(event.outcome)
+			})
+			// Both halves of feedback are now bound. Main may register the chord;
+			// presses during the remaining startup work are acknowledged as busy.
+			void window.appApi.hotkey.rendererReady()
+
+			unbindProbeProgress?.()
+			unbindProbeProgress = window.appApi.events.onProbeProgress(event => {
+				const state = get()
+				const playlistProbeActive = state.playlistProbeLoading || state.playlistScopeReloading
+				const quickDownloadProbeActive = state.quickDownloadStatus === 'preparing' && state.quickDownloadProgressPhase === 'probing'
+				const matchesActiveUrl = state.wizardUrl === event.url || state.quickDownloadProgressCurrent === event.url
+				if ((!playlistProbeActive && !quickDownloadProbeActive) || !matchesActiveUrl) return
+				set({playlistProbeProgress: event})
+			})
+
+			set({warmupRunning: true, warmupCancellable: true})
+			const settingsPromise = window.appApi.settings.get()
+			const graphicsPolicyPromise = window.appApi.app.getGraphicsPolicy()
+			const warmUpPromise = window.appApi.app.warmUp()
+			const snapshotPromise = window.appApi.queue.cmd.getSnapshot()
+			const [settingsResult, graphicsPolicyResult] = await Promise.all([settingsPromise, graphicsPolicyPromise])
+
+			if (settingsResult.ok) {
+				const common = settingsResult.data.common ?? ({} as AppSettings['common'])
+				const zoom = common.uiZoom ?? DEFAULTS.uiZoom
+				const theme = common.uiTheme ?? DEFAULTS.uiTheme
+				const persistedLang = common.language
+				const isDark = theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)
+				document.documentElement.classList.toggle('dark', isDark)
+				document.documentElement.classList.toggle('light', !isDark)
+				const nextLanguage = persistedLang ?? get().language
+				if (nextLanguage !== i18next.language) {
+					void i18next.changeLanguage(nextLanguage)
+				}
+				document.documentElement.lang = nextLanguage
+				document.documentElement.dir = isRtl(nextLanguage) ? 'rtl' : 'ltr'
+				void window.appApi.app.setLanguage(nextLanguage)
+				set({settings: settingsResult.data, hotkeyRegistration: common.hotkeyEnabled ? 'pending' : 'off', wizardOutputDir: common.defaultOutputDir, commonPaths: common.commonPaths, uiZoom: zoom, uiTheme: theme, language: nextLanguage})
+				if (common.hotkeyEnabled) void refreshHotkeyRegistration(get, set)
+				else ++hotkeyStatusRequest
+			}
+
+			if (graphicsPolicyResult.ok) {
+				set({graphicsPolicy: graphicsPolicyResult.data})
+			}
+
+			const snapshotResult = await snapshotPromise
+			if (snapshotResult.ok) {
+				set(state => projectQueueSnapshot(state, snapshotResult.data))
+			}
+			// warmUp() itself turns its own failures into a `fail` Result rather than
+			// rejecting, but the IPC transport in front of it is not this store's to
+			// trust blindly. A rejection here has nowhere else to land: `initialized`
+			// would never become true, and the startup splash — dismissed only by
+			// `initialized` — would stay up with no error and no way out.
+			let warmupDiagnostics: Record<DependencyId, DependencyDiagnostic> | null = null
+			let warmupBlocking: DependencyId[] = []
+			try {
+				const warmUpResult = await warmUpPromise
+				warmupDiagnostics = warmUpResult.ok ? warmUpResult.data.dependencies : null
+				warmupBlocking = warmUpResult.ok ? warmUpResult.data.blockingFailures : []
+				if (!warmUpResult.ok) notify.warmupFailed('warm-up failed', warmUpResult.error)
+			} catch (err) {
+				notify.warmupFailed('warm-up threw', err)
+			}
+
+			set({initialized: true, initializing: false, warmupRunning: false, warmupCancellable: false, warmupDiagnostics, warmupBlocking})
+		},
+
+		setSplashDismissed: dismissed => {
+			set({splashDismissed: dismissed})
+		},
+
+		cancelWarmup: async () => {
+			try {
+				await window.appApi.app.cancelWarmup()
+			} catch (err) {
+				notify.warmupFailed('cancel threw', err)
+			}
+		},
+
+		repairWarmup: async () => {
+			if (get().warmupRunning) return
+			set({warmupRunning: true, warmupCancellable: true})
+			try {
+				const result = await window.appApi.app.warmUp({force: true})
+				if (result.ok) {
+					set({warmupDiagnostics: result.data.dependencies, warmupBlocking: result.data.blockingFailures})
+				} else {
+					notify.warmupFailed('repair failed', result.error)
+				}
+			} catch (err) {
+				notify.warmupFailed('repair threw', err)
+			} finally {
+				set({warmupRunning: false, warmupCancellable: false})
+			}
+		},
+
+		repairYtDlpWithHomebrew: async () => {
+			if (get().warmupRunning) return
+			set({warmupRunning: true, warmupCancellable: false})
+			try {
+				const install = await window.appApi.app.installYtDlpWithHomebrew()
+				if (!install.ok) {
+					notify.warmupFailed('homebrew repair failed', install.error)
+					return
+				}
+				set({warmupCancellable: true})
+				const result = await window.appApi.app.warmUp({force: true})
+				if (result.ok) {
+					set({warmupDiagnostics: result.data.dependencies, warmupBlocking: result.data.blockingFailures})
+				} else {
+					notify.warmupFailed('post-homebrew repair failed', result.error)
+				}
+			} catch (err) {
+				notify.warmupFailed('homebrew repair threw', err)
+			} finally {
+				set({warmupRunning: false, warmupCancellable: false})
+			}
+		},
+
+		repairYtDlpWithWinget: async () => {
+			if (get().warmupRunning) return
+			set({warmupRunning: true, warmupCancellable: false})
+			try {
+				const install = await window.appApi.app.installYtDlpWithWinget()
+				if (!install.ok) {
+					notify.warmupFailed('winget repair failed', install.error)
+					return
+				}
+				set({warmupCancellable: true})
+				const result = await window.appApi.app.warmUp({force: true})
+				if (result.ok) {
+					set({warmupDiagnostics: result.data.dependencies, warmupBlocking: result.data.blockingFailures})
+				} else {
+					notify.warmupFailed('post-winget repair failed', result.error)
+				}
+			} catch (err) {
+				notify.warmupFailed('winget repair threw', err)
+			} finally {
+				set({warmupRunning: false, warmupCancellable: false})
+			}
+		},
+
+		setBinaryOverride: async (id, path) => {
+			const patch = makeBinaryOverridePatch(id, path)
+			const result = await window.appApi.settings.update(patch)
+			if (!result.ok) {
+				notify.settingsSaveFailed('binaryOverrides', result.error)
+				return
+			}
+			set({settings: result.data})
+			try {
+				await get().repairWarmup()
+			} catch (err) {
+				notify.warmupFailed('post-override repair threw', err)
+			}
+		},
+
+		clearBinaryOverride: async id => {
+			const patch = makeBinaryOverridePatch(id, undefined)
+			const result = await window.appApi.settings.update(patch)
+			if (!result.ok) {
+				notify.settingsSaveFailed('binaryOverrides clear', result.error)
+				return
+			}
+			set({settings: result.data})
+			try {
+				await get().repairWarmup()
+			} catch (err) {
+				notify.warmupFailed('post-clear repair threw', err)
+			}
+		},
+
+		openBinariesDir: async () => {
+			try {
+				const result = await window.appApi.shell.openBinariesDir()
+				if (!result.ok) notify.shellActionFailed('shell.openBinariesDir', result.error)
+			} catch (err) {
+				notify.shellActionFailed('shell.openBinariesDir', err)
+			}
+		},
+
+		openLogs: async () => {
+			try {
+				const result = await window.appApi.logs.openDir()
+				if (!result.ok) notify.shellActionFailed('logs.openDir', result.error)
+			} catch (err) {
+				notify.shellActionFailed('logs.openDir', err)
+			}
+		},
+
+		markReleaseNotesShown: async version => {
+			await applyCommonPatchAsync(get, set, 'releaseNotes', {lastReleaseNotesVersionShown: version})
+		},
+
+		setLanguage: lang => {
+			set({language: lang})
+			document.documentElement.lang = lang
+			document.documentElement.dir = isRtl(lang) ? 'rtl' : 'ltr'
+			void i18next.changeLanguage(lang)
+			void window.appApi.settings.update({common: {language: lang}}).then(result => {
+				if (!result.ok) notify.settingsSaveFailed('language', result.error)
+			})
+			void window.appApi.app.setLanguage(lang)
+		},
+
+		setCookiesPath: async path => {
+			await applyCommonPatchAsync(get, set, 'cookiesPath', {cookiesPath: path})
+		},
+
+		setCookiesMode: async mode => {
+			await applyCommonPatchAsync(get, set, 'cookiesMode', {cookiesMode: mode})
+		},
+
+		setCookiesBrowser: async browser => {
+			await applyCommonPatchAsync(get, set, 'cookiesBrowser', {cookiesBrowser: browser})
+		},
+
+		setProxyUrl: async url => {
+			await applyCommonPatchAsync(get, set, 'proxyUrl', {proxyUrl: url})
+		},
+
+		setLimitRate: async value => {
+			await applyCommonPatchAsync(get, set, 'limitRate', {limitRate: value ?? ''})
+		},
+
+		setPlaylistProbeLimit: async value => {
+			await applyCommonPatchAsync(get, set, 'playlistProbeLimit', {playlistProbeLimit: value})
+		},
+
+		setBackdropRenderMode: async value => {
+			await applyCommonPatchAsync(get, set, 'backdropRenderMode', {backdropRenderMode: value})
+		},
+
+		setNativeAudioPreference: async value => {
+			await applyCommonPatchAsync(get, set, 'nativeAudioPreference', {nativeAudioPreference: value})
+		},
+
+		setFilenameTemplate: async template => {
+			await applyCommonPatchAsync(get, set, 'filenameTemplate', {filenameTemplate: template})
+		},
+
+		setNetworkPacingPreset: async value => {
+			await applyCommonPatchAsync(get, set, 'networkPacingPreset', {networkPacingPreset: value})
+		},
+
+		setPacingSleepRequests: async value => {
+			await applyCommonPatchAsync(get, set, 'pacingSleepRequests', {pacingSleepRequests: value})
+		},
+
+		setPacingSleepInterval: async value => {
+			await applyCommonPatchAsync(get, set, 'pacingSleepInterval', {pacingSleepInterval: value})
+		},
+
+		setPacingMaxSleepInterval: async value => {
+			await applyCommonPatchAsync(get, set, 'pacingMaxSleepInterval', {pacingMaxSleepInterval: value})
+		},
+
+		setPacingSleepSubtitles: async value => {
+			await applyCommonPatchAsync(get, set, 'pacingSleepSubtitles', {pacingSleepSubtitles: value})
+		},
+
+		setDownloadConnections: async value => {
+			await applyCommonPatchAsync(get, set, 'downloadConnections', {downloadConnections: value})
+		},
+
+		setConcurrentDownloads: async value => {
+			await applyCommonPatchAsync(get, set, 'concurrentDownloads', {concurrentDownloads: value})
+		},
+
+		setAutoRetryAttempts: async value => {
+			await applyCommonPatchAsync(get, set, 'autoRetryAttempts', {autoRetryAttempts: value})
+		},
+
+		setClipboardWatchEnabled: async enabled => {
+			await applyCommonPatchAsync(get, set, 'clipboardWatchEnabled', {clipboardWatchEnabled: enabled})
+		},
+
+		setHotkeyEnabled: async enabled => {
+			await applyHotkeyPatchAsync(get, set, 'hotkeyEnabled', {hotkeyEnabled: enabled})
+		},
+
+		setHotkeyAccelerator: async accelerator => {
+			await applyHotkeyPatchAsync(get, set, 'hotkeyAccelerator', {hotkeyAccelerator: accelerator})
+		},
+
+		setCloseBehavior: async value => {
+			await applyCommonPatchAsync(get, set, 'closeBehavior', {closeBehavior: value})
+		},
+
+		setAnalyticsEnabled: async enabled => {
+			await applyCommonPatchAsync(get, set, 'analyticsEnabled', {analyticsEnabled: enabled})
+		},
+
+		setActiveDownloadProfile: async (ref: DownloadProfileRef) => {
+			const profiles = {...currentProfiles(get().settings), active: ref}
+			await applyProfilesPatchAsync(get, set, 'downloadProfile.active', profiles)
+		},
+
+		saveDownloadProfile: async (profile: DownloadProfile, activate = true) => {
+			const previous = currentProfiles(get().settings)
+			const profiles = saveDownloadProfileToPrefs(previous, profile, activate)
+			await applyProfilesPatchAsync(get, set, 'downloadProfile.save', profiles)
+		},
+
+		removeDownloadProfile: async (id: string) => {
+			const profiles = removeDownloadProfileFromPrefs(currentProfiles(get().settings), id)
+			await applyProfilesPatchAsync(get, set, 'downloadProfile.remove', profiles)
+		},
+
+		setDownloadProfileEnabled: async (id: string, enabled: boolean) => {
+			const profiles = setProfileEnabledInPrefs(currentProfiles(get().settings), id, enabled)
+			await applyProfilesPatchAsync(get, set, 'downloadProfile.enabled', profiles)
+		},
+
+		openShareDialog: trigger => {
+			openShareDialogInternal(set, trigger)
+		},
+
+		closeShareDialog: () => {
+			set({shareDialogOpen: false, shareDialogTrigger: null})
+		},
+
+		setShareInlineCardDismissed: async () => {
+			track('share_inline_card_dismissed')
+			await applyCommonPatchAsync(get, set, 'shareInlineCardDismissed', {shareInlineCardDismissed: true})
+		},
+
+		setShareHighValueBannerDismissed: async () => {
+			track('share_prompt_dismissed', {via: 'high-value-inline'})
+			await applyCommonPatchAsync(get, set, 'shareHighValueBannerDismissed', {shareHighValueBannerDismissed: true})
+		},
+
+		dismissMultiProfileHint: async () => {
+			await applyCommonPatchAsync(get, set, 'multiProfileHintDismissed', {multiProfileHintDismissed: true})
+		}
+	}
+}

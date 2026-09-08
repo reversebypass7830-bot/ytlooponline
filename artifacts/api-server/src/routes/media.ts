@@ -1,10 +1,10 @@
 import { spawn } from "node:child_process";
-import { createWriteStream } from "node:fs";
+import { createWriteStream, existsSync } from "node:fs";
 import { mkdir, readFile, readdir, rename, stat, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { pipeline } from "node:stream/promises";
 import { Router, type IRouter } from "express";
-import { createHmac, randomUUID } from "node:crypto";
+import { randomUUID } from "node:crypto";
 import { Readable } from "node:stream";
 import {
   DownloadYoutubeVideoBody,
@@ -19,11 +19,9 @@ import {
   TrimMediaFileBody,
   TrimMediaFileResponse,
 } from "@workspace/api-zod";
-import { ReplitConnectors } from "@replit/connectors-sdk";
 import ffmpegPath from "ffmpeg-static";
 
 const router: IRouter = Router();
-const apifyConnectors = new ReplitConnectors();
 const mediaDir = path.resolve(process.cwd(), "attached_assets", "live-media");
 const maxUploadBytes = 1.5 * 1024 * 1024 * 1024;
 const mediaIndexPath = path.join(mediaDir, "media-index.json");
@@ -402,100 +400,160 @@ function normalizeQualityLabel(value: string | undefined, fallback: string): str
   return match ? `${match[1]}p` : fallback;
 }
 
-type ApifyVideoResult = {
-  id?: unknown;
-  title?: unknown;
-  name?: unknown;
-  duration?: unknown;
-  durationString?: unknown;
-  downloadedFileUrl?: unknown;
-  fileUrl?: unknown;
-  url?: unknown;
-  input?: unknown;
-  [key: string]: unknown;
+const ARROXY_PLAYER_CLIENT_FALLBACK = "youtube:player_client=default,-web,-web_safari";
+const ARROXY_DOWNLOAD_TIMEOUT_MS = 60 * 60 * 1000;
+
+function arroxyRootCandidates(): string[] {
+  return [
+    process.env.ARROXY_ROOT,
+    path.resolve(process.cwd(), "Arroxy"),
+    path.resolve(process.cwd(), "..", "..", "Arroxy"),
+  ].filter((candidate): candidate is string => Boolean(candidate));
+}
+
+function resolveArroxyYtDlp(): string {
+  const candidates = [
+    process.env.ARROXY_YT_DLP_PATH,
+    ...arroxyRootCandidates().flatMap((root) => [
+      path.join(root, "dist", "runtime-cache", "binaries", "yt-dlp"),
+      path.join(root, "runtime-cache", "binaries", "yt-dlp"),
+      path.join(root, "build", "embedded", "linux-x64", "yt-dlp"),
+    ]),
+  ].filter((candidate): candidate is string => Boolean(candidate));
+  return candidates.find((candidate) => existsSync(candidate)) || (process.platform === "win32" ? "yt-dlp.exe" : "yt-dlp");
+}
+
+async function createArroxyCookieFile(): Promise<{ path?: string; cleanup: () => Promise<void> }> {
+  const configuredPath = process.env.YT_DLP_COOKIES_FILE?.trim();
+  if (configuredPath && existsSync(configuredPath)) return { path: configuredPath, cleanup: async () => undefined };
+  const rawCookies = process.env.YOUTUBE_COOKIES?.trim();
+  if (!rawCookies) return { cleanup: async () => undefined };
+  if (existsSync(rawCookies)) return { path: rawCookies, cleanup: async () => undefined };
+  const cookiePath = path.join("/tmp", `arroxy-youtube-cookies-${randomUUID()}.txt`);
+  await writeFile(cookiePath, rawCookies, { encoding: "utf8", mode: 0o600 });
+  return { path: cookiePath, cleanup: () => unlink(cookiePath).catch(() => undefined) };
+}
+
+function arroxyFormatSelector(quality: DownloadQuality): string {
+  const height = quality === "best" ? undefined : Number.parseInt(quality, 10);
+  return height
+    ? `bv*[height<=${height}]+ba/b[height<=${height}]/b`
+    : "bv*+ba/b";
+}
+
+type ArroxyYtDlpRun = {
+  code: number;
+  stdout: string;
+  stderr: string;
 };
 
-function apifyQuality(quality: DownloadQuality): string | undefined {
-  return quality === "best" ? undefined : quality;
+function runArroxyYtDlp(binary: string, args: string[], cookiePath?: string): Promise<ArroxyYtDlpRun> {
+  return new Promise((resolve, reject) => {
+    const child = spawn(binary, args, {
+      env: {
+        ...process.env,
+        ...(cookiePath ? { YOUTUBE_COOKIES: undefined } : {}),
+        ...(ffmpegPath ? { PATH: `${path.dirname(ffmpegPath)}${path.delimiter}${process.env.PATH || ""}` } : {}),
+      },
+      stdio: ["ignore", "pipe", "pipe"],
+      windowsHide: true,
+    });
+    let stdout = "";
+    let stderr = "";
+    let settled = false;
+    const timer = setTimeout(() => {
+      child.kill("SIGKILL");
+      if (!settled) {
+        settled = true;
+        resolve({ code: -1, stdout, stderr: `${stderr}\nArroxy yt-dlp timed out.` });
+      }
+    }, ARROXY_DOWNLOAD_TIMEOUT_MS);
+    child.stdout.on("data", (chunk: Buffer) => { stdout += chunk.toString(); });
+    child.stderr.on("data", (chunk: Buffer) => { stderr += chunk.toString(); });
+    child.once("error", (error) => {
+      clearTimeout(timer);
+      if (settled) return;
+      settled = true;
+      reject(error);
+    });
+    child.once("close", (code) => {
+      clearTimeout(timer);
+      if (settled) return;
+      settled = true;
+      resolve({ code: code ?? -1, stdout, stderr });
+    });
+  });
 }
 
-function isApifyStorageUrl(rawUrl: string): boolean {
-  try {
-    const hostname = new URL(rawUrl).hostname.toLowerCase();
-    return hostname === "api.apify.com"
-      || hostname === "apify.com"
-      || hostname.endsWith(".apify.com")
-      || hostname.endsWith(".apifyusercontent.com");
-  } catch {
-    return false;
+function lastJsonLine(stdout: string): Record<string, unknown> {
+  for (const line of stdout.trim().split(/\r?\n/).reverse()) {
+    try {
+      const parsed = JSON.parse(line) as unknown;
+      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) return parsed as Record<string, unknown>;
+    } catch {
+      // Arroxy's progress output can contain non-JSON lines before --print-json.
+    }
   }
+  return {};
 }
 
-async function downloadViaApify(
+function shouldTryArroxyFallback(stderr: string): boolean {
+  return /bot|sign in|not available on this app|player response|requested format|po token/i.test(stderr);
+}
+
+async function downloadViaArroxy(
   url: string,
   fileId: string,
   context: MediaContext,
 ): Promise<{ path: string; title: string; duration: string; quality: string }> {
   const requestedQuality = (context.quality || "best") as DownloadQuality;
-  const input = {
-    videos: [{ url }],
-    preferredFormat: "mp4",
-    ...(apifyQuality(requestedQuality) ? { preferredQuality: apifyQuality(requestedQuality) } : {}),
-    storeInKVStore: true,
-    filenameTemplateParts: ["title"],
-  };
-  const response = await apifyConnectors.proxy(
-    "apify",
-    "/v2/actors/streamers~youtube-video-downloader/run-sync-get-dataset-items?format=json&clean=true",
-    {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify(input),
-    },
-  );
-  const raw = await response.text();
-  if (!response.ok) {
-    throw new Error(`Apify downloader failed (${response.status}).`);
-  }
-
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(raw);
-  } catch {
-    throw new Error("Apify returned an invalid downloader response.");
-  }
-  const item = (Array.isArray(parsed) ? parsed[0] : parsed) as ApifyVideoResult | undefined;
-  const mediaUrl = [item?.downloadedFileUrl, item?.fileUrl]
-    .find((candidate): candidate is string => typeof candidate === "string" && candidate.trim().length > 0);
-  if (!mediaUrl || !isApifyStorageUrl(mediaUrl)) {
-    throw new Error("Apify did not return a downloadable MP4 file.");
-  }
-
-  const parsedMediaUrl = new URL(mediaUrl);
-  const fileResponse = await apifyConnectors.proxy(
-    "apify",
-    `${parsedMediaUrl.pathname}${parsedMediaUrl.search}`,
-    { method: "GET" },
-  );
-  if (!fileResponse.ok || !fileResponse.body) {
-    throw new Error(`Apify file download failed (${fileResponse.status}).`);
-  }
-
-  const title = [item?.title, item?.name]
-    .find((candidate): candidate is string => typeof candidate === "string" && candidate.trim().length > 0)
-    ?.trim() || "Downloaded YouTube video";
-  const durationValue = typeof item?.durationString === "string" ? item.durationString : item?.duration;
-  const duration = typeof durationValue === "string" ? normalizeDuration(durationValue) : formatDuration(durationValue);
-  const temporaryPath = path.join(mediaDir, `${fileId}.mp4`);
+  const binary = resolveArroxyYtDlp();
+  const cookie = await createArroxyCookieFile();
+  const destination = path.join(mediaDir, `${fileId}.mp4`);
+  const baseArgs = [
+    "--no-playlist",
+    "--no-warnings",
+    "--newline",
+    "--print-json",
+    "--format", arroxyFormatSelector(requestedQuality),
+    "--merge-output-format", "mp4",
+    "--output", destination,
+    "--retries", "20",
+    "--fragment-retries", "20",
+    "--retry-sleep", "fragment:exp=1:20",
+    "--abort-on-unavailable-fragments",
+    "--ffmpeg-location", ffmpegPath ? path.dirname(ffmpegPath) : "ffmpeg",
+    ...(cookie.path ? ["--cookies", cookie.path] : []),
+    url,
+  ];
   await mkdir(mediaDir, { recursive: true });
   try {
-    const readable = Readable.fromWeb(fileResponse.body as import("node:stream/web").ReadableStream);
-    await pipeline(readable, createWriteStream(temporaryPath));
-    const finalPath = await finalizeMediaFile(fileId, temporaryPath, title, context);
-    return { path: finalPath, title, duration, quality: normalizeQualityLabel(requestedQuality, requestedQuality) };
+    let result = await runArroxyYtDlp(binary, baseArgs, cookie.path);
+    if (result.code !== 0 && shouldTryArroxyFallback(result.stderr)) {
+      result = await runArroxyYtDlp(binary, [
+        ...baseArgs.slice(0, -1),
+        "--extractor-args", ARROXY_PLAYER_CLIENT_FALLBACK,
+        url,
+      ], cookie.path);
+    }
+    if (result.code !== 0) {
+      const detail = result.stderr.trim().split(/\r?\n/).filter(Boolean).at(-1) || "Arroxy yt-dlp could not download this YouTube video.";
+      throw new Error(detail.slice(-1200));
+    }
+    const metadata = lastJsonLine(result.stdout);
+    const title = typeof metadata.title === "string" && metadata.title.trim() ? metadata.title.trim() : "Downloaded YouTube video";
+    const durationValue = typeof metadata.duration_string === "string" ? metadata.duration_string : metadata.duration;
+    const duration = typeof durationValue === "string" ? normalizeDuration(durationValue) : formatDuration(durationValue);
+    const quality = typeof metadata.height === "number" && metadata.height > 0
+      ? `${metadata.height}p`
+      : normalizeQualityLabel(typeof metadata.resolution === "string" ? metadata.resolution : undefined, requestedQuality);
+    const finalPath = await finalizeMediaFile(fileId, destination, title, context);
+    return { path: finalPath, title, duration, quality };
   } catch (error) {
-    await unlink(temporaryPath).catch(() => undefined);
+    await unlink(destination).catch(() => undefined);
     throw error;
+  } finally {
+    await cookie.cleanup();
   }
 }
 
@@ -504,7 +562,7 @@ async function downloadYoutubeVideo(
   fileId: string,
   context: MediaContext,
 ): Promise<{ path: string; title: string; duration: string; quality: string }> {
-  return downloadViaApify(url, fileId, context);
+  return downloadViaArroxy(url, fileId, context);
 }
 
 async function inspectYoutubeFormats(url: string): Promise<{ qualities: string[]; title: string }> {
@@ -700,9 +758,9 @@ router.post("/media/youtube-download", async (req, res): Promise<void> => {
     }));
   } catch (error) {
     const rawMessage = error instanceof Error ? error.message : "The YouTube video could not be downloaded.";
-    const message = rawMessage.startsWith("Apify")
-      ? rawMessage
-      : "Apify could not download this YouTube video. Please try again or use a direct video URL.";
+    const message = rawMessage.includes("sign in") || rawMessage.includes("not a bot") || rawMessage.includes("bot")
+      ? "Arroxy yt-dlp was blocked by YouTube. Configure an authorized YOUTUBE_COOKIES secret or try a direct video URL."
+      : rawMessage;
     req.log.warn({ error: message }, "YouTube download failed");
     res.status(400).json({ error: message });
   }

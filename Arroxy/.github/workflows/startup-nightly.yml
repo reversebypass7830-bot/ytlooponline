@@ -1,0 +1,126 @@
+name: Startup Nightly
+
+on:
+  schedule:
+    - cron: '0 3 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  BUN_VERSION: '1.4.0'
+
+jobs:
+  degraded:
+    name: Degraded startup (${{ matrix.label }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            label: linux
+            build_cmd: bun run dist:linux:dir
+          - os: macos-latest
+            label: macos-arm64
+            build_cmd: bun run dist:mac:arm64:dir
+          - os: windows-latest
+            label: windows
+            build_cmd: bun run dist:win:dir
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+      - run: bun install --frozen-lockfile
+      - run: ${{ matrix.build_cmd }}
+        env:
+          BTBN_GITHUB_TOKEN: ${{ github.token }}
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+      - name: Locate packaged executable
+        shell: bash
+        run: |
+          if [ "$RUNNER_OS" = "macOS" ]; then
+            exe=$(find dist -name "Arroxy" -path "*/MacOS/Arroxy" | head -1)
+          elif [ "$RUNNER_OS" = "Windows" ]; then
+            exe="dist/win-unpacked/Arroxy.exe"
+          else
+            exe="dist/linux-unpacked/arroxy"
+          fi
+          echo "PACKAGED_EXE=$GITHUB_WORKSPACE/$exe" >> "$GITHUB_ENV"
+      - run: bunx playwright install chromium --with-deps
+      - name: Verify startup (nightly tier)
+        shell: bash
+        env:
+          ARROXY_STARTUP_TIER: nightly
+          ARROXY_COLD_TMPDIR: ${{ runner.temp }}
+          ARROXY_LOG_ARCHIVE: ${{ runner.temp }}/arroxy-startup-logs
+        run: |
+          if [ "$RUNNER_OS" = "Linux" ]; then
+            xvfb-run -a bun run verify:startup
+          else
+            bun run verify:startup
+          fi
+      - name: Upload startup verdicts
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: startup-nightly-${{ matrix.label }}
+          path: ${{ runner.temp }}/arroxy-startup-logs
+          if-no-files-found: error
+          retention-days: 14
+  notify:
+    name: Report nightly result
+    needs: degraded
+    # always() runs this job on failure too; the steps gate on the matrix result
+    # explicitly — step-level success()/failure() only see previous steps in
+    # this job, not the needed job's result.
+    if: always()
+    runs-on: ubuntu-latest
+    concurrency:
+      # Serialize the list-then-create issue flow across overlapping runs
+      # (schedule + workflow_dispatch); never cancel an in-progress notify.
+      group: startup-nightly-notify
+      cancel-in-progress: false
+    permissions:
+      issues: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+    steps:
+      - name: Close the nightly failure issue on recovery
+        if: needs.degraded.result == 'success'
+        run: |
+          set -euo pipefail
+          existing=$(gh issue list --label startup-nightly --state open --limit 1 --json number --jq '.[0].number // empty')
+          if [ -n "$existing" ]; then
+            gh issue close "$existing" --comment "Startup nightly green again: $RUN_URL"
+            echo "closed #$existing"
+          else
+            echo "no open startup-nightly issue"
+          fi
+      - name: Open or update the nightly failure issue
+        if: needs.degraded.result == 'failure'
+        run: |
+          set -euo pipefail
+          existing=$(gh issue list --label startup-nightly --state open --limit 1 --json number --jq '.[0].number // empty')
+          if [ -n "$existing" ]; then
+            gh issue comment "$existing" --body "Startup nightly failed again: $RUN_URL"
+            echo "commented on #$existing"
+            exit 0
+          fi
+          gh issue create --title "Startup nightly is failing" --label startup-nightly --body "$(cat <<EOF
+          The scheduled startup verification run failed. Startup verification is
+          the only automated Windows and macOS startup coverage while
+          \`startup-gate\` is unwired, so a red nightly is a real gap, not noise.
+
+          Run: $RUN_URL
+
+          Context: \`dev-docs/startup-verification.md\`
+          EOF
+          )"

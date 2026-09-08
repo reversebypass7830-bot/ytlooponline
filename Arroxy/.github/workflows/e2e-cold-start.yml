@@ -1,0 +1,139 @@
+name: E2E Cold Start
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
+  BUN_VERSION: '1.4.0'
+
+permissions:
+  contents: read
+
+jobs:
+  cold-start:
+    name: Cold start (${{ matrix.label }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            label: linux
+            build_cmd: bun run dist:linux:dir
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+
+      - name: Cache bun dependencies
+        uses: actions/cache@v6
+        with:
+          path: ~/.bun/install/cache
+          key: ${{ matrix.os }}-bun-${{ hashFiles('bun.lock') }}
+          restore-keys: ${{ matrix.os }}-bun-
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Build unpacked app
+        shell: bash
+        env:
+          BUILD_CMD: ${{ matrix.build_cmd }}
+          OPENPANEL_CLIENT_ID: ${{ secrets.OPENPANEL_CLIENT_ID }}
+          OPENPANEL_CLIENT_SECRET: ${{ secrets.OPENPANEL_CLIENT_SECRET }}
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+          BTBN_GITHUB_TOKEN: ${{ github.token }}
+        run: bash -c "$BUILD_CMD"
+
+      - name: Locate packaged executable
+        shell: bash
+        run: |
+          if [ "$RUNNER_OS" = "macOS" ]; then
+            exe=$(find dist -name "Arroxy" -path "*/MacOS/Arroxy" 2>/dev/null | head -1)
+          elif [ "$RUNNER_OS" = "Windows" ]; then
+            exe="dist/win-unpacked/Arroxy.exe"
+          else
+            exe="dist/linux-unpacked/arroxy"
+          fi
+          echo "PACKAGED_EXE=$GITHUB_WORKSPACE/$exe" >> "$GITHUB_ENV"
+
+      - name: Install Playwright browsers
+        run: bunx playwright install chromium --with-deps
+
+      - name: Write fake JS runtimes for the runtime smoke
+        shell: bash
+        run: |
+          fake="$RUNNER_TEMP/arroxy-fake-tools"
+          mkdir -p "$fake"
+          printf '#!/usr/bin/env sh\necho "fake old node v10.0.0"\n' > "$fake/node"
+          printf '#!/usr/bin/env sh\necho "fake deno 2.0.0"\n' > "$fake/deno"
+          printf '#!/usr/bin/env sh\necho "fake yt-dlp should not be used" >&2\nexit 1\n' > "$fake/yt-dlp"
+          chmod +x "$fake/node" "$fake/deno" "$fake/yt-dlp"
+
+      - name: Run packaged runtime smoke
+        shell: bash
+        env:
+          ARROXY_RUNTIME_SMOKE: '1'
+          ELECTRON_USER_DATA: ${{ runner.temp }}/Arroxy Runtime Ω Cold
+          ARROXY_LOG_ARCHIVE: ${{ runner.temp }}/arroxy-cold-logs
+          ARROXY_BINARY_DOWNLOAD_MAX_MS: '120000'
+        run: |
+          mkdir -p "$ARROXY_LOG_ARCHIVE"
+          unset ELECTRON_RUN_AS_NODE
+          # Contaminate PATH for this step only. This must be a shell export, not
+          # a step-level `env: PATH:` — the env context only sees custom keys
+          # (workflow/job env, $GITHUB_ENV), never the runner's inherited PATH,
+          # so `${{ env.PATH }}` expands to empty and the step would run with
+          # the fake-tools dir as its ONLY PATH entry (`mkdir: command not
+          # found`). Exporting inside the script scopes the fake tools to this
+          # step's process tree; the next step's shell is untouched.
+          export PATH="$RUNNER_TEMP/arroxy-fake-tools:$PATH"
+          stdout="$ARROXY_LOG_ARCHIVE/runtime-smoke.out"
+          stderr="$ARROXY_LOG_ARCHIVE/runtime-smoke.err"
+          set +e
+          if [ "$RUNNER_OS" = "Linux" ]; then
+            xvfb-run -a "$PACKAGED_EXE" >"$stdout" 2>"$stderr"
+          else
+            "$PACKAGED_EXE" >"$stdout" 2>"$stderr"
+          fi
+          status=$?
+          set -e
+          cat "$stdout"
+          if [ -s "$stderr" ]; then
+            cat "$stderr" >&2
+          fi
+          exit "$status"
+
+      - name: Verify startup (PR tier)
+        shell: bash
+        env:
+          ARROXY_STARTUP_TIER: pr
+          ARROXY_COLD_TMPDIR: ${{ runner.temp }}
+          ARROXY_LOG_ARCHIVE: ${{ runner.temp }}/arroxy-cold-logs
+          ARROXY_BINARY_DOWNLOAD_MAX_MS: '120000'
+        run: |
+          xvfb-run -a bun run verify:startup
+
+      - name: Upload startup verdicts
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: cold-start-logs-${{ matrix.label }}
+          path: ${{ runner.temp }}/arroxy-cold-logs
+          if-no-files-found: error
+          retention-days: 7

@@ -1,0 +1,3174 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: Arroxy\n"
+"Report-Msgid-Bugs-To: https://github.com/antonio-orionus/Arroxy/issues\n"
+"Language: om\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+msgctxt "about.button"
+msgid "About"
+msgstr "Waa'ee"
+
+msgctxt "about.githubLink"
+msgid "GitHub"
+msgstr "GitHub"
+
+msgctxt "about.licenseLine"
+msgid "MIT License · by Antonio Orionus"
+msgstr "Heeyyama MIT · by Antonio Orionus"
+
+msgctxt "about.openTitle"
+msgid "About Arroxy"
+msgstr "Waa'ee Arroxy"
+
+msgctxt "about.tagline"
+msgid "Fast, friendly downloader for YouTube and 2000+ other sites."
+msgstr "YouTube fi marsariitota 2000+ biroo irraa buusuuf meeshaa ariifataa fi salphaa."
+
+msgctxt "about.thirdPartyNotices"
+msgid "View third-party notices"
+msgstr "Beeksisa seera-biroo ilaali"
+
+msgctxt "about.websiteLink"
+msgid "Website"
+msgstr "Marsariitii"
+
+msgctxt "app.feedback"
+msgid "Feedback"
+msgstr "Yaada"
+
+msgctxt "app.feedbackNudge"
+msgid "Enjoying Arroxy? I'd love to hear from you! 💬"
+msgstr "Arroxy si gammachiisaa jiraa? Yaada kee dhaga'uu barbaada! 💬"
+
+msgctxt "app.logs"
+msgid "Logs"
+msgstr "Galmee"
+
+msgctxt "app.zoomIn"
+msgid "Zoom in"
+msgstr "Guddisi"
+
+msgctxt "app.zoomOut"
+msgid "Zoom out"
+msgstr "Xiqqeessi"
+
+msgctxt "common.back"
+msgid "Back"
+msgstr "Duubatti"
+
+msgctxt "common.cancel"
+msgid "Cancel"
+msgstr "Haqi"
+
+msgctxt "common.continue"
+msgid "Continue"
+msgstr "Itti fufi"
+
+msgctxt "common.loading"
+msgid "Loading"
+msgstr "Fe'amaa jira…"
+
+msgctxt "common.retry"
+msgid "Retry"
+msgstr "Irra deebi'i"
+
+msgctxt "common.startOver"
+msgid "Start over"
+msgstr "Jalqabbii irra deebi'i"
+
+msgctxt "dialogs.closeToTray.detail"
+msgid "Arroxy keeps running and finishes active downloads. Change this later in Advanced settings."
+msgstr "Arroxy hojjechuuf itti fufa daawniloodoonnis xumurama. Booda Qindaa'inoota Ammayyaa keessatti jijjiiri."
+
+msgctxt "dialogs.closeToTray.hide"
+msgid "Hide to tray"
+msgstr "Tiiree irratti dhoksi"
+
+msgctxt "dialogs.closeToTray.message"
+msgid "Hide Arroxy to the system tray when closing?"
+msgstr "Cufuun Arroxy tiiree irratti dhoksi?"
+
+msgctxt "dialogs.closeToTray.quit"
+msgid "Quit"
+msgstr "Cufii"
+
+msgctxt "dialogs.closeToTray.remember"
+msgid "Don't ask again"
+msgstr "Gara fuula duraatti hin gaafatin"
+
+msgctxt "dialogs.quitWithActiveDownloads.confirm"
+msgid "Cancel Downloads & Quit"
+msgstr "Daawniloodii Haqi fi Cufii"
+
+msgctxt "dialogs.quitWithActiveDownloads.detail"
+msgid "Pause to resume later, or cancel to discard progress."
+msgstr "Booda itti fufuuf yeroodhaaf dhaabi, yookaan adeemsa dhiisuuf haqi."
+
+msgctxt "dialogs.quitWithActiveDownloads.keep"
+msgid "Keep Downloading"
+msgstr "Daawniloodii itti fufi"
+
+msgctxt "dialogs.quitWithActiveDownloads.message_one"
+msgid "{{count}} download in progress"
+msgstr "Daawniloodii {{count}} adeemaa jira"
+
+msgctxt "dialogs.quitWithActiveDownloads.message_other"
+msgid "{{count}} downloads in progress"
+msgstr "Daawniloodoonni {{count}} adeemaa jiru"
+
+msgctxt "dialogs.quitWithActiveDownloads.pause"
+msgid "Pause Downloads & Quit"
+msgstr "Buusuu dhaabiitii ba’i"
+
+msgctxt "dialogs.rendererCrashed.detail"
+msgid "The renderer process crashed ({{reason}}). Reload to try again."
+msgstr "Prosessiin renderer kufee ({{reason}}). Irra deebi'uuf fe'adhu."
+
+msgctxt "dialogs.rendererCrashed.message"
+msgid "Arroxy encountered a problem"
+msgstr "Arroxy rakkoo mudateera"
+
+msgctxt "dialogs.rendererCrashed.quit"
+msgid "Quit"
+msgstr "Cufii"
+
+msgctxt "dialogs.rendererCrashed.reload"
+msgid "Reload"
+msgstr "Fe'adhu"
+
+msgctxt "errors.ytdlp.ageRestricted"
+msgid "This video is age-restricted and cannot be downloaded without a signed-in account."
+msgstr "Viidiyoon kun umuriin-daangeffamee seensa malee buufachuu hin danda'u."
+
+msgctxt "errors.ytdlp.botBlock"
+msgid "Bot protection triggered. The IP you're using is most likely flagged (datacenter range or busy VPN exit). Change your IP or pick a different VPN endpoint and retry. If it keeps failing, this may be a temporary site-side change — Arroxy auto-updates yt-dlp on launch, so the fix lands automatically once upstream ships it."
+msgstr "Eegumsa bot ka'eera. IP fayyadamaa jirtu naannoo datacenter ykn VPN baay'ee fayyadamame irraa ta'uu mala — IP kee jijjiiri ykn VPN endpoint biraa filadhu achiin irra deebi'i. Yoo itti fufe dhabamsiisuu baate, jijjiirra yeroo gabaabaadhaaf YouTube gama ta'uu danda'a — Arroxy jalqabbii irratti yt-dlp ofumaan haaromsa, kanaaf fooyyessaan olka'iinsa irra ga'ee booda ofumaan ni dhufaa."
+
+msgctxt "errors.ytdlp.chunkTransferFailure"
+msgid "The server kept cutting the download mid-stream and yt-dlp gave up after retrying. This usually hits the largest video formats (4K HDR / high-bitrate VP9). Retry, switch network/VPN, or pick a lower-resolution format."
+msgstr "Sarvarri buufannaa giddu-galeessatti kuteera, yt-dlp irra deebi'uun yaale booddee kufe. Kun baay'inaan foormaatii viidiyoo guddoo (4K HDR / VP9 bitrate olaanaa) irratti mul'ata. Irra deebi'i, network/VPN jijjiiri, ykn foormaatii qulqullina xiqqaa ta'e filadhu."
+
+msgctxt "errors.ytdlp.drmProtected"
+msgid "This video is DRM-protected. yt-dlp can't strip DRM, so the file can't be downloaded."
+msgstr "Viidiyoon kun DRM-iin eegama. yt-dlp DRM haquu hin danda'u, kanaafuu faayilichi buufachuu hin danda'amu."
+
+msgctxt "errors.ytdlp.geoBlocked"
+msgid "This video is not available in your region."
+msgstr "Viidiyoon kun naanno kee keessatti hin argamu."
+
+msgctxt "errors.ytdlp.ipBlock"
+msgid "Your IP address appears to be blocked. Try again later or use a VPN."
+msgstr "Teessoon IP kee YouTube'n cufamuu mala. Yeroo booda irra deebi'i ykn VPN fayyadami."
+
+msgctxt "errors.ytdlp.loginRequired"
+msgid "This video requires a signed-in account. Set up a cookies.txt (Settings → Cookies) and retry."
+msgstr "Viidiyoon kun seensa gaafata. cookies.txt qopheessi (Qindaa'inoota → Cookies) achiin irra deebi'i."
+
+msgctxt "errors.ytdlp.missingDependency"
+msgid "yt-dlp could not find ffmpeg or ffprobe. Repair the bundled binaries or set an FFmpeg location, then retry."
+msgstr "yt-dlp ffmpeg yookaan ffprobe argachuu hin dandeenye. Baayinaariiwwan keessaa jiran suphi yookaan bakka FFmpeg saagi, achiin irra deebi'i."
+
+msgctxt "errors.ytdlp.network"
+msgid "Network error. Check your connection and retry."
+msgstr "Dogoggora network. Walqunnamtii kee mirkaneessi ergasii irra deebi'i."
+
+msgctxt "errors.ytdlp.outOfDiskSpace"
+msgid "Not enough disk space. Free up space and retry."
+msgstr "Bakki disikii gahaa hin jiru. Bakka duwwaa godhi achiin irra deebi'i."
+
+msgctxt "errors.ytdlp.parse"
+msgid "Couldn't parse the response from the site. yt-dlp's extractor may have drifted. Arroxy auto-updates yt-dlp on launch — retry in a few minutes once the fix ships."
+msgstr "Deebii saayitii irraa dhufe parse gochuun hin danda'amne. Extractor yt-dlp jijjiiramuu mala. Arroxy yeroo banamu yt-dlp ofumaan haaressa — daqiiqaa muraasa booda fooyya'iinsi yeroo ba'u irra deebi'i."
+
+msgctxt "errors.ytdlp.postprocessFailure"
+msgid "yt-dlp finished downloading but post-processing (merge / mux / convert) failed. Often this is a transient ffmpeg issue — retry, and if it persists try a different format combination."
+msgstr "yt-dlp buufannaa xumuree, garuu post-processing (merge / mux / convert) hin milkoofne. Kun yeroo baay'ee rakkoo ffmpeg yeroo gabaabaa ti — irra deebi'i, yoo itti fufe walitti makamuu foormaatii biraa yaali."
+
+msgctxt "errors.ytdlp.rateLimit"
+msgid "Site is rate-limiting requests. Wait a minute then retry."
+msgstr "YouTube gaaffii daangeessaa jira. Daqiiqaa tokko eegi achiin irra deebi'i."
+
+msgctxt "errors.ytdlp.unavailable"
+msgid "This video is unavailable — it may be private, deleted, or region-locked."
+msgstr "Viidiyoon kun hin argamu — dhuunfaa, haqame, ykn naannoo-cufaa ta'uu mala."
+
+msgctxt "errors.ytdlp.unknown"
+msgid "Download failed. See the raw output below."
+msgstr "Buufannaan kufe. Bu’aa raaw’aa armaan gadii ilaali."
+
+msgctxt "errors.ytdlp.unsupportedUrl"
+msgid "That URL isn't supported by yt-dlp. Try a different link from any of yt-dlp's supported sites."
+msgstr "URL kana yt-dlp hin deeggaru. Marsariitota yt-dlp deeggaru keessaa hidhaa biraa yaali."
+
+msgctxt "filenameTemplate.description"
+msgid "Choose how downloaded files are named. Click a token to insert it. Use / to sort downloads into folders."
+msgstr "Faayiloonni buufaman akkamitti akka maqaa argatan filadhu. Galchuuf tokenii tokko cuqaasi. Buufamaawwan gara galmeewwaniitti qooduuf / fayyadami."
+
+msgctxt "filenameTemplate.error.empty"
+msgid "Enter a filename template."
+msgstr "Bocquu maqaa faayilii galchi."
+
+msgctxt "filenameTemplate.error.empty-segment"
+msgid "Remove the extra / — every folder needs a name."
+msgstr "/ dabalataa haqi — galmeen hundi maqaa barbaada."
+
+msgctxt "filenameTemplate.error.forbidden-char"
+msgid "Remove characters that aren't allowed in filenames: \\ : * ? \" < > |"
+msgstr "Arfiilee maqaa faayilii keessatti hin hayyamamne haqi: \\ : * ? \" < > |"
+
+msgctxt "filenameTemplate.error.invalid-segment"
+msgid "That folder name isn't allowed. Avoid . and .. and reserved names like CON."
+msgstr "Maqaan galmee kun hin hayyamamu. . fi .. akkasumas maqaawwan qabaman akka CON irraa fagaadhu."
+
+msgctxt "filenameTemplate.error.no-unique-token"
+msgid "Add {title} or {id} to the filename so each download gets its own name."
+msgstr "Buufamaan hundi maqaa mataa isaa akka qabaatuuf maqaa faayilii irratti {title} yookaan {id} dabali."
+
+msgctxt "filenameTemplate.error.resolution-in-dir"
+msgid "{resolution} can't name a folder — the quality isn't known until the download starts."
+msgstr "{resolution} galmee maqaa baasuu hin danda'u — qulqullinni hanga buufamni jalqabutti hin beekamu."
+
+msgctxt "filenameTemplate.error.stray-brace"
+msgid "Unmatched { or } — wrap tokens like {title}."
+msgstr "{ ykn } hin cufamne — mallattoo akka {title} barreessi."
+
+msgctxt "filenameTemplate.error.too-long"
+msgid "Template is too long."
+msgstr "Bocquun baay'ee dheeraa dha."
+
+msgctxt "filenameTemplate.error.unknown-token"
+msgid "Unknown token {{token}}."
+msgstr "Mallattoo hin beekamne {{token}}."
+
+msgctxt "filenameTemplate.idWarning"
+msgid "Without {id}, Arroxy can't detect already-downloaded playlist items or generate .m3u playlists."
+msgstr "{id} malee, Arroxy wantoota tarree taphaa duraan buufaman adda baasuu ykn tarree .m3u uumuu hin danda'u."
+
+msgctxt "filenameTemplate.label"
+msgid "Filename template"
+msgstr "Bocquu maqaa faayilii"
+
+msgctxt "filenameTemplate.m3uDisabled"
+msgid "Unavailable because your filename template either doesn't include {id} or sorts downloads into folders."
+msgstr "Hin argamu sababii akkaataan maqaa faayilii kee {id} of keessaa hin qabne yookaan buufamaawwan gara galmeewwaniitti waan qooduuf."
+
+msgctxt "filenameTemplate.previewPlaylist"
+msgid "In a playlist"
+msgstr "Tarree taphaa keessatti"
+
+msgctxt "filenameTemplate.previewSingle"
+msgid "Single video"
+msgstr "Viidiyoo tokkicha"
+
+msgctxt "filenameTemplate.profileOverrideDescription"
+msgid "Leave empty to inherit the global template."
+msgstr "Bocquu waliigalaa fayyadamuuf duwwaa dhiisi."
+
+msgctxt "filenameTemplate.profileOverrideLabel"
+msgid "Filename template"
+msgstr "Bocquu maqaa faayilii"
+
+msgctxt "formatLabel.audioFallback"
+msgid "Audio"
+msgstr "Sagalee"
+
+msgctxt "formatLabel.audioOnlyDot"
+msgid "Audio only · {{audio}}"
+msgstr "Sagalee qofa · {{audio}}"
+
+msgctxt "formatLabel.videoDot"
+msgid "{{resolution}} · {{audio}}"
+msgstr "{{resolution}} · {{audio}}"
+
+msgctxt "language.label"
+msgid "Language"
+msgstr "Afaan"
+
+msgctxt "notifications.filenameFolderTooDeep"
+msgid "This folder is too deep for your system. The download may still fail — pick a shorter folder."
+msgstr "Galeen kun sirna keetiif baay'ee gadi fagoo dha. Buufannaan ammas kufuu danda'a — galee gabaabaa filadhu."
+
+msgctxt "notifications.filenameTemplateCannotFit"
+msgid "This video's name can't fit every part of your template, so the default name was used."
+msgstr "Maqaan viidiyoo kanaa kutaa fakkeenya keetii hunda keessa hin galu, kanaaf maqaan durtii fayyadameera."
+
+msgctxt "notifications.folderSelectFailed"
+msgid "Could not open the folder picker."
+msgstr "Filannoo galee banuun hin danda'amne."
+
+msgctxt "notifications.hotkey.alreadyQueued"
+msgid "Already in the queue — no copy added"
+msgstr "Kan dura baay'ina keessa jira — kopii hin dabalame"
+
+msgctxt "notifications.hotkey.busy"
+msgid "Still working on the previous link"
+msgstr "Hidha duraan yeroo ammaa hojjechaa jirra"
+
+msgctxt "notifications.hotkey.invalidClipboard"
+msgid "No link on your clipboard — copy one first"
+msgstr "Buufama keessa hidhanni hin jiru — duratti tokko galchee"
+
+msgctxt "notifications.hotkey.multipleUrls"
+msgid "Multiple links copied — use Bulk URLs in Arroxy"
+msgstr "Hidhoota hedduu galcheeffamanii — Arroxy keessaa «URL hedduu» fayyadami"
+
+msgctxt "notifications.hotkey.needsReview"
+msgid "That link needs a quick review — open Arroxy and paste it again"
+msgstr "Hidhanni kun ilaalchi gahaabaa barbaada — Arroxy baneetti irra deebi'aa maxxansi"
+
+msgctxt "notifications.hotkey.queued"
+msgid "Download queued from clipboard"
+msgstr "Haaromsa buufamaa irraa dabalameera"
+
+msgctxt "notifications.hotkey.submissionFailed"
+msgid "Could not add that link — try again in Arroxy"
+msgstr "Hidhanni kun dabaluu hin dandeenye — Arroxy keessaa irra deebi'i yaali"
+
+msgctxt "notifications.playlistFolderRejected"
+msgid "That folder can't be used for this playlist."
+msgstr "Galeen sun tarree taphannaa kanaaf itti fayyadamuun hin danda'amu."
+
+msgctxt "notifications.settingsSaveFailed"
+msgid "Could not save your settings."
+msgstr "Qindaa'ina kee olkaa'uun hin danda'amne."
+
+msgctxt "notifications.shellActionFailed"
+msgid "Could not open that."
+msgstr "Sana banuun hin danda'amne."
+
+msgctxt "notifications.warmupFailed"
+msgid "Setup did not finish. Some downloads may fail until it does."
+msgstr "Qophiin hin xumuramne. Hanga xumuramutti buufannoowwan tokko tokko kufuu danda'u."
+
+msgctxt "playlistPresets.audioFormat.best"
+msgid "Audio (best)"
+msgstr "Audio (best)"
+
+msgctxt "playlistPresets.audioFormat.m4a"
+msgid "M4A"
+msgstr "M4A"
+
+msgctxt "playlistPresets.audioFormat.mp3"
+msgid "MP3"
+msgstr "MP3"
+
+msgctxt "playlistPresets.audioFormat.opus"
+msgid "Opus"
+msgstr "Opus"
+
+msgctxt "playlistPresets.audioFormatBitrate"
+msgid "Audio ({{format}} {{kbps}}K)"
+msgstr "Audio ({{format}} {{kbps}}K)"
+
+msgctxt "playlistPresets.audioFormatDesc.best"
+msgid "Native best audio, no re-encode"
+msgstr "Sagalee native ol’aanaa, irra deebi’ee hin encode’u"
+
+msgctxt "playlistPresets.audioFormatDesc.m4a"
+msgid "Convert to M4A (AAC)"
+msgstr "Gara M4A (AAC) jijjiiri"
+
+msgctxt "playlistPresets.audioFormatDesc.mp3"
+msgid "Convert to MP3"
+msgstr "Gara MP3 jijjiiri"
+
+msgctxt "playlistPresets.audioFormatDesc.opus"
+msgid "Convert to Opus"
+msgstr "Gara Opus jijjiiri"
+
+msgctxt "playlistPresets.mp4Cap"
+msgid "H.264 above 1080p is not available on YouTube — capped to 1080p automatically"
+msgstr "H.264 1080p olii YouTube irratti hin jiru — ofumaan 1080p irratti daangeffama"
+
+msgctxt "playlistPresets.tier.1080"
+msgid "Up to 1080p"
+msgstr "Hanga 1080p"
+
+msgctxt "playlistPresets.tier.144"
+msgid "Up to 144p"
+msgstr "Hanga 144p"
+
+msgctxt "playlistPresets.tier.1440"
+msgid "Up to 1440p"
+msgstr "Hanga 1440p"
+
+msgctxt "playlistPresets.tier.2160"
+msgid "Up to 4K"
+msgstr "Hanga 4K"
+
+msgctxt "playlistPresets.tier.240"
+msgid "Up to 240p"
+msgstr "Hanga 240p"
+
+msgctxt "playlistPresets.tier.360"
+msgid "Up to 360p"
+msgstr "Hanga 360p"
+
+msgctxt "playlistPresets.tier.480"
+msgid "Up to 480p"
+msgstr "Hanga 480p"
+
+msgctxt "playlistPresets.tier.720"
+msgid "Up to 720p"
+msgstr "Hanga 720p"
+
+msgctxt "playlistPresets.tier.best"
+msgid "Best quality"
+msgstr "Best quality"
+
+msgctxt "playlistPresets.tierDesc.1080"
+msgid "Capped at 1080p, falls back to lower per item"
+msgstr "Hanga 1080p daangeffama, tokkoon tokkoon wantaaf gara gadi deebi’a"
+
+msgctxt "playlistPresets.tierDesc.144"
+msgid "Smallest possible files"
+msgstr "Faayiloota xiqqoo hunduma irra"
+
+msgctxt "playlistPresets.tierDesc.1440"
+msgid "Capped at 2K, falls back to lower per item"
+msgstr "Hanga 2K daangeffama, tokkoon tokkoon wantaaf gara gadi deebi’a"
+
+msgctxt "playlistPresets.tierDesc.2160"
+msgid "Capped at 2160p, falls back to lower per item"
+msgstr "Hanga 2160p daangeffama, tokkoon tokkoon wantaaf gara gadi deebi’a"
+
+msgctxt "playlistPresets.tierDesc.240"
+msgid "Very small files, low quality"
+msgstr "Faayiloota baayyee xiqqaa, qulqullina gadii"
+
+msgctxt "playlistPresets.tierDesc.360"
+msgid "Small files for tight bandwidth"
+msgstr "Faayiloota xiqqaa bandwidth xiqqaaf"
+
+msgctxt "playlistPresets.tierDesc.480"
+msgid "Low bandwidth"
+msgstr "Low bandwidth"
+
+msgctxt "playlistPresets.tierDesc.720"
+msgid "Smaller files, broad compatibility"
+msgstr "Faayiloota xiqqaa, walsimsiisa bal’aa"
+
+msgctxt "playlistPresets.tierDesc.best"
+msgid "Highest available video + audio per item"
+msgstr "Viidiyoo + sagalee ol’aanaa tokkoon tokkoon wantaaf"
+
+msgctxt "playlistPresets.type.audio"
+msgid "Audio"
+msgstr "Audio"
+
+msgctxt "playlistPresets.type.video"
+msgid "Video"
+msgstr "Video"
+
+msgctxt "playlistPresets.videoFormat.best"
+msgid "Best native"
+msgstr "Best codec"
+
+msgctxt "playlistPresets.videoFormat.mp4"
+msgid "Smart TV H.264 MP4"
+msgstr "TV smart H.264 MP4"
+
+msgctxt "playlistPresets.videoFormatDesc.best"
+msgid "Best available container and codecs per item"
+msgstr "Codec ol’aanaa argamu tokkoon tokkoon wantaaf"
+
+msgctxt "playlistPresets.videoFormatDesc.mp4"
+msgid "Prefer H.264 video + AAC audio in MP4 when possible"
+msgstr "H.264 + AAC filatama, konteenera MP4 · carraa gaarii"
+
+msgctxt "presets.audio-only.desc"
+msgid "No video, best audio"
+msgstr "Viidiyoo hin jiru, sagalee caalmaa"
+
+msgctxt "presets.audio-only.label"
+msgid "Audio only"
+msgstr "Sagalee qofa"
+
+msgctxt "presets.balanced.desc"
+msgid "720p max + good audio"
+msgstr "720p ol'aanaa + sagalee gaarii"
+
+msgctxt "presets.balanced.label"
+msgid "Balanced"
+msgstr "Walsimu"
+
+msgctxt "presets.best-quality.desc"
+msgid "Highest resolution + best audio"
+msgstr "Firiimii ol'aanaa + sagalee caalmaa"
+
+msgctxt "presets.best-quality.label"
+msgid "Best quality"
+msgstr "Qulqullina ol'aanaa"
+
+msgctxt "presets.small-file.desc"
+msgid "Lowest resolution + low audio"
+msgstr "Firiimii gadi aanaa + sagalee gadi aanaa"
+
+msgctxt "presets.small-file.label"
+msgid "Small file"
+msgstr "Faayilii xiqqaa"
+
+msgctxt "presets.subtitle-only.desc"
+msgid "No video, no audio, only subtitles"
+msgstr "Viidiyoo hin jiru, sagalee hin jiru, axxiinni qofa"
+
+msgctxt "presets.subtitle-only.label"
+msgid "Subtitles only"
+msgstr "Axxiinni qofa"
+
+msgctxt "queue.artifact.companion"
+msgid "Companion"
+msgstr "Faayilii dabalataa"
+
+msgctxt "queue.artifact.description"
+msgid "Description"
+msgstr "Ibsa"
+
+msgctxt "queue.artifact.media"
+msgid "Media"
+msgstr "Miidiyaa"
+
+msgctxt "queue.artifact.missing"
+msgid "Missing"
+msgstr "Hin jiru"
+
+msgctxt "queue.artifact.subtitle"
+msgid "Subtitle"
+msgstr "Axxiinsa"
+
+msgctxt "queue.artifact.thumbnail"
+msgid "Thumbnail"
+msgstr "Suuraa xiqqaa"
+
+msgctxt "queue.artifact.unknown"
+msgid "Artifact"
+msgstr "Faayilii"
+
+msgctxt "queue.cancelAllTitle"
+msgid "Cancel all active and pending downloads"
+msgstr "Daawniloodoonni hunda qabsoo jiran fi eegaa jiran addaan kuti"
+
+msgctxt "queue.clearTitle"
+msgid "Clear completed downloads"
+msgstr "Daawniloodoonni xumuraman haquu"
+
+msgctxt "queue.empty"
+msgid "Queued downloads will appear here"
+msgstr "Buusawwan tarreeffaman asitti ni mulʼatu"
+
+msgctxt "queue.filterAll"
+msgid "All"
+msgstr "Hundaa"
+
+msgctxt "queue.filtersLabel"
+msgid "Queue status filters"
+msgstr "Calleeffamtoota haala tarree"
+
+msgctxt "queue.globalActionsLabel"
+msgid "All items"
+msgstr "Wantoota hunda"
+
+msgctxt "queue.header"
+msgid "Downloads"
+msgstr "Buufata"
+
+msgctxt "queue.item.cancel"
+msgid "Cancel"
+msgstr "Haqi"
+
+msgctxt "queue.item.defaultError"
+msgid "Download failed"
+msgstr "Daawniloodii kufe"
+
+msgctxt "queue.item.openDestinationFolder"
+msgid "Open destination folder"
+msgstr "Galmee itti galu bani"
+
+msgctxt "queue.item.pause"
+msgid "Pause"
+msgstr "Dhaabi"
+
+msgctxt "queue.item.pendingOnly"
+msgid "Pending only"
+msgstr "Kan eegaa jiran qofa"
+
+msgctxt "queue.item.pullNow"
+msgid "Pull now — skip the queue"
+msgstr "Amma buusi — tarree darbii"
+
+msgctxt "queue.item.remove"
+msgid "Remove"
+msgstr "Balleessi"
+
+msgctxt "queue.item.resume"
+msgid "Resume"
+msgstr "Itti fufi"
+
+msgctxt "queue.item.retry"
+msgid "Retry"
+msgstr "Irra deebi'ii yaali"
+
+msgctxt "queue.item.retryingSoon"
+msgid "retrying automatically (attempt {{attempt}})"
+msgstr "ofumaan irra deebi'ee yaalaa jira (yaalii {{attempt}})"
+
+msgctxt "queue.item.setLocation"
+msgid "Set location"
+msgstr "Iddoo qindeessi"
+
+msgctxt "queue.item.setLocationHint"
+msgid "Select pending items to set location."
+msgstr "Iddoo qindeessuuf wantoota eeggachaa jiran filadhu."
+
+msgctxt "queue.item.statusCancelled"
+msgid "Cancelled"
+msgstr "Haqame"
+
+msgctxt "queue.item.statusDone"
+msgid "Done"
+msgstr "Xumurame"
+
+msgctxt "queue.item.statusError"
+msgid "Error"
+msgstr "Dogoggora"
+
+msgctxt "queue.item.statusHeld"
+msgid "Held"
+msgstr "Qabame"
+
+msgctxt "queue.item.statusPaused"
+msgid "Paused"
+msgstr "Dhaabbate"
+
+msgctxt "queue.item.statusPending"
+msgid "Waiting"
+msgstr "Eegaa jira"
+
+msgctxt "queue.item.statusProbing"
+msgid "Fetching details"
+msgstr "Ibsa fidaa jira"
+
+msgctxt "queue.item.statusRunning"
+msgid "Downloading"
+msgstr "Buusaa jira"
+
+msgctxt "queue.pauseAllTitle"
+msgid "Pause every active download and stop new ones from starting"
+msgstr "Daawniloodoonni hunda qabsoo jiran gidduu dhabi"
+
+msgctxt "queue.pausedBanner"
+msgid "The queue is paused — waiting items won't start until you resume it"
+msgstr "Tarreen dhaabbate — kan eeggaa tarreen itti hin fufin akka hin jalqabin dhaaba"
+
+msgctxt "queue.resumeAllTitle"
+msgid "Resume paused downloads and let the queue keep going"
+msgstr "Buusuu dhaabbate itti fufi; tarreenis haa deemuu"
+
+msgctxt "queue.resumeQueueAction"
+msgid "Resume queue"
+msgstr "Tarreen itti fufi"
+
+msgctxt "queue.selectedActionsLabel"
+msgid "Selected items"
+msgstr "Wantoota filataman"
+
+msgctxt "queue.selectionSummary"
+msgid "{{selected}} selected · {{total}} total"
+msgstr "{{selected}} filatame · waliigala {{total}}"
+
+msgctxt "queue.tabLabel"
+msgid "Downloads"
+msgstr "Buufata"
+
+msgctxt "queue.table.added"
+msgid "Added"
+msgstr "Dabalame"
+
+msgctxt "queue.table.artifacts"
+msgid "Artifacts"
+msgstr "Faayiloota bu'aa"
+
+msgctxt "queue.table.columns"
+msgid "Columns"
+msgstr "Tarjaalee"
+
+msgctxt "queue.table.finished"
+msgid "Finished"
+msgstr "Xumurame"
+
+msgctxt "queue.table.format"
+msgid "Format"
+msgstr "Foormaatii"
+
+msgctxt "queue.table.hideArtifactsFor"
+msgid "Hide artifacts for {{title}}"
+msgstr "Faayiloota {{title}} dhoksi"
+
+msgctxt "queue.table.notAvailable"
+msgid "—"
+msgstr "—"
+
+msgctxt "queue.table.outputTarget"
+msgid "Output target"
+msgstr "Iddoo bu'aa"
+
+msgctxt "queue.table.progress"
+msgid "Progress"
+msgstr "Adeemsa"
+
+msgctxt "queue.table.showArtifactsFor"
+msgid "Show artifacts for {{title}}"
+msgstr "Faayiloota {{title}} agarsiisi"
+
+msgctxt "queue.table.sortBy"
+msgid "Sort by {{label}}"
+msgstr "{{label}} tin tartiibessi"
+
+msgctxt "queue.table.status"
+msgid "Status"
+msgstr "Haala"
+
+msgctxt "queue.table.title"
+msgid "Title"
+msgstr "Mata duree"
+
+msgctxt "queue.tabTip"
+msgid "Downloads live in the Downloads tab now — open it anytime to track progress."
+msgstr "Buusawwan amma caancala Buufata keessa jiru — adeemsa hordofuuf yeroo barbaaddetti bani."
+
+msgctxt "releaseNotes.continue"
+msgid "Continue"
+msgstr "Itti fufi"
+
+msgctxt "releaseNotes.description"
+msgid "You're running a fresh update. Here are the highlights."
+msgstr "Fooyya'iinsa haaraa fayyadamaa jirta. Kunoo wantoota ijoo."
+
+msgctxt "releaseNotes.fullNotes"
+msgid "Full release notes ↗"
+msgstr "Yaadannoo gadhiisa guutuu ↗"
+
+msgctxt "releaseNotes.title"
+msgid "What's new in Arroxy {{version}}"
+msgstr "Arroxy {{version}} keessatti maaltu haaraa dha"
+
+msgctxt "repair.actions.cancel"
+msgid "Cancel"
+msgstr "Haqdhaabi"
+
+msgctxt "repair.actions.chooseExecutable"
+msgid "Choose executable"
+msgstr "Faayilii hojjetu filadhu"
+
+msgctxt "repair.actions.installWithHomebrew"
+msgid "Install with Homebrew"
+msgstr "Homebrew dhaan fe’i"
+
+msgctxt "repair.actions.installWithWinget"
+msgid "Install with WinGet"
+msgstr "WinGet dhaan fe’i"
+
+msgctxt "repair.actions.openDependencyFolder"
+msgid "Open dependency folder"
+msgstr "Foldarii hirmaannaa bani"
+
+msgctxt "repair.actions.resetToDefault"
+msgid "Reset to default"
+msgstr "Durtii irra deebi'i"
+
+msgctxt "repair.actions.retrySetup"
+msgid "Retry setup"
+msgstr "Qindaa'inaa irra deebi'i yaali"
+
+msgctxt "repair.actions.viewSetupLog"
+msgid "View setup log"
+msgstr "Galmee qindaa'inaa ilaali"
+
+msgctxt "repair.deps.ffmpeg"
+msgid "FFmpeg"
+msgstr "FFmpeg"
+
+msgctxt "repair.deps.ffprobe"
+msgid "FFprobe"
+msgstr "FFprobe"
+
+msgctxt "repair.deps.ytDlp"
+msgid "yt-dlp"
+msgstr "yt-dlp"
+
+msgctxt "repair.hints.badExitCode"
+msgid "The binary did not respond to --version. It may be corrupt or the wrong build."
+msgstr "Faayiliin binaryii --version irratti deebii hin kenneef. Miidhaa qabaachuu ykn build dogoggoraa ta'uu danda'a."
+
+msgctxt "repair.hints.blockedOrQuarantined"
+msgid "Windows blocked the file (SmartScreen / Defender). Pick an installed copy or whitelist the runtime folder."
+msgstr "Windowsiin faayilii dhorkate (SmartScreen / Defender). Kopii fe'ame filadhu ykn foldarii runtime irratti whitelist godhi."
+
+msgctxt "repair.hints.downloadFailed"
+msgid "Download failed. Check your internet connection and retry."
+msgstr "Buufachuun hin milkoofne. Walqunnamtii interneetii kee ilaalii achiin irra deebi'i."
+
+msgctxt "repair.hints.extractFailed"
+msgid "Archive extraction failed. The download may be corrupt — retry."
+msgstr "Baasuu arkaayivii hin milkoofne. Buufanni miidhaa qabaachuu danda'a — irra deebi'i."
+
+msgctxt "repair.hints.hashFailed"
+msgid "Checksum mismatch on the downloaded file. Retry the download."
+msgstr "Faayilii buufamame irratti walsimuun checksum hin milkoofne. Buufaa irra deebi'i."
+
+msgctxt "repair.hints.pairIncomplete"
+msgid "ffmpeg and ffprobe must both be set as a matched pair."
+msgstr "ffmpeg fi ffprobe lachuu waloon pair ta'ee qindaa'uu qabu."
+
+msgctxt "repair.hints.permissionDenied"
+msgid "The system refused to run the file. Pick a copy you trust or retry as admin."
+msgstr "Sirnichi faayilii hojjechuuf dide. Amantaa qabdu kopii filadhu ykn akka admin irra deebi'i."
+
+msgctxt "repair.hints.spawnFailed"
+msgid "The file is missing or could not be launched. Pick a working copy."
+msgstr "Faayiliin hin argamne ykn jalqabuu hin danda'amne. Kopii hojjetu filadhu."
+
+msgctxt "repair.hints.timeout"
+msgid "The version probe timed out. The file may be hung — retry."
+msgstr "Madaalliin version yeroo darbe. Faayilichii hin deebiin jiraachuu danda'a — irra deebi'i."
+
+msgctxt "repair.hints.unknown"
+msgid "Could not be verified."
+msgstr "Mirkaneeffachuu hin danda'amne."
+
+msgctxt "repair.title"
+msgid "Setup needs your help"
+msgstr "Qindaa'inni gargaarsa kee gaafata"
+
+msgctxt "share.copied"
+msgid "Copied!"
+msgstr "Garagalfame!"
+
+msgctxt "share.copyLink"
+msgid "Copy link"
+msgstr "Hidhata garagalchi"
+
+msgctxt "share.defaultMessage"
+msgid ""
+"Arroxy — free, open-source video downloader for Windows, macOS & Linux. Works with YouTube, Vimeo, Twitch, and 2000+ sites.\n"
+"4K · HDR · MP3 · Shorts · Subtitles · SponsorBlock"
+msgstr ""
+"Arroxy — Buufataa viidiyoo bilisaa fi madda banaa kan Windows, macOS & Linux. YouTube, Vimeo, Twitch fi saayitiiwwan 2000+ wajjin hojjeta.\n"
+"4K · HDR · MP3 · Shorts · Subtitles · SponsorBlock"
+
+msgctxt "share.description"
+msgid "Arroxy is free and open-source. Sharing helps more people discover it."
+msgstr "Arroxy bilisaa fi madda-banaadha. Qoodun namoota baay'ee argachuu ni gargaara."
+
+msgctxt "share.footerLabel"
+msgid "Share"
+msgstr "Qoodi"
+
+msgctxt "share.footerTooltip"
+msgid "Share Arroxy"
+msgstr "Arroxy qoodi"
+
+msgctxt "share.shareAction"
+msgid "Share Arroxy"
+msgstr "Arroxy qoodi"
+
+msgctxt "share.title"
+msgid "Share Arroxy"
+msgstr "Arroxy Qoodi"
+
+msgctxt "splash.cancel"
+msgid "Having trouble? Set it up manually"
+msgstr "Rakkoo qabdaa? Harkaan qindeessi"
+
+msgctxt "splash.downloading"
+msgid "Downloading {{binary}}…"
+msgstr "{{binary}} buufatamaa jira…"
+
+msgctxt "splash.greeting"
+msgid "Hey, welcome back!"
+msgstr "Baga nagaan deebitee!"
+
+msgctxt "splash.verifyFirstCheck"
+msgid "First check of this version — this one is slow. Usually about a minute."
+msgstr "Sakatta jalqabaa gosa kanaa — kun suuta jedha. Yeroo baayʼee daqiiqaa tokko fudhata."
+
+msgctxt "splash.verifying"
+msgid "Checking {{binary}}…"
+msgstr "{{binary}} qoratamaa jira…"
+
+msgctxt "splash.warmup"
+msgid "Preparing downloads…"
+msgstr "Buufannoowwan qopheessaa jira…"
+
+msgctxt "splash.warmupFailedNoDiag"
+msgid "Setup failed. Open the setup log for details."
+msgstr "Qindaa'inni hin milkoofne. Bal'ina argachuuf galmee qindaa'inaa bani."
+
+msgctxt "status.cancelled"
+msgid "Download cancelled"
+msgstr "Daawniloodii haqame"
+
+msgctxt "status.complete"
+msgid "Download complete"
+msgstr "Daawniloodii xumurame"
+
+msgctxt "status.convertingVideo"
+msgid "Converting video…"
+msgstr "Viidiyoo jijjiiramaa jira…"
+
+msgctxt "status.diskSpaceInsufficient"
+msgid "Not enough disk space — need {{required}}, only {{free}} available"
+msgstr "Bakki kuusaa gahaa miti — {{required}} barbaachisa, {{free}} qofa jira"
+
+msgctxt "status.downloadingBinary"
+msgid "Downloading {{name}} binary…"
+msgstr "Faayilii binaryii {{name}} buufaa jira…"
+
+msgctxt "status.downloadingMedia"
+msgid "Downloading video & audio…"
+msgstr "Viidiyoo fi sagalee buufaa jira…"
+
+msgctxt "status.embeddingMetadata"
+msgid "Embedding metadata…"
+msgstr "Metadata maksamaa jira…"
+
+msgctxt "status.extractingAudio"
+msgid "Converting audio…"
+msgstr "Sagalee jijjiiramaa jira…"
+
+msgctxt "status.fetchingSponsorBlock"
+msgid "Contacting SponsorBlock…"
+msgstr "SponsorBlock waliin qunnamtii godhamaa jira…"
+
+msgctxt "status.fetchingSubtitles"
+msgid "Fetching subtitles…"
+msgstr "Axxiinni fidaa jira…"
+
+msgctxt "status.mergingFormats"
+msgid "Merging audio and video…"
+msgstr "Sagalee fi viidiyoo walitti makaa jira…"
+
+msgctxt "status.mintingToken"
+msgid "Minting YouTube token…"
+msgstr "Tookenii YouTube uumaa jira…"
+
+msgctxt "status.movingFiles"
+msgid "Moving files…"
+msgstr "Faayiloota daddabarsamaa jira…"
+
+msgctxt "status.preparingBinaries"
+msgid "Preparing binaries…"
+msgstr "Faayiloota binaryii qopheessaa jira…"
+
+msgctxt "status.remintingToken"
+msgid "Re-minting token…"
+msgstr "Tookenii irra deebi'ee uumaa jira…"
+
+msgctxt "status.retryingSponsorBlock"
+msgid "SponsorBlock unavailable, retrying ({{attempt}}/{{total}})…"
+msgstr "SponsorBlock hin argamne, irra deebi'ii yaalamuutti jira ({{attempt}}/{{total}})…"
+
+msgctxt "status.sleepingBetweenRequests"
+msgid "Waiting {{seconds}}s to avoid rate limits…"
+msgstr "Dhiibbaa oolfachuuf sekoondii {{seconds}} eegaa jira…"
+
+msgctxt "status.startingYtdlp"
+msgid "Starting yt-dlp process…"
+msgstr "Prosessii yt-dlp jalqabaa jira…"
+
+msgctxt "status.subtitlesFailed"
+msgid "Video saved — some subtitles could not be downloaded"
+msgstr "Viidiyoon kuufame — axxiinnota tokko tokko buufachuu hin danda'amne"
+
+msgctxt "status.unknownStartupFailure"
+msgid "Unknown download startup failure"
+msgstr "Daawniloodii jalqabbii hin beekamne kufee"
+
+msgctxt "status.usedExtractorFallback"
+msgid "Downloaded with relaxed extractor — set up a cookies.txt for more reliable downloads"
+msgstr "Haala laafaa ta'een buufame — daawniloodii amanamuuf cookies.txt qopheessi"
+
+msgctxt "status.ytdlpExitCode"
+msgid "yt-dlp exited with code {{code}}"
+msgstr "yt-dlp koodii {{code}} wajjin bahe"
+
+msgctxt "status.ytdlpProcessError"
+msgid "yt-dlp process error: {{error}}"
+msgstr "Dogoggora prosessii yt-dlp: {{error}}"
+
+msgctxt "theme.dark"
+msgid "Dark mode"
+msgstr "Haala gurraacha"
+
+msgctxt "theme.light"
+msgid "Light mode"
+msgstr "Haala iftoomaa"
+
+msgctxt "theme.system"
+msgid "System default"
+msgstr "Sirna durtii"
+
+msgctxt "titleBar.close"
+msgid "Close"
+msgstr "Cufii"
+
+msgctxt "titleBar.maximize"
+msgid "Maximize"
+msgstr "Guddisi"
+
+msgctxt "titleBar.minimize"
+msgid "Minimize"
+msgstr "Xiqqeessi"
+
+msgctxt "titleBar.restore"
+msgid "Restore"
+msgstr "Deebi'si"
+
+msgctxt "tray.menu.downloadFromClipboard"
+msgid "Download from clipboard"
+msgstr "Buufamaa irraa basii"
+
+msgctxt "tray.menu.open"
+msgid "Open Arroxy"
+msgstr "Arroxy bani"
+
+msgctxt "tray.menu.quit"
+msgid "Quit Arroxy"
+msgstr "Arroxy cufii"
+
+msgctxt "tray.menu.statusActive_one"
+msgid "1 downloading · {{percent}}%"
+msgstr "1 buufamaa jira · {{percent}}%"
+
+msgctxt "tray.menu.statusActive_other"
+msgid "{{count}} downloading · {{percent}}%"
+msgstr "{{count}} buufamaa jiru · {{percent}}%"
+
+msgctxt "tray.menu.statusIdle"
+msgid "Idle"
+msgstr "Boqachaa"
+
+msgctxt "tray.tooltip"
+msgid "Arroxy"
+msgstr "Arroxy"
+
+msgctxt "update.appVersion"
+msgid "Arroxy {{version}}"
+msgstr "Arroxy {{version}}"
+
+msgctxt "update.copied"
+msgid "Copied command to clipboard"
+msgstr "Ajajni kliipboorditti koopii ta'e"
+
+msgctxt "update.copy"
+msgid "Copy command to clipboard"
+msgstr "Ajaja kliipboorditti koopii godhi"
+
+msgctxt "update.dismiss"
+msgid "Dismiss update banner"
+msgstr "Baanara haaraa cufii"
+
+msgctxt "update.download"
+msgid "Download ↗"
+msgstr "Download ↗"
+
+msgctxt "update.downloadDmg"
+msgid "Download DMG ↗"
+msgstr "DMG buusi ↗"
+
+msgctxt "update.downloading"
+msgid "Downloading…"
+msgstr "Buufamaa jira…"
+
+msgctxt "update.install"
+msgid "Install & Restart"
+msgstr "Facaalikee fi Deebi'i jalqabi"
+
+msgctxt "update.installFailed"
+msgid "Update failed"
+msgstr "Haaromsuun hin milkoofne"
+
+msgctxt "update.isAvailable"
+msgid "is available"
+msgstr "ni argama"
+
+msgctxt "update.message.generic"
+msgid "Arroxy {{version}} is available — you have {{currentVersion}}."
+msgstr "Arroxy {{version}} ni jira — ati {{currentVersion}} qabda."
+
+msgctxt "update.message.homebrew"
+msgid "Arroxy {{version}} is available — update with Homebrew."
+msgstr "Arroxy {{version}} ni jira — Homebrew-n haaromsi."
+
+msgctxt "update.message.macosDirect"
+msgid "Arroxy {{version}} is available — download the new DMG."
+msgstr "Arroxy {{version}} ni jira — DMG haaraa buusi."
+
+msgctxt "update.message.portable"
+msgid "Arroxy {{version}} is available — download the new build."
+msgstr "Arroxy {{version}} ni jira — build haaraa buusi."
+
+msgctxt "update.retry"
+msgid "Retry"
+msgstr "Irra deebi'i yaali"
+
+msgctxt "update.youHave"
+msgid "— you have {{currentVersion}}"
+msgstr "— kan qabdu {{currentVersion}}"
+
+msgctxt "videoCard.titlePlaceholder"
+msgid "Loading…"
+msgstr "Fe'amaa jira…"
+
+msgctxt "wizard.bulk.acceptedCount"
+msgid "Ready"
+msgstr "Qophaa’e"
+
+msgctxt "wizard.bulk.description"
+msgid "Paste video, playlist, channel, search, or audio URLs. Arroxy will clean duplicates before queueing."
+msgstr "URL viidiyoo, playlist, channel, barbaacha, yookaan audio maxxansi. Arroxy tarree dura irra deddeebi'oota ni qulqulleessa."
+
+msgctxt "wizard.bulk.emptyPreview"
+msgid "Paste one or more URLs to preview the batch."
+msgstr "Garee ilaaluu dura URL tokko yookaan isaa ol maxxansi."
+
+msgctxt "wizard.bulk.ignoredCount"
+msgid "Ignored"
+msgstr "Tuffatame"
+
+msgctxt "wizard.bulk.needsAtLeastOne"
+msgid "Add at least one supported URL to continue."
+msgstr "Itti fufuuf URL deeggaraman yoo xiqqaate tokko dabali."
+
+msgctxt "wizard.bulk.reject.duplicate"
+msgid "Duplicate"
+msgstr "Irra-deebi"
+
+msgctxt "wizard.bulk.textareaLabel"
+msgid "URL list"
+msgstr "Tarree URL"
+
+msgctxt "wizard.bulk.textareaPlaceholder"
+msgid ""
+"https://example.com/video-1\n"
+"https://example.com/video-2\n"
+"https://example.com/video-3"
+msgstr ""
+"https://video.example/one\n"
+"https://video.example/two\n"
+"https://video.example/three"
+
+msgctxt "wizard.bulk.title"
+msgid "Bulk URLs"
+msgstr "URL hedduu"
+
+msgctxt "wizard.confirm.addToQueue"
+msgid "+ Queue"
+msgstr "+ Queue"
+
+msgctxt "wizard.confirm.addToQueueTooltip"
+msgid "Adds to the queue — starts when the active download finishes"
+msgstr "Daawniloodoonni biroo xumuramu booda jalqaba — bandwidth guutuu argata"
+
+msgctxt "wizard.confirm.audioOnly"
+msgid "Audio only"
+msgstr "Sagalee qofa"
+
+msgctxt "wizard.confirm.itemsValue_one"
+msgid "{{count}} of {{total}} video"
+msgstr "{{count}} fi {{total}} keessaa viidiyoo"
+
+msgctxt "wizard.confirm.itemsValue_other"
+msgid "{{count}} of {{total}} videos"
+msgstr "{{count}} fi {{total}} keessaa viidiyoowwan"
+
+msgctxt "wizard.confirm.itemsValueAudio_one"
+msgid "{{count}} of {{total}} track"
+msgstr "{{count}} fi {{total}} keessaa weellaa"
+
+msgctxt "wizard.confirm.itemsValueAudio_other"
+msgid "{{count}} of {{total}} tracks"
+msgstr "{{count}} fi {{total}} keessaa weellaalee"
+
+msgctxt "wizard.confirm.itemsValueBulk_one"
+msgid "{{count}} of {{total}} URL"
+msgstr "{{count}} URL keessaa {{total}}"
+
+msgctxt "wizard.confirm.itemsValueBulk_other"
+msgid "{{count}} of {{total}} URLs"
+msgstr "{{count}} URL keessaa {{total}}"
+
+msgctxt "wizard.confirm.labelAudio"
+msgid "Audio"
+msgstr "Sagalee"
+
+msgctxt "wizard.confirm.labelBulk"
+msgid "Batch"
+msgstr "URL hedduu"
+
+msgctxt "wizard.confirm.labelItems"
+msgid "Items"
+msgstr "Wantota"
+
+msgctxt "wizard.confirm.labelPlaylist"
+msgid "Playlist"
+msgstr "Tarree taphachiisaa"
+
+msgctxt "wizard.confirm.labelPreset"
+msgid "Preset"
+msgstr "Preset"
+
+msgctxt "wizard.confirm.labelSaveTo"
+msgid "Save to"
+msgstr "Kuusi gara"
+
+msgctxt "wizard.confirm.labelSize"
+msgid "Size"
+msgstr "Bal'ina"
+
+msgctxt "wizard.confirm.labelSubtitles"
+msgid "Subtitles"
+msgstr "Axxiinni"
+
+msgctxt "wizard.confirm.labelVideo"
+msgid "Video"
+msgstr "Viidiyoo"
+
+msgctxt "wizard.confirm.landIn"
+msgid "Your file will land in"
+msgstr "Faayilin kee bakka kanatti bu'a"
+
+msgctxt "wizard.confirm.landInMultiProfile_one"
+msgid "It'll land in the destination below"
+msgstr "Gara bakka armaan gadiitti bu'a"
+
+msgctxt "wizard.confirm.landInMultiProfile_other"
+msgid "They'll land in the {{count}} destinations below"
+msgstr "Gara bakkoota {{count}} armaan gadiitti ni bu'u"
+
+msgctxt "wizard.confirm.nothingToDownload"
+msgid "Subtitles only preset is active but no subtitle language is selected — nothing will be downloaded."
+msgstr "Qophiin axxiinni qofa hojjechaa jira garuu afaan hin filamine — waan buufamu hin jiru."
+
+msgctxt "wizard.confirm.profileBreakdownCount_one"
+msgid "{{count}} item"
+msgstr "{{count}} wanta"
+
+msgctxt "wizard.confirm.profileBreakdownCount_other"
+msgid "{{count}} items"
+msgstr "{{count}} wantota"
+
+msgctxt "wizard.confirm.profileBreakdownHeading"
+msgid "Profiles in this batch"
+msgstr "Piroofaayiloota kuma kana keessatti"
+
+msgctxt "wizard.confirm.pullIt"
+msgid "Pull it! ↓"
+msgstr "Buusi! ↓"
+
+msgctxt "wizard.confirm.pullItTooltip"
+msgid "Skips the queue — starts now, runs alongside other active downloads"
+msgstr "Immediately jalqaba — daawniloodoonni biroo waliin hojjeta"
+
+msgctxt "wizard.confirm.readyHeadline"
+msgid "Ready to pull it in!"
+msgstr "Buusuuf qophii dha!"
+
+msgctxt "wizard.confirm.sizeUnknown"
+msgid "Unknown"
+msgstr "Hin beekamne"
+
+msgctxt "wizard.confirm.subtitleEmbedAudioOnly"
+msgid "Subtitle embed changed to sidecar — audio tracks do not support embedded subtitle streams."
+msgstr "Subtitle embed gara sidecar jijjiirameera — tarreewwan sagalee tartiiba subtitle embed hin deeggaran."
+
+msgctxt "wizard.confirm.subtitlesNone"
+msgid "—"
+msgstr "—"
+
+msgctxt "wizard.confirm.thumbnailEmbedNotSupported"
+msgid "Thumbnail embed skipped — output container does not support it."
+msgstr "Thumbnail embed ni dhiifame — container bu'aa embed hin deeggarre."
+
+msgctxt "wizard.folder.custom"
+msgid "Custom…"
+msgstr "Ofiin kaa'i…"
+
+msgctxt "wizard.folder.desktop"
+msgid "Desktop"
+msgstr "Desktop"
+
+msgctxt "wizard.folder.documents"
+msgid "Documents"
+msgstr "Sanadoota"
+
+msgctxt "wizard.folder.downloads"
+msgid "Downloads"
+msgstr "Buufata"
+
+msgctxt "wizard.folder.heading"
+msgid "Save to"
+msgstr "Kuusi gara"
+
+msgctxt "wizard.folder.home"
+msgid "Home"
+msgstr "Mana"
+
+msgctxt "wizard.folder.music"
+msgid "Music"
+msgstr "Muuziqaa"
+
+msgctxt "wizard.folder.pictures"
+msgid "Pictures"
+msgstr "Suuraalee"
+
+msgctxt "wizard.folder.subfolder.invalid"
+msgid "Folder name has invalid characters"
+msgstr "Maqaan foldarii mallattoolee sirrii hin qabu"
+
+msgctxt "wizard.folder.subfolder.placeholder"
+msgid "e.g. lo-fi rips"
+msgstr "fkn lo-fi rips"
+
+msgctxt "wizard.folder.subfolder.toggle"
+msgid "Save inside subfolder"
+msgstr "Saab-foldarii keessatti kuusi"
+
+msgctxt "wizard.folder.videos"
+msgid "Movies"
+msgstr "Filimii"
+
+msgctxt "wizard.formats.audio"
+msgid "Audio"
+msgstr "Sagalee"
+
+msgctxt "wizard.formats.audioOnly"
+msgid "Audio only"
+msgstr "Sagalee qofa"
+
+msgctxt "wizard.formats.audioOnlyOption"
+msgid "Audio only (no video)"
+msgstr "Sagalee qofa (viidiyoo hin jiru)"
+
+msgctxt "wizard.formats.botWall.bodyDisabled"
+msgid "Cookies are configured but turned off. Enable them and retry to get the full list, or change network and retry."
+msgstr "Cookies qindaa'eera garuu dhaabbe jira. Tarreessa guutuu argachuuf cookies dandeessii achiin irra deebi'i, ykn netwoorkii jijjiiri achiin irra deebi'i."
+
+msgctxt "wizard.formats.botWall.bodyEnabled"
+msgid "Even with cookies, YouTube limited this probe. Try again later or switch network."
+msgstr "Cookies waliin illee, YouTube qorannoo kana daangeessee jira. Booda irra deebi'i ykn netwoorkii jijjiiri."
+
+msgctxt "wizard.formats.botWall.bodyUnconfigured"
+msgid "The format list may be incomplete. Set up cookies in advanced settings, or change network and retry."
+msgstr "Tarreessi foormaatii guutuu ta'uu dhiisuu danda'a. Qindaa'inoota ammayyaa keessatti cookies qopheessi, ykn netwoorkii jijjiiri achiin irra deebi'i."
+
+msgctxt "wizard.formats.botWall.enableRetryCta"
+msgid "Enable cookies and retry"
+msgstr "Cookies dandeessii achiin irra deebi'i"
+
+msgctxt "wizard.formats.botWall.heading"
+msgid "Probe was limited"
+msgstr "YouTube qorannoo kana daangeessee jira"
+
+msgctxt "wizard.formats.botWall.retryCta"
+msgid "Retry"
+msgstr "Irra deebi'i"
+
+msgctxt "wizard.formats.convert.bitrate"
+msgid "Bitrate"
+msgstr "Saaffata bitii"
+
+msgctxt "wizard.formats.convert.label"
+msgid "Convert"
+msgstr "Jijjiiri"
+
+msgctxt "wizard.formats.convert.lossyLabel"
+msgid "{{target}} {{bitrate}} kbps"
+msgstr "{{target}} {{bitrate}} kbps"
+
+msgctxt "wizard.formats.convert.requiresAudioOnly"
+msgid "Audio conversion requires audio-only mode (deselect the video pick)."
+msgstr "Jijjiirraa sagalee haala sagalee-qofa (filannoo viidiyoo haqi) gaafata."
+
+msgctxt "wizard.formats.convert.requiresLossy"
+msgid "A native stream is selected — bitrate only applies when converting to mp3, m4a, or opus."
+msgstr "Tarreessa uumamaa filatameera — saaffatni bitii yoo mp3, m4a, ykn opus keessatti jijjiiramu qofa hojiirra oola."
+
+msgctxt "wizard.formats.convert.uncompressed"
+msgid "Convert · uncompressed"
+msgstr "Jijjiiri · cuqxaa hin taane"
+
+msgctxt "wizard.formats.convert.wavLabel"
+msgid "WAV (uncompressed)"
+msgstr "WAV (cuqxaa hin taane)"
+
+msgctxt "wizard.formats.cookiesError.currentModeBrowser"
+msgid "Browser"
+msgstr "Browser"
+
+msgctxt "wizard.formats.cookiesError.currentModeFile"
+msgid "File"
+msgstr "Faayilii"
+
+msgctxt "wizard.formats.cookiesError.currentModeLabel"
+msgid "Cookies source"
+msgstr "Madda Cookies"
+
+msgctxt "wizard.formats.cookiesError.dpapi.docsLinkLabel"
+msgid "yt-dlp docs (issue #10927)"
+msgstr "yt-dlp sanadoota (dhimma #10927)"
+
+msgctxt "wizard.formats.cookiesError.dpapi.explanation"
+msgid "Chrome 127 and newer encrypts cookies in a way other apps can't read on Windows. Try one of the workarounds below."
+msgstr "Chrome 127 fi itti aanu cookies'a appoonii biroon Windows irratti dubbisuu hin dandeenye ta'een farsima. Furmaata armaan gadii keessaa tokko yaali."
+
+msgctxt "wizard.formats.cookiesError.dpapi.fixFileBody"
+msgid "Export cookies from Chrome with a browser extension, then switch this app to File mode and pick the exported file."
+msgstr "Cookies Chrome irraa extension browser waliin ergi, achiin app kana haala Faayilii jijjiiri achiin faayilii ergame filadhu."
+
+msgctxt "wizard.formats.cookiesError.dpapi.fixFileLabel"
+msgid "Export cookies.txt"
+msgstr "cookies.txt ergi"
+
+msgctxt "wizard.formats.cookiesError.dpapi.fixFirefoxBody"
+msgid "Firefox doesn't use App-Bound Encryption. Open cookies settings and pick Firefox from the browser list."
+msgstr "Firefox App-Bound Encryption hin fayyadamu. Qindaa'inoota cookies bani achiin tarree browser keessaa Firefox filadhu."
+
+msgctxt "wizard.formats.cookiesError.dpapi.fixFirefoxLabel"
+msgid "Switch to Firefox"
+msgstr "Firefox fayyadami"
+
+msgctxt "wizard.formats.cookiesError.dpapi.fixUnsafeBody"
+msgid "Add --disable-features=LockProfileCookieDatabase to Chrome's launch shortcut. Warning: this invalidates previously encrypted cookies, so you'll be signed out of every site and need to log in again."
+msgstr "--disable-features=LockProfileCookieDatabase gabaabduu jalqabbii Chrome'tti dabaluu. Akeekkachiisa: kunis cookies duraan farsimaman haquu waan taasiseef gareewwan hundarraa ba'uuf fi deebisanii seenuuf dirqisiifama."
+
+msgctxt "wizard.formats.cookiesError.dpapi.fixUnsafeLabel"
+msgid "Launch Chrome with App-Bound Encryption disabled"
+msgstr "App-Bound Encryption dhaabbatee Chrome jalqabi"
+
+msgctxt "wizard.formats.cookiesError.dpapi.heading"
+msgid "Chrome cookies blocked by Windows encryption"
+msgstr "Cookies Chrome'ii farsimaa Windows'n cufame"
+
+msgctxt "wizard.formats.cookiesError.explanationBrowser"
+msgid "Cookies are read directly from the browser. If the browser is currently running, its cookie database may be locked (Chromium-family). The browser must also be signed in to YouTube. Try closing the browser, switching to a different browser, switching to File mode, or turning cookies off."
+msgstr "Cookies browser irraa kallattiin dubbifama. Browser yoo amma hojjechaa jiraate, kuusaa cookies isaa cufamuu danda'a (Chromium-gosa). Browser YouTube keessattis seenuu qaba. Browser cufadhu, browser biraa jijjiiri, Faayilii haala jijjiiri, ykn cookies dhaabbi."
+
+msgctxt "wizard.formats.cookiesError.explanationFile"
+msgid "Your cookies file might be empty, expired, or in the wrong format (yt-dlp expects Netscape cookies.txt). Try re-exporting cookies, picking a different file, switching to Browser mode, or turning cookies off."
+msgstr "Faayilin cookies kee duwwaa, yeroon darbee, ykn foormaatii dogoggoraa ta'uu danda'a (yt-dlp Netscape cookies.txt eega). Cookies irra deebi'ii ergi, faayilii biraa filadhu, Browser haala jijjiiri, ykn cookies dhaabbi."
+
+msgctxt "wizard.formats.cookiesError.heading"
+msgid "Cookies might be the cause"
+msgstr "Cookies sababa ta'uu danda'a"
+
+msgctxt "wizard.formats.cookiesError.needsCookies.body"
+msgid "yt-dlp couldn't access this video without authentication. Configure cookies in advanced settings — point them at a browser you're already signed in to, or import a cookies.txt file."
+msgstr "yt-dlp viidiyoo kana mirkaneessuu malee argachuu hin danda'u. Qindaa'inoota ammayyaa keessatti cookies qopheessi — browser seenite irra qeensi, ykn faayilii cookies.txt galchi."
+
+msgctxt "wizard.formats.cookiesError.needsCookies.heading"
+msgid "This site requires sign-in"
+msgstr "Gareewwan kun seensa gaafata"
+
+msgctxt "wizard.formats.cookiesError.openSettingsCta"
+msgid "Open cookies settings"
+msgstr "Qindaa'inoota cookies bani"
+
+msgctxt "wizard.formats.keepAudio"
+msgid "Keep as-is"
+msgstr "Akka jirutti eegi"
+
+msgctxt "wizard.formats.keepAudioMeta"
+msgid "Built-in audio"
+msgstr "Sagalee keessoo"
+
+msgctxt "wizard.formats.loadingAria"
+msgid "Loading formats"
+msgstr "Foormaatii fe'amaa jira"
+
+msgctxt "wizard.formats.loadingHint"
+msgid "Please wait until probing finishes — playlists and searches can take a while."
+msgstr "Qorannoon xumuramuu hanga eegtu — playlist fi barbaacha yeroo fudhachuu danda'a."
+
+msgctxt "wizard.formats.mascot"
+msgid "Best + Best = max quality. I'd pick that!"
+msgstr "Caalmaa + Caalmaa = qulqullina ol'aanaa. Sana filadha!"
+
+msgctxt "wizard.formats.noAudio"
+msgid "No audio"
+msgstr "Sagalee hin jiru"
+
+msgctxt "wizard.formats.quality.high"
+msgid "High quality"
+msgstr "Qulqullina olaanaa"
+
+msgctxt "wizard.formats.quality.low"
+msgid "Low quality"
+msgstr "Qulqullina gadi aanaa"
+
+msgctxt "wizard.formats.quality.medium"
+msgid "Medium quality"
+msgstr "Qulqullina giddugaleessaa"
+
+msgctxt "wizard.formats.quickPresets"
+msgid "Quick presets"
+msgstr "Qophii ariifatoo"
+
+msgctxt "wizard.formats.sizeUnknown"
+msgid "Size unknown"
+msgstr "Bal'inni hin beekamne"
+
+msgctxt "wizard.formats.skipToConfirm"
+msgid "Skip to confirm"
+msgstr "Mirkaneessaatti ce'i"
+
+msgctxt "wizard.formats.skipToConfirmTooltip"
+msgid "Uses your saved preferences for all remaining steps. To change a setting, continue step by step instead — your choice will be saved for next time."
+msgstr "Filannoowwan kee kan olkaawaman tarkaanfiiwwan hafan hundaaf fayyadama. Qindaa'ina jijjiiruf, tarkaanfii tarkaanfiin itti fufii — filannoon kee yeroo itti aanuuf olkaawama."
+
+msgctxt "wizard.formats.sniffing"
+msgid "Sniffing out the best formats for you…"
+msgstr "Foormaatii caalmaa si barbaachisu barbaaduun jira…"
+
+msgctxt "wizard.formats.total"
+msgid "Total"
+msgstr "Waliigala"
+
+msgctxt "wizard.formats.video"
+msgid "Video"
+msgstr "Viidiyoo"
+
+msgctxt "wizard.formats.videoOnly"
+msgid "Video only"
+msgstr "Viidiyoo qofa"
+
+msgctxt "wizard.mixedPrompt.body"
+msgid "Want only the video you clicked, or pick from the playlist? You'll choose specific videos or a range next."
+msgstr "Viidiyoo tokko kana filadda, moo Playlist keessaa barbaadda? Viidiyoowwan addaddaa yookaan kutaa filattu itti aanu."
+
+msgctxt "wizard.mixedPrompt.pickFromPlaylist"
+msgid "Pick from playlist"
+msgstr "Playlist keessaa filadhu"
+
+msgctxt "wizard.mixedPrompt.playlistLimit"
+msgid "Playlist probe limit: {{count}} items"
+msgstr "Daangaa sakatta’iinsa playlist: wantoota {{count}}"
+
+msgctxt "wizard.mixedPrompt.playlistTooltip"
+msgid "Uses yt-dlp playlist mode and fetches up to your playlist probe limit before showing the picker."
+msgstr "Haala playlist yt-dlp fayyadamee hanga daangaa sakatta’iinsa playlist kee dura filannoo agarsiisa."
+
+msgctxt "wizard.mixedPrompt.quickBody"
+msgid "Download only this video, or queue the whole playlist with your active Quick Download profile."
+msgstr "Viidiyoo kana qofa buufadhu, yookaan piroofaayila Buufata saffisaa hojiirra jiru fayyadamuun tarree taphachiisaa guutuu gara tarree hojiiitti galchi."
+
+msgctxt "wizard.mixedPrompt.quickLimitDescription"
+msgid "Maximum entries Arroxy scans before queueing a playlist, channel, or search result."
+msgstr "Baay’ina olaanaa wantoota Arroxy tarree taphachiisaa, chaanaalii, yookaan bu’aa barbaacha gara tarree hojiiitti galchuu dura sakatta’u."
+
+msgctxt "wizard.mixedPrompt.quickPlaylistTooltip"
+msgid "Queues every loaded playlist item with the active Quick Download profile. If the scan hits your limit, Arroxy asks before queueing."
+msgstr "Wantoota tarree taphachiisaa fe’aman hunda piroofaayila Buufata saffisaa hojiirra jiru fayyadamuun gara tarree hojiiitti galcha. Sakatta’iinsi daangaa kee yoo ga’e, Arroxy tarree hojiiitti galchuu dura ni gaafata."
+
+msgctxt "wizard.mixedPrompt.quickSingleTooltip"
+msgid "Queues one download and ignores the playlist attached to this URL."
+msgstr "Buufata tokko gara tarree hojiiitti galcha, tarree taphachiisaa URL kanaan walqabate immoo ni dhiisa."
+
+msgctxt "wizard.mixedPrompt.quickSingleVideo"
+msgid "Download this video"
+msgstr "Viidiyoo kana buufadhu"
+
+msgctxt "wizard.mixedPrompt.quickWholePlaylist"
+msgid "Download whole playlist"
+msgstr "Tarree taphachiisaa guutuu buufadhu"
+
+msgctxt "wizard.mixedPrompt.singleTooltip"
+msgid "Uses yt-dlp single-video mode so the playlist attached to this URL is ignored."
+msgstr "Haala viidiyoo tokkoo yt-dlp fayyadama; playlist URL kanaan hidhame ni tuffatama."
+
+msgctxt "wizard.mixedPrompt.singleVideo"
+msgid "Just this one"
+msgstr "Kana qofa"
+
+msgctxt "wizard.mixedPrompt.title"
+msgid "This link has a playlist"
+msgstr "Liinkin kun Playlist qaba"
+
+msgctxt "wizard.output.embedChapters.description"
+msgid "Chapter markers navigable in any modern player."
+msgstr "Mallattooleen boqonnaa taphataa ammayyaa kamiyyuu keessatti hojjetu."
+
+msgctxt "wizard.output.embedChapters.label"
+msgid "Embed chapters"
+msgstr "Boqonnaa maksi"
+
+msgctxt "wizard.output.embedMetadata.description"
+msgid "Title, artist, description, and upload date written into the file."
+msgstr "Mata-duree, artist, ibsa, fi guyyaan fe'ame faayilii keessatti barreeffama."
+
+msgctxt "wizard.output.embedMetadata.label"
+msgid "Embed metadata"
+msgstr "Metadata maksi"
+
+msgctxt "wizard.output.embedThumbnail.description"
+msgid "Cover art inside the file. WebM video will be remuxed to MKV; skipped when subtitles are embedded."
+msgstr "Suuraa haguugduu faayilii keessa. MP4 / M4A qofa — axxiinni makamuun dura ni darba."
+
+msgctxt "wizard.output.embedThumbnail.label"
+msgid "Embed thumbnail"
+msgstr "Thumbnail maksi"
+
+msgctxt "wizard.output.writeDescription.description"
+msgid "Saves the video description as a .description text file next to the download."
+msgstr "Ibsa viidiyoo .description faayilii barreeffamaa ta'ee daawniloodii cinaa ni kuusa."
+
+msgctxt "wizard.output.writeDescription.label"
+msgid "Save description"
+msgstr "Ibsa kuusi"
+
+msgctxt "wizard.output.writeM3u.description"
+msgid "Save an .m3u playlist alongside the videos so they open in order in your media player."
+msgstr "Viidiyoowwan tarreen media player keessatti banamaniif .m3u isaan cinatti kuusi."
+
+msgctxt "wizard.output.writeM3u.label"
+msgid "Generate .m3u playlist file"
+msgstr "Faayilii playlist .m3u uumi"
+
+msgctxt "wizard.output.writeThumbnail.description"
+msgid "Saves the thumbnail as a .jpg image file next to the download."
+msgstr "Thumbnail .jpg faayilii suuraa ta'ee daawniloodii cinaa ni kuusa."
+
+msgctxt "wizard.output.writeThumbnail.label"
+msgid "Save thumbnail"
+msgstr "Thumbnail kuusi"
+
+msgctxt "wizard.playlist.allRemovedDescription"
+msgid "Restore them to continue."
+msgstr "Itti fufuudhaaf isaan deebisi."
+
+msgctxt "wizard.playlist.allRemovedTitle"
+msgid "Every item was removed"
+msgstr "Wanti hundinuu balleeffameera"
+
+msgctxt "wizard.playlist.alreadyDownloaded"
+msgid "Already downloaded"
+msgstr "Duraan buufameera"
+
+msgctxt "wizard.playlist.bulkHeading"
+msgid "Bulk URLs"
+msgstr "URL hedduu"
+
+msgctxt "wizard.playlist.bulkMetadataOptional"
+msgid "No need to wait — files queued now still get their real names when they download."
+msgstr "Eeguu hin barbaachisu — faayilonni amma tarree galchan iyyuu buufamanis maqaa isaanii dhugaa argatu."
+
+msgctxt "wizard.playlist.bulkMetadataResolving"
+msgid "Fetching video details… {{done}}/{{total}}"
+msgstr "Ibsa viidiyoo fidaa… {{done}}/{{total}}"
+
+msgctxt "wizard.playlist.bulkRowFailed"
+msgid "Details unavailable"
+msgstr "Ibsi hin argamne"
+
+msgctxt "wizard.playlist.bulkRowResolving"
+msgid "Fetching details"
+msgstr "Ibsa fidaa jira"
+
+msgctxt "wizard.playlist.bulkRowWaiting"
+msgid "Waiting"
+msgstr "Eegaa jira"
+
+msgctxt "wizard.playlist.durationUnknown"
+msgid "live"
+msgstr "kallattii"
+
+msgctxt "wizard.playlist.heading"
+msgid "Playlist items"
+msgstr "Wantoota Playlist"
+
+msgctxt "wizard.playlist.headingGeneric"
+msgid "Videos to download"
+msgstr "Viidiyoowwan buufachuuf"
+
+msgctxt "wizard.playlist.itemCount_one"
+msgid "{{count}} video"
+msgstr "{{count}} viidiyoo"
+
+msgctxt "wizard.playlist.itemCount_other"
+msgid "{{count}} videos"
+msgstr "{{count}} viidiyoowwan"
+
+msgctxt "wizard.playlist.itemCountAudio_one"
+msgid "{{count}} track"
+msgstr "{{count}} weellaa"
+
+msgctxt "wizard.playlist.itemCountAudio_other"
+msgid "{{count}} tracks"
+msgstr "{{count}} weellaalee"
+
+msgctxt "wizard.playlist.itemCountBulk_one"
+msgid "{{count}} URL"
+msgstr "{{count}} URL"
+
+msgctxt "wizard.playlist.itemCountBulk_other"
+msgid "{{count}} URLs"
+msgstr "{{count}} URL"
+
+msgctxt "wizard.playlist.loadingItems"
+msgid "Fetching playlist…"
+msgstr "Playlist fidaa jira…"
+
+msgctxt "wizard.playlist.loadingItemsGeneric"
+msgid "Fetching videos…"
+msgstr "Viidiyoowwan fidamaa jiru…"
+
+msgctxt "wizard.playlist.loadingLimitHint"
+msgid "Limited to first {{count}} items"
+msgstr "Wantoota jalqabaa {{count}} qofatti daangeffame"
+
+msgctxt "wizard.playlist.loadingPagesFound_one"
+msgid "{{count}} page found"
+msgstr "Fuulli {{count}} argame"
+
+msgctxt "wizard.playlist.loadingPagesFound_other"
+msgid "{{count}} pages found"
+msgstr "Fuulonni {{count}} argaman"
+
+msgctxt "wizard.playlist.loadingPhaseItems"
+msgid "Collecting videos"
+msgstr "Viidiyoowwan walitti qabaa jira"
+
+msgctxt "wizard.playlist.loadingPhasePages"
+msgid "Scanning channel pages"
+msgstr "Fuulota chaanaalii sakattaʼaa jira"
+
+msgctxt "wizard.playlist.multiProfileEntry"
+msgid "Assign profiles per item"
+msgstr "Meeshaa tokkoon tokkoon Piroofaayilii ramaduu"
+
+msgctxt "wizard.playlist.multiProfileEntryTooltip"
+msgid "Skips Quality, SponsorBlock, Output, and Save — assign a download profile per item instead"
+msgstr "Qulqullina, SponsorBlock, Ba'uu, fi Kuusi ni dabarsa — qooda kanaa meeshaa tokkoon tokkoon Piroofaayilii buufannaa ramadi"
+
+msgctxt "wizard.playlist.nestedPlaylistBadge"
+msgid "Playlist"
+msgstr "Tarree taphachiisaa"
+
+msgctxt "wizard.playlist.nestedPlaylistHint_one"
+msgid "{{count}} of these is a playlist, not a video — paste its link on its own to download it."
+msgstr "Isaan kana keessaa {{count}} viidiyoo osoo hin taane tarree taphachiisaa dha — buusuuf hidhaa isaa kophaatti maxxansi."
+
+msgctxt "wizard.playlist.nestedPlaylistHint_other"
+msgid "{{count}} of these are playlists, not videos — paste their links one at a time to download them."
+msgstr "Isaan kana keessaa {{count}} viidiyoowwan osoo hin taane tarreewwan taphachiisaa dha — buusuuf hidhaalee isaanii tokko tokkoon maxxansi."
+
+msgctxt "wizard.playlist.noSelection"
+msgid "Select at least one video to continue"
+msgstr "Itti fufuuf viidiyoo tokko yoo xiqqaate filadhu"
+
+msgctxt "wizard.playlist.probeLimitAlertDesc"
+msgid "Showing first {{count}} items. Increase the load limit to see more."
+msgstr "Arroxy wantoota {{count}} ol argateera, kanaafuu daangaan qorannaa ammaa kan hafan dhoksaa jira."
+
+msgctxt "wizard.playlist.probeLimitAlertTitle"
+msgid "Playlist scan is capped"
+msgstr "Qorannaan playlist daangeffameera"
+
+msgctxt "wizard.playlist.probeLimitAlertTitleGeneric"
+msgid "Scan is capped"
+msgstr "Sakatta’iinsi daangeffameera"
+
+msgctxt "wizard.playlist.rangeApply"
+msgid "Apply range"
+msgstr "Daangaa hojiirra oolchi"
+
+msgctxt "wizard.playlist.rangeFrom"
+msgid "From"
+msgstr "Irraa"
+
+msgctxt "wizard.playlist.rangeTo"
+msgid "To"
+msgstr "Gara"
+
+msgctxt "wizard.playlist.removedCount_one"
+msgid "{{count}} removed"
+msgstr "{{count}} balleeffame"
+
+msgctxt "wizard.playlist.removedCount_other"
+msgid "{{count}} removed"
+msgstr "{{count}} balleeffame"
+
+msgctxt "wizard.playlist.removeFromListCount_one"
+msgid "Remove {{count}} from list"
+msgstr "{{count}} tarreefaa keessaa balleessi"
+
+msgctxt "wizard.playlist.removeFromListCount_other"
+msgid "Remove {{count}} from list"
+msgstr "{{count}} tarreefaa keessaa balleessi"
+
+msgctxt "wizard.playlist.restore"
+msgid "Restore"
+msgstr "Deebi'si"
+
+msgctxt "wizard.playlist.selectAll"
+msgid "Select all"
+msgstr "Hunda filadhu"
+
+msgctxt "wizard.playlist.selectedCount_one"
+msgid "{{count}} selected"
+msgstr "{{count}} filatame"
+
+msgctxt "wizard.playlist.selectedCount_other"
+msgid "{{count}} selected"
+msgstr "{{count}} filataman"
+
+msgctxt "wizard.playlist.selectNone"
+msgid "Select none"
+msgstr "Tokkollee hin filin"
+
+msgctxt "wizard.playlist.sortApi"
+msgid "Playlist order"
+msgstr "Tartiiba tarree"
+
+msgctxt "wizard.playlist.sortFetchingDates"
+msgid "Fetching upload dates…"
+msgstr "Guyyaa fe'umsaa fidaa jira…"
+
+msgctxt "wizard.playlist.sortLabel"
+msgid "Sort"
+msgstr "Tartiibessi"
+
+msgctxt "wizard.playlist.sortUploadAsc"
+msgid "Oldest first"
+msgstr "Moofaa jalqaba"
+
+msgctxt "wizard.playlist.sortUploadDesc"
+msgid "Newest first"
+msgstr "Haaraa jalqaba"
+
+msgctxt "wizard.playlist.syncApply"
+msgid "Apply sync"
+msgstr "Walsimsiisa hojiirra oolchi"
+
+msgctxt "wizard.playlist.syncChange"
+msgid "Change folder…"
+msgstr "Galmee jijjiiri…"
+
+msgctxt "wizard.playlist.syncFoundDesc"
+msgid "{{n}} of these videos are already in {{dir}}. Sync to download only the new ones?"
+msgstr "Viidiyoowwan kana keessaa {{n}} duraan {{dir}} keessa jiru. Kan haaraa qofa buufachuuf walsimsiisi?"
+
+msgctxt "wizard.playlist.syncFoundTitle"
+msgid "Already in folder"
+msgstr "Duraan galmee keessa jira"
+
+msgctxt "wizard.playlist.syncNoneDesc"
+msgid "No videos from this playlist were found in {{dir}}."
+msgstr "Viidiyoon playlist kanaa {{dir}} keessatti hin argamne."
+
+msgctxt "wizard.playlist.syncNoneDescGeneric"
+msgid "No videos from this source were found in {{dir}}."
+msgstr "Viidiyoowwan madda kana irraa {{dir}} keessatti hin argamne."
+
+msgctxt "wizard.playlist.syncNoneTitle"
+msgid "Nothing downloaded yet"
+msgstr "Ammaaf homtuu hin buufamne"
+
+msgctxt "wizard.playlist.syncScanning"
+msgid "Checking folder…"
+msgstr "Galmee sakatta’aa jira…"
+
+msgctxt "wizard.playlist.thumbnailAlt"
+msgid "Video thumbnail"
+msgstr "Thumbnail viidiyoo"
+
+msgctxt "wizard.playlistPresets.heading"
+msgid "Pick quality for the batch"
+msgstr "Kutaa gurmuu barbaadi"
+
+msgctxt "wizard.playlistPresets.itemCount_one"
+msgid "{{count}} item"
+msgstr "{{count}} wanta"
+
+msgctxt "wizard.playlistPresets.itemCount_other"
+msgid "{{count}} items"
+msgstr "{{count}} wantota"
+
+msgctxt "wizard.playlistPresets.subhead"
+msgid "Each video resolves the chosen tier independently — heterogeneous playlists work without surprises."
+msgstr "Viidiyoon hundi sadarkaa filatame ofumaan qorata — playlist garagaraa sodaa malee hojjeta."
+
+msgctxt "wizard.playlistProfiles.assignAria"
+msgid "Assign {{profileName}}"
+msgstr "{{profileName}} ramaduu"
+
+msgctxt "wizard.playlistProfiles.assignTrigger"
+msgid "Assign to selection"
+msgstr "Filannoo ramaduu"
+
+msgctxt "wizard.playlistProfiles.columnDuration"
+msgid "Duration"
+msgstr "Turtii"
+
+msgctxt "wizard.playlistProfiles.columnProfile"
+msgid "Profile"
+msgstr "Piroofaayilii"
+
+msgctxt "wizard.playlistProfiles.editProfile"
+msgid "Edit {{name}}"
+msgstr "{{name}} gulaali"
+
+msgctxt "wizard.playlistProfiles.empty"
+msgid "No items match this filter"
+msgstr "Calaltuu kanaan wal simu hin jiru"
+
+msgctxt "wizard.playlistProfiles.filterChip"
+msgid "{{name}} · {{count}}"
+msgstr "{{name}} · {{count}}"
+
+msgctxt "wizard.playlistProfiles.filtersLabel"
+msgid "Profile filters"
+msgstr "Calaltuu piroofaayilii"
+
+msgctxt "wizard.playlistProfiles.heading"
+msgid "Assign download profiles"
+msgstr "Piroofaayilii buufannaa ramaduu"
+
+msgctxt "wizard.playlistProfiles.hintBody"
+msgid "Shift-click for a range, {{modifier}}-click to add one, or drag across rows. Then pick a profile above, or right-click the selection."
+msgstr "Daangaa tokkoof Shift-cuqaasi, tokko dabaluuf {{modifier}}-cuqaasi, ykn sarara irratti harkisi. Ergasii piroofaayilii armaan olii filadhu, ykn filannoo irratti mirga-cuqaasi."
+
+msgctxt "wizard.playlistProfiles.hintTitle"
+msgid "Assign profiles to several videos at once"
+msgstr "Piroofaayilii yeroo tokkotti viidiyoo hedduuf ramaduu"
+
+msgctxt "wizard.playlistProfiles.selectedSummary"
+msgid "{{selected}} of {{total}} selected"
+msgstr "{{total}} keessaa {{selected}} filatameera"
+
+msgctxt "wizard.profileEditor.action.addLanguage"
+msgid "Add"
+msgstr "Dabali"
+
+msgctxt "wizard.profileEditor.action.changeGlobalShort"
+msgid "Change global"
+msgstr "Waliigalaa jijjiiri"
+
+msgctxt "wizard.profileEditor.action.chooseFolder"
+msgid "Choose destination folder"
+msgstr "Galee ga'umsaa filadhu"
+
+msgctxt "wizard.profileEditor.action.chooseIcon"
+msgid "Choose profile icon"
+msgstr "Mallattoo piroofaayilii filadhu"
+
+msgctxt "wizard.profileEditor.action.removeLanguage"
+msgid "Remove {{code}}"
+msgstr "{{code}} balleessi"
+
+msgctxt "wizard.profileEditor.action.reset"
+msgid "Reset profile"
+msgstr "Piroofaayilii haaromsi"
+
+msgctxt "wizard.profileEditor.action.save"
+msgid "Save profile"
+msgstr "Piroofaayilii olkaa'i"
+
+msgctxt "wizard.profileEditor.action.setOverride"
+msgid "Set profile override"
+msgstr "Bakka bu'iinsa piroofaayilii qindeessi"
+
+msgctxt "wizard.profileEditor.action.setOverrideShort"
+msgid "Set override"
+msgstr "Bakka bu'iinsa qindeessi"
+
+msgctxt "wizard.profileEditor.action.useGlobalDefault"
+msgid "Use global default"
+msgstr "Durtii waliigalaa fayyadami"
+
+msgctxt "wizard.profileEditor.audioFormat.best"
+msgid "Best"
+msgstr "Gaarii"
+
+msgctxt "wizard.profileEditor.audioFormat.wav"
+msgid "WAV"
+msgstr "WAV"
+
+msgctxt "wizard.profileEditor.audioQuality.128"
+msgid "Up to 128K"
+msgstr "Hanga 128K"
+
+msgctxt "wizard.profileEditor.audioQuality.192"
+msgid "Up to 192K"
+msgstr "Hanga 192K"
+
+msgctxt "wizard.profileEditor.audioQuality.320"
+msgid "Up to 320K"
+msgstr "Hanga 320K"
+
+msgctxt "wizard.profileEditor.audioQuality.best"
+msgid "Best quality"
+msgstr "Qulqullina gaarii"
+
+msgctxt "wizard.profileEditor.destination.global"
+msgid "Global destination"
+msgstr "Ga'umsa waliigalaa"
+
+msgctxt "wizard.profileEditor.destination.override"
+msgid "Profile override"
+msgstr "Bakka bu'iinsa piroofaayilii"
+
+msgctxt "wizard.profileEditor.destination.resolved"
+msgid "Resolved destination"
+msgstr "Ga'umsa dhumaa"
+
+msgctxt "wizard.profileEditor.dialogDescription"
+msgid "One reusable setup for Quick Download, Bulk URLs, and playlists."
+msgstr "Buufata Saffisaa, URL Baay'ee fi tarree taphaatiif qindaa'ina irra deebi'anii fayyadamuu danda'an tokko."
+
+msgctxt "wizard.profileEditor.dialogTitle"
+msgid "Download Profile"
+msgstr "Piroofaayilii buufataa"
+
+msgctxt "wizard.profileEditor.error.changeGlobalDestination"
+msgid "Could not change global destination."
+msgstr "Ga'umsa waliigalaa jijjiiruun hin danda'amne."
+
+msgctxt "wizard.profileEditor.error.reset"
+msgid "Could not reset profile settings."
+msgstr "Qindaa'inni piroofaayilii haaromsuun hin danda'amne."
+
+msgctxt "wizard.profileEditor.error.save"
+msgid "Could not save profile settings."
+msgstr "Qindaa'inni piroofaayilii olkaa'uun hin danda'amne."
+
+msgctxt "wizard.profileEditor.field.compatibility"
+msgid "Compatibility"
+msgstr "Waliisimuu"
+
+msgctxt "wizard.profileEditor.field.delivery"
+msgid "Delivery"
+msgstr "Karaa olkaa'uu"
+
+msgctxt "wizard.profileEditor.field.icon"
+msgid "Profile icon"
+msgstr "Mallattoo piroofaayilii"
+
+msgctxt "wizard.profileEditor.field.languageCodes"
+msgid "Subtitle language codes"
+msgstr "Koodii afaan ergaa gadii"
+
+msgctxt "wizard.profileEditor.field.languages"
+msgid "Languages"
+msgstr "Afaanota"
+
+msgctxt "wizard.profileEditor.field.name"
+msgid "Profile name"
+msgstr "Maqaa piroofaayilii"
+
+msgctxt "wizard.profileEditor.field.nameAndIcon"
+msgid "Profile name and icon"
+msgstr "Maqaa fi mallattoo piroofaayilii"
+
+msgctxt "wizard.profileEditor.field.overridePath"
+msgid "Profile override path"
+msgstr "Daandii bakka bu'iinsa piroofaayilii"
+
+msgctxt "wizard.profileEditor.field.quality"
+msgid "Quality"
+msgstr "Qulqullina"
+
+msgctxt "wizard.profileEditor.field.resolution"
+msgid "Resolution"
+msgstr "Ifa bal'ina"
+
+msgctxt "wizard.profileEditor.field.source"
+msgid "Source"
+msgstr "Madda"
+
+msgctxt "wizard.profileEditor.field.subfolderName"
+msgid "Subfolder name"
+msgstr "Maqaa gale xiqqaa"
+
+msgctxt "wizard.profileEditor.field.subtitleDownloads"
+msgid "Subtitle downloads"
+msgstr "Buufata ergaa gadii"
+
+msgctxt "wizard.profileEditor.icon.archive"
+msgid "Archive"
+msgstr "Kuusaa"
+
+msgctxt "wizard.profileEditor.icon.audio"
+msgid "Audio"
+msgstr "Sagalee"
+
+msgctxt "wizard.profileEditor.icon.captions"
+msgid "Captions"
+msgstr "Ergaa gadii"
+
+msgctxt "wizard.profileEditor.icon.classes"
+msgid "Classes"
+msgstr "Barnoota"
+
+msgctxt "wizard.profileEditor.icon.clip"
+msgid "Clip"
+msgstr "Muraa"
+
+msgctxt "wizard.profileEditor.icon.controls"
+msgid "Controls"
+msgstr "To'annoo"
+
+msgctxt "wizard.profileEditor.icon.download"
+msgid "Download"
+msgstr "Buufata"
+
+msgctxt "wizard.profileEditor.icon.music"
+msgid "Music"
+msgstr "Muuziqaa"
+
+msgctxt "wizard.profileEditor.icon.podcast"
+msgid "Podcast"
+msgstr "Poodkaastii"
+
+msgctxt "wizard.profileEditor.icon.video"
+msgid "Video"
+msgstr "Viidiyoo"
+
+msgctxt "wizard.profileEditor.mediaMode.audioOnly.description"
+msgid "Music or podcasts"
+msgstr "Muuziqaa ykn poodkaastii"
+
+msgctxt "wizard.profileEditor.mediaMode.audioOnly.label"
+msgid "Audio only"
+msgstr "Sagalee qofa"
+
+msgctxt "wizard.profileEditor.mediaMode.subtitlesOnly.description"
+msgid "Caption files only"
+msgstr "Faayilii ergaa gadii qofa"
+
+msgctxt "wizard.profileEditor.mediaMode.subtitlesOnly.label"
+msgid "Subs only"
+msgstr "Ergaa gadii qofa"
+
+msgctxt "wizard.profileEditor.mediaMode.videoAudio.description"
+msgid "Normal video files"
+msgstr "Faayilii viidiyoo idilee"
+
+msgctxt "wizard.profileEditor.mediaMode.videoAudio.label"
+msgid "Video + audio"
+msgstr "Viidiyoo + sagalee"
+
+msgctxt "wizard.profileEditor.mediaMode.videoOnly.description"
+msgid "Silent video only"
+msgstr "Viidiyoo sagalee hin qabne qofa"
+
+msgctxt "wizard.profileEditor.mediaMode.videoOnly.label"
+msgid "Video, no audio"
+msgstr "Viidiyoo, sagalee malee"
+
+msgctxt "wizard.profileEditor.note.autoCaptionsSrt"
+msgid "Auto-captions will be saved as SRT instead of ASS."
+msgstr "Ergaan gadii ofumaan uumame bakka ASS SRT ta'ee ni olkaa'ama."
+
+msgctxt "wizard.profileEditor.note.noLanguages"
+msgid "No languages selected"
+msgstr "Afaan hin filatamne"
+
+msgctxt "wizard.profileEditor.note.noSubtitles"
+msgid "No subtitle files or embedded subtitle tracks will be requested for this profile."
+msgstr "Piroofaayilii kanaaf faayiliin ergaa gadii ykn sararri ergaa gadii keessatti galfame hin gaafatamu."
+
+msgctxt "wizard.profileEditor.note.skippedForOutputType"
+msgid "Skipped for this output type."
+msgstr "Gosa bahaa kanaaf darbameera."
+
+msgctxt "wizard.profileEditor.note.subtitlesOnly"
+msgid "This profile queues subtitle files only. Video, audio, SponsorBlock, and media conversion are skipped."
+msgstr "Piroofaayiliin kun faayilii ergaa gadii qofa tarree keessa kaa'a. Viidiyoon, sagaleen, SponsorBlock fi jijjiirraan miidiyaa ni darbatamu."
+
+msgctxt "wizard.profileEditor.panel.advanced.description"
+msgid "Profiles inherit the global destination unless you set a profile override."
+msgstr "Bakka bu'iinsa piroofaayilii yoo hin qindeessine, piroofaayiliin ga'umsa waliigalaa dhaala."
+
+msgctxt "wizard.profileEditor.panel.advanced.title"
+msgid "Advanced options"
+msgstr "Filannoo olaanaa"
+
+msgctxt "wizard.profileEditor.panel.downloadType.description"
+msgid "Choose the primary way you want to download."
+msgstr "Karaa ijoo ittiin buufachuu barbaaddu filadhu."
+
+msgctxt "wizard.profileEditor.panel.downloadType.title"
+msgid "Download type"
+msgstr "Gosa buufataa"
+
+msgctxt "wizard.profileEditor.panel.identity.description"
+msgid "Name and icon shown in Quick Download, Bulk URLs, and profile lists."
+msgstr "Maqaa fi mallattoo Buufata Saffisaa, URL Baay'ee fi tarree piroofaayilii keessatti mul'atu."
+
+msgctxt "wizard.profileEditor.panel.identity.title"
+msgid "Profile identity"
+msgstr "Eenyummaa piroofaayilii"
+
+msgctxt "wizard.profileEditor.panel.output.title"
+msgid "Output options"
+msgstr "Filannoo bahaa"
+
+msgctxt "wizard.profileEditor.panel.sponsorBlock.title"
+msgid "SponsorBlock"
+msgstr "SponsorBlock"
+
+msgctxt "wizard.profileEditor.placeholder.folder"
+msgid "Choose a folder for this profile"
+msgstr "Piroofaayilii kanaaf galee filadhu"
+
+msgctxt "wizard.profileEditor.skipped"
+msgid "Skipped"
+msgstr "Darbameera"
+
+msgctxt "wizard.profileEditor.sponsorBlockHint.mark"
+msgid "Marks sponsor segments as chapters (non-destructive)."
+msgstr "Kutaa ispoonsarii akka boqonnaatti mallatteessa (faayilii hin jijjiiru)."
+
+msgctxt "wizard.profileEditor.sponsorBlockHint.off"
+msgid "No SponsorBlock — video plays as uploaded."
+msgstr "SponsorBlock hin jiru — viidiyoon akkuma olkaa'ametti taphata."
+
+msgctxt "wizard.profileEditor.sponsorBlockHint.remove"
+msgid "Cuts sponsor segments from the video using FFmpeg."
+msgstr "FFmpeg fayyadamuun kutaa ispoonsarii viidiyoo irraa muura."
+
+msgctxt "wizard.profileEditor.subtitleFormat.ass"
+msgid "ASS"
+msgstr "ASS"
+
+msgctxt "wizard.profileEditor.subtitleFormat.srt"
+msgid "SRT"
+msgstr "SRT"
+
+msgctxt "wizard.profileEditor.subtitleFormat.vtt"
+msgid "VTT"
+msgstr "VTT"
+
+msgctxt "wizard.profileEditor.subtitleSource.autoOnly"
+msgid "Auto-generated only"
+msgstr "Kan ofumaan uumaman qofa"
+
+msgctxt "wizard.profileEditor.subtitleSource.manualFirst"
+msgid "Manual first, then auto"
+msgstr "Duraa harkaan, sana booda ofumaan"
+
+msgctxt "wizard.profileEditor.subtitleSource.manualOnly"
+msgid "Manual only"
+msgstr "Harkaan qofa"
+
+msgctxt "wizard.profileEditor.videoAudioFormat.m4a"
+msgid "M4A / AAC"
+msgstr "M4A / AAC"
+
+msgctxt "wizard.profileSwitchRow.helpAria"
+msgid "{{label}} help"
+msgstr "Gargaarsa {{label}}"
+
+msgctxt "wizard.quickProgress.cancel"
+msgid "Cancel preparation"
+msgstr "Qophii haqi"
+
+msgctxt "wizard.quickProgress.currentFallback"
+msgid "Current link"
+msgstr "Hidha ammaa"
+
+msgctxt "wizard.quickProgress.description"
+msgid "Arroxy is reading the link and applying {{profileName}}."
+msgstr "Arroxy hidhaa dubbisaa jira, {{profileName}} immoo fayyadamaa jira."
+
+msgctxt "wizard.quickProgress.failedCount_one"
+msgid "{{count}} failed"
+msgstr "{{count}} hin milkoofne"
+
+msgctxt "wizard.quickProgress.failedCount_other"
+msgid "{{count}} failed"
+msgstr "{{count}} hin milkoofne"
+
+msgctxt "wizard.quickProgress.phase.probing"
+msgid "Fetching details"
+msgstr "Ibsa fidaa jira"
+
+msgctxt "wizard.quickProgress.phase.queueing"
+msgid "Adding to queue"
+msgstr "Tarreetti dabalaa jira"
+
+msgctxt "wizard.quickProgress.title"
+msgid "Preparing Quick Download"
+msgstr "Buufata saffisaa qopheessaa jira"
+
+msgctxt "wizard.quickProgress.waitHint"
+msgid "Keep this open while Arroxy prepares the queue."
+msgstr "Arroxy tarree qopheessaa jiru kana banaa dhiisi."
+
+msgctxt "wizard.sponsorblock.cat.filler"
+msgid "Filler"
+msgstr "Filler"
+
+msgctxt "wizard.sponsorblock.cat.intro"
+msgid "Intro"
+msgstr "Intro"
+
+msgctxt "wizard.sponsorblock.cat.music_offtopic"
+msgid "Music off-topic"
+msgstr "Music off-topic"
+
+msgctxt "wizard.sponsorblock.cat.outro"
+msgid "Outro"
+msgstr "Outro"
+
+msgctxt "wizard.sponsorblock.cat.preview"
+msgid "Preview"
+msgstr "Preview"
+
+msgctxt "wizard.sponsorblock.cat.selfpromo"
+msgid "Self-promo"
+msgstr "Self-promo"
+
+msgctxt "wizard.sponsorblock.cat.sponsor"
+msgid "Sponsor"
+msgstr "Sponsor"
+
+msgctxt "wizard.sponsorblock.categoriesHeading"
+msgid "Categories"
+msgstr "Caasaalee"
+
+msgctxt "wizard.sponsorblock.mode.mark"
+msgid "Mark as chapters"
+msgstr "Boqonnaa ta'ee mallattaa'i"
+
+msgctxt "wizard.sponsorblock.mode.off"
+msgid "Off"
+msgstr "Dhaabbi"
+
+msgctxt "wizard.sponsorblock.mode.remove"
+msgid "Remove segments"
+msgstr "Kutaalee haquu"
+
+msgctxt "wizard.sponsorblock.modeHeading"
+msgid "Sponsor filtering"
+msgstr "Dhiibbaa gurmeessuu"
+
+msgctxt "wizard.sponsorblock.modeHint.mark"
+msgid "Marks sponsor segments as chapters (non-destructive)."
+msgstr "Kutaalee dhiibbaa boqonnaa ta'ee mallattaa'a (miidhaa hin qabne)."
+
+msgctxt "wizard.sponsorblock.modeHint.off"
+msgid "No SponsorBlock — video plays as uploaded."
+msgstr "SponsorBlock hin jiru — viidiyoon akka fe'ametti taphatama."
+
+msgctxt "wizard.sponsorblock.modeHint.remove"
+msgid "Cuts sponsor segments from the video using FFmpeg."
+msgstr "FFmpeg fayyadamuun kutaalee dhiibbaa muqa."
+
+msgctxt "wizard.steps.confirm"
+msgid "Confirm"
+msgstr "Mirkaneessi"
+
+msgctxt "wizard.steps.folder"
+msgid "Save"
+msgstr "Kuusi"
+
+msgctxt "wizard.steps.formats"
+msgid "Format"
+msgstr "Foormaatii"
+
+msgctxt "wizard.steps.output"
+msgid "Output"
+msgstr "Ba'uu"
+
+msgctxt "wizard.steps.playlistItems"
+msgid "Playlist"
+msgstr "Tarree taphachiisaa"
+
+msgctxt "wizard.steps.playlistItemsGeneric"
+msgid "Videos"
+msgstr "Viidiyoowwan"
+
+msgctxt "wizard.steps.playlistPresets"
+msgid "Quality"
+msgstr "Qulqullina"
+
+msgctxt "wizard.steps.playlistProfiles"
+msgid "Profiles"
+msgstr "Profaayilota"
+
+msgctxt "wizard.steps.sponsorblock"
+msgid "SponsorBlock"
+msgstr "SponsorBlock"
+
+msgctxt "wizard.steps.subtitles"
+msgid "Subtitles"
+msgstr "Axxiinni"
+
+msgctxt "wizard.steps.url"
+msgid "URL"
+msgstr "URL"
+
+msgctxt "wizard.subtitles.autoAssNote"
+msgid "Auto-captions will be saved as SRT instead of ASS — for YouTube videos they're cleaned of rolling-cue duplication, which our ASS converter can't replicate yet."
+msgstr "Waxaleen ofumaan uumaman ASS osoo hin ta'in SRT ta'ee ni kuufamu — yeroo hundaa YouTube's rolling-cue duplication'n qulqulleeffama."
+
+msgctxt "wizard.subtitles.autoBadge"
+msgid "Auto"
+msgstr "Ofumaa"
+
+msgctxt "wizard.subtitles.clearAll"
+msgid "Clear all"
+msgstr "Hunda qulqulleessi"
+
+msgctxt "wizard.subtitles.embedNote"
+msgid "Embed mode saves output as .mkv so subtitle tracks embed reliably."
+msgstr "Haalli makuun ba'insa .mkv ta'ee kuusaa fi kuunni sirnaan makama."
+
+msgctxt "wizard.subtitles.format.heading"
+msgid "Format"
+msgstr "Foormaatii"
+
+msgctxt "wizard.subtitles.mascot"
+msgid "Pick zero, one, or many — totally up to you ✨"
+msgstr "Tokko, lama ykn baay'ee filadhu — si irratti hundaa'a ✨"
+
+msgctxt "wizard.subtitles.noLanguages"
+msgid "No subtitles available for this video"
+msgstr "Viidiyoo kanaaf axxiinni hin jiru"
+
+msgctxt "wizard.subtitles.noMatches"
+msgid "No languages match"
+msgstr "Afaan hin argatamne"
+
+msgctxt "wizard.subtitles.noSelected"
+msgid "No subtitles selected"
+msgstr "Axxiinni hin filamine"
+
+msgctxt "wizard.subtitles.removeLanguage"
+msgid "Remove {{name}}"
+msgstr "{{name}} balleessi"
+
+msgctxt "wizard.subtitles.saveMode.embed"
+msgid "Embed into video"
+msgstr "Viidiyoo keessatti maksi"
+
+msgctxt "wizard.subtitles.saveMode.heading"
+msgid "Save as"
+msgstr "Akkamitti kuusi"
+
+msgctxt "wizard.subtitles.saveMode.sidecar"
+msgid "Next to video"
+msgstr "Viidiyoo cinaa"
+
+msgctxt "wizard.subtitles.saveMode.subfolder"
+msgid "subtitles/ subfolder"
+msgstr "subtitles/ saab-foldarii"
+
+msgctxt "wizard.subtitles.searchPlaceholder"
+msgid "Search languages…"
+msgstr "Afaanota barbaadi…"
+
+msgctxt "wizard.subtitles.sectionAuto"
+msgid "Auto-generated"
+msgstr "Ofumaan uumame"
+
+msgctxt "wizard.subtitles.sectionManual"
+msgid "Manual"
+msgstr "Harkaan"
+
+msgctxt "wizard.subtitles.selectedNote_one"
+msgid "{{count}} subtitle will be downloaded"
+msgstr "Axxiinni {{count}} ni buufama"
+
+msgctxt "wizard.subtitles.selectedNote_other"
+msgid "{{count}} subtitles will be downloaded"
+msgstr "Axxiinnota {{count}} ni buufamu"
+
+msgctxt "wizard.subtitles.skip"
+msgid "Skip"
+msgstr "Irri cabi"
+
+msgctxt "wizard.subtitles.skipSubs"
+msgid "Skip for this video"
+msgstr "Viidiyoo kana irra cabi"
+
+msgctxt "wizard.tabsNavAria"
+msgid "Download profile navigation"
+msgstr "Qajeelfama piroofaayilii buufataa"
+
+msgctxt "wizard.url.advanced"
+msgid "Advanced"
+msgstr "Ammayyaa"
+
+msgctxt "wizard.url.analytics.toggle"
+msgid "Send anonymous usage stats"
+msgstr "Tilastoo faayidaa maqaa-malee ergaa"
+
+msgctxt "wizard.url.analytics.toggleDescription"
+msgid "Reports crashes, failures, and feedback anonymously. No URLs, video titles, or filenames."
+msgstr "Dogoggora, kufaatii fi deebiiwwan maqaa hin beekamin galmeessa. URL, mata-dureewwan viidiyoo ykn maqaa faayilii hin qabatu."
+
+msgctxt "wizard.url.autoRetry.description"
+msgid "Automatically tries again after a network or server hiccup, waiting longer between each attempt. Downloads blocked by the site are never retried automatically."
+msgstr "Rakkoo networkii yookaan saarvarii booda ofumaan irra deebi'ee yaala, yaalii tokkoo fi kan biraa gidduutti dheeraa eega. Buufanni marsariitiin ugguramee ofumaan hin yaalamu."
+
+msgctxt "wizard.url.autoRetry.label"
+msgid "Retry failed downloads"
+msgstr "Buufata kufe irra deebi'ii yaali"
+
+msgctxt "wizard.url.autoRetry.unit"
+msgid "times"
+msgstr "yeroo"
+
+msgctxt "wizard.url.backdrop.cssOnlyDescription"
+msgid "CSS only, no canvas rendering."
+msgstr "CSS qofa, canvas hin agarsiisu."
+
+msgctxt "wizard.url.backdrop.cssOnlyLabel"
+msgid "Best performance"
+msgstr "Raawwii gaarii"
+
+msgctxt "wizard.url.backdrop.gpuDescription"
+msgid "Animated WebGL backdrop when supported."
+msgstr "Duubbee WebGL socho’u yoo deeggarame."
+
+msgctxt "wizard.url.backdrop.gpuLabel"
+msgid "Most beautiful"
+msgstr "Bareedina olaanaa"
+
+msgctxt "wizard.url.backdrop.modeDescription"
+msgid "Move from the most animated look to best performance."
+msgstr "Mul’ata sochii baay’ee qabu irraa gara raawwii gaariitti deemaa."
+
+msgctxt "wizard.url.backdrop.modeLabel"
+msgid "Backdrop quality"
+msgstr "Qulqullina duubbee"
+
+msgctxt "wizard.url.backdrop.panelDescription"
+msgid "Choose how much motion Arroxy uses for the animated backdrop."
+msgstr "Arroxy duubbee socho’uuf sochii hammam akka fayyadamu filadhu."
+
+msgctxt "wizard.url.backdrop.panelTitle"
+msgid "Appearance and performance"
+msgstr "Mul’ata fi raawwii"
+
+msgctxt "wizard.url.backdrop.runtimeFallbackNotice"
+msgid "Hardware WebGL is unavailable on this device, so Arroxy is using the performance backdrop."
+msgstr "WebGL meeshaa kana irratti haardweerii hin argamu, kanaaf Arroxy duubbee raawwii fayyadamaa jira."
+
+msgctxt "wizard.url.bulkButton"
+msgid "Bulk URLs"
+msgstr "URL hedduu"
+
+msgctxt "wizard.url.bulkTooltip"
+msgid "Add and queue multiple URLs."
+msgstr "URL hedduu dabaliitii tarree buusutti galchi."
+
+msgctxt "wizard.url.clearAria"
+msgid "Clear URL"
+msgstr "URL qulqulleessi"
+
+msgctxt "wizard.url.clipboard.autofilledLink"
+msgid "Link added from clipboard"
+msgstr "Liinki gabatee waraabbii irraa dabalame"
+
+msgctxt "wizard.url.clipboard.bulkHint"
+msgid "Multiple links copied — use Bulk URLs to add them"
+msgstr "Hidhoota hedduu galcheeffamanii — «URL hedduu» fayyadami"
+
+msgctxt "wizard.url.clipboard.dialog.cancelButton"
+msgid "Cancel"
+msgstr "Haqi"
+
+msgctxt "wizard.url.clipboard.dismissCopiedLink"
+msgid "Dismiss copied link"
+msgstr "Liinki waraabbame cufi"
+
+msgctxt "wizard.url.clipboard.pendingLinkReady"
+msgid "Copied link ready"
+msgstr "Liinki waraabbame qophaaʼeera"
+
+msgctxt "wizard.url.clipboard.toggle"
+msgid "Watch clipboard"
+msgstr "Kliipboordii hordofi"
+
+msgctxt "wizard.url.clipboard.toggleDescription"
+msgid "Auto-fill the URL field when you copy a video link."
+msgstr "Liinkii YouTube koopii gootee booda dirree URL ofumaan guuti."
+
+msgctxt "wizard.url.clipboard.useCopiedLink"
+msgid "Use copied link"
+msgstr "Liinki waraabbame fayyadami"
+
+msgctxt "wizard.url.closeToTray.toggle"
+msgid "Hide to tray on close"
+msgstr "Cufuun dura tiiree dhoksi"
+
+msgctxt "wizard.url.closeToTray.toggleDescription"
+msgid "Continue downloads in the background after closing the window."
+msgstr "Daawniloodii booda gubbaan cufamuu itti fufi."
+
+msgctxt "wizard.url.concurrentDownloads.description"
+msgid "How many queued items download at the same time. More at once finishes a long queue sooner, but raises the chance a site limits you."
+msgstr "Wantoota tarree keessaa meeqa yeroo tokkotti akka buufaman. Yeroo tokkotti baay'achuun tarree dheeraa dafee xumura, garuu carraa marsariitiin si daangessu dabala."
+
+msgctxt "wizard.url.concurrentDownloads.label"
+msgid "Downloads at once"
+msgstr "Buufata yeroo tokkotti"
+
+msgctxt "wizard.url.concurrentDownloads.unit"
+msgid "downloads"
+msgstr "buufata"
+
+msgctxt "wizard.url.cookies.banWarning"
+msgid "Sites like YouTube may flag — and sometimes ban — accounts whose cookies are used by yt-dlp. Use a throwaway account when possible."
+msgstr "YouTube akkawntoota cookies yt-dlp waliin fayyadaman mallatteessuu fi yeroo tokko tokko dhowwuu danda'a. Yoo danda'ame akkawuntii yeroo fayyadami."
+
+msgctxt "wizard.url.cookies.browserHelp"
+msgid "Reads cookies directly from the browser. The browser must be closed for Chromium-family browsers."
+msgstr "Cookies browser irraa kallattiin dubbisa. Chromium-gosa browser cufamuu qaba."
+
+msgctxt "wizard.url.cookies.browserLabel"
+msgid "Browser"
+msgstr "Browser"
+
+msgctxt "wizard.url.cookies.browserPlaceholder"
+msgid "Pick a browser…"
+msgstr "Browser filadhu…"
+
+msgctxt "wizard.url.cookies.choose"
+msgid "Choose…"
+msgstr "Filadhu…"
+
+msgctxt "wizard.url.cookies.clear"
+msgid "Clear"
+msgstr "Qulqulleessi"
+
+msgctxt "wizard.url.cookies.enabledButNoBrowser"
+msgid "Pick a browser to use cookies"
+msgstr "Cookies fayyadamuuf browser filadhu"
+
+msgctxt "wizard.url.cookies.enabledButNoFile"
+msgid "Pick a file to use cookies"
+msgstr "Cookies fayyadamuuf faayilii filadhu"
+
+msgctxt "wizard.url.cookies.extensionChrome"
+msgid "Get cookies.txt LOCALLY (Chrome)"
+msgstr "cookies.txt LOCALLY argadhu (Chrome)"
+
+msgctxt "wizard.url.cookies.extensionFirefox"
+msgid "cookies.txt (Firefox)"
+msgstr "cookies.txt (Firefox)"
+
+msgctxt "wizard.url.cookies.fileLabel"
+msgid "Cookies file"
+msgstr "Faayilii Cookies"
+
+msgctxt "wizard.url.cookies.helpLink"
+msgid "How do I export cookies?"
+msgstr "Akkamitti cookies erga?"
+
+msgctxt "wizard.url.cookies.placeholder"
+msgid "No file selected"
+msgstr "Faayilii hin filanne"
+
+msgctxt "wizard.url.cookies.risk"
+msgid "Risk: a cookies.txt contains every logged-in session for that browser — keep it private."
+msgstr "Balaa: cookies.txt seensa browser sanaa hunda qaba — dhuunfaa ta'ee eegi."
+
+msgctxt "wizard.url.cookies.sourceBrowser"
+msgid "Browser"
+msgstr "Browser"
+
+msgctxt "wizard.url.cookies.sourceFile"
+msgid "File"
+msgstr "Faayilii"
+
+msgctxt "wizard.url.cookies.sourceLabel"
+msgid "Cookies source"
+msgstr "Madda Cookies"
+
+msgctxt "wizard.url.cookies.sourceOff"
+msgid "Off"
+msgstr "Dhaabbi"
+
+msgctxt "wizard.url.cookies.toggleDescription"
+msgid "Helps with age-restricted, members-only, and account-private videos."
+msgstr "Viidiyoowwan umuriin-daangeffame, miseensota-qofaaf, fi dhuunfaa ta'e ni gargaara."
+
+msgctxt "wizard.url.downloadConnections.description"
+msgid "Speeds up large downloads by fetching several parts of a video at once. Higher values raise the chance a site limits you."
+msgstr "Kutaalee viidiyoo hedduu yeroo tokkotti fiduun buufata gurguddaa saffisiisa. Gatiin ol'aanaan carraa marsariitiin si daangessu dabala."
+
+msgctxt "wizard.url.downloadConnections.label"
+msgid "Download connections"
+msgstr "Walqunnamtii buufataa"
+
+msgctxt "wizard.url.downloadConnections.unit"
+msgid "connections"
+msgstr "walqunnamtii"
+
+msgctxt "wizard.url.features.always.audioOnly"
+msgid "Audio only"
+msgstr "Sagalee qofa"
+
+msgctxt "wizard.url.features.always.subtitles"
+msgid "Subtitles"
+msgstr "Axxiinni"
+
+msgctxt "wizard.url.features.anySite.heading"
+msgid "2000+ sites"
+msgstr "Gareewwan 2000+"
+
+msgctxt "wizard.url.features.anySite.musicPlaylist"
+msgid "Music playlists"
+msgstr "Playlist muuziqaa"
+
+msgctxt "wizard.url.features.anySite.video"
+msgid "Videos"
+msgstr "Viidiyoowwan"
+
+msgctxt "wizard.url.features.anySite.videoPlaylist"
+msgid "Video playlists"
+msgstr "Playlist viidiyoo"
+
+msgctxt "wizard.url.features.heading"
+msgid "What Arroxy can pull"
+msgstr "Arroxy maal buufachuu danda'a"
+
+msgctxt "wizard.url.features.youtube.channel"
+msgid "Channels"
+msgstr "Channelota"
+
+msgctxt "wizard.url.features.youtube.heading"
+msgid "YouTube"
+msgstr "YouTube"
+
+msgctxt "wizard.url.features.youtube.music"
+msgid "Music"
+msgstr "Muuziqaa"
+
+msgctxt "wizard.url.features.youtube.playlist"
+msgid "Playlists"
+msgstr "Tarreewwan taphachiisaa"
+
+msgctxt "wizard.url.features.youtube.podcast"
+msgid "Podcasts"
+msgstr "Podcastota"
+
+msgctxt "wizard.url.features.youtube.short"
+msgid "Shorts"
+msgstr "Shorts"
+
+msgctxt "wizard.url.features.youtube.video"
+msgid "Videos"
+msgstr "Viidiyoowwan"
+
+msgctxt "wizard.url.fetchFormatsTooltip"
+msgid "Step-by-step wizard. Choose format, quality, and more."
+msgstr "Wizard tarkaanfii-tarkaanfiin. Foormaatii, qulqullina fi kan biroo fili."
+
+msgctxt "wizard.url.heading"
+msgid "Download from URL"
+msgstr "URL irraa buusi"
+
+msgctxt "wizard.url.hotkey.changeShortcut"
+msgid "Change shortcut"
+msgstr "Hotkey jijjiiri"
+
+msgctxt "wizard.url.hotkey.conflict"
+msgid "This shortcut is taken by another app — pick another one."
+msgstr "Hotkeyn kun appii biraa qabameera — kan bira filu."
+
+msgctxt "wizard.url.hotkey.hintLabel"
+msgid "Or press"
+msgstr "Yookaan dhiibi"
+
+msgctxt "wizard.url.hotkey.hintTooltip"
+msgid "Copy a video link anywhere, press this shortcut, and Arroxy queues it with your active profile — no need to switch windows."
+msgstr "Bakka kamittiyyuu keessatti hidhaa viidiyoo kooppii godhi, gabaabbata kana dhiibi, Arroxy immoo piroofaayila kee sochii irra jiru fayyadamuun tarree keessa galcha — foddaa jijjiiruun hin barbaachisu."
+
+msgctxt "wizard.url.hotkey.hintTooltipSettings"
+msgid "Change or turn it off in Settings."
+msgstr "Qindaa'ina keessatti jijjiiri ykn cufi."
+
+msgctxt "wizard.url.hotkey.recording"
+msgid "Press keys…"
+msgstr "Qabduulee cuqaasi…"
+
+msgctxt "wizard.url.hotkey.reset"
+msgid "Reset to default"
+msgstr "Durtii irra deebi'i"
+
+msgctxt "wizard.url.hotkey.sectionDescription"
+msgid "Download whatever link you copy, from any app, without opening Arroxy."
+msgstr "Hidha kam iyyuu yoo wallakkeessite, appii kamirraa iyyuu, Arroxy banaa malee daawniloodii godhi."
+
+msgctxt "wizard.url.hotkey.sectionTitle"
+msgid "Global hotkey"
+msgstr "Hotkey addunyaa"
+
+msgctxt "wizard.url.hotkey.test"
+msgid "Test"
+msgstr "Qormeessi"
+
+msgctxt "wizard.url.hotkey.toggle"
+msgid "Enable global hotkey"
+msgstr "Hotkey addunyaa bani"
+
+msgctxt "wizard.url.hotkey.toggleDescription"
+msgid "Press the shortcut with a video link on your clipboard."
+msgstr "Buufamaa keessa hidha viidiyoo yoo jiru, hotkey cuqaasi."
+
+msgctxt "wizard.url.interactiveDownload"
+msgid "Interactive Download"
+msgstr "Foormaatii fidi"
+
+msgctxt "wizard.url.limitRate.activeWarning"
+msgid "Active downloads keep their current limit. Pause + Resume to apply changes."
+msgstr "Buusuuwwan hojiirra jiran daangaa isaanii ammaa qabu. Jijjiiruuf Dhaabi + Itti fufi."
+
+msgctxt "wizard.url.limitRate.custom"
+msgid "Custom…"
+msgstr "Kan mataa keetii…"
+
+msgctxt "wizard.url.limitRate.customPlaceholder"
+msgid "e.g. 750K or 1.5M"
+msgstr "fkn. 750K yookiin 1.5M"
+
+msgctxt "wizard.url.limitRate.description"
+msgid "Cap bandwidth for media downloads. Request pacing below is usually the stronger rate-limit lever."
+msgstr "Baandwiidtii buusuu miidiyaa daangeessi. Pacing gaaffii armaan gadii yeroo baay’ee caalaa jabaa dha."
+
+msgctxt "wizard.url.limitRate.invalid"
+msgid "Use a number followed by K or M (e.g. 500K, 1.5M)"
+msgstr "Lakkoofsa K yookiin M itti aanu fayyadami (fkn. 500K, 1.5M)"
+
+msgctxt "wizard.url.limitRate.label"
+msgid "Download speed limit"
+msgstr "Daangaa saffisa buusuu"
+
+msgctxt "wizard.url.limitRate.off"
+msgid "Off"
+msgstr "Dhaamsame"
+
+msgctxt "wizard.url.mascotBusy"
+msgid "Downloading in the background… I can multitask 😎"
+msgstr "Duubaan buusaa jira… rakkoo guguddaa hojjechuuf dandeessa 😎"
+
+msgctxt "wizard.url.mascotIdle"
+msgid "Drop a link and let Arroxy pull it ✨"
+msgstr "Liinkii galchi; Arroxy haa buusu ✨"
+
+msgctxt "wizard.url.nativeAudioPreference.compatible"
+msgid "Compatible stereo"
+msgstr "Isteeriyoo walsimu"
+
+msgctxt "wizard.url.nativeAudioPreference.description"
+msgid "Controls what Best native chooses. Manual audio rows and M4A/AAC stay explicit."
+msgstr "Best native maal akka filatu to’ata. Tarreewwan sagalee harkaan filataman fi M4A/AAC filannoo ifa ta’anii hafu."
+
+msgctxt "wizard.url.nativeAudioPreference.label"
+msgid "Native audio preference"
+msgstr "Filannoo sagalee dhalootaa"
+
+msgctxt "wizard.url.nativeAudioPreference.surround"
+msgid "Prefer surround / Dolby"
+msgstr "Surround / Dolby filadhu"
+
+msgctxt "wizard.url.networkPacing.description"
+msgid "Add small waits during each download so Arroxy does not hit the site too aggressively. Values are in seconds."
+msgstr "Buufata tokko tokkotti yeroo gabaabaaf eegaa jira, kanaafuu Arroxy gara saayitichatti garmalee hin dhiibu. Gatiiwwan sekondiidhaan."
+
+msgctxt "wizard.url.networkPacing.fields.maxSleepInterval"
+msgid "Pause before media starts: max"
+msgstr "Miidiyaan jalqabuuf dura gidduu dhabi: isa ol'aanaa"
+
+msgctxt "wizard.url.networkPacing.fields.sleepInterval"
+msgid "Pause before media starts: min"
+msgstr "Miidiyaan jalqabuuf dura gidduu dhabi: isa xiqqaa"
+
+msgctxt "wizard.url.networkPacing.fields.sleepRequests"
+msgid "Wait between metadata checks"
+msgstr "Qorannoo metadata gidduutti eegii"
+
+msgctxt "wizard.url.networkPacing.fields.sleepSubtitles"
+msgid "Wait before subtitle files"
+msgstr "Axxiinni faayiloota dura eegii"
+
+msgctxt "wizard.url.networkPacing.heading"
+msgid "Gentle downloads"
+msgstr "Buufata laafaa"
+
+msgctxt "wizard.url.networkPacing.presetLabel"
+msgid "How cautious should Arroxy be?"
+msgstr "Arroxy hangam of-eeggachuu qaba?"
+
+msgctxt "wizard.url.networkPacing.presets.balanced"
+msgid "Balanced"
+msgstr "Walsimu"
+
+msgctxt "wizard.url.networkPacing.presets.careful"
+msgid "Careful"
+msgstr "Of-eeggannaa"
+
+msgctxt "wizard.url.networkPacing.presets.custom"
+msgid "Custom"
+msgstr "Ofiin qindi'i"
+
+msgctxt "wizard.url.networkPacing.presets.off"
+msgid "Off"
+msgstr "Dhaabbi"
+
+msgctxt "wizard.url.networkPacing.summary"
+msgid "Waits: {{requests}} between checks, {{downloads}} before media starts, {{subtitles}} before subtitle files."
+msgstr "Eegumsa: {{requests}} qorannoo gidduutti, {{downloads}} miidiyaa jalqabuuf, {{subtitles}} axxiinni faayiloota dura."
+
+msgctxt "wizard.url.networkPacing.tooltip"
+msgid "These waits happen inside each download. How many downloads run at the same time is set separately, under Downloads at once."
+msgstr "Turtiiwwan kunneen buufata tokko tokko keessatti raawwatamu. Buufanni meeqa yeroo tokkotti akka deemu «Buufata yeroo tokkotti» jalatti adda qindeeffama."
+
+msgctxt "wizard.url.networkPacing.tooltips.balanced"
+msgid "Default. Adds short pauses between requests and before media starts."
+msgstr "Durtii. Gaaffiiwwan gidduuttii fi miidiyaan hin jalqabin dura eegaa gabaabaa dabala."
+
+msgctxt "wizard.url.networkPacing.tooltips.careful"
+msgid "Adds longer pauses for large playlists or networks that frequently hit limits."
+msgstr "Eegaa dheeraaf playlist guddoo ykn network yeroo yeroon daangaa gahu dabalaa."
+
+msgctxt "wizard.url.networkPacing.tooltips.custom"
+msgid "Tune the advanced per-download controls yourself."
+msgstr "Too'annoo ammayyaa buufata tokko tokkoos ofiin sirreessi."
+
+msgctxt "wizard.url.networkPacing.tooltips.off"
+msgid "Uses only the small baseline pauses Arroxy keeps for media and subtitles."
+msgstr "Arroxy miidiyaa fi axxiinni qofaaf eegaa xiqaa qabaatutu fayyadama."
+
+msgctxt "wizard.url.networkPacing.units.seconds"
+msgid "sec"
+msgstr "sec"
+
+msgctxt "wizard.url.placeholder"
+msgid "https://..."
+msgstr "https://www.youtube.com/watch?v=..."
+
+msgctxt "wizard.url.playlistProbeLimit.current"
+msgid "Current limit: {{count}} items"
+msgstr "Daangaa ammaa: wantota {{count}}"
+
+msgctxt "wizard.url.playlistProbeLimit.custom"
+msgid "Custom…"
+msgstr "Mifaan…"
+
+msgctxt "wizard.url.playlistProbeLimit.customDialogCancel"
+msgid "Cancel"
+msgstr "Haquu"
+
+msgctxt "wizard.url.playlistProbeLimit.customDialogDescription"
+msgid "Use a whole number from {{min}} to {{max}}."
+msgstr "Lakkoofsa guutuu {{min}} hanga {{max}} fayyadami."
+
+msgctxt "wizard.url.playlistProbeLimit.customDialogSave"
+msgid "Save limit"
+msgstr "Daangaa kuusi"
+
+msgctxt "wizard.url.playlistProbeLimit.customDialogTitle"
+msgid "Custom playlist scan limit"
+msgstr "Daangaa qorannaa playlist mifaan"
+
+msgctxt "wizard.url.playlistProbeLimit.customValue"
+msgid "Custom: {{count}} items"
+msgstr "Mifaan: wantota {{count}}"
+
+msgctxt "wizard.url.playlistProbeLimit.description"
+msgid "Maximum entries Arroxy loads when a playlist, channel, or search result is opened."
+msgstr "Playlist, chaanaalii, ykn filannoowwan barbaachaa yommuu banamu Arroxy galmeewwan baay'ina meeqa fe'u."
+
+msgctxt "wizard.url.playlistProbeLimit.invalid"
+msgid "Use a whole number from 1 to 5000"
+msgstr "Lakkoofsa guutuu 1 hanga 5000 fayyadami"
+
+msgctxt "wizard.url.playlistProbeLimit.label"
+msgid "Playlist items to scan"
+msgstr "Wantota playlist qoratamu"
+
+msgctxt "wizard.url.playlistProbeLimit.option"
+msgid "{{count}} items"
+msgstr "Wantota {{count}}"
+
+msgctxt "wizard.url.playlistProbeLimit.tooltip"
+msgid "Maps to yt-dlp --playlist-end: Arroxy only asks for this many playlist, channel, or search entries while building the picker."
+msgstr "yt-dlp --playlist-end waliin walsimsiisa: Arroxy filataa ijaarutti wantota playlist, chaanaalii, ykn barbaadaa lakkoofsa kana qofa gaafata."
+
+msgctxt "wizard.url.profile.activeLabel"
+msgid "Active profile"
+msgstr "Profaayilii hojiirra jiru"
+
+msgctxt "wizard.url.profile.badgeBuiltIn"
+msgid "Built-in"
+msgstr "Keessaa jiru"
+
+msgctxt "wizard.url.profile.badgeCustom"
+msgid "Custom"
+msgstr "Mataakee"
+
+msgctxt "wizard.url.profile.badgeDisabled"
+msgid "Hidden"
+msgstr "Dhokate"
+
+msgctxt "wizard.url.profile.badgeModified"
+msgid "Modified"
+msgstr "Fooyyaʼe"
+
+msgctxt "wizard.url.profile.changeGlobalDestination"
+msgid "Change global destination"
+msgstr "Bakki waliigalaa jijjiiri"
+
+msgctxt "wizard.url.profile.destinationFallback"
+msgid "Destination"
+msgstr "Bakki itti olkaa'amu"
+
+msgctxt "wizard.url.profile.edit"
+msgid "Edit"
+msgstr "Gulaali"
+
+msgctxt "wizard.url.profile.editActive"
+msgid "Edit active profile"
+msgstr "Profaayilii hojiirra jiru gulaali"
+
+msgctxt "wizard.url.profile.enableHint"
+msgid "Hidden profiles stay here but disappear from every profile picker."
+msgstr "Profaayilonni dhokatan as turu, garuu filannoo hunduma irraa badu."
+
+msgctxt "wizard.url.profile.enableToggleAria"
+msgid "Show profile in pickers: {{profileName}}"
+msgstr "Profaayilii filannoowwan keessatti argisiisi: {{profileName}}"
+
+msgctxt "wizard.url.profile.lastEnabledHint"
+msgid "Keep at least one profile available."
+msgstr "Yoo xiqqaate profaayilii tokko jiraachisaa."
+
+msgctxt "wizard.url.profile.manageProfiles"
+msgid "Manage profiles"
+msgstr "Profaayilii bulchi"
+
+msgctxt "wizard.url.profile.menuDescription"
+msgid "Change the active profile for Quick Download, Bulk URLs, and playlists."
+msgstr "Quick Download, URL baay'ee fi playlist'f profaayilii hojiirra jiru jijjiiri."
+
+msgctxt "wizard.url.profile.menuTitle"
+msgid "Switch profile"
+msgstr "Profaayilii jijjiiri"
+
+msgctxt "wizard.url.profile.newProfile"
+msgid "New profile"
+msgstr "Profaayilii haaraa"
+
+msgctxt "wizard.url.profile.panelDescription"
+msgid "Create, select, edit, or remove reusable download setups."
+msgstr "Qindaaʼinoota buusuu irra deebiin fayyadamuu dandeessu uumi, filadhu, gulaali, yookiin haqi."
+
+msgctxt "wizard.url.profile.panelTitle"
+msgid "Download Profiles"
+msgstr "Profaayilota buusuu"
+
+msgctxt "wizard.url.profile.remove"
+msgid "Remove"
+msgstr "Haqi"
+
+msgctxt "wizard.url.profile.reset"
+msgid "Reset"
+msgstr "Deebisi"
+
+msgctxt "wizard.url.profile.switchAria"
+msgid "Switch download profile: {{profileName}}"
+msgstr "Profaayilii bu'uuraa buusaa jijjiiri: {{profileName}}"
+
+msgctxt "wizard.url.profile.switchTitle"
+msgid "Switch download profile"
+msgstr "Profaayilii bu'uuraa buusaa jijjiiri"
+
+msgctxt "wizard.url.proxy.clear"
+msgid "Clear"
+msgstr "Haquu"
+
+msgctxt "wizard.url.proxy.description"
+msgid "Route traffic through a proxy — useful for geo-restricted content."
+msgstr "Geejjiba proxy darbii ergi — qabiyyee mootummaan dhorge argachuuf gargaara."
+
+msgctxt "wizard.url.proxy.label"
+msgid "Proxy URL"
+msgstr "Proxy URL"
+
+msgctxt "wizard.url.proxy.placeholder"
+msgid "http://host:port"
+msgstr "http://host:port"
+
+msgctxt "wizard.url.quickBulkAllFailed"
+msgid "None of those URLs could be prepared"
+msgstr "URL kanniin keessaa tokko illee qopheessuun hin danda’amne"
+
+msgctxt "wizard.url.quickDownload"
+msgid "Quick Download"
+msgstr "Buufata saffisaa"
+
+msgctxt "wizard.url.quickDownloadTooltip"
+msgid "Will download using: {{profileName}}"
+msgstr "{{profileName}} fayyadamuun ni buufata"
+
+msgctxt "wizard.url.quickFailed"
+msgid "Couldn't add this one: {{error}}"
+msgstr "Kana dabaluun hin danda’amne: {{error}}"
+
+msgctxt "wizard.url.quickPartialFailed_one"
+msgid "Queued what worked. {{count}} URL could not be prepared."
+msgstr "Kan hojjete tarreetti dabalame. URL {{count}} qopheessuun hin danda’amne."
+
+msgctxt "wizard.url.quickPartialFailed_other"
+msgid "Queued what worked. {{count}} URLs could not be prepared."
+msgstr "Kan hojjete tarreetti dabalame. URL {{count}} qopheessuun hin danda’amne."
+
+msgctxt "wizard.url.quickPrepareFailed"
+msgid "Queue item could not be prepared"
+msgstr "Wantoota tarree qopheessuu hin dandeenye"
+
+msgctxt "wizard.url.quickPreparing"
+msgid "Preparing"
+msgstr "Qopheessaa jira"
+
+msgctxt "wizard.url.quickProbeFailed"
+msgid "Probe failed"
+msgstr "Sakatta’iinsi hin milkoofne"
+
+msgctxt "wizard.url.quickQueued"
+msgid "Added to queue"
+msgstr "Tarreetti dabalame"
+
+msgctxt "wizard.url.quickSingleOnly"
+msgid "Paste a video, playlist, channel, or search URL to get started."
+msgstr "Jalqabuuf URL viidiyoo, playlist, channel, yookiin barbaacha maxxansi."
+
+msgctxt "wizard.url.settings.behaviorDescription"
+msgid "Global behavior that affects profile-driven downloads too."
+msgstr "Amala waliigalaa piroofaayilii mataan ga’umsa iyyuu."
+
+msgctxt "wizard.url.settings.behaviorHeading"
+msgid "Download behavior"
+msgstr "Amala ga’umsa"
+
+msgctxt "wizard.url.settings.inputHeading"
+msgid "Input"
+msgstr "Seensa"
+
+msgctxt "wizard.url.tabs.profiles"
+msgid "Profiles"
+msgstr "Profaayilota"
+
+msgctxt "wizard.url.tabs.settings"
+msgid "Settings"
+msgstr "Qindaaʼinoota"

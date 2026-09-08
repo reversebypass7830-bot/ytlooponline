@@ -1,0 +1,213 @@
+import fs from 'node:fs'
+import path from 'node:path'
+import {expect, _electron as electron, type ElectronApplication, type Page, type Locator} from '@playwright/test'
+import {buildFixtureElectronEnv, ensureHostEmbeddedBinaries, ensureYtDlpPath, fixtureUrl, type DenyProxy, type FixtureServer, type FixtureServerRequest} from './fixtureHarness.js'
+import {withClipboardLock} from './clipboardLock.js'
+
+let fixtureRuntimePromise: Promise<string> | null = null
+
+export async function prepareFixtureRuntime(): Promise<string> {
+	fixtureRuntimePromise ??= (async () => {
+		await ensureHostEmbeddedBinaries()
+		return ensureYtDlpPath()
+	})().catch(error => {
+		fixtureRuntimePromise = null
+		throw error
+	})
+	return fixtureRuntimePromise
+}
+
+export function isRecord(value: unknown): value is Record<string, unknown> {
+	return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+export function parseInfoJson(stdout: string): Record<string, unknown> {
+	const parsed: unknown = JSON.parse(stdout.trim())
+	if (!isRecord(parsed)) throw new Error('yt-dlp did not return a JSON object')
+	return parsed
+}
+
+export function stringField(record: Record<string, unknown>, key: string): string {
+	const value = record[key]
+	if (typeof value !== 'string') throw new Error(`Expected string field ${key}`)
+	return value
+}
+
+export function recordArrayField(record: Record<string, unknown>, key: string): Record<string, unknown>[] {
+	const value = record[key]
+	if (!Array.isArray(value)) throw new Error(`Expected array field ${key}`)
+	const invalidIndex = value.findIndex(entry => !isRecord(entry))
+	if (invalidIndex !== -1) {
+		throw new Error(`Expected record[] field ${key}; index ${invalidIndex} was ${typeof value[invalidIndex]}`)
+	}
+	return value as Record<string, unknown>[]
+}
+
+export function listFilesRecursive(dir: string): string[] {
+	// The output directory is live while this walks it: Arroxy creates and
+	// removes `.arroxy-temp/<id>` scratch directories during a download, so a
+	// directory listed one moment can be gone the next. Reading a snapshot and
+	// then descending into it is inherently racy, and the failure surfaces as
+	// ENOENT from a deeper scandir rather than from this call.
+	let entries: fs.Dirent[]
+	try {
+		entries = fs.readdirSync(dir, {withFileTypes: true})
+	} catch (error) {
+		if ((error as NodeJS.ErrnoException).code === 'ENOENT') return []
+		throw error
+	}
+	return entries.flatMap(entry => {
+		const absolutePath = path.join(dir, entry.name)
+		if (entry.isDirectory()) return listFilesRecursive(absolutePath)
+		if (entry.isFile()) return [absolutePath]
+		return []
+	})
+}
+
+export async function clickContinue(page: Page): Promise<void> {
+	await page.getByRole('button', {name: /continue/i}).click()
+}
+
+async function clickStepButtonIfPresent(page: Page, testId: string, buttonName: string | RegExp, timeout = 5_000): Promise<boolean> {
+	const step = page.getByTestId(testId)
+	try {
+		await step.waitFor({state: 'visible', timeout})
+	} catch {
+		return false
+	}
+	await step.getByRole('button', {name: buttonName}).click()
+	return true
+}
+
+export async function writeClipboard(app: ElectronApplication, text: string): Promise<void> {
+	await app.evaluate(({clipboard}, value) => {
+		clipboard.writeText(value)
+	}, text)
+}
+
+export async function launchFixtureApp(ytDlpPath: string, input: {userDataDir: string; fixtureServer: FixtureServer; denyProxy: DenyProxy}): Promise<{app: ElectronApplication; page: Page}> {
+	const app = await electron.launch({args: [path.join(process.cwd(), 'out', 'main', 'index.js')], env: buildFixtureElectronEnv({userDataDir: input.userDataDir, fixtureServer: input.fixtureServer, denyProxy: input.denyProxy, ytDlpPath})})
+	const page = await app.firstWindow()
+	await expect(page.locator('[data-testid="app-root"]')).toBeVisible({timeout: 60_000})
+	await expect(page.locator('[data-testid="profiles-main-input"]')).toBeVisible()
+	return {app, page}
+}
+
+export async function startBulkFromClipboard(page: Page, app: ElectronApplication, rawUrls: string): Promise<void> {
+	await page.locator('[data-testid="profiles-bulk-urls"]').click()
+	await expect(page.locator('[data-testid="bulk-url-dialog"]')).toBeVisible()
+	// Write-then-paste is not atomic, and the clipboard is one machine-wide
+	// resource. Held across both steps so a parallel worker cannot substitute its
+	// own text between them.
+	await withClipboardLock(async () => {
+		await writeClipboard(app, rawUrls)
+		const bulkTextarea = page.locator('[data-testid="bulk-url-textarea"]')
+		await bulkTextarea.click()
+		await page.keyboard.press(process.platform === 'darwin' ? 'Meta+V' : 'Control+V')
+	})
+}
+
+export async function prepareSingleConfirm(page: Page, videoId: string, subtitleChoice: 'skip' | 'continue' = 'skip'): Promise<void> {
+	await page.locator('[data-testid="profiles-main-input"]').fill(fixtureUrl(videoId))
+	await page.locator('[data-testid="profiles-interactive-download"]').click()
+	await expect(page.locator('[data-testid="step-formats"]')).toBeVisible({timeout: 60_000})
+	await clickContinue(page)
+
+	if (subtitleChoice === 'continue') {
+		const subtitles = page.getByTestId('step-subtitles')
+		await subtitles.waitFor({state: 'visible', timeout: 5_000})
+		await subtitles.getByRole('button', {name: /continue/i}).click()
+	} else {
+		await clickStepButtonIfPresent(page, 'step-subtitles', 'Skip for this video')
+	}
+
+	await clickStepButtonIfPresent(page, 'step-sponsorblock', /continue/i)
+	await clickStepButtonIfPresent(page, 'step-output', /continue/i)
+	await page.waitForSelector('[data-testid="step-folder"]', {timeout: 5_000})
+	await page
+		.getByTestId('step-folder')
+		.getByRole('button', {name: /continue/i})
+		.click()
+	await expect(page.locator('[data-testid="step-confirm"]')).toBeVisible()
+}
+
+export async function preparePlaylistConfirm(page: Page, playlistUrl: string): Promise<void> {
+	await page.locator('[data-testid="profiles-main-input"]').fill(playlistUrl)
+	await page.locator('[data-testid="profiles-interactive-download"]').click()
+	await expect(page.locator('[data-testid="step-playlist-items"]')).toBeVisible({timeout: 60_000})
+	await clickContinue(page)
+	await expect(page.locator('[data-testid="step-playlist-presets"]')).toBeVisible()
+	await clickContinue(page)
+	await clickStepButtonIfPresent(page, 'step-sponsorblock', /continue/i)
+	await clickStepButtonIfPresent(page, 'step-output', /continue/i)
+	await page.waitForSelector('[data-testid="step-folder"]', {timeout: 5_000})
+	await page
+		.getByTestId('step-folder')
+		.getByRole('button', {name: /continue/i})
+		.click()
+	await expect(page.locator('[data-testid="step-confirm"]')).toBeVisible()
+}
+
+export function queueCardByTitle(page: Page, title: string): Locator {
+	return page.locator('[data-testid^="queue-manager-row-"]').filter({hasText: title}).first()
+}
+
+export async function openQueueTab(page: Page): Promise<void> {
+	// Anchored on the trigger's own class, not its label: the tab reads
+	// "Downloads" (queue.tabLabel), so a /^queue/i name match never resolves and
+	// every caller of this helper times out.
+	//
+	// Quick Download opens a progress dialog whose portal overlay covers the tab
+	// strip, so wait for any modal to detach before clicking rather than racing it.
+	await expect(page.locator('[data-slot="dialog-overlay"]')).toHaveCount(0, {timeout: 120_000})
+	await page.locator('.downloads-tab-trigger').click()
+	await expect(page.locator('[data-testid="queue-manager-tab"]')).toBeVisible()
+}
+
+export async function expectQueueStatus(page: Page, title: string, status: string, timeout = 60_000): Promise<void> {
+	await openQueueTab(page)
+	await expect(queueCardByTitle(page, title)).toHaveAttribute('data-status', status, {timeout})
+}
+
+export type QueueRowAction = 'pause' | 'resume' | 'pull-now' | 'cancel' | 'retry' | 'remove'
+
+/**
+ * Queue item actions live in the selection toolbar, not on the row: select the
+ * item, then apply the action to the selection. A plain row click replaces the
+ * selection outright, so this is idempotent and safe to repeat.
+ *
+ * Asserting the button is enabled first is a real oracle — the toolbar disables
+ * actions that don't apply to the selected item's status, so a passing click
+ * also proves the item was in a state where the action was legal.
+ */
+export async function applyQueueAction(page: Page, title: string, action: QueueRowAction): Promise<void> {
+	await openQueueTab(page)
+	await queueCardByTitle(page, title).click()
+	const button = page.getByTestId(`queue-action-${action}`)
+	await expect(button).toBeEnabled()
+	await button.click()
+}
+
+export function mediaFiles(outputDir: string, extension: string): string[] {
+	return listFilesRecursive(outputDir).filter(name => name.endsWith(extension))
+}
+
+function mp4Files(outputDir: string): string[] {
+	return mediaFiles(outputDir, '.mp4')
+}
+
+export function expectMp4Count(outputDir: string, count: number): void {
+	const files = mp4Files(outputDir)
+	expect(files).toHaveLength(count)
+	for (const fileName of files) {
+		expect(fs.statSync(fileName).size).toBeGreaterThan(200_000)
+	}
+}
+
+export function expectNoMp4For(outputDir: string, videoId: string): void {
+	expect(mp4Files(outputDir).some(fileName => fileName.includes(videoId))).toBe(false)
+}
+
+export function isMediaRequestFor(videoId: string, request: FixtureServerRequest): request is Extract<FixtureServerRequest, {kind: 'media'}> {
+	return request.kind === 'media' && request.videoId === videoId
+}

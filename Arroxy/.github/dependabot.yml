@@ -1,0 +1,50 @@
+# Dependabot configuration
+# https://docs.github.com/en/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file
+
+version: 2
+
+updates:
+  # bun dependencies (root) — updates package.json AND bun.lock together so
+  # CI's `bun install --frozen-lockfile` stays green. The package registry only
+  # rewrites package.json and leaves bun.lock stale, which trips the frozen
+  # install check on every dependabot PR.
+  - package-ecosystem: bun
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    # Wait 7 days after publish before opening a PR. Matches the local CI floor
+    # set in bunfig.toml (`minimumReleaseAge = 604800` = 7d) so `bun install
+    # --frozen-lockfile` won't reject the bot's chosen versions in CI.
+    # Note: security-advisory PRs ignore this schedule and open immediately.
+    cooldown:
+      default-days: 7
+    groups:
+      production:
+        dependency-type: production
+        update-types:
+          - minor
+          - patch
+      development:
+        dependency-type: development
+        update-types:
+          - minor
+          - patch
+      # Major bumps stay ungrouped so each is reviewed individually.
+    open-pull-requests-limit: 10
+
+  # GitHub Actions
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 2
+    groups:
+      actions:
+        patterns:
+          - "*"
+        update-types:
+          - minor
+          - patch
+    open-pull-requests-limit: 5

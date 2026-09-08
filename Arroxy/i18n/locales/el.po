@@ -1,0 +1,3174 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: Arroxy\n"
+"Report-Msgid-Bugs-To: https://github.com/antonio-orionus/Arroxy/issues\n"
+"Language: el\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+msgctxt "about.button"
+msgid "About"
+msgstr "Σχετικά"
+
+msgctxt "about.githubLink"
+msgid "GitHub"
+msgstr "GitHub"
+
+msgctxt "about.licenseLine"
+msgid "MIT License · by Antonio Orionus"
+msgstr "Άδεια MIT · από Antonio Orionus"
+
+msgctxt "about.openTitle"
+msgid "About Arroxy"
+msgstr "Σχετικά με το Arroxy"
+
+msgctxt "about.tagline"
+msgid "Fast, friendly downloader for YouTube and 2000+ other sites."
+msgstr "Γρήγορο και φιλικό πρόγραμμα λήψης για το YouTube και 2000+ άλλους ιστότοπους."
+
+msgctxt "about.thirdPartyNotices"
+msgid "View third-party notices"
+msgstr "Προβολή ανακοινώσεων τρίτων"
+
+msgctxt "about.websiteLink"
+msgid "Website"
+msgstr "Ιστότοπος"
+
+msgctxt "app.feedback"
+msgid "Feedback"
+msgstr "Σχόλια"
+
+msgctxt "app.feedbackNudge"
+msgid "Enjoying Arroxy? I'd love to hear from you! 💬"
+msgstr "Σου αρέσει το Arroxy; Θα χαρώ να ακούσω τη γνώμη σου! 💬"
+
+msgctxt "app.logs"
+msgid "Logs"
+msgstr "Αρχεία καταγραφής"
+
+msgctxt "app.zoomIn"
+msgid "Zoom in"
+msgstr "Μεγέθυνση"
+
+msgctxt "app.zoomOut"
+msgid "Zoom out"
+msgstr "Σμίκρυνση"
+
+msgctxt "common.back"
+msgid "Back"
+msgstr "Πίσω"
+
+msgctxt "common.cancel"
+msgid "Cancel"
+msgstr "Ακύρωση"
+
+msgctxt "common.continue"
+msgid "Continue"
+msgstr "Συνέχεια"
+
+msgctxt "common.loading"
+msgid "Loading"
+msgstr "Φόρτωση…"
+
+msgctxt "common.retry"
+msgid "Retry"
+msgstr "Επανάληψη"
+
+msgctxt "common.startOver"
+msgid "Start over"
+msgstr "Επανεκκίνηση"
+
+msgctxt "dialogs.closeToTray.detail"
+msgid "Arroxy keeps running and finishes active downloads. Change this later in Advanced settings."
+msgstr "Το Arroxy συνεχίζει να εκτελείται και ολοκληρώνει τις ενεργές λήψεις. Άλλαξέ το αργότερα στις Ρυθμίσεις για προχωρημένους."
+
+msgctxt "dialogs.closeToTray.hide"
+msgid "Hide to tray"
+msgstr "Απόκρυψη στο δίσκο"
+
+msgctxt "dialogs.closeToTray.message"
+msgid "Hide Arroxy to the system tray when closing?"
+msgstr "Απόκρυψη Arroxy στο δίσκο συστήματος κατά το κλείσιμο;"
+
+msgctxt "dialogs.closeToTray.quit"
+msgid "Quit"
+msgstr "Έξοδος"
+
+msgctxt "dialogs.closeToTray.remember"
+msgid "Don't ask again"
+msgstr "Να μη ζητηθεί ξανά"
+
+msgctxt "dialogs.quitWithActiveDownloads.confirm"
+msgid "Cancel Downloads & Quit"
+msgstr "Ακύρωση λήψεων & Έξοδος"
+
+msgctxt "dialogs.quitWithActiveDownloads.detail"
+msgid "Pause to resume later, or cancel to discard progress."
+msgstr "Κάνε παύση για να συνεχίσεις αργότερα ή ακύρωσε για να απορρίψεις την πρόοδο."
+
+msgctxt "dialogs.quitWithActiveDownloads.keep"
+msgid "Keep Downloading"
+msgstr "Συνέχεια λήψεων"
+
+msgctxt "dialogs.quitWithActiveDownloads.message_one"
+msgid "{{count}} download in progress"
+msgstr "{{count}} λήψη σε εξέλιξη"
+
+msgctxt "dialogs.quitWithActiveDownloads.message_other"
+msgid "{{count}} downloads in progress"
+msgstr "{{count}} λήψεις σε εξέλιξη"
+
+msgctxt "dialogs.quitWithActiveDownloads.pause"
+msgid "Pause Downloads & Quit"
+msgstr "Παύση λήψεων και έξοδος"
+
+msgctxt "dialogs.rendererCrashed.detail"
+msgid "The renderer process crashed ({{reason}}). Reload to try again."
+msgstr "Η διαδικασία απόδοσης κατέρρευσε ({{reason}}). Ανανέωσε για να δοκιμάσεις ξανά."
+
+msgctxt "dialogs.rendererCrashed.message"
+msgid "Arroxy encountered a problem"
+msgstr "Το Arroxy αντιμετώπισε πρόβλημα"
+
+msgctxt "dialogs.rendererCrashed.quit"
+msgid "Quit"
+msgstr "Έξοδος"
+
+msgctxt "dialogs.rendererCrashed.reload"
+msgid "Reload"
+msgstr "Ανανέωση"
+
+msgctxt "errors.ytdlp.ageRestricted"
+msgid "This video is age-restricted and cannot be downloaded without a signed-in account."
+msgstr "Αυτό το βίντεο έχει περιορισμό ηλικίας και δεν μπορεί να ληφθεί χωρίς συνδεδεμένο λογαριασμό."
+
+msgctxt "errors.ytdlp.botBlock"
+msgid "Bot protection triggered. The IP you're using is most likely flagged (datacenter range or busy VPN exit). Change your IP or pick a different VPN endpoint and retry. If it keeps failing, this may be a temporary site-side change — Arroxy auto-updates yt-dlp on launch, so the fix lands automatically once upstream ships it."
+msgstr "Η προστασία bot ενεργοποιήθηκε. Η IP που χρησιμοποιείς είναι πιθανότατα επισημασμένη (εύρος datacenter ή πολυσύχναστη έξοδος VPN). Άλλαξε IP ή επέλεξε διαφορετικό endpoint VPN και δοκίμασε ξανά. Αν συνεχίζει να αποτυγχάνει, μπορεί να πρόκειται για προσωρινή αλλαγή από πλευράς YouTube — το Arroxy ενημερώνει αυτόματα το yt-dlp κατά την εκκίνηση, οπότε η επιδιόρθωση εφαρμόζεται αυτόματα μόλις την κυκλοφορήσει το upstream."
+
+msgctxt "errors.ytdlp.chunkTransferFailure"
+msgid "The server kept cutting the download mid-stream and yt-dlp gave up after retrying. This usually hits the largest video formats (4K HDR / high-bitrate VP9). Retry, switch network/VPN, or pick a lower-resolution format."
+msgstr "Ο διακομιστής διέκοπτε συνεχώς τη λήψη στη μέση και το yt-dlp τα παράτησε μετά από επανειλημμένες προσπάθειες. Αυτό συμβαίνει συνήθως με τα μεγαλύτερα φορμά βίντεο (4K HDR / VP9 υψηλού ρυθμού μετάδοσης). Δοκίμασε ξανά, άλλαξε δίκτυο/VPN ή επέλεξε χαμηλότερη ανάλυση."
+
+msgctxt "errors.ytdlp.drmProtected"
+msgid "This video is DRM-protected. yt-dlp can't strip DRM, so the file can't be downloaded."
+msgstr "Αυτό το βίντεο προστατεύεται από DRM. Το yt-dlp δεν μπορεί να αφαιρέσει DRM, οπότε το αρχείο δεν μπορεί να ληφθεί."
+
+msgctxt "errors.ytdlp.geoBlocked"
+msgid "This video is not available in your region."
+msgstr "Αυτό το βίντεο δεν είναι διαθέσιμο στην περιοχή σου."
+
+msgctxt "errors.ytdlp.ipBlock"
+msgid "Your IP address appears to be blocked. Try again later or use a VPN."
+msgstr "Η διεύθυνση IP σου φαίνεται να έχει αποκλειστεί από το YouTube. Δοκίμασε αργότερα ή χρησιμοποίησε VPN."
+
+msgctxt "errors.ytdlp.loginRequired"
+msgid "This video requires a signed-in account. Set up a cookies.txt (Settings → Cookies) and retry."
+msgstr "Αυτό το βίντεο απαιτεί συνδεδεμένο λογαριασμό. Ρύθμισε ένα cookies.txt (Ρυθμίσεις → Cookies) και δοκίμασε ξανά."
+
+msgctxt "errors.ytdlp.missingDependency"
+msgid "yt-dlp could not find ffmpeg or ffprobe. Repair the bundled binaries or set an FFmpeg location, then retry."
+msgstr "Το yt-dlp δεν μπόρεσε να βρει το ffmpeg ή το ffprobe. Επιδιόρθωσε τα ενσωματωμένα δυαδικά αρχεία ή όρισε μια τοποθεσία FFmpeg και δοκίμασε ξανά."
+
+msgctxt "errors.ytdlp.network"
+msgid "Network error. Check your connection and retry."
+msgstr "Σφάλμα δικτύου. Έλεγξε τη σύνδεσή σου και δοκίμασε ξανά."
+
+msgctxt "errors.ytdlp.outOfDiskSpace"
+msgid "Not enough disk space. Free up space and retry."
+msgstr "Δεν υπάρχει αρκετός χώρος στο δίσκο. Ελευθέρωσε χώρο και δοκίμασε ξανά."
+
+msgctxt "errors.ytdlp.parse"
+msgid "Couldn't parse the response from the site. yt-dlp's extractor may have drifted. Arroxy auto-updates yt-dlp on launch — retry in a few minutes once the fix ships."
+msgstr "Δεν ήταν δυνατή η ανάλυση της απάντησης από τον ιστότοπο. Ο extractor του yt-dlp μπορεί να έχει μείνει πίσω. Το Arroxy ενημερώνει αυτόματα το yt-dlp κατά την εκκίνηση — δοκίμασε ξανά σε λίγα λεπτά μόλις κυκλοφορήσει η διόρθωση."
+
+msgctxt "errors.ytdlp.postprocessFailure"
+msgid "yt-dlp finished downloading but post-processing (merge / mux / convert) failed. Often this is a transient ffmpeg issue — retry, and if it persists try a different format combination."
+msgstr "Το yt-dlp ολοκλήρωσε τη λήψη αλλά η μετα-επεξεργασία (merge / mux / convert) απέτυχε. Συχνά πρόκειται για παροδικό πρόβλημα του ffmpeg — δοκίμασε ξανά και, αν επιμένει, δοκίμασε διαφορετικό συνδυασμό φορμά."
+
+msgctxt "errors.ytdlp.rateLimit"
+msgid "Site is rate-limiting requests. Wait a minute then retry."
+msgstr "Το YouTube περιορίζει τα αιτήματα. Περίμενε ένα λεπτό και δοκίμασε ξανά."
+
+msgctxt "errors.ytdlp.unavailable"
+msgid "This video is unavailable — it may be private, deleted, or region-locked."
+msgstr "Αυτό το βίντεο δεν είναι διαθέσιμο — μπορεί να είναι ιδιωτικό, διαγραμμένο ή κλειδωμένο ανά περιοχή."
+
+msgctxt "errors.ytdlp.unknown"
+msgid "Download failed. See the raw output below."
+msgstr "Η λήψη απέτυχε. Δες το raw output παρακάτω."
+
+msgctxt "errors.ytdlp.unsupportedUrl"
+msgid "That URL isn't supported by yt-dlp. Try a different link from any of yt-dlp's supported sites."
+msgstr "Αυτό το URL δεν υποστηρίζεται από το yt-dlp. Δοκίμασε διαφορετικό σύνδεσμο από οποιονδήποτε ιστότοπο που υποστηρίζει το yt-dlp."
+
+msgctxt "filenameTemplate.description"
+msgid "Choose how downloaded files are named. Click a token to insert it. Use / to sort downloads into folders."
+msgstr "Επίλεξε πώς ονομάζονται τα ληφθέντα αρχεία. Κάνε κλικ σε ένα διακριτικό για να το εισαγάγεις. Χρησιμοποίησε / για να ταξινομείς τις λήψεις σε φακέλους."
+
+msgctxt "filenameTemplate.error.empty"
+msgid "Enter a filename template."
+msgstr "Εισαγάγετε ένα πρότυπο ονόματος αρχείου."
+
+msgctxt "filenameTemplate.error.empty-segment"
+msgid "Remove the extra / — every folder needs a name."
+msgstr "Αφαίρεσε την περιττή / — κάθε φάκελος χρειάζεται όνομα."
+
+msgctxt "filenameTemplate.error.forbidden-char"
+msgid "Remove characters that aren't allowed in filenames: \\ : * ? \" < > |"
+msgstr "Αφαίρεσε χαρακτήρες που δεν επιτρέπονται σε ονόματα αρχείων: \\ : * ? \" < > |"
+
+msgctxt "filenameTemplate.error.invalid-segment"
+msgid "That folder name isn't allowed. Avoid . and .. and reserved names like CON."
+msgstr "Αυτό το όνομα φακέλου δεν επιτρέπεται. Απόφυγε το . και το .. και δεσμευμένα ονόματα όπως CON."
+
+msgctxt "filenameTemplate.error.no-unique-token"
+msgid "Add {title} or {id} to the filename so each download gets its own name."
+msgstr "Πρόσθεσε {title} ή {id} στο όνομα αρχείου ώστε κάθε λήψη να έχει το δικό της όνομα."
+
+msgctxt "filenameTemplate.error.resolution-in-dir"
+msgid "{resolution} can't name a folder — the quality isn't known until the download starts."
+msgstr "Το {resolution} δεν μπορεί να ονομάσει φάκελο — η ποιότητα δεν είναι γνωστή πριν ξεκινήσει η λήψη."
+
+msgctxt "filenameTemplate.error.stray-brace"
+msgid "Unmatched { or } — wrap tokens like {title}."
+msgstr "Ασυμπλήρωτο { ή } — γράψτε τα στοιχεία όπως {title}."
+
+msgctxt "filenameTemplate.error.too-long"
+msgid "Template is too long."
+msgstr "Το πρότυπο είναι πολύ μεγάλο."
+
+msgctxt "filenameTemplate.error.unknown-token"
+msgid "Unknown token {{token}}."
+msgstr "Άγνωστο στοιχείο {{token}}."
+
+msgctxt "filenameTemplate.idWarning"
+msgid "Without {id}, Arroxy can't detect already-downloaded playlist items or generate .m3u playlists."
+msgstr "Χωρίς το {id}, το Arroxy δεν μπορεί να εντοπίσει ήδη ληφθέντα στοιχεία λίστας ούτε να δημιουργήσει λίστες .m3u."
+
+msgctxt "filenameTemplate.label"
+msgid "Filename template"
+msgstr "Πρότυπο ονόματος αρχείου"
+
+msgctxt "filenameTemplate.m3uDisabled"
+msgid "Unavailable because your filename template either doesn't include {id} or sorts downloads into folders."
+msgstr "Μη διαθέσιμο επειδή το πρότυπο ονόματος είτε δεν περιλαμβάνει {id} είτε ταξινομεί τις λήψεις σε φακέλους."
+
+msgctxt "filenameTemplate.previewPlaylist"
+msgid "In a playlist"
+msgstr "Σε λίστα αναπαραγωγής"
+
+msgctxt "filenameTemplate.previewSingle"
+msgid "Single video"
+msgstr "Μεμονωμένο βίντεο"
+
+msgctxt "filenameTemplate.profileOverrideDescription"
+msgid "Leave empty to inherit the global template."
+msgstr "Αφήστε το κενό για να χρησιμοποιηθεί το γενικό πρότυπο."
+
+msgctxt "filenameTemplate.profileOverrideLabel"
+msgid "Filename template"
+msgstr "Πρότυπο ονόματος αρχείου"
+
+msgctxt "formatLabel.audioFallback"
+msgid "Audio"
+msgstr "Ήχος"
+
+msgctxt "formatLabel.audioOnlyDot"
+msgid "Audio only · {{audio}}"
+msgstr "Μόνο ήχος · {{audio}}"
+
+msgctxt "formatLabel.videoDot"
+msgid "{{resolution}} · {{audio}}"
+msgstr "{{resolution}} · {{audio}}"
+
+msgctxt "language.label"
+msgid "Language"
+msgstr "Γλώσσα"
+
+msgctxt "notifications.filenameFolderTooDeep"
+msgid "This folder is too deep for your system. The download may still fail — pick a shorter folder."
+msgstr "Αυτός ο φάκελος είναι πολύ βαθύς για το σύστημά σας. Η λήψη μπορεί να αποτύχει παρ' όλα αυτά — επιλέξτε συντομότερο φάκελο."
+
+msgctxt "notifications.filenameTemplateCannotFit"
+msgid "This video's name can't fit every part of your template, so the default name was used."
+msgstr "Το όνομα αυτού του βίντεο δεν χωράει σε κάθε μέρος του προτύπου σας, γι' αυτό χρησιμοποιήθηκε το προεπιλεγμένο όνομα."
+
+msgctxt "notifications.folderSelectFailed"
+msgid "Could not open the folder picker."
+msgstr "Δεν ήταν δυνατό το άνοιγμα του επιλογέα φακέλων."
+
+msgctxt "notifications.hotkey.alreadyQueued"
+msgid "Already in the queue — no copy added"
+msgstr "Είναι ήδη στην ουρά — δεν προστέθηκε αντίγραφο"
+
+msgctxt "notifications.hotkey.busy"
+msgid "Still working on the previous link"
+msgstr "Επεξεργάζεται ακόμα ο προηγούμενος σύνδεσμος"
+
+msgctxt "notifications.hotkey.invalidClipboard"
+msgid "No link on your clipboard — copy one first"
+msgstr "Δεν υπάρχει σύνδεσμος στο πρόχειρο — αντιγράψτε έναν πρώτα"
+
+msgctxt "notifications.hotkey.multipleUrls"
+msgid "Multiple links copied — use Bulk URLs in Arroxy"
+msgstr "Αντιγράφηκαν πολλαπλοί σύνδεσμοι — χρησιμοποιήστε τα «Μαζικά URL» στο Arroxy"
+
+msgctxt "notifications.hotkey.needsReview"
+msgid "That link needs a quick review — open Arroxy and paste it again"
+msgstr "Αυτός ο σύνδεσμος χρειάζεται έναν γρήγορο έλεγχο — ανοίξτε το Arroxy και επικολλήστε τον ξανά"
+
+msgctxt "notifications.hotkey.queued"
+msgid "Download queued from clipboard"
+msgstr "Η λήψη προστέθηκε από το πρόχειρο"
+
+msgctxt "notifications.hotkey.submissionFailed"
+msgid "Could not add that link — try again in Arroxy"
+msgstr "Δεν ήταν δυνατή η προσθήκη αυτού του συνδέσμου — δοκιμάστε ξανά στο Arroxy"
+
+msgctxt "notifications.playlistFolderRejected"
+msgid "That folder can't be used for this playlist."
+msgstr "Αυτός ο φάκελος δεν μπορεί να χρησιμοποιηθεί για αυτήν τη λίστα αναπαραγωγής."
+
+msgctxt "notifications.settingsSaveFailed"
+msgid "Could not save your settings."
+msgstr "Δεν ήταν δυνατή η αποθήκευση των ρυθμίσεών σας."
+
+msgctxt "notifications.shellActionFailed"
+msgid "Could not open that."
+msgstr "Δεν ήταν δυνατό το άνοιγμα."
+
+msgctxt "notifications.warmupFailed"
+msgid "Setup did not finish. Some downloads may fail until it does."
+msgstr "Η εγκατάσταση δεν ολοκληρώθηκε. Ορισμένες λήψεις ενδέχεται να αποτύχουν μέχρι να ολοκληρωθεί."
+
+msgctxt "playlistPresets.audioFormat.best"
+msgid "Audio (best)"
+msgstr "Audio (best)"
+
+msgctxt "playlistPresets.audioFormat.m4a"
+msgid "M4A"
+msgstr "M4A"
+
+msgctxt "playlistPresets.audioFormat.mp3"
+msgid "MP3"
+msgstr "MP3"
+
+msgctxt "playlistPresets.audioFormat.opus"
+msgid "Opus"
+msgstr "Opus"
+
+msgctxt "playlistPresets.audioFormatBitrate"
+msgid "Audio ({{format}} {{kbps}}K)"
+msgstr "Audio ({{format}} {{kbps}}K)"
+
+msgctxt "playlistPresets.audioFormatDesc.best"
+msgid "Native best audio, no re-encode"
+msgstr "Καλύτερος εγγενής ήχος, χωρίς επανακωδικοποίηση"
+
+msgctxt "playlistPresets.audioFormatDesc.m4a"
+msgid "Convert to M4A (AAC)"
+msgstr "Μετατροπή σε M4A (AAC)"
+
+msgctxt "playlistPresets.audioFormatDesc.mp3"
+msgid "Convert to MP3"
+msgstr "Μετατροπή σε MP3"
+
+msgctxt "playlistPresets.audioFormatDesc.opus"
+msgid "Convert to Opus"
+msgstr "Μετατροπή σε Opus"
+
+msgctxt "playlistPresets.mp4Cap"
+msgid "H.264 above 1080p is not available on YouTube — capped to 1080p automatically"
+msgstr "Το H.264 πάνω από 1080p δεν είναι διαθέσιμο στο YouTube — περιορίζεται αυτόματα στα 1080p"
+
+msgctxt "playlistPresets.tier.1080"
+msgid "Up to 1080p"
+msgstr "Έως 1080p"
+
+msgctxt "playlistPresets.tier.144"
+msgid "Up to 144p"
+msgstr "Έως 144p"
+
+msgctxt "playlistPresets.tier.1440"
+msgid "Up to 1440p"
+msgstr "Έως 1440p"
+
+msgctxt "playlistPresets.tier.2160"
+msgid "Up to 4K"
+msgstr "Έως 4K"
+
+msgctxt "playlistPresets.tier.240"
+msgid "Up to 240p"
+msgstr "Έως 240p"
+
+msgctxt "playlistPresets.tier.360"
+msgid "Up to 360p"
+msgstr "Έως 360p"
+
+msgctxt "playlistPresets.tier.480"
+msgid "Up to 480p"
+msgstr "Έως 480p"
+
+msgctxt "playlistPresets.tier.720"
+msgid "Up to 720p"
+msgstr "Έως 720p"
+
+msgctxt "playlistPresets.tier.best"
+msgid "Best quality"
+msgstr "Best quality"
+
+msgctxt "playlistPresets.tierDesc.1080"
+msgid "Capped at 1080p, falls back to lower per item"
+msgstr "Περιορισμός στα 1080p, πέφτει ανά στοιχείο αν χρειαστεί"
+
+msgctxt "playlistPresets.tierDesc.144"
+msgid "Smallest possible files"
+msgstr "Τα μικρότερα δυνατά αρχεία"
+
+msgctxt "playlistPresets.tierDesc.1440"
+msgid "Capped at 2K, falls back to lower per item"
+msgstr "Περιορισμός στα 2K, πέφτει ανά στοιχείο αν χρειαστεί"
+
+msgctxt "playlistPresets.tierDesc.2160"
+msgid "Capped at 2160p, falls back to lower per item"
+msgstr "Περιορισμός στα 2160p, πέφτει ανά στοιχείο αν χρειαστεί"
+
+msgctxt "playlistPresets.tierDesc.240"
+msgid "Very small files, low quality"
+msgstr "Πολύ μικρά αρχεία, χαμηλή ποιότητα"
+
+msgctxt "playlistPresets.tierDesc.360"
+msgid "Small files for tight bandwidth"
+msgstr "Μικρά αρχεία για περιορισμένο εύρος ζώνης"
+
+msgctxt "playlistPresets.tierDesc.480"
+msgid "Low bandwidth"
+msgstr "Low bandwidth"
+
+msgctxt "playlistPresets.tierDesc.720"
+msgid "Smaller files, broad compatibility"
+msgstr "Μικρότερα αρχεία, ευρεία συμβατότητα"
+
+msgctxt "playlistPresets.tierDesc.best"
+msgid "Highest available video + audio per item"
+msgstr "Καλύτερο διαθέσιμο βίντεο + ήχος ανά στοιχείο"
+
+msgctxt "playlistPresets.type.audio"
+msgid "Audio"
+msgstr "Audio"
+
+msgctxt "playlistPresets.type.video"
+msgid "Video"
+msgstr "Video"
+
+msgctxt "playlistPresets.videoFormat.best"
+msgid "Best native"
+msgstr "Best codec"
+
+msgctxt "playlistPresets.videoFormat.mp4"
+msgid "Smart TV H.264 MP4"
+msgstr "Έξυπνη TV H.264 MP4"
+
+msgctxt "playlistPresets.videoFormatDesc.best"
+msgid "Best available container and codecs per item"
+msgstr "Υψηλότερος διαθέσιμος codec ανά στοιχείο"
+
+msgctxt "playlistPresets.videoFormatDesc.mp4"
+msgid "Prefer H.264 video + AAC audio in MP4 when possible"
+msgstr "Προτιμάται H.264 + AAC, κοντέινερ MP4 · βέλτιστη προσπάθεια"
+
+msgctxt "presets.audio-only.desc"
+msgid "No video, best audio"
+msgstr "Χωρίς βίντεο, καλύτερος ήχος"
+
+msgctxt "presets.audio-only.label"
+msgid "Audio only"
+msgstr "Μόνο ήχος"
+
+msgctxt "presets.balanced.desc"
+msgid "720p max + good audio"
+msgstr "Μέγιστο 720p + καλός ήχος"
+
+msgctxt "presets.balanced.label"
+msgid "Balanced"
+msgstr "Ισορροπημένο"
+
+msgctxt "presets.best-quality.desc"
+msgid "Highest resolution + best audio"
+msgstr "Μέγιστη ανάλυση + καλύτερος ήχος"
+
+msgctxt "presets.best-quality.label"
+msgid "Best quality"
+msgstr "Καλύτερη ποιότητα"
+
+msgctxt "presets.small-file.desc"
+msgid "Lowest resolution + low audio"
+msgstr "Ελάχιστη ανάλυση + χαμηλός ήχος"
+
+msgctxt "presets.small-file.label"
+msgid "Small file"
+msgstr "Μικρό αρχείο"
+
+msgctxt "presets.subtitle-only.desc"
+msgid "No video, no audio, only subtitles"
+msgstr "Χωρίς βίντεο, χωρίς ήχο, μόνο υπότιτλοι"
+
+msgctxt "presets.subtitle-only.label"
+msgid "Subtitles only"
+msgstr "Μόνο υπότιτλοι"
+
+msgctxt "queue.artifact.companion"
+msgid "Companion"
+msgstr "Συνοδευτικό αρχείο"
+
+msgctxt "queue.artifact.description"
+msgid "Description"
+msgstr "Περιγραφή"
+
+msgctxt "queue.artifact.media"
+msgid "Media"
+msgstr "Πολυμέσα"
+
+msgctxt "queue.artifact.missing"
+msgid "Missing"
+msgstr "Λείπει"
+
+msgctxt "queue.artifact.subtitle"
+msgid "Subtitle"
+msgstr "Υπότιτλος"
+
+msgctxt "queue.artifact.thumbnail"
+msgid "Thumbnail"
+msgstr "Μικρογραφία"
+
+msgctxt "queue.artifact.unknown"
+msgid "Artifact"
+msgstr "Αρχείο"
+
+msgctxt "queue.cancelAllTitle"
+msgid "Cancel all active and pending downloads"
+msgstr "Ακύρωση όλων των ενεργών και εκκρεμών λήψεων"
+
+msgctxt "queue.clearTitle"
+msgid "Clear completed downloads"
+msgstr "Εκκαθάριση ολοκληρωμένων λήψεων"
+
+msgctxt "queue.empty"
+msgid "Queued downloads will appear here"
+msgstr "Οι λήψεις στην ουρά θα εμφανιστούν εδώ"
+
+msgctxt "queue.filterAll"
+msgid "All"
+msgstr "Όλα"
+
+msgctxt "queue.filtersLabel"
+msgid "Queue status filters"
+msgstr "Φίλτρα κατάστασης ουράς"
+
+msgctxt "queue.globalActionsLabel"
+msgid "All items"
+msgstr "Όλα τα στοιχεία"
+
+msgctxt "queue.header"
+msgid "Downloads"
+msgstr "Λήψεις"
+
+msgctxt "queue.item.cancel"
+msgid "Cancel"
+msgstr "Ακύρωση"
+
+msgctxt "queue.item.defaultError"
+msgid "Download failed"
+msgstr "Αποτυχία λήψης"
+
+msgctxt "queue.item.openDestinationFolder"
+msgid "Open destination folder"
+msgstr "Άνοιγμα φακέλου προορισμού"
+
+msgctxt "queue.item.pause"
+msgid "Pause"
+msgstr "Παύση"
+
+msgctxt "queue.item.pendingOnly"
+msgid "Pending only"
+msgstr "Μόνο σε εκκρεμότητα"
+
+msgctxt "queue.item.pullNow"
+msgid "Pull now — skip the queue"
+msgstr "Λήψη τώρα — παράκαμψη ουράς"
+
+msgctxt "queue.item.remove"
+msgid "Remove"
+msgstr "Κατάργηση"
+
+msgctxt "queue.item.resume"
+msgid "Resume"
+msgstr "Συνέχεια"
+
+msgctxt "queue.item.retry"
+msgid "Retry"
+msgstr "Επανάληψη"
+
+msgctxt "queue.item.retryingSoon"
+msgid "retrying automatically (attempt {{attempt}})"
+msgstr "γίνεται αυτόματη επανάληψη (προσπάθεια {{attempt}})"
+
+msgctxt "queue.item.setLocation"
+msgid "Set location"
+msgstr "Ορισμός τοποθεσίας"
+
+msgctxt "queue.item.setLocationHint"
+msgid "Select pending items to set location."
+msgstr "Επιλέξτε εκκρεμή στοιχεία για να ορίσετε τοποθεσία."
+
+msgctxt "queue.item.statusCancelled"
+msgid "Cancelled"
+msgstr "Ακυρώθηκε"
+
+msgctxt "queue.item.statusDone"
+msgid "Done"
+msgstr "Ολοκληρώθηκε"
+
+msgctxt "queue.item.statusError"
+msgid "Error"
+msgstr "Σφάλμα"
+
+msgctxt "queue.item.statusHeld"
+msgid "Held"
+msgstr "Σε κράτηση"
+
+msgctxt "queue.item.statusPaused"
+msgid "Paused"
+msgstr "Σε παύση"
+
+msgctxt "queue.item.statusPending"
+msgid "Waiting"
+msgstr "Αναμονή"
+
+msgctxt "queue.item.statusProbing"
+msgid "Fetching details"
+msgstr "Ανάκτηση λεπτομερειών"
+
+msgctxt "queue.item.statusRunning"
+msgid "Downloading"
+msgstr "Λήψη"
+
+msgctxt "queue.pauseAllTitle"
+msgid "Pause every active download and stop new ones from starting"
+msgstr "Παύση όλων των ενεργών λήψεων"
+
+msgctxt "queue.pausedBanner"
+msgid "The queue is paused — waiting items won't start until you resume it"
+msgstr "Η ουρά είναι σε παύση — οι εκκρεμείς λήψεις δεν θα ξεκινήσουν μέχρι να τη συνεχίσεις"
+
+msgctxt "queue.resumeAllTitle"
+msgid "Resume paused downloads and let the queue keep going"
+msgstr "Συνέχισε τις λήψεις σε παύση και άφησε την ουρά να προχωρήσει"
+
+msgctxt "queue.resumeQueueAction"
+msgid "Resume queue"
+msgstr "Συνέχιση ουράς"
+
+msgctxt "queue.selectedActionsLabel"
+msgid "Selected items"
+msgstr "Επιλεγμένα στοιχεία"
+
+msgctxt "queue.selectionSummary"
+msgid "{{selected}} selected · {{total}} total"
+msgstr "{{selected}} επιλεγμένα · {{total}} σύνολο"
+
+msgctxt "queue.tabLabel"
+msgid "Downloads"
+msgstr "Λήψεις"
+
+msgctxt "queue.table.added"
+msgid "Added"
+msgstr "Προστέθηκε"
+
+msgctxt "queue.table.artifacts"
+msgid "Artifacts"
+msgstr "Αρχεία εξόδου"
+
+msgctxt "queue.table.columns"
+msgid "Columns"
+msgstr "Στήλες"
+
+msgctxt "queue.table.finished"
+msgid "Finished"
+msgstr "Ολοκληρώθηκε"
+
+msgctxt "queue.table.format"
+msgid "Format"
+msgstr "Μορφή"
+
+msgctxt "queue.table.hideArtifactsFor"
+msgid "Hide artifacts for {{title}}"
+msgstr "Απόκρυψη αρχείων για {{title}}"
+
+msgctxt "queue.table.notAvailable"
+msgid "—"
+msgstr "—"
+
+msgctxt "queue.table.outputTarget"
+msgid "Output target"
+msgstr "Προορισμός εξόδου"
+
+msgctxt "queue.table.progress"
+msgid "Progress"
+msgstr "Πρόοδος"
+
+msgctxt "queue.table.showArtifactsFor"
+msgid "Show artifacts for {{title}}"
+msgstr "Εμφάνιση αρχείων για {{title}}"
+
+msgctxt "queue.table.sortBy"
+msgid "Sort by {{label}}"
+msgstr "Ταξινόμηση κατά {{label}}"
+
+msgctxt "queue.table.status"
+msgid "Status"
+msgstr "Κατάσταση"
+
+msgctxt "queue.table.title"
+msgid "Title"
+msgstr "Τίτλος"
+
+msgctxt "queue.tabTip"
+msgid "Downloads live in the Downloads tab now — open it anytime to track progress."
+msgstr "Οι λήψεις βρίσκονται πλέον στην καρτέλα Λήψεις — άνοιξέ τη όποτε θέλεις για να παρακολουθείς την πρόοδο."
+
+msgctxt "releaseNotes.continue"
+msgid "Continue"
+msgstr "Συνέχεια"
+
+msgctxt "releaseNotes.description"
+msgid "You're running a fresh update. Here are the highlights."
+msgstr "Χρησιμοποιείτε μια νέα ενημέρωση. Δείτε τα σημαντικότερα σημεία."
+
+msgctxt "releaseNotes.fullNotes"
+msgid "Full release notes ↗"
+msgstr "Πλήρεις σημειώσεις έκδοσης ↗"
+
+msgctxt "releaseNotes.title"
+msgid "What's new in Arroxy {{version}}"
+msgstr "Τι νέο υπάρχει στο Arroxy {{version}}"
+
+msgctxt "repair.actions.cancel"
+msgid "Cancel"
+msgstr "Ακύρωση"
+
+msgctxt "repair.actions.chooseExecutable"
+msgid "Choose executable"
+msgstr "Επιλογή εκτελέσιμου"
+
+msgctxt "repair.actions.installWithHomebrew"
+msgid "Install with Homebrew"
+msgstr "Εγκατάσταση με Homebrew"
+
+msgctxt "repair.actions.installWithWinget"
+msgid "Install with WinGet"
+msgstr "Εγκατάσταση με WinGet"
+
+msgctxt "repair.actions.openDependencyFolder"
+msgid "Open dependency folder"
+msgstr "Άνοιγμα φακέλου εξαρτήσεων"
+
+msgctxt "repair.actions.resetToDefault"
+msgid "Reset to default"
+msgstr "Επαναφορά στις προεπιλογές"
+
+msgctxt "repair.actions.retrySetup"
+msgid "Retry setup"
+msgstr "Επανάληψη ρύθμισης"
+
+msgctxt "repair.actions.viewSetupLog"
+msgid "View setup log"
+msgstr "Προβολή αρχείου καταγραφής ρύθμισης"
+
+msgctxt "repair.deps.ffmpeg"
+msgid "FFmpeg"
+msgstr "FFmpeg"
+
+msgctxt "repair.deps.ffprobe"
+msgid "FFprobe"
+msgstr "FFprobe"
+
+msgctxt "repair.deps.ytDlp"
+msgid "yt-dlp"
+msgstr "yt-dlp"
+
+msgctxt "repair.hints.badExitCode"
+msgid "The binary did not respond to --version. It may be corrupt or the wrong build."
+msgstr "Το δυαδικό αρχείο δεν ανταποκρίθηκε στο --version. Μπορεί να είναι κατεστραμμένο ή λανθασμένη έκδοση."
+
+msgctxt "repair.hints.blockedOrQuarantined"
+msgid "Windows blocked the file (SmartScreen / Defender). Pick an installed copy or whitelist the runtime folder."
+msgstr "Τα Windows απέκλεισαν το αρχείο (SmartScreen / Defender). Επέλεξε εγκατεστημένο αντίγραφο ή προσθέστε τον φάκελο εκτέλεσης στη λίστα εξαιρέσεων."
+
+msgctxt "repair.hints.downloadFailed"
+msgid "Download failed. Check your internet connection and retry."
+msgstr "Η λήψη απέτυχε. Έλεγξε τη σύνδεσή σου στο διαδίκτυο και δοκίμασε ξανά."
+
+msgctxt "repair.hints.extractFailed"
+msgid "Archive extraction failed. The download may be corrupt — retry."
+msgstr "Η εξαγωγή αρχείου απέτυχε. Η λήψη μπορεί να είναι κατεστραμμένη — δοκίμασε ξανά."
+
+msgctxt "repair.hints.hashFailed"
+msgid "Checksum mismatch on the downloaded file. Retry the download."
+msgstr "Αναντιστοιχία αθροίσματος ελέγχου του ληφθέντος αρχείου. Επανέλαβε τη λήψη."
+
+msgctxt "repair.hints.pairIncomplete"
+msgid "ffmpeg and ffprobe must both be set as a matched pair."
+msgstr "Τα ffmpeg και ffprobe πρέπει να οριστούν ως ταιριαστό ζεύγος."
+
+msgctxt "repair.hints.permissionDenied"
+msgid "The system refused to run the file. Pick a copy you trust or retry as admin."
+msgstr "Το σύστημα αρνήθηκε να εκτελέσει το αρχείο. Επέλεξε ένα αξιόπιστο αντίγραφο ή δοκίμασε ξανά ως διαχειριστής."
+
+msgctxt "repair.hints.spawnFailed"
+msgid "The file is missing or could not be launched. Pick a working copy."
+msgstr "Το αρχείο λείπει ή δεν μπόρεσε να εκκινηθεί. Επέλεξε ένα λειτουργικό αντίγραφο."
+
+msgctxt "repair.hints.timeout"
+msgid "The version probe timed out. The file may be hung — retry."
+msgstr "Η διερεύνηση έκδοσης έληξε. Το αρχείο μπορεί να είναι κολλημένο — δοκίμασε ξανά."
+
+msgctxt "repair.hints.unknown"
+msgid "Could not be verified."
+msgstr "Δεν ήταν δυνατή η επαλήθευση."
+
+msgctxt "repair.title"
+msgid "Setup needs your help"
+msgstr "Η ρύθμιση χρειάζεται τη βοήθειά σου"
+
+msgctxt "share.copied"
+msgid "Copied!"
+msgstr "Αντιγράφηκε!"
+
+msgctxt "share.copyLink"
+msgid "Copy link"
+msgstr "Αντιγραφή συνδέσμου"
+
+msgctxt "share.defaultMessage"
+msgid ""
+"Arroxy — free, open-source video downloader for Windows, macOS & Linux. Works with YouTube, Vimeo, Twitch, and 2000+ sites.\n"
+"4K · HDR · MP3 · Shorts · Subtitles · SponsorBlock"
+msgstr ""
+"Arroxy — Δωρεάν πρόγραμμα λήψης βίντεο ανοιχτού κώδικα για Windows, macOS & Linux. Λειτουργεί με YouTube, Vimeo, Twitch και 2000+ ιστοτόπους.\n"
+"4K · HDR · MP3 · Shorts · Subtitles · SponsorBlock"
+
+msgctxt "share.description"
+msgid "Arroxy is free and open-source. Sharing helps more people discover it."
+msgstr "Το Arroxy είναι δωρεάν και ανοιχτού κώδικα. Η κοινοποίηση βοηθά περισσότερους να το ανακαλύψουν."
+
+msgctxt "share.footerLabel"
+msgid "Share"
+msgstr "Κοινή χρήση"
+
+msgctxt "share.footerTooltip"
+msgid "Share Arroxy"
+msgstr "Κοινή χρήση Arroxy"
+
+msgctxt "share.shareAction"
+msgid "Share Arroxy"
+msgstr "Κοινή χρήση Arroxy"
+
+msgctxt "share.title"
+msgid "Share Arroxy"
+msgstr "Μοιράσου το Arroxy"
+
+msgctxt "splash.cancel"
+msgid "Having trouble? Set it up manually"
+msgstr "Πρόβλημα; Ρυθμίστε το χειροκίνητα"
+
+msgctxt "splash.downloading"
+msgid "Downloading {{binary}}…"
+msgstr "Λήψη {{binary}}…"
+
+msgctxt "splash.greeting"
+msgid "Hey, welcome back!"
+msgstr "Καλώς ήρθες πάλι!"
+
+msgctxt "splash.verifyFirstCheck"
+msgid "First check of this version — this one is slow. Usually about a minute."
+msgstr "Πρώτος έλεγχος αυτής της έκδοσης — αυτός είναι αργός. Συνήθως περίπου ένα λεπτό."
+
+msgctxt "splash.verifying"
+msgid "Checking {{binary}}…"
+msgstr "Έλεγχος {{binary}}…"
+
+msgctxt "splash.warmup"
+msgid "Preparing downloads…"
+msgstr "Προετοιμασία λήψεων…"
+
+msgctxt "splash.warmupFailedNoDiag"
+msgid "Setup failed. Open the setup log for details."
+msgstr "Η ρύθμιση απέτυχε. Άνοιξε το αρχείο καταγραφής ρύθμισης για λεπτομέρειες."
+
+msgctxt "status.cancelled"
+msgid "Download cancelled"
+msgstr "Η λήψη ακυρώθηκε"
+
+msgctxt "status.complete"
+msgid "Download complete"
+msgstr "Η λήψη ολοκληρώθηκε"
+
+msgctxt "status.convertingVideo"
+msgid "Converting video…"
+msgstr "Μετατροπή βίντεο…"
+
+msgctxt "status.diskSpaceInsufficient"
+msgid "Not enough disk space — need {{required}}, only {{free}} available"
+msgstr "Ανεπαρκής χώρος δίσκου — απαιτούνται {{required}}, διαθέσιμα μόνο {{free}}"
+
+msgctxt "status.downloadingBinary"
+msgid "Downloading {{name}} binary…"
+msgstr "Λήψη δυαδικού {{name}}…"
+
+msgctxt "status.downloadingMedia"
+msgid "Downloading video & audio…"
+msgstr "Λήψη βίντεο και ήχου…"
+
+msgctxt "status.embeddingMetadata"
+msgid "Embedding metadata…"
+msgstr "Ενσωμάτωση μεταδεδομένων…"
+
+msgctxt "status.extractingAudio"
+msgid "Converting audio…"
+msgstr "Μετατροπή ήχου…"
+
+msgctxt "status.fetchingSponsorBlock"
+msgid "Contacting SponsorBlock…"
+msgstr "Σύνδεση με το SponsorBlock…"
+
+msgctxt "status.fetchingSubtitles"
+msgid "Fetching subtitles…"
+msgstr "Λήψη υποτίτλων…"
+
+msgctxt "status.mergingFormats"
+msgid "Merging audio and video…"
+msgstr "Συγχώνευση ήχου και βίντεο…"
+
+msgctxt "status.mintingToken"
+msgid "Minting YouTube token…"
+msgstr "Δημιουργία YouTube token…"
+
+msgctxt "status.movingFiles"
+msgid "Moving files…"
+msgstr "Μετακίνηση αρχείων…"
+
+msgctxt "status.preparingBinaries"
+msgid "Preparing binaries…"
+msgstr "Προετοιμασία δυαδικών…"
+
+msgctxt "status.remintingToken"
+msgid "Re-minting token…"
+msgstr "Αναδημιουργία token…"
+
+msgctxt "status.retryingSponsorBlock"
+msgid "SponsorBlock unavailable, retrying ({{attempt}}/{{total}})…"
+msgstr "Το SponsorBlock δεν είναι διαθέσιμο, επανάληψη ({{attempt}}/{{total}})…"
+
+msgctxt "status.sleepingBetweenRequests"
+msgid "Waiting {{seconds}}s to avoid rate limits…"
+msgstr "Αναμονή {{seconds}} δευτ. για αποφυγή περιορισμών ρυθμού…"
+
+msgctxt "status.startingYtdlp"
+msgid "Starting yt-dlp process…"
+msgstr "Εκκίνηση διαδικασίας yt-dlp…"
+
+msgctxt "status.subtitlesFailed"
+msgid "Video saved — some subtitles could not be downloaded"
+msgstr "Το βίντεο αποθηκεύτηκε — ορισμένοι υπότιτλοι δεν κατέβηκαν"
+
+msgctxt "status.unknownStartupFailure"
+msgid "Unknown download startup failure"
+msgstr "Άγνωστη αποτυχία εκκίνησης λήψης"
+
+msgctxt "status.usedExtractorFallback"
+msgid "Downloaded with relaxed extractor — set up a cookies.txt for more reliable downloads"
+msgstr "Λήψη με χαλαρό extractor — ρύθμισε cookies.txt για πιο αξιόπιστες λήψεις"
+
+msgctxt "status.ytdlpExitCode"
+msgid "yt-dlp exited with code {{code}}"
+msgstr "Το yt-dlp έγινε έξοδος με κωδικό {{code}}"
+
+msgctxt "status.ytdlpProcessError"
+msgid "yt-dlp process error: {{error}}"
+msgstr "Σφάλμα διαδικασίας yt-dlp: {{error}}"
+
+msgctxt "theme.dark"
+msgid "Dark mode"
+msgstr "Σκούρα εμφάνιση"
+
+msgctxt "theme.light"
+msgid "Light mode"
+msgstr "Ανοιχτόχρωμη εμφάνιση"
+
+msgctxt "theme.system"
+msgid "System default"
+msgstr "Προεπιλογή συστήματος"
+
+msgctxt "titleBar.close"
+msgid "Close"
+msgstr "Κλείσιμο"
+
+msgctxt "titleBar.maximize"
+msgid "Maximize"
+msgstr "Μεγιστοποίηση"
+
+msgctxt "titleBar.minimize"
+msgid "Minimize"
+msgstr "Ελαχιστοποίηση"
+
+msgctxt "titleBar.restore"
+msgid "Restore"
+msgstr "Επαναφορά"
+
+msgctxt "tray.menu.downloadFromClipboard"
+msgid "Download from clipboard"
+msgstr "Λήψη από το πρόχειρο"
+
+msgctxt "tray.menu.open"
+msgid "Open Arroxy"
+msgstr "Άνοιγμα Arroxy"
+
+msgctxt "tray.menu.quit"
+msgid "Quit Arroxy"
+msgstr "Έξοδος από Arroxy"
+
+msgctxt "tray.menu.statusActive_one"
+msgid "1 downloading · {{percent}}%"
+msgstr "1 σε λήψη · {{percent}}%"
+
+msgctxt "tray.menu.statusActive_other"
+msgid "{{count}} downloading · {{percent}}%"
+msgstr "{{count}} σε λήψη · {{percent}}%"
+
+msgctxt "tray.menu.statusIdle"
+msgid "Idle"
+msgstr "Αδρανές"
+
+msgctxt "tray.tooltip"
+msgid "Arroxy"
+msgstr "Arroxy"
+
+msgctxt "update.appVersion"
+msgid "Arroxy {{version}}"
+msgstr "Arroxy {{version}}"
+
+msgctxt "update.copied"
+msgid "Copied command to clipboard"
+msgstr "Η εντολή αντιγράφηκε στο πρόχειρο"
+
+msgctxt "update.copy"
+msgid "Copy command to clipboard"
+msgstr "Αντιγραφή εντολής στο πρόχειρο"
+
+msgctxt "update.dismiss"
+msgid "Dismiss update banner"
+msgstr "Απόρριψη ειδοποίησης ενημέρωσης"
+
+msgctxt "update.download"
+msgid "Download ↗"
+msgstr "Download ↗"
+
+msgctxt "update.downloadDmg"
+msgid "Download DMG ↗"
+msgstr "Λήψη DMG ↗"
+
+msgctxt "update.downloading"
+msgid "Downloading…"
+msgstr "Λήψη…"
+
+msgctxt "update.install"
+msgid "Install & Restart"
+msgstr "Εγκατάσταση & Επανεκκίνηση"
+
+msgctxt "update.installFailed"
+msgid "Update failed"
+msgstr "Η ενημέρωση απέτυχε"
+
+msgctxt "update.isAvailable"
+msgid "is available"
+msgstr "είναι διαθέσιμο"
+
+msgctxt "update.message.generic"
+msgid "Arroxy {{version}} is available — you have {{currentVersion}}."
+msgstr "Το Arroxy {{version}} είναι διαθέσιμο — έχεις την {{currentVersion}}."
+
+msgctxt "update.message.homebrew"
+msgid "Arroxy {{version}} is available — update with Homebrew."
+msgstr "Το Arroxy {{version}} είναι διαθέσιμο — ενημέρωσε μέσω Homebrew."
+
+msgctxt "update.message.macosDirect"
+msgid "Arroxy {{version}} is available — download the new DMG."
+msgstr "Το Arroxy {{version}} είναι διαθέσιμο — κατέβασε το νέο DMG."
+
+msgctxt "update.message.portable"
+msgid "Arroxy {{version}} is available — download the new build."
+msgstr "Το Arroxy {{version}} είναι διαθέσιμο — κατέβασε τη νέα έκδοση."
+
+msgctxt "update.retry"
+msgid "Retry"
+msgstr "Επανάληψη"
+
+msgctxt "update.youHave"
+msgid "— you have {{currentVersion}}"
+msgstr "— έχεις {{currentVersion}}"
+
+msgctxt "videoCard.titlePlaceholder"
+msgid "Loading…"
+msgstr "Φόρτωση…"
+
+msgctxt "wizard.bulk.acceptedCount"
+msgid "Ready"
+msgstr "Έτοιμα"
+
+msgctxt "wizard.bulk.description"
+msgid "Paste video, playlist, channel, search, or audio URLs. Arroxy will clean duplicates before queueing."
+msgstr "Επικόλλησε URL βίντεο, playlist, καναλιού, αναζήτησης ή ήχου. Το Arroxy θα καθαρίσει τα διπλότυπα πριν τα βάλει στην ουρά."
+
+msgctxt "wizard.bulk.emptyPreview"
+msgid "Paste one or more URLs to preview the batch."
+msgstr "Επικολλήστε ένα ή περισσότερα URL για προεπισκόπηση της παρτίδας."
+
+msgctxt "wizard.bulk.ignoredCount"
+msgid "Ignored"
+msgstr "Αγνοήθηκαν"
+
+msgctxt "wizard.bulk.needsAtLeastOne"
+msgid "Add at least one supported URL to continue."
+msgstr "Προσθέστε τουλάχιστον ένα υποστηριζόμενο URL για συνέχεια."
+
+msgctxt "wizard.bulk.reject.duplicate"
+msgid "Duplicate"
+msgstr "Διπλότυπο"
+
+msgctxt "wizard.bulk.textareaLabel"
+msgid "URL list"
+msgstr "Λίστα URL"
+
+msgctxt "wizard.bulk.textareaPlaceholder"
+msgid ""
+"https://example.com/video-1\n"
+"https://example.com/video-2\n"
+"https://example.com/video-3"
+msgstr ""
+"https://video.example/one\n"
+"https://video.example/two\n"
+"https://video.example/three"
+
+msgctxt "wizard.bulk.title"
+msgid "Bulk URLs"
+msgstr "Μαζικά URL"
+
+msgctxt "wizard.confirm.addToQueue"
+msgid "+ Queue"
+msgstr "+ Queue"
+
+msgctxt "wizard.confirm.addToQueueTooltip"
+msgid "Adds to the queue — starts when the active download finishes"
+msgstr "Ξεκινά όταν ολοκληρωθούν άλλες λήψεις — αποκτά πλήρες εύρος ζώνης"
+
+msgctxt "wizard.confirm.audioOnly"
+msgid "Audio only"
+msgstr "Μόνο ήχος"
+
+msgctxt "wizard.confirm.itemsValue_one"
+msgid "{{count}} of {{total}} video"
+msgstr "{{count}} από {{total}} βίντεο"
+
+msgctxt "wizard.confirm.itemsValue_other"
+msgid "{{count}} of {{total}} videos"
+msgstr "{{count}} από {{total}} βίντεο"
+
+msgctxt "wizard.confirm.itemsValueAudio_one"
+msgid "{{count}} of {{total}} track"
+msgstr "{{count}} από {{total}} κομμάτι"
+
+msgctxt "wizard.confirm.itemsValueAudio_other"
+msgid "{{count}} of {{total}} tracks"
+msgstr "{{count}} από {{total}} κομμάτια"
+
+msgctxt "wizard.confirm.itemsValueBulk_one"
+msgid "{{count}} of {{total}} URL"
+msgstr "{{count}} από {{total}} URL"
+
+msgctxt "wizard.confirm.itemsValueBulk_other"
+msgid "{{count}} of {{total}} URLs"
+msgstr "{{count}} από {{total}} URL"
+
+msgctxt "wizard.confirm.labelAudio"
+msgid "Audio"
+msgstr "Ήχος"
+
+msgctxt "wizard.confirm.labelBulk"
+msgid "Batch"
+msgstr "Μαζικά URL"
+
+msgctxt "wizard.confirm.labelItems"
+msgid "Items"
+msgstr "Στοιχεία"
+
+msgctxt "wizard.confirm.labelPlaylist"
+msgid "Playlist"
+msgstr "Λίστα αναπαραγωγής"
+
+msgctxt "wizard.confirm.labelPreset"
+msgid "Preset"
+msgstr "Προεπιλογή"
+
+msgctxt "wizard.confirm.labelSaveTo"
+msgid "Save to"
+msgstr "Αποθήκευση σε"
+
+msgctxt "wizard.confirm.labelSize"
+msgid "Size"
+msgstr "Μέγεθος"
+
+msgctxt "wizard.confirm.labelSubtitles"
+msgid "Subtitles"
+msgstr "Υπότιτλοι"
+
+msgctxt "wizard.confirm.labelVideo"
+msgid "Video"
+msgstr "Βίντεο"
+
+msgctxt "wizard.confirm.landIn"
+msgid "Your file will land in"
+msgstr "Το αρχείο σου θα αποθηκευτεί στο"
+
+msgctxt "wizard.confirm.landInMultiProfile_one"
+msgid "It'll land in the destination below"
+msgstr "Θα αποθηκευτεί στον παρακάτω προορισμό"
+
+msgctxt "wizard.confirm.landInMultiProfile_other"
+msgid "They'll land in the {{count}} destinations below"
+msgstr "Θα αποθηκευτούν στους {{count}} παρακάτω προορισμούς"
+
+msgctxt "wizard.confirm.nothingToDownload"
+msgid "Subtitles only preset is active but no subtitle language is selected — nothing will be downloaded."
+msgstr "Η προεπιλογή «μόνο υπότιτλοι» είναι ενεργή αλλά δεν έχει επιλεγεί γλώσσα — τίποτα δεν θα ληφθεί."
+
+msgctxt "wizard.confirm.profileBreakdownCount_one"
+msgid "{{count}} item"
+msgstr "{{count}} στοιχείο"
+
+msgctxt "wizard.confirm.profileBreakdownCount_other"
+msgid "{{count}} items"
+msgstr "{{count}} στοιχεία"
+
+msgctxt "wizard.confirm.profileBreakdownHeading"
+msgid "Profiles in this batch"
+msgstr "Προφίλ σε αυτήν την παρτίδα"
+
+msgctxt "wizard.confirm.pullIt"
+msgid "Pull it! ↓"
+msgstr "Κατέβασέ το! ↓"
+
+msgctxt "wizard.confirm.pullItTooltip"
+msgid "Skips the queue — starts now, runs alongside other active downloads"
+msgstr "Ξεκινά αμέσως — εκτελείται παράλληλα με άλλες ενεργές λήψεις"
+
+msgctxt "wizard.confirm.readyHeadline"
+msgid "Ready to pull it in!"
+msgstr "Έτοιμο για λήψη!"
+
+msgctxt "wizard.confirm.sizeUnknown"
+msgid "Unknown"
+msgstr "Άγνωστο"
+
+msgctxt "wizard.confirm.subtitleEmbedAudioOnly"
+msgid "Subtitle embed changed to sidecar — audio tracks do not support embedded subtitle streams."
+msgstr "Το embed υποτίτλων άλλαξε σε sidecar — τα κομμάτια ήχου δεν υποστηρίζουν ενσωματωμένες ροές υποτίτλων."
+
+msgctxt "wizard.confirm.subtitlesNone"
+msgid "—"
+msgstr "—"
+
+msgctxt "wizard.confirm.thumbnailEmbedNotSupported"
+msgid "Thumbnail embed skipped — output container does not support it."
+msgstr "Το Thumbnail embed παραλείφθηκε — το container εξόδου δεν το υποστηρίζει."
+
+msgctxt "wizard.folder.custom"
+msgid "Custom…"
+msgstr "Προσαρμοσμένο…"
+
+msgctxt "wizard.folder.desktop"
+msgid "Desktop"
+msgstr "Επιφάνεια εργασίας"
+
+msgctxt "wizard.folder.documents"
+msgid "Documents"
+msgstr "Έγγραφα"
+
+msgctxt "wizard.folder.downloads"
+msgid "Downloads"
+msgstr "Λήψεις"
+
+msgctxt "wizard.folder.heading"
+msgid "Save to"
+msgstr "Αποθήκευση σε"
+
+msgctxt "wizard.folder.home"
+msgid "Home"
+msgstr "Αρχική"
+
+msgctxt "wizard.folder.music"
+msgid "Music"
+msgstr "Μουσική"
+
+msgctxt "wizard.folder.pictures"
+msgid "Pictures"
+msgstr "Εικόνες"
+
+msgctxt "wizard.folder.subfolder.invalid"
+msgid "Folder name has invalid characters"
+msgstr "Το όνομα φακέλου περιέχει μη έγκυρους χαρακτήρες"
+
+msgctxt "wizard.folder.subfolder.placeholder"
+msgid "e.g. lo-fi rips"
+msgstr "π.χ. lo-fi rips"
+
+msgctxt "wizard.folder.subfolder.toggle"
+msgid "Save inside subfolder"
+msgstr "Αποθήκευση σε υποφάκελο"
+
+msgctxt "wizard.folder.videos"
+msgid "Movies"
+msgstr "Ταινίες"
+
+msgctxt "wizard.formats.audio"
+msgid "Audio"
+msgstr "Ήχος"
+
+msgctxt "wizard.formats.audioOnly"
+msgid "Audio only"
+msgstr "Μόνο ήχος"
+
+msgctxt "wizard.formats.audioOnlyOption"
+msgid "Audio only (no video)"
+msgstr "Μόνο ήχος (χωρίς βίντεο)"
+
+msgctxt "wizard.formats.botWall.bodyDisabled"
+msgid "Cookies are configured but turned off. Enable them and retry to get the full list, or change network and retry."
+msgstr "Τα cookies είναι ρυθμισμένα αλλά απενεργοποιημένα. Ενεργοποίησέ τα και δοκίμασε ξανά για πλήρη λίστα, ή άλλαξε δίκτυο."
+
+msgctxt "wizard.formats.botWall.bodyEnabled"
+msgid "Even with cookies, YouTube limited this probe. Try again later or switch network."
+msgstr "Ακόμα και με cookies, το YouTube περιόρισε αυτή την ανίχνευση. Δοκίμασε αργότερα ή άλλαξε δίκτυο."
+
+msgctxt "wizard.formats.botWall.bodyUnconfigured"
+msgid "The format list may be incomplete. Set up cookies in advanced settings, or change network and retry."
+msgstr "Η λίστα μορφών μπορεί να είναι ελλιπής. Ρύθμισε cookies στις ρυθμίσεις για προχωρημένους, ή άλλαξε δίκτυο και δοκίμασε ξανά."
+
+msgctxt "wizard.formats.botWall.enableRetryCta"
+msgid "Enable cookies and retry"
+msgstr "Ενεργοποίηση cookies και επανάληψη"
+
+msgctxt "wizard.formats.botWall.heading"
+msgid "Probe was limited"
+msgstr "Το YouTube περιόρισε αυτή την ανίχνευση"
+
+msgctxt "wizard.formats.botWall.retryCta"
+msgid "Retry"
+msgstr "Επανάληψη"
+
+msgctxt "wizard.formats.convert.bitrate"
+msgid "Bitrate"
+msgstr "Ρυθμός bit"
+
+msgctxt "wizard.formats.convert.label"
+msgid "Convert"
+msgstr "Μετατροπή"
+
+msgctxt "wizard.formats.convert.lossyLabel"
+msgid "{{target}} {{bitrate}} kbps"
+msgstr "{{target}} {{bitrate}} kbps"
+
+msgctxt "wizard.formats.convert.requiresAudioOnly"
+msgid "Audio conversion requires audio-only mode (deselect the video pick)."
+msgstr "Η μετατροπή ήχου απαιτεί λειτουργία μόνο ήχου (αποεπίλεξε το βίντεο)."
+
+msgctxt "wizard.formats.convert.requiresLossy"
+msgid "A native stream is selected — bitrate only applies when converting to mp3, m4a, or opus."
+msgstr "Επιλέχθηκε εγγενής ροή — ο ρυθμός bit ισχύει μόνο κατά τη μετατροπή σε mp3, m4a ή opus."
+
+msgctxt "wizard.formats.convert.uncompressed"
+msgid "Convert · uncompressed"
+msgstr "Μετατροπή · αμετάβλητο"
+
+msgctxt "wizard.formats.convert.wavLabel"
+msgid "WAV (uncompressed)"
+msgstr "WAV (αμετάβλητο)"
+
+msgctxt "wizard.formats.cookiesError.currentModeBrowser"
+msgid "Browser"
+msgstr "Πρόγραμμα περιήγησης"
+
+msgctxt "wizard.formats.cookiesError.currentModeFile"
+msgid "File"
+msgstr "Αρχείο"
+
+msgctxt "wizard.formats.cookiesError.currentModeLabel"
+msgid "Cookies source"
+msgstr "Πηγή cookies"
+
+msgctxt "wizard.formats.cookiesError.dpapi.docsLinkLabel"
+msgid "yt-dlp docs (issue #10927)"
+msgstr "yt-dlp τεκμηρίωση (ζήτημα #10927)"
+
+msgctxt "wizard.formats.cookiesError.dpapi.explanation"
+msgid "Chrome 127 and newer encrypts cookies in a way other apps can't read on Windows. Try one of the workarounds below."
+msgstr "Το Chrome 127 και νεότερες εκδόσεις κρυπτογραφούν τα cookies με τρόπο που άλλες εφαρμογές δεν μπορούν να διαβάσουν στα Windows. Δοκίμασε μία από τις παρακάτω λύσεις."
+
+msgctxt "wizard.formats.cookiesError.dpapi.fixFileBody"
+msgid "Export cookies from Chrome with a browser extension, then switch this app to File mode and pick the exported file."
+msgstr "Εξήγαγε τα cookies από το Chrome με ένα επέκταση προγράμματος περιήγησης, μετά άλλαξε αυτή την εφαρμογή σε λειτουργία Αρχείο και επέλεξε το εξαχθέν αρχείο."
+
+msgctxt "wizard.formats.cookiesError.dpapi.fixFileLabel"
+msgid "Export cookies.txt"
+msgstr "Εξαγωγή cookies.txt"
+
+msgctxt "wizard.formats.cookiesError.dpapi.fixFirefoxBody"
+msgid "Firefox doesn't use App-Bound Encryption. Open cookies settings and pick Firefox from the browser list."
+msgstr "Το Firefox δεν χρησιμοποιεί App-Bound Encryption. Άνοιξε τις ρυθμίσεις cookies και επέλεξε Firefox από τη λίστα προγραμμάτων περιήγησης."
+
+msgctxt "wizard.formats.cookiesError.dpapi.fixFirefoxLabel"
+msgid "Switch to Firefox"
+msgstr "Μετάβαση στο Firefox"
+
+msgctxt "wizard.formats.cookiesError.dpapi.fixUnsafeBody"
+msgid "Add --disable-features=LockProfileCookieDatabase to Chrome's launch shortcut. Warning: this invalidates previously encrypted cookies, so you'll be signed out of every site and need to log in again."
+msgstr "Πρόσθεσε --disable-features=LockProfileCookieDatabase στη συντόμευση εκκίνησης του Chrome. Προειδοποίηση: αυτό ακυρώνει τα προηγουμένως κρυπτογραφημένα cookies, οπότε θα αποσυνδεθείς από κάθε ιστότοπο και θα χρειαστεί να συνδεθείς ξανά."
+
+msgctxt "wizard.formats.cookiesError.dpapi.fixUnsafeLabel"
+msgid "Launch Chrome with App-Bound Encryption disabled"
+msgstr "Εκκίνηση Chrome με απενεργοποιημένο App-Bound Encryption"
+
+msgctxt "wizard.formats.cookiesError.dpapi.heading"
+msgid "Chrome cookies blocked by Windows encryption"
+msgstr "Τα cookies του Chrome αποκλείστηκαν από την κρυπτογράφηση των Windows"
+
+msgctxt "wizard.formats.cookiesError.explanationBrowser"
+msgid "Cookies are read directly from the browser. If the browser is currently running, its cookie database may be locked (Chromium-family). The browser must also be signed in to YouTube. Try closing the browser, switching to a different browser, switching to File mode, or turning cookies off."
+msgstr "Τα cookies διαβάζονται απευθείας από το πρόγραμμα περιήγησης. Αν τρέχει αυτή τη στιγμή, η βάση δεδομένων cookies μπορεί να είναι κλειδωμένη (οικογένεια Chromium). Το πρόγραμμα περιήγησης πρέπει επίσης να είναι συνδεδεμένο στο YouTube. Δοκίμασε να το κλείσεις, να χρησιμοποιήσεις διαφορετικό πρόγραμμα, να μεταβείς σε λειτουργία αρχείου ή να απενεργοποιήσεις τα cookies."
+
+msgctxt "wizard.formats.cookiesError.explanationFile"
+msgid "Your cookies file might be empty, expired, or in the wrong format (yt-dlp expects Netscape cookies.txt). Try re-exporting cookies, picking a different file, switching to Browser mode, or turning cookies off."
+msgstr "Το αρχείο cookies μπορεί να είναι κενό, ληγμένο ή σε λάθος μορφή (το yt-dlp αναμένει Netscape cookies.txt). Δοκίμασε να εξάγεις ξανά τα cookies, να επιλέξεις διαφορετικό αρχείο, να μεταβείς σε λειτουργία προγράμματος περιήγησης ή να απενεργοποιήσεις τα cookies."
+
+msgctxt "wizard.formats.cookiesError.heading"
+msgid "Cookies might be the cause"
+msgstr "Τα cookies μπορεί να φταίνε"
+
+msgctxt "wizard.formats.cookiesError.needsCookies.body"
+msgid "yt-dlp couldn't access this video without authentication. Configure cookies in advanced settings — point them at a browser you're already signed in to, or import a cookies.txt file."
+msgstr "Το yt-dlp δεν μπόρεσε να αποκτήσει πρόσβαση σε αυτό το βίντεο χωρίς έλεγχο ταυτότητας. Ρύθμισε τα cookies στις ρυθμίσεις για προχωρημένους — επίλεξε πρόγραμμα περιήγησης στο οποίο είσαι ήδη συνδεδεμένος, ή εισήγαγε αρχείο cookies.txt."
+
+msgctxt "wizard.formats.cookiesError.needsCookies.heading"
+msgid "This site requires sign-in"
+msgstr "Αυτός ο ιστότοπος απαιτεί σύνδεση"
+
+msgctxt "wizard.formats.cookiesError.openSettingsCta"
+msgid "Open cookies settings"
+msgstr "Άνοιγμα ρυθμίσεων cookies"
+
+msgctxt "wizard.formats.keepAudio"
+msgid "Keep as-is"
+msgstr "Διατήρηση ως έχει"
+
+msgctxt "wizard.formats.keepAudioMeta"
+msgid "Built-in audio"
+msgstr "Ενσωματωμένος ήχος"
+
+msgctxt "wizard.formats.loadingAria"
+msgid "Loading formats"
+msgstr "Φόρτωση μορφών"
+
+msgctxt "wizard.formats.loadingHint"
+msgid "Please wait until probing finishes — playlists and searches can take a while."
+msgstr "Περίμενε μέχρι να ολοκληρωθεί η ανίχνευση — οι playlist και οι αναζητήσεις μπορεί να πάρουν λίγη ώρα."
+
+msgctxt "wizard.formats.mascot"
+msgid "Best + Best = max quality. I'd pick that!"
+msgstr "Καλύτερο + Καλύτερο = μέγιστη ποιότητα. Αυτό θα διάλεγα!"
+
+msgctxt "wizard.formats.noAudio"
+msgid "No audio"
+msgstr "Χωρίς ήχο"
+
+msgctxt "wizard.formats.quality.high"
+msgid "High quality"
+msgstr "Υψηλή ποιότητα"
+
+msgctxt "wizard.formats.quality.low"
+msgid "Low quality"
+msgstr "Χαμηλή ποιότητα"
+
+msgctxt "wizard.formats.quality.medium"
+msgid "Medium quality"
+msgstr "Μεσαία ποιότητα"
+
+msgctxt "wizard.formats.quickPresets"
+msgid "Quick presets"
+msgstr "Γρήγορες προεπιλογές"
+
+msgctxt "wizard.formats.sizeUnknown"
+msgid "Size unknown"
+msgstr "Άγνωστο μέγεθος"
+
+msgctxt "wizard.formats.skipToConfirm"
+msgid "Skip to confirm"
+msgstr "Μετάβαση στην επιβεβαίωση"
+
+msgctxt "wizard.formats.skipToConfirmTooltip"
+msgid "Uses your saved preferences for all remaining steps. To change a setting, continue step by step instead — your choice will be saved for next time."
+msgstr "Χρησιμοποιεί τις αποθηκευμένες προτιμήσεις σας για όλα τα υπόλοιπα βήματα. Για να αλλάξετε μια ρύθμιση, συνεχίστε βήμα προς βήμα — η επιλογή σας θα αποθηκευτεί για την επόμενη φορά."
+
+msgctxt "wizard.formats.sniffing"
+msgid "Sniffing out the best formats for you…"
+msgstr "Ανακαλύπτω τις καλύτερες μορφές για σένα…"
+
+msgctxt "wizard.formats.total"
+msgid "Total"
+msgstr "Σύνολο"
+
+msgctxt "wizard.formats.video"
+msgid "Video"
+msgstr "Βίντεο"
+
+msgctxt "wizard.formats.videoOnly"
+msgid "Video only"
+msgstr "Μόνο βίντεο"
+
+msgctxt "wizard.mixedPrompt.body"
+msgid "Want only the video you clicked, or pick from the playlist? You'll choose specific videos or a range next."
+msgstr "Θέλεις μόνο το βίντεο που έκανες κλικ, ή να επιλέξεις από την playlist; Θα διαλέξεις συγκεκριμένα βίντεο ή εύρος στη συνέχεια."
+
+msgctxt "wizard.mixedPrompt.pickFromPlaylist"
+msgid "Pick from playlist"
+msgstr "Επιλογή από την playlist"
+
+msgctxt "wizard.mixedPrompt.playlistLimit"
+msgid "Playlist probe limit: {{count}} items"
+msgstr "Όριο ελέγχου playlist: {{count}} στοιχεία"
+
+msgctxt "wizard.mixedPrompt.playlistTooltip"
+msgid "Uses yt-dlp playlist mode and fetches up to your playlist probe limit before showing the picker."
+msgstr "Χρησιμοποιεί τη λειτουργία playlist του yt-dlp και ανακτά μέχρι το όριό σου πριν εμφανίσει τον επιλογέα."
+
+msgctxt "wizard.mixedPrompt.quickBody"
+msgid "Download only this video, or queue the whole playlist with your active Quick Download profile."
+msgstr "Κατέβασε μόνο αυτό το βίντεο ή βάλε ολόκληρη τη λίστα αναπαραγωγής στην ουρά με το ενεργό προφίλ Γρήγορης λήψης."
+
+msgctxt "wizard.mixedPrompt.quickLimitDescription"
+msgid "Maximum entries Arroxy scans before queueing a playlist, channel, or search result."
+msgstr "Ο μέγιστος αριθμός στοιχείων που σαρώνει το Arroxy πριν βάλει στην ουρά μια λίστα αναπαραγωγής, ένα κανάλι ή ένα αποτέλεσμα αναζήτησης."
+
+msgctxt "wizard.mixedPrompt.quickPlaylistTooltip"
+msgid "Queues every loaded playlist item with the active Quick Download profile. If the scan hits your limit, Arroxy asks before queueing."
+msgstr "Βάζει κάθε φορτωμένο στοιχείο της λίστας στην ουρά με το ενεργό προφίλ Γρήγορης λήψης. Αν η σάρωση φτάσει το όριό σου, το Arroxy θα ρωτήσει πριν βάλει στοιχεία στην ουρά."
+
+msgctxt "wizard.mixedPrompt.quickSingleTooltip"
+msgid "Queues one download and ignores the playlist attached to this URL."
+msgstr "Βάζει μία λήψη στην ουρά και αγνοεί τη λίστα αναπαραγωγής που είναι συνδεδεμένη με αυτό το URL."
+
+msgctxt "wizard.mixedPrompt.quickSingleVideo"
+msgid "Download this video"
+msgstr "Λήψη αυτού του βίντεο"
+
+msgctxt "wizard.mixedPrompt.quickWholePlaylist"
+msgid "Download whole playlist"
+msgstr "Λήψη ολόκληρης λίστας αναπαραγωγής"
+
+msgctxt "wizard.mixedPrompt.singleTooltip"
+msgid "Uses yt-dlp single-video mode so the playlist attached to this URL is ignored."
+msgstr "Χρησιμοποιεί τη λειτουργία μεμονωμένου βίντεο του yt-dlp ώστε να αγνοηθεί η playlist που είναι συνδεδεμένη με αυτό το URL."
+
+msgctxt "wizard.mixedPrompt.singleVideo"
+msgid "Just this one"
+msgstr "Μόνο αυτό"
+
+msgctxt "wizard.mixedPrompt.title"
+msgid "This link has a playlist"
+msgstr "Αυτός ο σύνδεσμος έχει playlist"
+
+msgctxt "wizard.output.embedChapters.description"
+msgid "Chapter markers navigable in any modern player."
+msgstr "Δείκτες κεφαλαίων πλοηγήσιμοι σε κάθε σύγχρονο πρόγραμμα αναπαραγωγής."
+
+msgctxt "wizard.output.embedChapters.label"
+msgid "Embed chapters"
+msgstr "Ενσωμάτωση κεφαλαίων"
+
+msgctxt "wizard.output.embedMetadata.description"
+msgid "Title, artist, description, and upload date written into the file."
+msgstr "Τίτλος, καλλιτέχνης, περιγραφή και ημερομηνία ανάρτησης εγγράφονται στο αρχείο."
+
+msgctxt "wizard.output.embedMetadata.label"
+msgid "Embed metadata"
+msgstr "Ενσωμάτωση μεταδεδομένων"
+
+msgctxt "wizard.output.embedThumbnail.description"
+msgid "Cover art inside the file. WebM video will be remuxed to MKV; skipped when subtitles are embedded."
+msgstr "Εξώφυλλο εντός του αρχείου. Το βίντεο WebM θα μετατραπεί σε MKV· παραλείπεται όταν ενσωματώνονται υπότιτλοι."
+
+msgctxt "wizard.output.embedThumbnail.label"
+msgid "Embed thumbnail"
+msgstr "Ενσωμάτωση μικρογραφίας"
+
+msgctxt "wizard.output.writeDescription.description"
+msgid "Saves the video description as a .description text file next to the download."
+msgstr "Αποθηκεύει την περιγραφή του βίντεο ως αρχείο κειμένου .description δίπλα στη λήψη."
+
+msgctxt "wizard.output.writeDescription.label"
+msgid "Save description"
+msgstr "Αποθήκευση περιγραφής"
+
+msgctxt "wizard.output.writeM3u.description"
+msgid "Save an .m3u playlist alongside the videos so they open in order in your media player."
+msgstr "Αποθηκεύει μια playlist .m3u δίπλα στα βίντεο ώστε να ανοίγουν με σειρά στο media player."
+
+msgctxt "wizard.output.writeM3u.label"
+msgid "Generate .m3u playlist file"
+msgstr "Δημιουργία αρχείου playlist .m3u"
+
+msgctxt "wizard.output.writeThumbnail.description"
+msgid "Saves the thumbnail as a .jpg image file next to the download."
+msgstr "Αποθηκεύει τη μικρογραφία ως αρχείο εικόνας .jpg δίπλα στη λήψη."
+
+msgctxt "wizard.output.writeThumbnail.label"
+msgid "Save thumbnail"
+msgstr "Αποθήκευση μικρογραφίας"
+
+msgctxt "wizard.playlist.allRemovedDescription"
+msgid "Restore them to continue."
+msgstr "Επαναφέρετέ τα για να συνεχίσετε."
+
+msgctxt "wizard.playlist.allRemovedTitle"
+msgid "Every item was removed"
+msgstr "Όλα τα στοιχεία καταργήθηκαν"
+
+msgctxt "wizard.playlist.alreadyDownloaded"
+msgid "Already downloaded"
+msgstr "Ήδη κατεβασμένο"
+
+msgctxt "wizard.playlist.bulkHeading"
+msgid "Bulk URLs"
+msgstr "Μαζικά URL"
+
+msgctxt "wizard.playlist.bulkMetadataOptional"
+msgid "No need to wait — files queued now still get their real names when they download."
+msgstr "Δεν χρειάζεται να περιμένετε — τα αρχεία που μπαίνουν στην ουρά τώρα θα πάρουν τα πραγματικά τους ονόματα κατά τη λήψη."
+
+msgctxt "wizard.playlist.bulkMetadataResolving"
+msgid "Fetching video details… {{done}}/{{total}}"
+msgstr "Ανάκτηση λεπτομερειών βίντεο… {{done}}/{{total}}"
+
+msgctxt "wizard.playlist.bulkRowFailed"
+msgid "Details unavailable"
+msgstr "Οι λεπτομέρειες δεν είναι διαθέσιμες"
+
+msgctxt "wizard.playlist.bulkRowResolving"
+msgid "Fetching details"
+msgstr "Ανάκτηση λεπτομερειών"
+
+msgctxt "wizard.playlist.bulkRowWaiting"
+msgid "Waiting"
+msgstr "Σε αναμονή"
+
+msgctxt "wizard.playlist.durationUnknown"
+msgid "live"
+msgstr "live"
+
+msgctxt "wizard.playlist.heading"
+msgid "Playlist items"
+msgstr "Στοιχεία playlist"
+
+msgctxt "wizard.playlist.headingGeneric"
+msgid "Videos to download"
+msgstr "Βίντεο για λήψη"
+
+msgctxt "wizard.playlist.itemCount_one"
+msgid "{{count}} video"
+msgstr "{{count}} βίντεο"
+
+msgctxt "wizard.playlist.itemCount_other"
+msgid "{{count}} videos"
+msgstr "{{count}} βίντεο"
+
+msgctxt "wizard.playlist.itemCountAudio_one"
+msgid "{{count}} track"
+msgstr "{{count}} κομμάτι"
+
+msgctxt "wizard.playlist.itemCountAudio_other"
+msgid "{{count}} tracks"
+msgstr "{{count}} κομμάτια"
+
+msgctxt "wizard.playlist.itemCountBulk_one"
+msgid "{{count}} URL"
+msgstr "{{count}} URL"
+
+msgctxt "wizard.playlist.itemCountBulk_other"
+msgid "{{count}} URLs"
+msgstr "{{count}} URL"
+
+msgctxt "wizard.playlist.loadingItems"
+msgid "Fetching playlist…"
+msgstr "Φόρτωση playlist…"
+
+msgctxt "wizard.playlist.loadingItemsGeneric"
+msgid "Fetching videos…"
+msgstr "Λήψη βίντεο…"
+
+msgctxt "wizard.playlist.loadingLimitHint"
+msgid "Limited to first {{count}} items"
+msgstr "Περιορισμένο στα πρώτα {{count}} στοιχεία"
+
+msgctxt "wizard.playlist.loadingPagesFound_one"
+msgid "{{count}} page found"
+msgstr "Βρέθηκε {{count}} σελίδα"
+
+msgctxt "wizard.playlist.loadingPagesFound_other"
+msgid "{{count}} pages found"
+msgstr "Βρέθηκαν {{count}} σελίδες"
+
+msgctxt "wizard.playlist.loadingPhaseItems"
+msgid "Collecting videos"
+msgstr "Συλλογή βίντεο"
+
+msgctxt "wizard.playlist.loadingPhasePages"
+msgid "Scanning channel pages"
+msgstr "Σάρωση σελίδων καναλιού"
+
+msgctxt "wizard.playlist.multiProfileEntry"
+msgid "Assign profiles per item"
+msgstr "Εκχώρηση προφίλ ανά στοιχείο"
+
+msgctxt "wizard.playlist.multiProfileEntryTooltip"
+msgid "Skips Quality, SponsorBlock, Output, and Save — assign a download profile per item instead"
+msgstr "Παρακάμπτει την Ποιότητα, το SponsorBlock, την Έξοδο και την Αποθήκευση — εκχωρεί αντ' αυτού ένα προφίλ λήψης ανά στοιχείο"
+
+msgctxt "wizard.playlist.nestedPlaylistBadge"
+msgid "Playlist"
+msgstr "Λίστα αναπαραγωγής"
+
+msgctxt "wizard.playlist.nestedPlaylistHint_one"
+msgid "{{count}} of these is a playlist, not a video — paste its link on its own to download it."
+msgstr "{{count}} από αυτά είναι λίστα αναπαραγωγής, όχι βίντεο — επικολλήστε τον σύνδεσμό της ξεχωριστά για να την κατεβάσετε."
+
+msgctxt "wizard.playlist.nestedPlaylistHint_other"
+msgid "{{count}} of these are playlists, not videos — paste their links one at a time to download them."
+msgstr "{{count}} από αυτά είναι λίστες αναπαραγωγής, όχι βίντεο — επικολλήστε τους συνδέσμους τους έναν κάθε φορά για να τις κατεβάσετε."
+
+msgctxt "wizard.playlist.noSelection"
+msgid "Select at least one video to continue"
+msgstr "Επέλεξε τουλάχιστον ένα βίντεο για να συνεχίσεις"
+
+msgctxt "wizard.playlist.probeLimitAlertDesc"
+msgid "Showing first {{count}} items. Increase the load limit to see more."
+msgstr "Το Arroxy βρήκε περισσότερα από {{count}} στοιχεία, οπότε το τρέχον όριο σάρωσης αποκρύπτει τα υπόλοιπα."
+
+msgctxt "wizard.playlist.probeLimitAlertTitle"
+msgid "Playlist scan is capped"
+msgstr "Η σάρωση playlist έχει περιοριστεί"
+
+msgctxt "wizard.playlist.probeLimitAlertTitleGeneric"
+msgid "Scan is capped"
+msgstr "Η σάρωση είναι περιορισμένη"
+
+msgctxt "wizard.playlist.rangeApply"
+msgid "Apply range"
+msgstr "Εφαρμογή εύρους"
+
+msgctxt "wizard.playlist.rangeFrom"
+msgid "From"
+msgstr "Από"
+
+msgctxt "wizard.playlist.rangeTo"
+msgid "To"
+msgstr "Έως"
+
+msgctxt "wizard.playlist.removedCount_one"
+msgid "{{count}} removed"
+msgstr "{{count}} καταργήθηκαν"
+
+msgctxt "wizard.playlist.removedCount_other"
+msgid "{{count}} removed"
+msgstr "{{count}} καταργήθηκαν"
+
+msgctxt "wizard.playlist.removeFromListCount_one"
+msgid "Remove {{count}} from list"
+msgstr "Κατάργηση {{count}} από τη λίστα"
+
+msgctxt "wizard.playlist.removeFromListCount_other"
+msgid "Remove {{count}} from list"
+msgstr "Κατάργηση {{count}} από τη λίστα"
+
+msgctxt "wizard.playlist.restore"
+msgid "Restore"
+msgstr "Επαναφορά"
+
+msgctxt "wizard.playlist.selectAll"
+msgid "Select all"
+msgstr "Επιλογή όλων"
+
+msgctxt "wizard.playlist.selectedCount_one"
+msgid "{{count}} selected"
+msgstr "{{count}} επιλεγμένο"
+
+msgctxt "wizard.playlist.selectedCount_other"
+msgid "{{count}} selected"
+msgstr "{{count}} επιλεγμένα"
+
+msgctxt "wizard.playlist.selectNone"
+msgid "Select none"
+msgstr "Αποεπιλογή όλων"
+
+msgctxt "wizard.playlist.sortApi"
+msgid "Playlist order"
+msgstr "Σειρά αναπαραγωγής"
+
+msgctxt "wizard.playlist.sortFetchingDates"
+msgid "Fetching upload dates…"
+msgstr "Φόρτωση ημερομηνιών μεταφόρτωσης…"
+
+msgctxt "wizard.playlist.sortLabel"
+msgid "Sort"
+msgstr "Ταξινόμηση"
+
+msgctxt "wizard.playlist.sortUploadAsc"
+msgid "Oldest first"
+msgstr "Παλαιότερα πρώτα"
+
+msgctxt "wizard.playlist.sortUploadDesc"
+msgid "Newest first"
+msgstr "Νεότερα πρώτα"
+
+msgctxt "wizard.playlist.syncApply"
+msgid "Apply sync"
+msgstr "Εφαρμογή συγχρονισμού"
+
+msgctxt "wizard.playlist.syncChange"
+msgid "Change folder…"
+msgstr "Αλλαγή φακέλου…"
+
+msgctxt "wizard.playlist.syncFoundDesc"
+msgid "{{n}} of these videos are already in {{dir}}. Sync to download only the new ones?"
+msgstr "{{n}} από αυτά τα βίντεο υπάρχουν ήδη στο {{dir}}. Να γίνει συγχρονισμός για να κατεβούν μόνο τα νέα;"
+
+msgctxt "wizard.playlist.syncFoundTitle"
+msgid "Already in folder"
+msgstr "Ήδη στον φάκελο"
+
+msgctxt "wizard.playlist.syncNoneDesc"
+msgid "No videos from this playlist were found in {{dir}}."
+msgstr "Δεν βρέθηκαν βίντεο από αυτήν την playlist στο {{dir}}."
+
+msgctxt "wizard.playlist.syncNoneDescGeneric"
+msgid "No videos from this source were found in {{dir}}."
+msgstr "Δεν βρέθηκαν βίντεο από αυτήν την πηγή στο {{dir}}."
+
+msgctxt "wizard.playlist.syncNoneTitle"
+msgid "Nothing downloaded yet"
+msgstr "Δεν έχει κατεβεί τίποτα ακόμη"
+
+msgctxt "wizard.playlist.syncScanning"
+msgid "Checking folder…"
+msgstr "Έλεγχος φακέλου…"
+
+msgctxt "wizard.playlist.thumbnailAlt"
+msgid "Video thumbnail"
+msgstr "Μικρογραφία βίντεο"
+
+msgctxt "wizard.playlistPresets.heading"
+msgid "Pick quality for the batch"
+msgstr "Επιλογή ποιότητας για την ομαδική λήψη"
+
+msgctxt "wizard.playlistPresets.itemCount_one"
+msgid "{{count}} item"
+msgstr "{{count}} στοιχείο"
+
+msgctxt "wizard.playlistPresets.itemCount_other"
+msgid "{{count}} items"
+msgstr "{{count}} στοιχεία"
+
+msgctxt "wizard.playlistPresets.subhead"
+msgid "Each video resolves the chosen tier independently — heterogeneous playlists work without surprises."
+msgstr "Κάθε βίντεο επιλύει το επιλεγμένο επίπεδο ανεξάρτητα — οι ανομοιογενείς playlist λειτουργούν χωρίς εκπλήξεις."
+
+msgctxt "wizard.playlistProfiles.assignAria"
+msgid "Assign {{profileName}}"
+msgstr "Εκχώρηση {{profileName}}"
+
+msgctxt "wizard.playlistProfiles.assignTrigger"
+msgid "Assign to selection"
+msgstr "Εκχώρηση στην επιλογή"
+
+msgctxt "wizard.playlistProfiles.columnDuration"
+msgid "Duration"
+msgstr "Διάρκεια"
+
+msgctxt "wizard.playlistProfiles.columnProfile"
+msgid "Profile"
+msgstr "Προφίλ"
+
+msgctxt "wizard.playlistProfiles.editProfile"
+msgid "Edit {{name}}"
+msgstr "Επεξεργασία {{name}}"
+
+msgctxt "wizard.playlistProfiles.empty"
+msgid "No items match this filter"
+msgstr "Κανένα στοιχείο δεν ταιριάζει με αυτό το φίλτρο"
+
+msgctxt "wizard.playlistProfiles.filterChip"
+msgid "{{name}} · {{count}}"
+msgstr "{{name}} · {{count}}"
+
+msgctxt "wizard.playlistProfiles.filtersLabel"
+msgid "Profile filters"
+msgstr "Φίλτρα προφίλ"
+
+msgctxt "wizard.playlistProfiles.heading"
+msgid "Assign download profiles"
+msgstr "Εκχώρηση προφίλ λήψης"
+
+msgctxt "wizard.playlistProfiles.hintBody"
+msgid "Shift-click for a range, {{modifier}}-click to add one, or drag across rows. Then pick a profile above, or right-click the selection."
+msgstr "Shift-κλικ για εύρος, {{modifier}}-κλικ για προσθήκη ενός, ή σύρετε στις γραμμές. Έπειτα επιλέξτε προφίλ παραπάνω, ή κάντε δεξί κλικ στην επιλογή."
+
+msgctxt "wizard.playlistProfiles.hintTitle"
+msgid "Assign profiles to several videos at once"
+msgstr "Ανάθεση προφίλ σε πολλά βίντεο ταυτόχρονα"
+
+msgctxt "wizard.playlistProfiles.selectedSummary"
+msgid "{{selected}} of {{total}} selected"
+msgstr "Επιλέχθηκαν {{selected}} από {{total}}"
+
+msgctxt "wizard.profileEditor.action.addLanguage"
+msgid "Add"
+msgstr "Προσθήκη"
+
+msgctxt "wizard.profileEditor.action.changeGlobalShort"
+msgid "Change global"
+msgstr "Αλλαγή γενικού"
+
+msgctxt "wizard.profileEditor.action.chooseFolder"
+msgid "Choose destination folder"
+msgstr "Επιλογή φακέλου προορισμού"
+
+msgctxt "wizard.profileEditor.action.chooseIcon"
+msgid "Choose profile icon"
+msgstr "Επιλογή εικονιδίου προφίλ"
+
+msgctxt "wizard.profileEditor.action.removeLanguage"
+msgid "Remove {{code}}"
+msgstr "Αφαίρεση {{code}}"
+
+msgctxt "wizard.profileEditor.action.reset"
+msgid "Reset profile"
+msgstr "Επαναφορά προφίλ"
+
+msgctxt "wizard.profileEditor.action.save"
+msgid "Save profile"
+msgstr "Αποθήκευση προφίλ"
+
+msgctxt "wizard.profileEditor.action.setOverride"
+msgid "Set profile override"
+msgstr "Ορισμός παράκαμψης προφίλ"
+
+msgctxt "wizard.profileEditor.action.setOverrideShort"
+msgid "Set override"
+msgstr "Ορισμός παράκαμψης"
+
+msgctxt "wizard.profileEditor.action.useGlobalDefault"
+msgid "Use global default"
+msgstr "Χρήση γενικής προεπιλογής"
+
+msgctxt "wizard.profileEditor.audioFormat.best"
+msgid "Best"
+msgstr "Καλύτερο"
+
+msgctxt "wizard.profileEditor.audioFormat.wav"
+msgid "WAV"
+msgstr "WAV"
+
+msgctxt "wizard.profileEditor.audioQuality.128"
+msgid "Up to 128K"
+msgstr "Έως 128K"
+
+msgctxt "wizard.profileEditor.audioQuality.192"
+msgid "Up to 192K"
+msgstr "Έως 192K"
+
+msgctxt "wizard.profileEditor.audioQuality.320"
+msgid "Up to 320K"
+msgstr "Έως 320K"
+
+msgctxt "wizard.profileEditor.audioQuality.best"
+msgid "Best quality"
+msgstr "Καλύτερη ποιότητα"
+
+msgctxt "wizard.profileEditor.destination.global"
+msgid "Global destination"
+msgstr "Γενικός προορισμός"
+
+msgctxt "wizard.profileEditor.destination.override"
+msgid "Profile override"
+msgstr "Παράκαμψη προφίλ"
+
+msgctxt "wizard.profileEditor.destination.resolved"
+msgid "Resolved destination"
+msgstr "Τελικός προορισμός"
+
+msgctxt "wizard.profileEditor.dialogDescription"
+msgid "One reusable setup for Quick Download, Bulk URLs, and playlists."
+msgstr "Μία επαναχρησιμοποιήσιμη ρύθμιση για Γρήγορη λήψη, Μαζικά URL και λίστες αναπαραγωγής."
+
+msgctxt "wizard.profileEditor.dialogTitle"
+msgid "Download Profile"
+msgstr "Προφίλ λήψης"
+
+msgctxt "wizard.profileEditor.error.changeGlobalDestination"
+msgid "Could not change global destination."
+msgstr "Δεν ήταν δυνατή η αλλαγή του γενικού προορισμού."
+
+msgctxt "wizard.profileEditor.error.reset"
+msgid "Could not reset profile settings."
+msgstr "Δεν ήταν δυνατή η επαναφορά των ρυθμίσεων προφίλ."
+
+msgctxt "wizard.profileEditor.error.save"
+msgid "Could not save profile settings."
+msgstr "Δεν ήταν δυνατή η αποθήκευση των ρυθμίσεων προφίλ."
+
+msgctxt "wizard.profileEditor.field.compatibility"
+msgid "Compatibility"
+msgstr "Συμβατότητα"
+
+msgctxt "wizard.profileEditor.field.delivery"
+msgid "Delivery"
+msgstr "Τρόπος αποθήκευσης"
+
+msgctxt "wizard.profileEditor.field.icon"
+msgid "Profile icon"
+msgstr "Εικονίδιο προφίλ"
+
+msgctxt "wizard.profileEditor.field.languageCodes"
+msgid "Subtitle language codes"
+msgstr "Κωδικοί γλωσσών υποτίτλων"
+
+msgctxt "wizard.profileEditor.field.languages"
+msgid "Languages"
+msgstr "Γλώσσες"
+
+msgctxt "wizard.profileEditor.field.name"
+msgid "Profile name"
+msgstr "Όνομα προφίλ"
+
+msgctxt "wizard.profileEditor.field.nameAndIcon"
+msgid "Profile name and icon"
+msgstr "Όνομα και εικονίδιο προφίλ"
+
+msgctxt "wizard.profileEditor.field.overridePath"
+msgid "Profile override path"
+msgstr "Διαδρομή παράκαμψης προφίλ"
+
+msgctxt "wizard.profileEditor.field.quality"
+msgid "Quality"
+msgstr "Ποιότητα"
+
+msgctxt "wizard.profileEditor.field.resolution"
+msgid "Resolution"
+msgstr "Ανάλυση"
+
+msgctxt "wizard.profileEditor.field.source"
+msgid "Source"
+msgstr "Πηγή"
+
+msgctxt "wizard.profileEditor.field.subfolderName"
+msgid "Subfolder name"
+msgstr "Όνομα υποφακέλου"
+
+msgctxt "wizard.profileEditor.field.subtitleDownloads"
+msgid "Subtitle downloads"
+msgstr "Λήψεις υποτίτλων"
+
+msgctxt "wizard.profileEditor.icon.archive"
+msgid "Archive"
+msgstr "Αρχείο"
+
+msgctxt "wizard.profileEditor.icon.audio"
+msgid "Audio"
+msgstr "Ήχος"
+
+msgctxt "wizard.profileEditor.icon.captions"
+msgid "Captions"
+msgstr "Υπότιτλοι"
+
+msgctxt "wizard.profileEditor.icon.classes"
+msgid "Classes"
+msgstr "Μαθήματα"
+
+msgctxt "wizard.profileEditor.icon.clip"
+msgid "Clip"
+msgstr "Απόσπασμα"
+
+msgctxt "wizard.profileEditor.icon.controls"
+msgid "Controls"
+msgstr "Χειριστήρια"
+
+msgctxt "wizard.profileEditor.icon.download"
+msgid "Download"
+msgstr "Λήψη"
+
+msgctxt "wizard.profileEditor.icon.music"
+msgid "Music"
+msgstr "Μουσική"
+
+msgctxt "wizard.profileEditor.icon.podcast"
+msgid "Podcast"
+msgstr "Podcast"
+
+msgctxt "wizard.profileEditor.icon.video"
+msgid "Video"
+msgstr "Βίντεο"
+
+msgctxt "wizard.profileEditor.mediaMode.audioOnly.description"
+msgid "Music or podcasts"
+msgstr "Μουσική ή podcast"
+
+msgctxt "wizard.profileEditor.mediaMode.audioOnly.label"
+msgid "Audio only"
+msgstr "Μόνο ήχος"
+
+msgctxt "wizard.profileEditor.mediaMode.subtitlesOnly.description"
+msgid "Caption files only"
+msgstr "Μόνο αρχεία υποτίτλων"
+
+msgctxt "wizard.profileEditor.mediaMode.subtitlesOnly.label"
+msgid "Subs only"
+msgstr "Μόνο υπότιτλοι"
+
+msgctxt "wizard.profileEditor.mediaMode.videoAudio.description"
+msgid "Normal video files"
+msgstr "Κανονικά αρχεία βίντεο"
+
+msgctxt "wizard.profileEditor.mediaMode.videoAudio.label"
+msgid "Video + audio"
+msgstr "Βίντεο + ήχος"
+
+msgctxt "wizard.profileEditor.mediaMode.videoOnly.description"
+msgid "Silent video only"
+msgstr "Μόνο βίντεο χωρίς ήχο"
+
+msgctxt "wizard.profileEditor.mediaMode.videoOnly.label"
+msgid "Video, no audio"
+msgstr "Βίντεο, χωρίς ήχο"
+
+msgctxt "wizard.profileEditor.note.autoCaptionsSrt"
+msgid "Auto-captions will be saved as SRT instead of ASS."
+msgstr "Οι αυτόματοι υπότιτλοι θα αποθηκευτούν ως SRT αντί για ASS."
+
+msgctxt "wizard.profileEditor.note.noLanguages"
+msgid "No languages selected"
+msgstr "Δεν επιλέχθηκαν γλώσσες"
+
+msgctxt "wizard.profileEditor.note.noSubtitles"
+msgid "No subtitle files or embedded subtitle tracks will be requested for this profile."
+msgstr "Για αυτό το προφίλ δεν θα ζητηθούν αρχεία υποτίτλων ούτε ενσωματωμένα κομμάτια υποτίτλων."
+
+msgctxt "wizard.profileEditor.note.skippedForOutputType"
+msgid "Skipped for this output type."
+msgstr "Παραλείπεται για αυτόν τον τύπο εξόδου."
+
+msgctxt "wizard.profileEditor.note.subtitlesOnly"
+msgid "This profile queues subtitle files only. Video, audio, SponsorBlock, and media conversion are skipped."
+msgstr "Αυτό το προφίλ βάζει στην ουρά μόνο αρχεία υποτίτλων. Το βίντεο, ο ήχος, το SponsorBlock και η μετατροπή μέσων παραλείπονται."
+
+msgctxt "wizard.profileEditor.panel.advanced.description"
+msgid "Profiles inherit the global destination unless you set a profile override."
+msgstr "Τα προφίλ κληρονομούν τον γενικό προορισμό εκτός αν ορίσετε παράκαμψη προφίλ."
+
+msgctxt "wizard.profileEditor.panel.advanced.title"
+msgid "Advanced options"
+msgstr "Σύνθετες επιλογές"
+
+msgctxt "wizard.profileEditor.panel.downloadType.description"
+msgid "Choose the primary way you want to download."
+msgstr "Επιλέξτε τον κύριο τρόπο με τον οποίο θέλετε να κατεβάζετε."
+
+msgctxt "wizard.profileEditor.panel.downloadType.title"
+msgid "Download type"
+msgstr "Τύπος λήψης"
+
+msgctxt "wizard.profileEditor.panel.identity.description"
+msgid "Name and icon shown in Quick Download, Bulk URLs, and profile lists."
+msgstr "Όνομα και εικονίδιο που εμφανίζονται στη Γρήγορη λήψη, στα Μαζικά URL και στις λίστες προφίλ."
+
+msgctxt "wizard.profileEditor.panel.identity.title"
+msgid "Profile identity"
+msgstr "Ταυτότητα προφίλ"
+
+msgctxt "wizard.profileEditor.panel.output.title"
+msgid "Output options"
+msgstr "Επιλογές εξόδου"
+
+msgctxt "wizard.profileEditor.panel.sponsorBlock.title"
+msgid "SponsorBlock"
+msgstr "SponsorBlock"
+
+msgctxt "wizard.profileEditor.placeholder.folder"
+msgid "Choose a folder for this profile"
+msgstr "Επιλέξτε φάκελο για αυτό το προφίλ"
+
+msgctxt "wizard.profileEditor.skipped"
+msgid "Skipped"
+msgstr "Παραλείφθηκε"
+
+msgctxt "wizard.profileEditor.sponsorBlockHint.mark"
+msgid "Marks sponsor segments as chapters (non-destructive)."
+msgstr "Επισημαίνει τα χορηγούμενα τμήματα ως κεφάλαια (χωρίς αλλοίωση)."
+
+msgctxt "wizard.profileEditor.sponsorBlockHint.off"
+msgid "No SponsorBlock — video plays as uploaded."
+msgstr "Χωρίς SponsorBlock — το βίντεο παίζει όπως ανέβηκε."
+
+msgctxt "wizard.profileEditor.sponsorBlockHint.remove"
+msgid "Cuts sponsor segments from the video using FFmpeg."
+msgstr "Κόβει τα χορηγούμενα τμήματα από το βίντεο με FFmpeg."
+
+msgctxt "wizard.profileEditor.subtitleFormat.ass"
+msgid "ASS"
+msgstr "ASS"
+
+msgctxt "wizard.profileEditor.subtitleFormat.srt"
+msgid "SRT"
+msgstr "SRT"
+
+msgctxt "wizard.profileEditor.subtitleFormat.vtt"
+msgid "VTT"
+msgstr "VTT"
+
+msgctxt "wizard.profileEditor.subtitleSource.autoOnly"
+msgid "Auto-generated only"
+msgstr "Μόνο αυτόματα"
+
+msgctxt "wizard.profileEditor.subtitleSource.manualFirst"
+msgid "Manual first, then auto"
+msgstr "Πρώτα χειροκίνητα, μετά αυτόματα"
+
+msgctxt "wizard.profileEditor.subtitleSource.manualOnly"
+msgid "Manual only"
+msgstr "Μόνο χειροκίνητα"
+
+msgctxt "wizard.profileEditor.videoAudioFormat.m4a"
+msgid "M4A / AAC"
+msgstr "M4A / AAC"
+
+msgctxt "wizard.profileSwitchRow.helpAria"
+msgid "{{label}} help"
+msgstr "Βοήθεια για {{label}}"
+
+msgctxt "wizard.quickProgress.cancel"
+msgid "Cancel preparation"
+msgstr "Ακύρωση προετοιμασίας"
+
+msgctxt "wizard.quickProgress.currentFallback"
+msgid "Current link"
+msgstr "Τρέχων σύνδεσμος"
+
+msgctxt "wizard.quickProgress.description"
+msgid "Arroxy is reading the link and applying {{profileName}}."
+msgstr "Το Arroxy διαβάζει τον σύνδεσμο και εφαρμόζει το {{profileName}}."
+
+msgctxt "wizard.quickProgress.failedCount_one"
+msgid "{{count}} failed"
+msgstr "{{count}} απέτυχε"
+
+msgctxt "wizard.quickProgress.failedCount_other"
+msgid "{{count}} failed"
+msgstr "{{count}} απέτυχαν"
+
+msgctxt "wizard.quickProgress.phase.probing"
+msgid "Fetching details"
+msgstr "Ανάκτηση λεπτομερειών"
+
+msgctxt "wizard.quickProgress.phase.queueing"
+msgid "Adding to queue"
+msgstr "Προσθήκη στην ουρά"
+
+msgctxt "wizard.quickProgress.title"
+msgid "Preparing Quick Download"
+msgstr "Προετοιμασία γρήγορης λήψης"
+
+msgctxt "wizard.quickProgress.waitHint"
+msgid "Keep this open while Arroxy prepares the queue."
+msgstr "Κράτησέ το ανοιχτό όσο το Arroxy προετοιμάζει την ουρά."
+
+msgctxt "wizard.sponsorblock.cat.filler"
+msgid "Filler"
+msgstr "Filler"
+
+msgctxt "wizard.sponsorblock.cat.intro"
+msgid "Intro"
+msgstr "Intro"
+
+msgctxt "wizard.sponsorblock.cat.music_offtopic"
+msgid "Music off-topic"
+msgstr "Music off-topic"
+
+msgctxt "wizard.sponsorblock.cat.outro"
+msgid "Outro"
+msgstr "Outro"
+
+msgctxt "wizard.sponsorblock.cat.preview"
+msgid "Preview"
+msgstr "Preview"
+
+msgctxt "wizard.sponsorblock.cat.selfpromo"
+msgid "Self-promo"
+msgstr "Self-promo"
+
+msgctxt "wizard.sponsorblock.cat.sponsor"
+msgid "Sponsor"
+msgstr "Sponsor"
+
+msgctxt "wizard.sponsorblock.categoriesHeading"
+msgid "Categories"
+msgstr "Κατηγορίες"
+
+msgctxt "wizard.sponsorblock.mode.mark"
+msgid "Mark as chapters"
+msgstr "Σήμανση ως κεφάλαια"
+
+msgctxt "wizard.sponsorblock.mode.off"
+msgid "Off"
+msgstr "Απενεργοποιημένο"
+
+msgctxt "wizard.sponsorblock.mode.remove"
+msgid "Remove segments"
+msgstr "Αφαίρεση τμημάτων"
+
+msgctxt "wizard.sponsorblock.modeHeading"
+msgid "Sponsor filtering"
+msgstr "Φιλτράρισμα χορηγών"
+
+msgctxt "wizard.sponsorblock.modeHint.mark"
+msgid "Marks sponsor segments as chapters (non-destructive)."
+msgstr "Σημαίνει τα τμήματα χορηγών ως κεφάλαια (μη καταστροφικό)."
+
+msgctxt "wizard.sponsorblock.modeHint.off"
+msgid "No SponsorBlock — video plays as uploaded."
+msgstr "Χωρίς SponsorBlock — το βίντεο παίζει όπως ανέβηκε."
+
+msgctxt "wizard.sponsorblock.modeHint.remove"
+msgid "Cuts sponsor segments from the video using FFmpeg."
+msgstr "Αφαιρεί τμήματα χορηγών από το βίντεο χρησιμοποιώντας FFmpeg."
+
+msgctxt "wizard.steps.confirm"
+msgid "Confirm"
+msgstr "Επιβεβαίωση"
+
+msgctxt "wizard.steps.folder"
+msgid "Save"
+msgstr "Αποθήκευση"
+
+msgctxt "wizard.steps.formats"
+msgid "Format"
+msgstr "Μορφή"
+
+msgctxt "wizard.steps.output"
+msgid "Output"
+msgstr "Έξοδος"
+
+msgctxt "wizard.steps.playlistItems"
+msgid "Playlist"
+msgstr "Λίστα αναπαραγωγής"
+
+msgctxt "wizard.steps.playlistItemsGeneric"
+msgid "Videos"
+msgstr "Βίντεο"
+
+msgctxt "wizard.steps.playlistPresets"
+msgid "Quality"
+msgstr "Ποιότητα"
+
+msgctxt "wizard.steps.playlistProfiles"
+msgid "Profiles"
+msgstr "Προφίλ"
+
+msgctxt "wizard.steps.sponsorblock"
+msgid "SponsorBlock"
+msgstr "SponsorBlock"
+
+msgctxt "wizard.steps.subtitles"
+msgid "Subtitles"
+msgstr "Υπότιτλοι"
+
+msgctxt "wizard.steps.url"
+msgid "URL"
+msgstr "URL"
+
+msgctxt "wizard.subtitles.autoAssNote"
+msgid "Auto-captions will be saved as SRT instead of ASS — for YouTube videos they're cleaned of rolling-cue duplication, which our ASS converter can't replicate yet."
+msgstr "Οι αυτόματοι υπότιτλοι θα αποθηκευτούν ως SRT αντί για ASS — καθαρίζονται πάντα από τα επαναλαμβανόμενα cue του YouTube, τα οποία ο μετατροπέας ASS δεν μπορεί ακόμα να αναπαράγει."
+
+msgctxt "wizard.subtitles.autoBadge"
+msgid "Auto"
+msgstr "Αυτόματο"
+
+msgctxt "wizard.subtitles.clearAll"
+msgid "Clear all"
+msgstr "Εκκαθάριση όλων"
+
+msgctxt "wizard.subtitles.embedNote"
+msgid "Embed mode saves output as .mkv so subtitle tracks embed reliably."
+msgstr "Η λειτουργία ενσωμάτωσης αποθηκεύει την έξοδο ως .mkv ώστε τα κομμάτια υποτίτλων να ενσωματώνονται αξιόπιστα."
+
+msgctxt "wizard.subtitles.format.heading"
+msgid "Format"
+msgstr "Μορφή"
+
+msgctxt "wizard.subtitles.mascot"
+msgid "Pick zero, one, or many — totally up to you ✨"
+msgstr "Επέλεξε μηδέν, έναν ή πολλούς — εξαρτάται από σένα ✨"
+
+msgctxt "wizard.subtitles.noLanguages"
+msgid "No subtitles available for this video"
+msgstr "Δεν υπάρχουν υπότιτλοι για αυτό το βίντεο"
+
+msgctxt "wizard.subtitles.noMatches"
+msgid "No languages match"
+msgstr "Δεν βρέθηκαν γλώσσες"
+
+msgctxt "wizard.subtitles.noSelected"
+msgid "No subtitles selected"
+msgstr "Δεν έχουν επιλεγεί υπότιτλοι"
+
+msgctxt "wizard.subtitles.removeLanguage"
+msgid "Remove {{name}}"
+msgstr "Αφαίρεση {{name}}"
+
+msgctxt "wizard.subtitles.saveMode.embed"
+msgid "Embed into video"
+msgstr "Ενσωμάτωση στο βίντεο"
+
+msgctxt "wizard.subtitles.saveMode.heading"
+msgid "Save as"
+msgstr "Αποθήκευση ως"
+
+msgctxt "wizard.subtitles.saveMode.sidecar"
+msgid "Next to video"
+msgstr "Δίπλα στο βίντεο"
+
+msgctxt "wizard.subtitles.saveMode.subfolder"
+msgid "subtitles/ subfolder"
+msgstr "subtitles/ υποφάκελος"
+
+msgctxt "wizard.subtitles.searchPlaceholder"
+msgid "Search languages…"
+msgstr "Αναζήτηση γλωσσών…"
+
+msgctxt "wizard.subtitles.sectionAuto"
+msgid "Auto-generated"
+msgstr "Αυτόματα δημιουργημένο"
+
+msgctxt "wizard.subtitles.sectionManual"
+msgid "Manual"
+msgstr "Χειροκίνητο"
+
+msgctxt "wizard.subtitles.selectedNote_one"
+msgid "{{count}} subtitle will be downloaded"
+msgstr "Θα ληφθεί {{count}} υπότιτλος"
+
+msgctxt "wizard.subtitles.selectedNote_other"
+msgid "{{count}} subtitles will be downloaded"
+msgstr "Θα ληφθούν {{count}} υπότιτλοι"
+
+msgctxt "wizard.subtitles.skip"
+msgid "Skip"
+msgstr "Παράλειψη"
+
+msgctxt "wizard.subtitles.skipSubs"
+msgid "Skip for this video"
+msgstr "Παράλειψη για αυτό το βίντεο"
+
+msgctxt "wizard.tabsNavAria"
+msgid "Download profile navigation"
+msgstr "Πλοήγηση προφίλ λήψης"
+
+msgctxt "wizard.url.advanced"
+msgid "Advanced"
+msgstr "Για προχωρημένους"
+
+msgctxt "wizard.url.analytics.toggle"
+msgid "Send anonymous usage stats"
+msgstr "Αποστολή ανώνυμων στατιστικών χρήσης"
+
+msgctxt "wizard.url.analytics.toggleDescription"
+msgid "Reports crashes, failures, and feedback anonymously. No URLs, video titles, or filenames."
+msgstr "Αναφέρει ανώνυμα σφάλματα, καταρρεύσεις και σχόλια. Χωρίς URL, τίτλους βίντεο ή ονόματα αρχείων."
+
+msgctxt "wizard.url.autoRetry.description"
+msgid "Automatically tries again after a network or server hiccup, waiting longer between each attempt. Downloads blocked by the site are never retried automatically."
+msgstr "Προσπαθεί ξανά αυτόματα μετά από πρόβλημα δικτύου ή διακομιστή, περιμένοντας περισσότερο πριν από κάθε προσπάθεια. Οι λήψεις που μπλοκάρει ο ιστότοπος δεν επαναλαμβάνονται ποτέ αυτόματα."
+
+msgctxt "wizard.url.autoRetry.label"
+msgid "Retry failed downloads"
+msgstr "Επανάληψη αποτυχημένων λήψεων"
+
+msgctxt "wizard.url.autoRetry.unit"
+msgid "times"
+msgstr "φορές"
+
+msgctxt "wizard.url.backdrop.cssOnlyDescription"
+msgid "CSS only, no canvas rendering."
+msgstr "Μόνο CSS, χωρίς απόδοση canvas."
+
+msgctxt "wizard.url.backdrop.cssOnlyLabel"
+msgid "Best performance"
+msgstr "Καλύτερη απόδοση"
+
+msgctxt "wizard.url.backdrop.gpuDescription"
+msgid "Animated WebGL backdrop when supported."
+msgstr "Κινούμενο φόντο WebGL όταν υποστηρίζεται."
+
+msgctxt "wizard.url.backdrop.gpuLabel"
+msgid "Most beautiful"
+msgstr "Πιο όμορφο"
+
+msgctxt "wizard.url.backdrop.modeDescription"
+msgid "Move from the most animated look to best performance."
+msgstr "Μετακινηθείτε από την πιο κινούμενη εμφάνιση στην καλύτερη απόδοση."
+
+msgctxt "wizard.url.backdrop.modeLabel"
+msgid "Backdrop quality"
+msgstr "Ποιότητα φόντου"
+
+msgctxt "wizard.url.backdrop.panelDescription"
+msgid "Choose how much motion Arroxy uses for the animated backdrop."
+msgstr "Επίλεξε πόση κίνηση χρησιμοποιεί το Arroxy για το κινούμενο φόντο."
+
+msgctxt "wizard.url.backdrop.panelTitle"
+msgid "Appearance and performance"
+msgstr "Εμφάνιση και απόδοση"
+
+msgctxt "wizard.url.backdrop.runtimeFallbackNotice"
+msgid "Hardware WebGL is unavailable on this device, so Arroxy is using the performance backdrop."
+msgstr "Το WebGL μέσω υλικού δεν είναι διαθέσιμο σε αυτήν τη συσκευή, οπότε το Arroxy χρησιμοποιεί το φόντο επιδόσεων."
+
+msgctxt "wizard.url.bulkButton"
+msgid "Bulk URLs"
+msgstr "Μαζικά URL"
+
+msgctxt "wizard.url.bulkTooltip"
+msgid "Add and queue multiple URLs."
+msgstr "Πρόσθεσε και βάλε στην ουρά πολλά URL."
+
+msgctxt "wizard.url.clearAria"
+msgid "Clear URL"
+msgstr "Εκκαθάριση URL"
+
+msgctxt "wizard.url.clipboard.autofilledLink"
+msgid "Link added from clipboard"
+msgstr "Προστέθηκε σύνδεσμος από το πρόχειρο"
+
+msgctxt "wizard.url.clipboard.bulkHint"
+msgid "Multiple links copied — use Bulk URLs to add them"
+msgstr "Αντιγράφηκαν πολλαπλοί σύνδεσμοι — προσθέστε τους μέσω «Μαζικά URL»"
+
+msgctxt "wizard.url.clipboard.dialog.cancelButton"
+msgid "Cancel"
+msgstr "Ακύρωση"
+
+msgctxt "wizard.url.clipboard.dismissCopiedLink"
+msgid "Dismiss copied link"
+msgstr "Απόρριψη αντιγραμμένου συνδέσμου"
+
+msgctxt "wizard.url.clipboard.pendingLinkReady"
+msgid "Copied link ready"
+msgstr "Ο αντιγραμμένος σύνδεσμος είναι έτοιμος"
+
+msgctxt "wizard.url.clipboard.toggle"
+msgid "Watch clipboard"
+msgstr "Παρακολούθηση πρόχειρου"
+
+msgctxt "wizard.url.clipboard.toggleDescription"
+msgid "Auto-fill the URL field when you copy a video link."
+msgstr "Αυτόματη συμπλήρωση του πεδίου URL όταν αντιγράφεις σύνδεσμο YouTube."
+
+msgctxt "wizard.url.clipboard.useCopiedLink"
+msgid "Use copied link"
+msgstr "Χρήση αντιγραμμένου συνδέσμου"
+
+msgctxt "wizard.url.closeToTray.toggle"
+msgid "Hide to tray on close"
+msgstr "Απόκρυψη στο δίσκο κατά το κλείσιμο"
+
+msgctxt "wizard.url.closeToTray.toggleDescription"
+msgid "Continue downloads in the background after closing the window."
+msgstr "Συνέχιση λήψεων στο παρασκήνιο μετά το κλείσιμο του παραθύρου."
+
+msgctxt "wizard.url.concurrentDownloads.description"
+msgid "How many queued items download at the same time. More at once finishes a long queue sooner, but raises the chance a site limits you."
+msgstr "Πόσα στοιχεία της ουράς κατεβαίνουν ταυτόχρονα. Περισσότερα μαζί ολοκληρώνουν μια μεγάλη ουρά πιο γρήγορα, αλλά αυξάνουν την πιθανότητα να σας περιορίσει ο ιστότοπος."
+
+msgctxt "wizard.url.concurrentDownloads.label"
+msgid "Downloads at once"
+msgstr "Ταυτόχρονες λήψεις"
+
+msgctxt "wizard.url.concurrentDownloads.unit"
+msgid "downloads"
+msgstr "λήψεις"
+
+msgctxt "wizard.url.cookies.banWarning"
+msgid "Sites like YouTube may flag — and sometimes ban — accounts whose cookies are used by yt-dlp. Use a throwaway account when possible."
+msgstr "Το YouTube μπορεί να επισημάνει — και μερικές φορές να αποκλείσει — λογαριασμούς των οποίων τα cookies χρησιμοποιούνται από το yt-dlp. Χρησιμοποίησε έναν εφεδρικό λογαριασμό αν είναι δυνατόν."
+
+msgctxt "wizard.url.cookies.browserHelp"
+msgid "Reads cookies directly from the browser. The browser must be closed for Chromium-family browsers."
+msgstr "Διαβάζει cookies απευθείας από το πρόγραμμα περιήγησης. Για προγράμματα της οικογένειας Chromium, το πρόγραμμα πρέπει να είναι κλειστό."
+
+msgctxt "wizard.url.cookies.browserLabel"
+msgid "Browser"
+msgstr "Πρόγραμμα περιήγησης"
+
+msgctxt "wizard.url.cookies.browserPlaceholder"
+msgid "Pick a browser…"
+msgstr "Επέλεξε πρόγραμμα περιήγησης…"
+
+msgctxt "wizard.url.cookies.choose"
+msgid "Choose…"
+msgstr "Επιλογή…"
+
+msgctxt "wizard.url.cookies.clear"
+msgid "Clear"
+msgstr "Εκκαθάριση"
+
+msgctxt "wizard.url.cookies.enabledButNoBrowser"
+msgid "Pick a browser to use cookies"
+msgstr "Επέλεξε πρόγραμμα περιήγησης για χρήση cookies"
+
+msgctxt "wizard.url.cookies.enabledButNoFile"
+msgid "Pick a file to use cookies"
+msgstr "Επέλεξε αρχείο για χρήση cookies"
+
+msgctxt "wizard.url.cookies.extensionChrome"
+msgid "Get cookies.txt LOCALLY (Chrome)"
+msgstr "Λήψη cookies.txt ΤΟΠΙΚΑ (Chrome)"
+
+msgctxt "wizard.url.cookies.extensionFirefox"
+msgid "cookies.txt (Firefox)"
+msgstr "cookies.txt (Firefox)"
+
+msgctxt "wizard.url.cookies.fileLabel"
+msgid "Cookies file"
+msgstr "Αρχείο cookies"
+
+msgctxt "wizard.url.cookies.helpLink"
+msgid "How do I export cookies?"
+msgstr "Πώς εξάγω τα cookies;"
+
+msgctxt "wizard.url.cookies.placeholder"
+msgid "No file selected"
+msgstr "Δεν έχει επιλεγεί αρχείο"
+
+msgctxt "wizard.url.cookies.risk"
+msgid "Risk: a cookies.txt contains every logged-in session for that browser — keep it private."
+msgstr "Κίνδυνος: το cookies.txt περιέχει κάθε συνδεδεμένη συνεδρία του προγράμματος περιήγησης — κράτα το ιδιωτικό."
+
+msgctxt "wizard.url.cookies.sourceBrowser"
+msgid "Browser"
+msgstr "Πρόγραμμα περιήγησης"
+
+msgctxt "wizard.url.cookies.sourceFile"
+msgid "File"
+msgstr "Αρχείο"
+
+msgctxt "wizard.url.cookies.sourceLabel"
+msgid "Cookies source"
+msgstr "Πηγή cookies"
+
+msgctxt "wizard.url.cookies.sourceOff"
+msgid "Off"
+msgstr "Απενεργοποιημένο"
+
+msgctxt "wizard.url.cookies.toggleDescription"
+msgid "Helps with age-restricted, members-only, and account-private videos."
+msgstr "Βοηθά με βίντεο με περιορισμό ηλικίας, μόνο για μέλη και ιδιωτικά."
+
+msgctxt "wizard.url.downloadConnections.description"
+msgid "Speeds up large downloads by fetching several parts of a video at once. Higher values raise the chance a site limits you."
+msgstr "Επιταχύνει τις μεγάλες λήψεις κατεβάζοντας πολλά μέρη ενός βίντεο ταυτόχρονα. Οι υψηλότερες τιμές αυξάνουν την πιθανότητα να σας περιορίσει ο ιστότοπος."
+
+msgctxt "wizard.url.downloadConnections.label"
+msgid "Download connections"
+msgstr "Συνδέσεις λήψης"
+
+msgctxt "wizard.url.downloadConnections.unit"
+msgid "connections"
+msgstr "συνδέσεις"
+
+msgctxt "wizard.url.features.always.audioOnly"
+msgid "Audio only"
+msgstr "Μόνο ήχοι"
+
+msgctxt "wizard.url.features.always.subtitles"
+msgid "Subtitles"
+msgstr "Υπότιτλοι"
+
+msgctxt "wizard.url.features.anySite.heading"
+msgid "2000+ sites"
+msgstr "2000+ ιστότοποι"
+
+msgctxt "wizard.url.features.anySite.musicPlaylist"
+msgid "Music playlists"
+msgstr "Playlist μουσικής"
+
+msgctxt "wizard.url.features.anySite.video"
+msgid "Videos"
+msgstr "Βίντεο"
+
+msgctxt "wizard.url.features.anySite.videoPlaylist"
+msgid "Video playlists"
+msgstr "Playlist βίντεο"
+
+msgctxt "wizard.url.features.heading"
+msgid "What Arroxy can pull"
+msgstr "Τι μπορεί να κατεβάσει το Arroxy"
+
+msgctxt "wizard.url.features.youtube.channel"
+msgid "Channels"
+msgstr "Κανάλια"
+
+msgctxt "wizard.url.features.youtube.heading"
+msgid "YouTube"
+msgstr "YouTube"
+
+msgctxt "wizard.url.features.youtube.music"
+msgid "Music"
+msgstr "Μουσική"
+
+msgctxt "wizard.url.features.youtube.playlist"
+msgid "Playlists"
+msgstr "Λίστες αναπαραγωγής"
+
+msgctxt "wizard.url.features.youtube.podcast"
+msgid "Podcasts"
+msgstr "Podcast"
+
+msgctxt "wizard.url.features.youtube.short"
+msgid "Shorts"
+msgstr "Shorts"
+
+msgctxt "wizard.url.features.youtube.video"
+msgid "Videos"
+msgstr "Βίντεο"
+
+msgctxt "wizard.url.fetchFormatsTooltip"
+msgid "Step-by-step wizard. Choose format, quality, and more."
+msgstr "Οδηγός βήμα προς βήμα. Επίλεξε μορφή, ποιότητα και περισσότερα."
+
+msgctxt "wizard.url.heading"
+msgid "Download from URL"
+msgstr "Λήψη από URL"
+
+msgctxt "wizard.url.hotkey.changeShortcut"
+msgid "Change shortcut"
+msgstr "Αλλαγή συντόμευσης"
+
+msgctxt "wizard.url.hotkey.conflict"
+msgid "This shortcut is taken by another app — pick another one."
+msgstr "Αυτή η συντόμευση χρησιμοποιείται από άλλη εφαρμογή — επιλέξτε άλλη."
+
+msgctxt "wizard.url.hotkey.hintLabel"
+msgid "Or press"
+msgstr "Ή πάτησε"
+
+msgctxt "wizard.url.hotkey.hintTooltip"
+msgid "Copy a video link anywhere, press this shortcut, and Arroxy queues it with your active profile — no need to switch windows."
+msgstr "Αντέγραψε έναν σύνδεσμο βίντεο οπουδήποτε, πάτησε αυτή τη συντόμευση και το Arroxy θα τον βάλει στην ουρά με το ενεργό προφίλ σου — δεν χρειάζεται να αλλάξεις παράθυρο."
+
+msgctxt "wizard.url.hotkey.hintTooltipSettings"
+msgid "Change or turn it off in Settings."
+msgstr "Άλλαξέ το ή απενεργοποίησέ το στις Ρυθμίσεις."
+
+msgctxt "wizard.url.hotkey.recording"
+msgid "Press keys…"
+msgstr "Πατήστε πλήκτρα…"
+
+msgctxt "wizard.url.hotkey.reset"
+msgid "Reset to default"
+msgstr "Επαναφορά στις προεπιλογές"
+
+msgctxt "wizard.url.hotkey.sectionDescription"
+msgid "Download whatever link you copy, from any app, without opening Arroxy."
+msgstr "Κατεβάστε οποιονδήποτε σύνδεσμο αντιγράψατε, από οποιαδήποτε εφαρμογή, χωρίς να ανοίξετε το Arroxy."
+
+msgctxt "wizard.url.hotkey.sectionTitle"
+msgid "Global hotkey"
+msgstr "Καθολική συντόμευση"
+
+msgctxt "wizard.url.hotkey.test"
+msgid "Test"
+msgstr "Δοκιμή"
+
+msgctxt "wizard.url.hotkey.toggle"
+msgid "Enable global hotkey"
+msgstr "Ενεργοποίηση καθολικής συντόμευσης"
+
+msgctxt "wizard.url.hotkey.toggleDescription"
+msgid "Press the shortcut with a video link on your clipboard."
+msgstr "Πατήστε τη συντόμευση με σύνδεσμο βίντεο στο πρόχειρο."
+
+msgctxt "wizard.url.interactiveDownload"
+msgid "Interactive Download"
+msgstr "Φόρτωση μορφών"
+
+msgctxt "wizard.url.limitRate.activeWarning"
+msgid "Active downloads keep their current limit. Pause + Resume to apply changes."
+msgstr "Οι ενεργές λήψεις κρατούν το τρέχον όριο. Παύση + Συνέχεια για εφαρμογή αλλαγών."
+
+msgctxt "wizard.url.limitRate.custom"
+msgid "Custom…"
+msgstr "Προσαρμογή…"
+
+msgctxt "wizard.url.limitRate.customPlaceholder"
+msgid "e.g. 750K or 1.5M"
+msgstr "π.χ. 750K ή 1.5M"
+
+msgctxt "wizard.url.limitRate.description"
+msgid "Cap bandwidth for media downloads. Request pacing below is usually the stronger rate-limit lever."
+msgstr "Περιόρισε το bandwidth για λήψεις πολυμέσων. Ο ρυθμός αιτημάτων παρακάτω είναι συνήθως ισχυρότερος μοχλός ορίων."
+
+msgctxt "wizard.url.limitRate.invalid"
+msgid "Use a number followed by K or M (e.g. 500K, 1.5M)"
+msgstr "Χρησιμοποίησε αριθμό με K ή M (π.χ. 500K, 1.5M)"
+
+msgctxt "wizard.url.limitRate.label"
+msgid "Download speed limit"
+msgstr "Όριο ταχύτητας λήψης"
+
+msgctxt "wizard.url.limitRate.off"
+msgid "Off"
+msgstr "Ανενεργό"
+
+msgctxt "wizard.url.mascotBusy"
+msgid "Downloading in the background… I can multitask 😎"
+msgstr "Λήψη στο παρασκήνιο… Ξέρω να κάνω πολλά μαζί 😎"
+
+msgctxt "wizard.url.mascotIdle"
+msgid "Drop a link and let Arroxy pull it ✨"
+msgstr "Ρίξε έναν σύνδεσμο και άσε το Arroxy να το κατεβάσει ✨"
+
+msgctxt "wizard.url.nativeAudioPreference.compatible"
+msgid "Compatible stereo"
+msgstr "Συμβατό στερεοφωνικό"
+
+msgctxt "wizard.url.nativeAudioPreference.description"
+msgid "Controls what Best native chooses. Manual audio rows and M4A/AAC stay explicit."
+msgstr "Ελέγχει τι επιλέγει το «Καλύτερο εγγενές». Οι χειροκίνητες γραμμές ήχου και τα M4A/AAC παραμένουν ρητές επιλογές."
+
+msgctxt "wizard.url.nativeAudioPreference.label"
+msgid "Native audio preference"
+msgstr "Προτίμηση εγγενούς ήχου"
+
+msgctxt "wizard.url.nativeAudioPreference.surround"
+msgid "Prefer surround / Dolby"
+msgstr "Προτίμηση surround / Dolby"
+
+msgctxt "wizard.url.networkPacing.description"
+msgid "Add small waits during each download so Arroxy does not hit the site too aggressively. Values are in seconds."
+msgstr "Προσθέτει μικρές παύσεις κατά τη διάρκεια κάθε λήψης ώστε το Arroxy να μην πιέζει υπερβολικά τον ιστότοπο. Οι τιμές είναι σε δευτερόλεπτα."
+
+msgctxt "wizard.url.networkPacing.fields.maxSleepInterval"
+msgid "Pause before media starts: max"
+msgstr "Παύση πριν ξεκινήσει το μέσο: μέγιστο"
+
+msgctxt "wizard.url.networkPacing.fields.sleepInterval"
+msgid "Pause before media starts: min"
+msgstr "Παύση πριν ξεκινήσει το μέσο: ελάχιστο"
+
+msgctxt "wizard.url.networkPacing.fields.sleepRequests"
+msgid "Wait between metadata checks"
+msgstr "Αναμονή μεταξύ ελέγχων μεταδεδομένων"
+
+msgctxt "wizard.url.networkPacing.fields.sleepSubtitles"
+msgid "Wait before subtitle files"
+msgstr "Αναμονή πριν τα αρχεία υποτίτλων"
+
+msgctxt "wizard.url.networkPacing.heading"
+msgid "Gentle downloads"
+msgstr "Ήπιες λήψεις"
+
+msgctxt "wizard.url.networkPacing.presetLabel"
+msgid "How cautious should Arroxy be?"
+msgstr "Πόσο προσεκτικό πρέπει να είναι το Arroxy;"
+
+msgctxt "wizard.url.networkPacing.presets.balanced"
+msgid "Balanced"
+msgstr "Ισορροπημένο"
+
+msgctxt "wizard.url.networkPacing.presets.careful"
+msgid "Careful"
+msgstr "Προσεκτικό"
+
+msgctxt "wizard.url.networkPacing.presets.custom"
+msgid "Custom"
+msgstr "Προσαρμοσμένο"
+
+msgctxt "wizard.url.networkPacing.presets.off"
+msgid "Off"
+msgstr "Απενεργοποιημένο"
+
+msgctxt "wizard.url.networkPacing.summary"
+msgid "Waits: {{requests}} between checks, {{downloads}} before media starts, {{subtitles}} before subtitle files."
+msgstr "Παύσεις: {{requests}} μεταξύ ελέγχων, {{downloads}} πριν ξεκινήσει το μέσο, {{subtitles}} πριν τα αρχεία υποτίτλων."
+
+msgctxt "wizard.url.networkPacing.tooltip"
+msgid "These waits happen inside each download. How many downloads run at the same time is set separately, under Downloads at once."
+msgstr "Αυτές οι παύσεις συμβαίνουν μέσα σε κάθε λήψη. Πόσες λήψεις τρέχουν ταυτόχρονα ρυθμίζεται ξεχωριστά, στις «Ταυτόχρονες λήψεις»."
+
+msgctxt "wizard.url.networkPacing.tooltips.balanced"
+msgid "Default. Adds short pauses between requests and before media starts."
+msgstr "Προεπιλογή. Προσθέτει σύντομες παύσεις μεταξύ αιτημάτων και πριν ξεκινήσει το μέσο."
+
+msgctxt "wizard.url.networkPacing.tooltips.careful"
+msgid "Adds longer pauses for large playlists or networks that frequently hit limits."
+msgstr "Προσθέτει μεγαλύτερες παύσεις για μεγάλες playlist ή δίκτυα που συχνά φτάνουν στα όρια."
+
+msgctxt "wizard.url.networkPacing.tooltips.custom"
+msgid "Tune the advanced per-download controls yourself."
+msgstr "Ρύθμισε μόνος σου τους σύνθετους ελέγχους ανά λήψη."
+
+msgctxt "wizard.url.networkPacing.tooltips.off"
+msgid "Uses only the small baseline pauses Arroxy keeps for media and subtitles."
+msgstr "Χρησιμοποιεί μόνο τις μικρές βασικές παύσεις που κρατά το Arroxy για μέσα και υποτίτλους."
+
+msgctxt "wizard.url.networkPacing.units.seconds"
+msgid "sec"
+msgstr "δευτ."
+
+msgctxt "wizard.url.placeholder"
+msgid "https://..."
+msgstr "https://www.youtube.com/watch?v=..."
+
+msgctxt "wizard.url.playlistProbeLimit.current"
+msgid "Current limit: {{count}} items"
+msgstr "Τρέχον όριο: {{count}} στοιχεία"
+
+msgctxt "wizard.url.playlistProbeLimit.custom"
+msgid "Custom…"
+msgstr "Προσαρμοσμένο…"
+
+msgctxt "wizard.url.playlistProbeLimit.customDialogCancel"
+msgid "Cancel"
+msgstr "Άκυρο"
+
+msgctxt "wizard.url.playlistProbeLimit.customDialogDescription"
+msgid "Use a whole number from {{min}} to {{max}}."
+msgstr "Χρησιμοποίησε έναν ακέραιο από {{min}} έως {{max}}."
+
+msgctxt "wizard.url.playlistProbeLimit.customDialogSave"
+msgid "Save limit"
+msgstr "Αποθήκευση ορίου"
+
+msgctxt "wizard.url.playlistProbeLimit.customDialogTitle"
+msgid "Custom playlist scan limit"
+msgstr "Προσαρμοσμένο όριο σάρωσης playlist"
+
+msgctxt "wizard.url.playlistProbeLimit.customValue"
+msgid "Custom: {{count}} items"
+msgstr "Προσαρμοσμένο: {{count}} στοιχεία"
+
+msgctxt "wizard.url.playlistProbeLimit.description"
+msgid "Maximum entries Arroxy loads when a playlist, channel, or search result is opened."
+msgstr "Μέγιστος αριθμός εγγραφών που φορτώνει το Arroxy όταν ανοίγει playlist, κανάλι ή αποτέλεσμα αναζήτησης."
+
+msgctxt "wizard.url.playlistProbeLimit.invalid"
+msgid "Use a whole number from 1 to 5000"
+msgstr "Χρησιμοποίησε έναν ακέραιο από 1 έως 5000"
+
+msgctxt "wizard.url.playlistProbeLimit.label"
+msgid "Playlist items to scan"
+msgstr "Στοιχεία playlist για σάρωση"
+
+msgctxt "wizard.url.playlistProbeLimit.option"
+msgid "{{count}} items"
+msgstr "{{count}} στοιχεία"
+
+msgctxt "wizard.url.playlistProbeLimit.tooltip"
+msgid "Maps to yt-dlp --playlist-end: Arroxy only asks for this many playlist, channel, or search entries while building the picker."
+msgstr "Αντιστοιχεί στο yt-dlp --playlist-end: το Arroxy ζητά μόνο τόσες εγγραφές playlist, καναλιού ή αναζήτησης κατά τη δημιουργία του picker."
+
+msgctxt "wizard.url.profile.activeLabel"
+msgid "Active profile"
+msgstr "Ενεργό προφίλ"
+
+msgctxt "wizard.url.profile.badgeBuiltIn"
+msgid "Built-in"
+msgstr "Ενσωματωμένο"
+
+msgctxt "wizard.url.profile.badgeCustom"
+msgid "Custom"
+msgstr "Προσαρμοσμένο"
+
+msgctxt "wizard.url.profile.badgeDisabled"
+msgid "Hidden"
+msgstr "Κρυφό"
+
+msgctxt "wizard.url.profile.badgeModified"
+msgid "Modified"
+msgstr "Τροποποιημένο"
+
+msgctxt "wizard.url.profile.changeGlobalDestination"
+msgid "Change global destination"
+msgstr "Αλλαγή καθολικού προορισμού"
+
+msgctxt "wizard.url.profile.destinationFallback"
+msgid "Destination"
+msgstr "Προορισμός"
+
+msgctxt "wizard.url.profile.edit"
+msgid "Edit"
+msgstr "Επεξεργασία"
+
+msgctxt "wizard.url.profile.editActive"
+msgid "Edit active profile"
+msgstr "Επεξεργασία ενεργού προφίλ"
+
+msgctxt "wizard.url.profile.enableHint"
+msgid "Hidden profiles stay here but disappear from every profile picker."
+msgstr "Τα κρυφά προφίλ παραμένουν εδώ, αλλά εξαφανίζονται από κάθε επιλογέα."
+
+msgctxt "wizard.url.profile.enableToggleAria"
+msgid "Show profile in pickers: {{profileName}}"
+msgstr "Εμφάνιση προφίλ στις επιλογές: {{profileName}}"
+
+msgctxt "wizard.url.profile.lastEnabledHint"
+msgid "Keep at least one profile available."
+msgstr "Διατηρήστε τουλάχιστον ένα διαθέσιμο προφίλ."
+
+msgctxt "wizard.url.profile.manageProfiles"
+msgid "Manage profiles"
+msgstr "Διαχείριση προφίλ"
+
+msgctxt "wizard.url.profile.menuDescription"
+msgid "Change the active profile for Quick Download, Bulk URLs, and playlists."
+msgstr "Άλλαξε το ενεργό προφίλ για Γρήγορη λήψη, μαζικά URL και playlist."
+
+msgctxt "wizard.url.profile.menuTitle"
+msgid "Switch profile"
+msgstr "Αλλαγή προφίλ"
+
+msgctxt "wizard.url.profile.newProfile"
+msgid "New profile"
+msgstr "Νέο προφίλ"
+
+msgctxt "wizard.url.profile.panelDescription"
+msgid "Create, select, edit, or remove reusable download setups."
+msgstr "Δημιουργήστε, επιλέξτε, επεξεργαστείτε ή αφαιρέστε επαναχρησιμοποιήσιμες ρυθμίσεις λήψης."
+
+msgctxt "wizard.url.profile.panelTitle"
+msgid "Download Profiles"
+msgstr "Προφίλ λήψης"
+
+msgctxt "wizard.url.profile.remove"
+msgid "Remove"
+msgstr "Αφαίρεση"
+
+msgctxt "wizard.url.profile.reset"
+msgid "Reset"
+msgstr "Επαναφορά"
+
+msgctxt "wizard.url.profile.switchAria"
+msgid "Switch download profile: {{profileName}}"
+msgstr "Αλλαγή προφίλ λήψης: {{profileName}}"
+
+msgctxt "wizard.url.profile.switchTitle"
+msgid "Switch download profile"
+msgstr "Αλλαγή προφίλ λήψης"
+
+msgctxt "wizard.url.proxy.clear"
+msgid "Clear"
+msgstr "Εκκαθάριση"
+
+msgctxt "wizard.url.proxy.description"
+msgid "Route traffic through a proxy — useful for geo-restricted content."
+msgstr "Δρομολόγηση κίνησης μέσω proxy — χρήσιμο για περιεχόμενο με γεωγραφικούς περιορισμούς."
+
+msgctxt "wizard.url.proxy.label"
+msgid "Proxy URL"
+msgstr "Proxy URL"
+
+msgctxt "wizard.url.proxy.placeholder"
+msgid "http://host:port"
+msgstr "http://host:port"
+
+msgctxt "wizard.url.quickBulkAllFailed"
+msgid "None of those URLs could be prepared"
+msgstr "Δεν ήταν δυνατή η προετοιμασία κανενός από αυτά τα URL"
+
+msgctxt "wizard.url.quickDownload"
+msgid "Quick Download"
+msgstr "Γρήγορη λήψη"
+
+msgctxt "wizard.url.quickDownloadTooltip"
+msgid "Will download using: {{profileName}}"
+msgstr "Θα γίνει λήψη με: {{profileName}}"
+
+msgctxt "wizard.url.quickFailed"
+msgid "Couldn't add this one: {{error}}"
+msgstr "Δεν ήταν δυνατή η προσθήκη: {{error}}"
+
+msgctxt "wizard.url.quickPartialFailed_one"
+msgid "Queued what worked. {{count}} URL could not be prepared."
+msgstr "Μπήκε στην ουρά ό,τι λειτούργησε. {{count}} URL δεν προετοιμάστηκε."
+
+msgctxt "wizard.url.quickPartialFailed_other"
+msgid "Queued what worked. {{count}} URLs could not be prepared."
+msgstr "Μπήκε στην ουρά ό,τι λειτούργησε. {{count}} URL δεν προετοιμάστηκαν."
+
+msgctxt "wizard.url.quickPrepareFailed"
+msgid "Queue item could not be prepared"
+msgstr "Δεν ήταν δυνατή η προετοιμασία του στοιχείου ουράς"
+
+msgctxt "wizard.url.quickPreparing"
+msgid "Preparing"
+msgstr "Προετοιμασία"
+
+msgctxt "wizard.url.quickProbeFailed"
+msgid "Probe failed"
+msgstr "Ο έλεγχος απέτυχε"
+
+msgctxt "wizard.url.quickQueued"
+msgid "Added to queue"
+msgstr "Προστέθηκε στην ουρά"
+
+msgctxt "wizard.url.quickSingleOnly"
+msgid "Paste a video, playlist, channel, or search URL to get started."
+msgstr "Επικόλλησε URL βίντεο, playlist, καναλιού ή αναζήτησης για να ξεκινήσεις."
+
+msgctxt "wizard.url.settings.behaviorDescription"
+msgid "Global behavior that affects profile-driven downloads too."
+msgstr "Γενική συμπεριφορά που επηρεάζει και τις λήψεις που ελέγχονται από προφίλ."
+
+msgctxt "wizard.url.settings.behaviorHeading"
+msgid "Download behavior"
+msgstr "Συμπεριφορά λήψης"
+
+msgctxt "wizard.url.settings.inputHeading"
+msgid "Input"
+msgstr "Είσοδος"
+
+msgctxt "wizard.url.tabs.profiles"
+msgid "Profiles"
+msgstr "Προφίλ"
+
+msgctxt "wizard.url.tabs.settings"
+msgid "Settings"
+msgstr "Ρυθμίσεις"
