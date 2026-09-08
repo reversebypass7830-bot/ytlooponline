@@ -1,7 +1,7 @@
 import { randomBytes, randomUUID } from "node:crypto";
 import { Router, type IRouter, type Request, type Response } from "express";
 import { firebaseDelete, firebaseGet, firebasePut } from "../lib/firebase-rest";
-import { deleteMediaFilesForLicense } from "./media";
+import { deleteMediaFilesForLicense, ensureLicenseMediaFolder } from "./media";
 
 const router: IRouter = Router();
 const dayMs = 24 * 60 * 60 * 1000;
@@ -104,6 +104,7 @@ router.post("/licenses", async (req, res): Promise<void> => {
   };
   try {
     await saveLicense(record);
+    await ensureLicenseMediaFolder(record.id, record.name);
     res.status(201).json(publicLicense(record));
   } catch (error) {
     req.log.error({ error: error instanceof Error ? error.message : "unknown" }, "License create failed");

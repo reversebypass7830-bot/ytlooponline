@@ -179,9 +179,14 @@ function slugify(value: string, fallback: string): string {
 }
 
 function mediaScopePath(context: MediaContext): string {
-  const license = slugify(context.licenseId || context.licenseName || "workspace", "workspace");
+  const license = slugify(context.licenseName || context.licenseId || "workspace", "workspace");
   const folder = slugify(context.folderName || "media", "media");
-  return path.join(mediaDir, license, folder);
+  return path.join(mediaDir, folder, license);
+}
+
+export function ensureLicenseMediaFolder(licenseId: string, licenseName: string): Promise<void> {
+  const licenseFolder = slugify(licenseName || licenseId, "workspace");
+  return mkdir(path.join(mediaDir, licenseFolder), { recursive: true }).then(() => undefined);
 }
 
 function storedMediaFilename(fileId: string, rawName: string, context: MediaContext): string {
