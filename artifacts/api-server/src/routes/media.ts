@@ -32,6 +32,7 @@ const mediaIndexPath = path.join(mediaDir, "media-index.json");
 const configuredYoutubeCookies = process.env.YOUTUBE_COOKIES?.trim();
 const configuredYoutubeCookiesFile = process.env.YT_DLP_COOKIES_FILE?.trim();
 let youtubeCookiesFilePromise: Promise<string | undefined> | undefined;
+const youtubeBridgePath = path.resolve(process.cwd(), "youtube-downloader-bridge/bin/Release/net10.0/YoutubeDownloaderBridge.dll");
 
 function normalizeYoutubeCookies(raw: string): string {
   const trimmed = raw.trim();
@@ -444,87 +445,50 @@ async function downloadYoutubeVideo(
   context: MediaContext,
 ): Promise<{ path: string; title: string; duration: string; quality: string }> {
   await mkdir(mediaDir, { recursive: true });
-  const outputTemplate = path.join(mediaDir, `${fileId}.%(ext)s`);
-  const clients = ["android", "web_embedded", "mweb", "ios"];
-  const requestedQuality = (context.quality || "best") as DownloadQuality;
-  const cookiesFile = await getYoutubeCookiesFile();
-  let lastError = "YouTube video download failed.";
+  const outputPath = path.join(mediaDir, `${fileId}.mp4`);
+  const requestedQuality = context.quality || "best";
 
-  for (const client of clients) {
-    await Promise.all(
-      (await readdir(mediaDir).catch(() => []))
-         .filter((entry) => entry.startsWith(`${fileId}.`) || entry.startsWith(`${fileId}__`))
-        .map((entry) => unlink(path.join(mediaDir, entry)).catch(() => undefined)),
-    );
-
-    try {
-      const result = await new Promise<{ title: string; duration: string; quality: string }>((resolve, reject) => {
-        const flags = ({
-          noPlaylist: true,
-          noWarnings: true,
-          noProgress: true,
-           retries: 2,
-           fragmentRetries: 2,
-           fileAccessRetries: 2,
-           socketTimeout: 20,
-           concurrentFragments: 8,
-           httpChunkSize: "10M",
-           bufferSize: "16K",
-           formatSort: ["res", "fps", "vcodec", "acodec"],
-           ...(cookiesFile ? { cookies: cookiesFile } : {}),
-          extractorArgs: `youtube:player_client=${client}`,
-           format: youtubeFormat(requestedQuality),
-          mergeOutputFormat: "mp4",
-          ffmpegLocation: ffmpegPath ?? undefined,
-          output: outputTemplate,
-          printJson: true,
-        } as unknown) as Parameters<typeof youtubeDownloader.exec>[1];
-        const child = youtubeDownloader.exec(url, flags);
-        const promiseLike = child as typeof child & { catch?: (handler: () => void) => unknown };
-        promiseLike.catch?.(() => undefined);
-        let stdout = "";
-        let stderr = "";
-        child.stdout?.on("data", (chunk: Buffer) => { stdout += chunk.toString(); });
-        child.stderr?.on("data", (chunk: Buffer) => { stderr += chunk.toString(); });
-        child.on("error", (error) => reject(error));
-        child.on("close", async (code) => {
-          if (code !== 0) {
-            reject(new Error(stderr.trim().split("\n").filter(Boolean).at(-1) || "YouTube download failed."));
-            return;
-          }
-          const info = stdout.split(/\r?\n/).map((line) => {
-            try { return JSON.parse(line) as { title?: unknown; duration?: unknown; height?: unknown }; } catch { return null; }
-          }).find(Boolean);
+  const result = await new Promise<{ title: string; duration: string; quality: string }>((resolve, reject) => {
+    const child = spawn("dotnet", [youtubeBridgePath, url, outputPath, requestedQuality], {
+      env: {
+        ...process.env,
+        ...(configuredYoutubeCookies ? { YOUTUBE_COOKIES: configuredYoutubeCookies } : {}),
+        ...(ffmpegPath ? { FFMPEG_PATH: ffmpegPath } : {}),
+      },
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+    let stdout = "";
+    let stderr = "";
+    child.stdout.on("data", (chunk: Buffer) => { stdout += chunk.toString(); });
+    child.stderr.on("data", (chunk: Buffer) => { stderr += chunk.toString(); });
+    child.on("error", reject);
+    child.on("close", (code) => {
+      if (code === 0) {
+        const line = stdout.trim().split(/\r?\n/).filter(Boolean).at(-1);
+        try {
+          const parsed = line ? JSON.parse(line) as { title?: unknown; duration?: unknown; quality?: unknown } : {};
           resolve({
-            title: typeof info?.title === "string" && info.title.trim() ? info.title.trim() : "Downloaded YouTube video",
-            duration: formatDuration(info?.duration),
-            quality: typeof info?.height === "number" ? `${info.height}p` : requestedQuality,
+            title: typeof parsed.title === "string" && parsed.title.trim() ? parsed.title.trim() : "Downloaded YouTube video",
+            duration: typeof parsed.duration === "string" ? parsed.duration : "00:00",
+            quality: typeof parsed.quality === "string" ? parsed.quality : requestedQuality,
           });
-        });
-      });
-
-      const files = await readdir(mediaDir).catch(() => []);
-       const filename = files.find((entry) => (entry.startsWith(`${fileId}.`) || entry.startsWith(`${fileId}__`)) && !entry.endsWith(".part"));
-      if (!filename) throw new Error("YouTube download finished without creating a video file.");
-       const title = result.title;
-       const finalPath = await finalizeMediaFile(fileId, path.join(mediaDir, filename), title, context);
-      return {
-         path: finalPath,
-         title,
-        duration: result.duration,
-         quality: result.quality,
-      };
-    } catch (error) {
-      lastError = error instanceof Error ? error.message : "YouTube video download failed.";
-      if (lastError.includes("Sign in to confirm") || lastError.includes("not a bot")) break;
-    }
-  }
+        } catch {
+          reject(new Error("The GitHub downloader returned invalid video metadata."));
+        }
+        return;
+      }
+      const detail = stderr.trim().split(/\r?\n/).filter(Boolean).at(-1) || "The GitHub YouTube downloader failed.";
+      reject(new Error(detail.slice(-1200)));
+    });
+  });
 
   try {
-    return await downloadViaYtSave(url, fileId, context);
+    const title = result.title;
+    const finalPath = await finalizeMediaFile(fileId, outputPath, title, context);
+    return { path: finalPath, title, duration: result.duration, quality: result.quality };
   } catch (error) {
-    const fallbackError = error instanceof Error ? error.message : "YTSave fallback failed.";
-    throw new Error(`${lastError} YTSave fallback: ${fallbackError}`);
+    await unlink(outputPath).catch(() => undefined);
+    throw error;
   }
 }
 
@@ -700,54 +664,35 @@ async function downloadViaYtSave(
 }
 
 async function inspectYoutubeFormats(url: string): Promise<{ qualities: string[]; title: string }> {
-  const clients = ["android", "web_embedded"];
-  const cookiesFile = await getYoutubeCookiesFile();
-  let lastError = "Could not inspect YouTube qualities.";
-  for (const client of clients) {
-    try {
-      const result = await new Promise<{ qualities: string[]; title: string }>((resolve, reject) => {
-        const flags = ({
-          noPlaylist: true,
-          noWarnings: true,
-          listFormats: true,
-          socketTimeout: 20,
-          ...(cookiesFile ? { cookies: cookiesFile } : {}),
-          extractorArgs: `youtube:player_client=${client}`,
-        } as unknown) as Parameters<typeof youtubeDownloader.exec>[1];
-        const child = youtubeDownloader.exec(url, flags);
-        const promiseLike = child as typeof child & { catch?: (handler: () => void) => unknown };
-        promiseLike.catch?.(() => undefined);
-        let stdout = "";
-        let stderr = "";
-        child.stdout?.on("data", (chunk: Buffer) => { stdout += chunk.toString(); });
-        child.stderr?.on("data", (chunk: Buffer) => { stderr += chunk.toString(); });
-        child.on("error", reject);
-        child.on("close", (code) => {
-          if (code !== 0) {
-            reject(new Error(stderr.trim().split(/\r?\n/).filter(Boolean).at(-1) || lastError));
-            return;
-          }
-          try {
-            const formatOutput = `${stdout}\n${stderr}`;
-            const heights = Array.from(new Set(Array.from(formatOutput.matchAll(/\b(?:\d{3,4}p|\d{3,4}x(\d{3,4}))\b/gi))
-              .map((match) => Number(match[1] || match[0].replace(/p$/i, "")))
-              .filter((height) => Number.isFinite(height))))
-              .sort((a, b) => b - a);
-            resolve({
-              qualities: ["best", ...heights.map((height) => `${height}p`).filter((quality) => ["2160p", "1440p", "1080p", "720p", "480p"].includes(quality))],
-              title: "YouTube video",
-            });
-          } catch {
-            reject(new Error("YouTube returned invalid quality data."));
-          }
+  return await new Promise((resolve, reject) => {
+    const child = spawn("dotnet", [youtubeBridgePath, "--formats", url], {
+      env: {
+        ...process.env,
+        ...(configuredYoutubeCookies ? { YOUTUBE_COOKIES: configuredYoutubeCookies } : {}),
+      },
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+    let stdout = "";
+    let stderr = "";
+    child.stdout.on("data", (chunk: Buffer) => { stdout += chunk.toString(); });
+    child.stderr.on("data", (chunk: Buffer) => { stderr += chunk.toString(); });
+    child.on("error", reject);
+    child.on("close", (code) => {
+      if (code !== 0) {
+        reject(new Error(stderr.trim().split(/\r?\n/).filter(Boolean).at(-1) || "YouTube qualities could not be loaded."));
+        return;
+      }
+      try {
+        const parsed = JSON.parse(stdout.trim().split(/\r?\n/).filter(Boolean).at(-1) || "{}") as { qualities?: unknown; title?: unknown };
+        resolve({
+          qualities: Array.isArray(parsed.qualities) ? parsed.qualities.filter((quality): quality is string => typeof quality === "string") : ["best"],
+          title: typeof parsed.title === "string" ? parsed.title : "YouTube video",
         });
-      });
-      return result;
-    } catch (error) {
-      lastError = error instanceof Error ? error.message : lastError;
-    }
-  }
-  throw new Error(lastError);
+      } catch {
+        reject(new Error("The GitHub downloader returned invalid quality data."));
+      }
+    });
+  });
 }
 
 router.get("/media/files", async (req, res): Promise<void> => {

@@ -1,0 +1,15 @@
+{
+  "version": 2,
+  "dgSpecHash": "/A5kfjC/Mzs=",
+  "success": true,
+  "projectFilePath": "/home/runner/workspace/artifacts/api-server/youtube-downloader-bridge/YoutubeDownloaderBridge.csproj",
+  "expectedPackageFiles": [
+    "/home/runner/.nuget/packages/gress/2.2.0/gress.2.2.0.nupkg.sha512",
+    "/home/runner/.nuget/packages/jsonextensions/1.2.3/jsonextensions.1.2.3.nupkg.sha512",
+    "/home/runner/.nuget/packages/powerkit/2.3.1/powerkit.2.3.1.nupkg.sha512",
+    "/home/runner/.nuget/packages/taglibsharp/2.3.0/taglibsharp.2.3.0.nupkg.sha512",
+    "/home/runner/.nuget/packages/youtubeexplode/6.6.2/youtubeexplode.6.6.2.nupkg.sha512",
+    "/home/runner/.nuget/packages/youtubeexplode.converter/6.6.2/youtubeexplode.converter.6.6.2.nupkg.sha512"
+  ],
+  "logs": []
+}
