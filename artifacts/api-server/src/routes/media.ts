@@ -400,56 +400,69 @@ function normalizeQualityLabel(value: string | undefined, fallback: string): str
   return match ? `${match[1]}p` : fallback;
 }
 
-const ARROXY_PLAYER_CLIENT_FALLBACK = "youtube:player_client=default,-web,-web_safari";
-const ARROXY_DOWNLOAD_TIMEOUT_MS = 60 * 60 * 1000;
+const YTDLP_PLAYER_CLIENT_FALLBACK = "youtube:player_client=default,-web,-web_safari";
+const YTDLP_DOWNLOAD_TIMEOUT_MS = 60 * 60 * 1000;
 
-function arroxyRootCandidates(): string[] {
+type YtDlpCommand = {
+  executable: string;
+  prefixArgs: string[];
+  label: string;
+};
+
+function ytDlpSourceCandidates(): string[] {
   return [
-    process.env.ARROXY_ROOT,
-    path.resolve(process.cwd(), "Arroxy"),
-    path.resolve(process.cwd(), "..", "..", "Arroxy"),
+    process.env.YT_DLP_REPO,
+    path.resolve(process.cwd(), "yt-dlp", "yt_dlp", "__main__.py"),
+    path.resolve(process.cwd(), "..", "..", "yt-dlp", "yt_dlp", "__main__.py"),
   ].filter((candidate): candidate is string => Boolean(candidate));
 }
 
-function resolveArroxyYtDlp(): string {
-  const candidates = [
-    process.env.ARROXY_YT_DLP_PATH,
-    ...arroxyRootCandidates().flatMap((root) => [
-      path.join(root, "dist", "runtime-cache", "binaries", "yt-dlp"),
-      path.join(root, "runtime-cache", "binaries", "yt-dlp"),
-      path.join(root, "build", "embedded", "linux-x64", "yt-dlp"),
-    ]),
-  ].filter((candidate): candidate is string => Boolean(candidate));
-  return candidates.find((candidate) => existsSync(candidate)) || (process.platform === "win32" ? "yt-dlp.exe" : "yt-dlp");
+function resolveYtDlpCommand(): YtDlpCommand {
+  const configured = process.env.YT_DLP_PATH?.trim();
+  if (configured && existsSync(configured)) {
+    return configured.endsWith(".py")
+      ? { executable: process.env.PYTHON_PATH?.trim() || "python3", prefixArgs: [configured], label: configured }
+      : { executable: configured, prefixArgs: [], label: configured };
+  }
+
+  const source = ytDlpSourceCandidates()
+    .map((candidate) => candidate.endsWith(".py") ? candidate : path.join(candidate, "yt_dlp", "__main__.py"))
+    .find((candidate) => existsSync(candidate));
+  if (source) {
+    return { executable: process.env.PYTHON_PATH?.trim() || "python3", prefixArgs: [source], label: source };
+  }
+
+  const binary = process.platform === "win32" ? "yt-dlp.exe" : "yt-dlp";
+  return { executable: binary, prefixArgs: [], label: binary };
 }
 
-async function createArroxyCookieFile(): Promise<{ path?: string; cleanup: () => Promise<void> }> {
+async function createYtDlpCookieFile(): Promise<{ path?: string; cleanup: () => Promise<void> }> {
   const configuredPath = process.env.YT_DLP_COOKIES_FILE?.trim();
   if (configuredPath && existsSync(configuredPath)) return { path: configuredPath, cleanup: async () => undefined };
   const rawCookies = process.env.YOUTUBE_COOKIES?.trim();
   if (!rawCookies) return { cleanup: async () => undefined };
   if (existsSync(rawCookies)) return { path: rawCookies, cleanup: async () => undefined };
-  const cookiePath = path.join("/tmp", `arroxy-youtube-cookies-${randomUUID()}.txt`);
+  const cookiePath = path.join("/tmp", `yt-dlp-youtube-cookies-${randomUUID()}.txt`);
   await writeFile(cookiePath, rawCookies, { encoding: "utf8", mode: 0o600 });
   return { path: cookiePath, cleanup: () => unlink(cookiePath).catch(() => undefined) };
 }
 
-function arroxyFormatSelector(quality: DownloadQuality): string {
+function ytDlpFormatSelector(quality: DownloadQuality): string {
   const height = quality === "best" ? undefined : Number.parseInt(quality, 10);
   return height
     ? `bv*[height<=${height}]+ba/b[height<=${height}]/b`
     : "bv*+ba/b";
 }
 
-type ArroxyYtDlpRun = {
+type YtDlpRun = {
   code: number;
   stdout: string;
   stderr: string;
 };
 
-function runArroxyYtDlp(binary: string, args: string[], cookiePath?: string): Promise<ArroxyYtDlpRun> {
+function runYtDlp(command: YtDlpCommand, args: string[], cookiePath?: string): Promise<YtDlpRun> {
   return new Promise((resolve, reject) => {
-    const child = spawn(binary, args, {
+    const child = spawn(command.executable, [...command.prefixArgs, ...args], {
       env: {
         ...process.env,
         ...(cookiePath ? { YOUTUBE_COOKIES: undefined } : {}),
@@ -465,9 +478,9 @@ function runArroxyYtDlp(binary: string, args: string[], cookiePath?: string): Pr
       child.kill("SIGKILL");
       if (!settled) {
         settled = true;
-        resolve({ code: -1, stdout, stderr: `${stderr}\nArroxy yt-dlp timed out.` });
+        resolve({ code: -1, stdout, stderr: `${stderr}\nyt-dlp timed out.` });
       }
-    }, ARROXY_DOWNLOAD_TIMEOUT_MS);
+    }, YTDLP_DOWNLOAD_TIMEOUT_MS);
     child.stdout.on("data", (chunk: Buffer) => { stdout += chunk.toString(); });
     child.stderr.on("data", (chunk: Buffer) => { stderr += chunk.toString(); });
     child.once("error", (error) => {
@@ -491,31 +504,31 @@ function lastJsonLine(stdout: string): Record<string, unknown> {
       const parsed = JSON.parse(line) as unknown;
       if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) return parsed as Record<string, unknown>;
     } catch {
-      // Arroxy's progress output can contain non-JSON lines before --print-json.
+      // Progress output can contain non-JSON lines before --print-json.
     }
   }
   return {};
 }
 
-function shouldTryArroxyFallback(stderr: string): boolean {
+function shouldTryYtDlpFallback(stderr: string): boolean {
   return /bot|sign in|not available on this app|player response|requested format|po token/i.test(stderr);
 }
 
-async function downloadViaArroxy(
+async function downloadViaYtDlp(
   url: string,
   fileId: string,
   context: MediaContext,
 ): Promise<{ path: string; title: string; duration: string; quality: string }> {
   const requestedQuality = (context.quality || "best") as DownloadQuality;
-  const binary = resolveArroxyYtDlp();
-  const cookie = await createArroxyCookieFile();
+  const command = resolveYtDlpCommand();
+  const cookie = await createYtDlpCookieFile();
   const destination = path.join(mediaDir, `${fileId}.mp4`);
   const baseArgs = [
     "--no-playlist",
     "--no-warnings",
     "--newline",
     "--print-json",
-    "--format", arroxyFormatSelector(requestedQuality),
+    "--format", ytDlpFormatSelector(requestedQuality),
     "--merge-output-format", "mp4",
     "--output", destination,
     "--retries", "20",
@@ -528,16 +541,17 @@ async function downloadViaArroxy(
   ];
   await mkdir(mediaDir, { recursive: true });
   try {
-    let result = await runArroxyYtDlp(binary, baseArgs, cookie.path);
-    if (result.code !== 0 && shouldTryArroxyFallback(result.stderr)) {
-      result = await runArroxyYtDlp(binary, [
+    let result = await runYtDlp(command, baseArgs, cookie.path);
+    if (result.code !== 0 && shouldTryYtDlpFallback(result.stderr)) {
+      result = await runYtDlp(command, [
         ...baseArgs.slice(0, -1),
-        "--extractor-args", ARROXY_PLAYER_CLIENT_FALLBACK,
+        "--extractor-args", YTDLP_PLAYER_CLIENT_FALLBACK,
         url,
       ], cookie.path);
     }
     if (result.code !== 0) {
-      const detail = result.stderr.trim().split(/\r?\n/).filter(Boolean).at(-1) || "Arroxy yt-dlp could not download this YouTube video.";
+      const detail = result.stderr.trim().split(/\r?\n/).filter(Boolean).at(-1)
+        || `yt-dlp could not download this YouTube video using ${command.label}.`;
       throw new Error(detail.slice(-1200));
     }
     const metadata = lastJsonLine(result.stdout);
@@ -562,7 +576,7 @@ async function downloadYoutubeVideo(
   fileId: string,
   context: MediaContext,
 ): Promise<{ path: string; title: string; duration: string; quality: string }> {
-  return downloadViaArroxy(url, fileId, context);
+  return downloadViaYtDlp(url, fileId, context);
 }
 
 async function inspectYoutubeFormats(url: string): Promise<{ qualities: string[]; title: string }> {
@@ -759,7 +773,7 @@ router.post("/media/youtube-download", async (req, res): Promise<void> => {
   } catch (error) {
     const rawMessage = error instanceof Error ? error.message : "The YouTube video could not be downloaded.";
     const message = rawMessage.includes("sign in") || rawMessage.includes("not a bot") || rawMessage.includes("bot")
-      ? "Arroxy yt-dlp was blocked by YouTube. Configure an authorized YOUTUBE_COOKIES secret or try a direct video URL."
+      ? "yt-dlp was blocked by YouTube. Configure an authorized YOUTUBE_COOKIES secret or try a direct video URL."
       : rawMessage;
     req.log.warn({ error: message }, "YouTube download failed");
     res.status(400).json({ error: message });
