@@ -1,6 +1,7 @@
 import { randomBytes, randomUUID } from "node:crypto";
 import { Router, type IRouter, type Request, type Response } from "express";
 import { firebaseDelete, firebaseGet, firebasePut } from "../lib/firebase-rest";
+import { deleteMediaFilesForLicense } from "./media";
 
 const router: IRouter = Router();
 const dayMs = 24 * 60 * 60 * 1000;
@@ -113,9 +114,10 @@ router.post("/licenses", async (req, res): Promise<void> => {
 router.delete("/licenses/:licenseId", async (req, res): Promise<void> => {
   if (!requireOwner(req, res)) return;
   try {
+    const deletedMedia = await deleteMediaFilesForLicense(req.params.licenseId);
     await firebaseDelete(`licenses/${encodeURIComponent(req.params.licenseId)}`);
     await firebaseDelete(`workspaces/${encodeURIComponent(req.params.licenseId)}`);
-    res.json({ licenseId: req.params.licenseId, deleted: true });
+    res.json({ licenseId: req.params.licenseId, deleted: true, deletedMedia });
   } catch (error) {
     req.log.error({ error: error instanceof Error ? error.message : "unknown" }, "License delete failed");
     res.status(502).json({ error: "Could not delete the license from Firebase." });

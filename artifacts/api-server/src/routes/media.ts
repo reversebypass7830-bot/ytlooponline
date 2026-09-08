@@ -131,6 +131,40 @@ function removeMediaRecord(fileId: string): Promise<void> {
   return mediaIndexWrite;
 }
 
+async function deleteIndexedMedia(
+  predicate: (record: MediaRecord) => boolean,
+): Promise<number> {
+  let deleted = 0;
+  mediaIndexWrite = mediaIndexWrite.then(async () => {
+    const records = await readMediaIndex();
+    const remaining: MediaRecord[] = [];
+    for (const record of records) {
+      if (!predicate(record)) {
+        remaining.push(record);
+        continue;
+      }
+      const filename = await findMediaFile(record.fileId);
+      if (filename) await unlink(filename).catch(() => undefined);
+      deleted += 1;
+    }
+    await mkdir(mediaDir, { recursive: true });
+    await writeFile(mediaIndexPath, JSON.stringify(remaining, null, 2));
+  });
+  await mediaIndexWrite;
+  return deleted;
+}
+
+export function deleteMediaFilesForLicense(licenseId: string): Promise<number> {
+  return deleteIndexedMedia((record) => record.licenseId === licenseId);
+}
+
+export function deleteMediaFilesForFolder(licenseId: string, folderName: string): Promise<number> {
+  const normalizedFolder = folderName.trim().toLowerCase();
+  return deleteIndexedMedia((record) =>
+    record.licenseId === licenseId && record.folderName.trim().toLowerCase() === normalizedFolder,
+  );
+}
+
 type MediaContext = {
   licenseId?: string;
   licenseName?: string;
@@ -216,7 +250,13 @@ function validateYoutubeUrl(rawUrl: string): string {
   if (!["youtube.com", "m.youtube.com", "youtu.be", "youtube-nocookie.com"].includes(hostname)) {
     throw new Error("Only YouTube video links are supported.");
   }
-  return parsed.toString();
+  const videoId = hostname === "youtu.be"
+    ? parsed.pathname.slice(1).split("/")[0]
+    : parsed.searchParams.get("v") || parsed.pathname.match(/^\/(?:shorts\/|embed\/)?([^/]+)/i)?.[1];
+  if (!videoId || !/^[\w-]{6,}$/.test(videoId)) {
+    throw new Error("Enter a complete YouTube video URL.");
+  }
+  return `https://www.youtube.com/watch?v=${videoId}`;
 }
 
 function validateYoutubeChannelUrl(rawUrl: string): string {
@@ -746,6 +786,24 @@ router.get("/media/files", async (req, res): Promise<void> => {
   res.json(ListMediaFilesResponse.parse({ files: filtered.sort((a, b) => b.createdAt.localeCompare(a.createdAt)) }));
 });
 
+router.delete("/media/files", async (req, res): Promise<void> => {
+  const licenseId = typeof req.query.licenseId === "string" ? req.query.licenseId.trim() : "";
+  const folderName = typeof req.query.folderName === "string" ? req.query.folderName.trim() : "";
+  if (!licenseId) {
+    res.status(400).json({ error: "A license id is required to delete workspace media." });
+    return;
+  }
+  try {
+    const deleted = folderName
+      ? await deleteMediaFilesForFolder(licenseId, folderName)
+      : await deleteMediaFilesForLicense(licenseId);
+    res.json({ licenseId, folderName, deleted });
+  } catch (error) {
+    req.log.warn({ licenseId, folderName, error: error instanceof Error ? error.message : "unknown" }, "Media bulk deletion failed");
+    res.status(500).json({ error: "The workspace video files could not be deleted." });
+  }
+});
+
 router.post("/media/youtube-formats", async (req, res): Promise<void> => {
   try {
     const parsed = GetYoutubeFormatsBody.safeParse(req.body);
@@ -960,28 +1018,79 @@ router.post("/media/files/:fileId/trim", async (req, res): Promise<void> => {
 
   await mkdir(mediaDir, { recursive: true });
   const fileId = randomUUID();
+  const sourceRecord = (await readMediaIndex()).find((record) => record.fileId === req.params.fileId);
+  const licenseId = req.header("x-license-id") || sourceRecord?.licenseId || "";
+  const licenseName = req.header("x-license-name") || sourceRecord?.licenseName || "";
+  const folderName = req.header("x-folder-name") || sourceRecord?.folderName || "";
+  const quality = req.header("x-quality") || sourceRecord?.quality || "clip";
+  const clipTitle = req.header("x-clip-title")?.trim() || `${sourceRecord?.title || path.basename(input, path.extname(input))} · clip`;
+  const replaceFileId = req.header("x-replace-file-id")?.trim() || "";
+  if (sourceRecord?.licenseId && sourceRecord.licenseId !== licenseId) {
+    res.status(403).json({ error: "This video belongs to another license workspace." });
+    return;
+  }
   const destination = path.join(mediaDir, `${fileId}.mp4`);
   try {
-    await runFfmpeg([
-      "-y",
-      "-ss", String(startSeconds),
-      "-i", input,
-      "-t", String(endSeconds - startSeconds),
-      "-map", "0:v:0",
-      "-map", "0:a?",
-      "-c:v", "libx264",
-      "-preset", "veryfast",
-      "-crf", "18",
-      "-c:a", "aac",
-      "-b:a", "192k",
-      "-movflags", "+faststart",
-      destination,
-    ]);
+    try {
+      await runFfmpeg([
+        "-y",
+        "-ss", String(startSeconds),
+        "-i", input,
+        "-t", String(endSeconds - startSeconds),
+        "-map", "0:v:0",
+        "-map", "0:a?",
+        "-c", "copy",
+        "-avoid_negative_ts", "make_zero",
+        "-movflags", "+faststart",
+        destination,
+      ]);
+    } catch {
+      await unlink(destination).catch(() => undefined);
+      await runFfmpeg([
+        "-y",
+        "-ss", String(startSeconds),
+        "-i", input,
+        "-t", String(endSeconds - startSeconds),
+        "-map", "0:v:0",
+        "-map", "0:a?",
+        "-c:v", "libx264",
+        "-preset", "veryfast",
+        "-crf", "18",
+        "-c:a", "aac",
+        "-b:a", "192k",
+        "-movflags", "+faststart",
+        destination,
+      ]);
+    }
 
+    const finalPath = await finalizeMediaFile(fileId, destination, `${clipTitle}.mp4`, {
+      licenseId,
+      licenseName,
+      folderName,
+    });
+    const clipStats = await stat(finalPath);
+    await saveMediaRecord({
+      fileId,
+      filename: path.basename(finalPath),
+      sourcePath: finalPath,
+      playbackUrl: `/api/media/files/${fileId}`,
+      title: clipTitle,
+      duration: formatDuration(endSeconds - startSeconds),
+      licenseId,
+      licenseName,
+      folderName,
+      quality,
+      createdAt: new Date().toISOString(),
+      sizeBytes: clipStats.size,
+    });
+    if (replaceFileId && replaceFileId === req.params.fileId) {
+      await unlink(input).catch(() => undefined);
+      await removeMediaRecord(replaceFileId);
+    }
     res.status(201).json(TrimMediaFileResponse.parse({
       fileId,
-      filename: path.basename(destination),
-      sourcePath: destination,
+      filename: path.basename(finalPath),
+      sourcePath: finalPath,
       playbackUrl: `/api/media/files/${fileId}`,
       duration: formatDuration(endSeconds - startSeconds),
     }));
@@ -1006,6 +1115,14 @@ router.get("/media/files/:fileId", async (req, res): Promise<void> => {
 });
 
 router.delete("/media/files/:fileId", async (req, res): Promise<void> => {
+  const requestedLicenseId = typeof req.query.licenseId === "string"
+    ? req.query.licenseId.trim()
+    : req.header("x-license-id")?.trim() || "";
+  const record = (await readMediaIndex()).find((item) => item.fileId === req.params.fileId);
+  if (record?.licenseId && record.licenseId !== requestedLicenseId) {
+    res.status(403).json({ error: "This video belongs to another license workspace." });
+    return;
+  }
   const filename = await findMediaFile(req.params.fileId);
   if (!filename) {
     res.json({ fileId: req.params.fileId, deleted: false });
