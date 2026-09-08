@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("YoutubeDownloaderBridge")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Release")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+55aa800cb23c07f28a5b9718697ea02116c7851a")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+925a0e4b0113e8067df94ca69b98ad204b86f279")]
 [assembly: System.Reflection.AssemblyProductAttribute("YoutubeDownloaderBridge")]
 [assembly: System.Reflection.AssemblyTitleAttribute("YoutubeDownloaderBridge")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

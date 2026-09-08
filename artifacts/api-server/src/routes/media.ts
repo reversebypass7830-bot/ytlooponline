@@ -178,16 +178,21 @@ function slugify(value: string, fallback: string): string {
   return slug || fallback;
 }
 
+function mediaScopePath(context: MediaContext): string {
+  const license = slugify(context.licenseId || context.licenseName || "workspace", "workspace");
+  const folder = slugify(context.folderName || "media", "media");
+  return path.join(mediaDir, license, folder);
+}
+
 function storedMediaFilename(fileId: string, rawName: string, context: MediaContext): string {
   const extension = path.extname(rawName).toLowerCase() || ".mp4";
-  const license = slugify(context.licenseName || context.licenseId || "workspace", "workspace");
-  const folder = slugify(context.folderName || "media", "media");
   const title = slugify(path.basename(rawName, extension), "video");
-  return `${fileId}__${license}__${folder}__${title}${extension}`;
+  return `${fileId}__${title}${extension}`;
 }
 
 async function finalizeMediaFile(fileId: string, currentPath: string, rawName: string, context: MediaContext): Promise<string> {
-  const destination = path.join(mediaDir, storedMediaFilename(fileId, rawName, context));
+  const destination = path.join(mediaScopePath(context), storedMediaFilename(fileId, rawName, context));
+  await mkdir(path.dirname(destination), { recursive: true });
   if (currentPath !== destination) {
     await unlink(destination).catch(() => undefined);
     await rename(currentPath, destination);
@@ -197,9 +202,34 @@ async function finalizeMediaFile(fileId: string, currentPath: string, rawName: s
 
 async function findMediaFile(fileId: string): Promise<string | null> {
   if (!/^[a-f0-9-]+$/i.test(fileId)) return null;
-  const files = await readdir(mediaDir).catch(() => []);
-  const filename = files.find((entry) => entry.startsWith(`${fileId}.`) || entry.startsWith(`${fileId}__`));
-  return filename ? path.join(mediaDir, filename) : null;
+  const visit = async (directory: string): Promise<string | null> => {
+    const entries = await readdir(directory, { withFileTypes: true }).catch(() => []);
+    for (const entry of entries) {
+      const entryPath = path.join(directory, entry.name);
+      if (entry.isDirectory()) {
+        const nested = await visit(entryPath);
+        if (nested) return nested;
+      } else if (entry.name.startsWith(`${fileId}.`) || entry.name.startsWith(`${fileId}__`)) {
+        return entryPath;
+      }
+    }
+    return null;
+  };
+  return visit(mediaDir);
+}
+
+async function collectMediaFiles(directory: string): Promise<Array<{ filename: string; path: string }>> {
+  const entries = await readdir(directory, { withFileTypes: true }).catch(() => []);
+  const files: Array<{ filename: string; path: string }> = [];
+  for (const entry of entries) {
+    const entryPath = path.join(directory, entry.name);
+    if (entry.isDirectory()) {
+      files.push(...await collectMediaFiles(entryPath));
+    } else {
+      files.push({ filename: entry.name, path: entryPath });
+    }
+  }
+  return files;
 }
 
 function formatDuration(seconds: unknown): string {
@@ -439,7 +469,7 @@ function youtubeFormat(quality: DownloadQuality): string {
     : "bestvideo+bestaudio/best";
 }
 
-async function downloadYoutubeVideo(
+async function downloadViaYoutubeExplode(
   url: string,
   fileId: string,
   context: MediaContext,
@@ -486,6 +516,76 @@ async function downloadYoutubeVideo(
     const title = result.title;
     const finalPath = await finalizeMediaFile(fileId, outputPath, title, context);
     return { path: finalPath, title, duration: result.duration, quality: result.quality };
+  } catch (error) {
+    await unlink(outputPath).catch(() => undefined);
+    throw error;
+  }
+}
+
+type YtDlpMetadata = {
+  title?: unknown;
+  duration?: unknown;
+  duration_string?: unknown;
+  height?: unknown;
+  resolution?: unknown;
+  requested_downloads?: Array<{ height?: unknown }>;
+};
+
+function youtubeFormatForYtDlp(quality: DownloadQuality): string {
+  const height = qualityHeight(quality);
+  return height
+    ? `bv*[height<=${height}]+ba/b[height<=${height}]/b`
+    : "bv*+ba/b";
+}
+
+async function downloadViaYtDlp(
+  url: string,
+  fileId: string,
+  context: MediaContext,
+): Promise<{ path: string; title: string; duration: string; quality: string }> {
+  await mkdir(mediaDir, { recursive: true });
+  const outputPath = path.join(mediaDir, `${fileId}.mp4`);
+  const requestedQuality = (context.quality || "best") as DownloadQuality;
+  const cookiesFile = await getYoutubeCookiesFile();
+  const metadata = await youtubeDownloader.exec(
+    url,
+    {
+      noPlaylist: true,
+      noWarnings: true,
+      noProgress: true,
+      printJson: true,
+      format: youtubeFormatForYtDlp(requestedQuality),
+      mergeOutputFormat: "mp4",
+      output: outputPath,
+      ...(cookiesFile ? { cookies: cookiesFile } : {}),
+      ...(ffmpegPath ? { ffmpegLocation: path.dirname(ffmpegPath) } : {}),
+    },
+    {
+      env: {
+        ...process.env,
+        ...(cookiesFile ? { YOUTUBE_COOKIES: undefined } : {}),
+      },
+    },
+  ) as YtDlpMetadata;
+
+  try {
+    const title = typeof metadata?.title === "string" && metadata.title.trim()
+      ? metadata.title.trim()
+      : "Downloaded YouTube video";
+    const durationValue = typeof metadata?.duration_string === "string"
+      ? metadata.duration_string
+      : metadata?.duration;
+    const duration = typeof durationValue === "string"
+      ? normalizeDuration(durationValue)
+      : formatDuration(durationValue);
+    const height = typeof metadata?.height === "number"
+      ? metadata.height
+      : metadata?.requested_downloads?.find((item) => typeof item.height === "number")?.height;
+    const quality = typeof height === "number" && height > 0
+      ? `${height}p`
+      : normalizeQualityLabel(typeof metadata?.resolution === "string" ? metadata.resolution : undefined, requestedQuality);
+    const finalPath = await finalizeMediaFile(fileId, outputPath, title, context);
+    return { path: finalPath, title, duration, quality };
   } catch (error) {
     await unlink(outputPath).catch(() => undefined);
     throw error;
@@ -663,6 +763,46 @@ async function downloadViaYtSave(
   };
 }
 
+function downloadErrorMessage(error: unknown): string {
+  return (error instanceof Error ? error.message : String(error)).trim().slice(-1200);
+}
+
+function isYoutubeBlocked(message: string): boolean {
+  return /sign in to confirm|not a bot|bot|po token|player response|requested format is not available|video unavailable/i.test(message);
+}
+
+async function downloadYoutubeVideo(
+  url: string,
+  fileId: string,
+  context: MediaContext,
+): Promise<{ path: string; title: string; duration: string; quality: string }> {
+  const outputPath = path.join(mediaDir, `${fileId}.mp4`);
+  const failures: string[] = [];
+
+  for (const attempt of [
+    () => downloadViaYoutubeExplode(url, fileId, context),
+    () => downloadViaYtDlp(url, fileId, context),
+    () => downloadViaYtSave(url, fileId, context),
+  ]) {
+    try {
+      return await attempt();
+    } catch (error) {
+      const message = downloadErrorMessage(error);
+      failures.push(message);
+      await unlink(outputPath).catch(() => undefined);
+    }
+  }
+
+  const lastFailure = failures.at(-1) || "The YouTube video could not be downloaded.";
+  if (failures.some(isYoutubeBlocked)) {
+    throw new Error(
+      "YouTube is blocking this video for the server. Add an authorized YOUTUBE_COOKIES secret, or upload the video directly. " +
+      lastFailure,
+    );
+  }
+  throw new Error(lastFailure);
+}
+
 async function inspectYoutubeFormats(url: string): Promise<{ qualities: string[]; title: string }> {
   return await new Promise((resolve, reject) => {
     const child = spawn("dotnet", [youtubeBridgePath, "--formats", url], {
@@ -699,13 +839,12 @@ router.get("/media/files", async (req, res): Promise<void> => {
   await mediaIndexWrite;
   const records = await readMediaIndex();
   const indexed = new Map(records.map((record) => [record.fileId, record]));
-  const files = await readdir(mediaDir).catch(() => []);
+  const files = await collectMediaFiles(mediaDir);
   const result: MediaRecord[] = [];
-  for (const filename of files) {
+  for (const { filename, path: filePath } of files) {
     if (filename === "media-index.json" || filename.endsWith(".part") || !/\.(mp4|mov|m4v|webm|mkv|avi|ts)$/i.test(filename)) continue;
     const fileId = filename.match(/^([a-f0-9-]{8,})(?:\.|__)/i)?.[1];
     if (!fileId) continue;
-    const filePath = path.join(mediaDir, filename);
     const fileStats = await stat(filePath).catch(() => null);
     if (!fileStats) continue;
     const current = indexed.get(fileId);
@@ -715,7 +854,7 @@ router.get("/media/files", async (req, res): Promise<void> => {
       sourcePath: filePath,
       playbackUrl: `/api/media/files/${fileId}`,
       title: filename.includes("__")
-        ? filename.replace(/^([a-f0-9-]{8,})__[^_]+__[^_]+__(.*?)(?:\.[^.]+)?$/i, "$2").replace(/[-_]+/g, " ")
+        ? filename.replace(/^([a-f0-9-]{8,})__(.*?)(?:\.[^.]+)?$/i, "$2").replace(/[-_]+/g, " ")
         : "Recovered media file",
       duration: "00:00",
       licenseId: "",
@@ -727,7 +866,7 @@ router.get("/media/files", async (req, res): Promise<void> => {
     });
   }
   const licenseId = typeof req.query.licenseId === "string" ? req.query.licenseId : "";
-  const filtered = licenseId ? result.filter((file) => !file.licenseId || file.licenseId === licenseId) : result;
+  const filtered = licenseId ? result.filter((file) => file.licenseId === licenseId) : result;
   res.json(ListMediaFilesResponse.parse({ files: filtered.sort((a, b) => b.createdAt.localeCompare(a.createdAt)) }));
 });
 
@@ -781,7 +920,8 @@ router.post("/media/upload", async (req, res): Promise<void> => {
     folderName: req.header("x-folder-name") || undefined,
   };
   const filename = storedMediaFilename(fileId, rawName, context);
-  const destination = path.join(mediaDir, filename);
+  const destination = path.join(mediaScopePath(context), filename);
+  await mkdir(path.dirname(destination), { recursive: true });
   let received = 0;
   req.on("data", (chunk: Buffer) => {
     received += chunk.length;
@@ -882,7 +1022,7 @@ router.post("/media/youtube-download", async (req, res): Promise<void> => {
     const rawMessage = error instanceof Error ? error.message : "The YouTube video could not be downloaded.";
     const errorCode = error instanceof Error ? (error as NodeJS.ErrnoException).code : undefined;
     const missingDownloader = errorCode === "ENOENT" || rawMessage.includes("spawn yt-dlp ENOENT");
-    const blockedByYoutube = rawMessage.includes("Sign in to confirm") || rawMessage.includes("not a bot");
+    const blockedByYoutube = isYoutubeBlocked(rawMessage);
     const message = missingDownloader
       ? "The bundled YouTube downloader is unavailable. Redeploy the latest build and try again."
       : blockedByYoutube

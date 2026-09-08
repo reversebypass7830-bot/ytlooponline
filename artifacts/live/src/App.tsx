@@ -202,6 +202,31 @@ function ensureLicenseFolder(value: DataState, license: LicenseSession): DataSta
   };
 }
 
+function reconcileMediaFolders(value: DataState, files: MediaFileRecord[]): DataState {
+  let groups = [...value.groups];
+  const groupForFolder = (folderName: string, createdAt: string): VideoGroup | undefined => {
+    const normalized = folderName.trim().toLowerCase();
+    if (!normalized) return undefined;
+    const existing = groups.find((group) => group.name.trim().toLowerCase() === normalized);
+    if (existing) return existing;
+    const id = `media-${normalized.replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || uid("folder")}`;
+    const created = { id, name: folderName.trim(), description: "Recovered from server media.", videoIds: [], createdAt };
+    groups = [...groups, created];
+    return created;
+  };
+  const records = new Map(files.map((file) => [file.fileId, file]));
+  const videos = value.videos.map((video) => {
+    const fileId = getMediaFileId(video);
+    const record = fileId ? records.get(fileId) : undefined;
+    const folderName = video.folderName?.trim() || record?.folderName?.trim() || "";
+    const group = groupForFolder(folderName, record?.createdAt || video.createdAt);
+    return group
+      ? { ...video, groupId: group.id, folderName: folderName || group.name }
+      : video;
+  });
+  return normalizeWorkspace({ ...value, groups, videos });
+}
+
 function getMediaFileId(video: VideoItem | undefined): string | undefined {
   if (!video) return undefined;
   for (const source of [video.sourceUrl, video.serverSource]) {
@@ -290,15 +315,18 @@ function useWorkspace(license: LicenseSession | null, clearLicense: () => void) 
       apiJson<{ files: MediaFileRecord[] }>(`/api/media/files?licenseId=${encodeURIComponent(license.licenseId)}`).catch(() => ({ files: [] as MediaFileRecord[] })),
     ]).then(([workspaceResult, mediaResult]) => {
       if (cancelled) return;
-       const base = ensureLicenseFolder(normalizeWorkspace(workspaceResult.data), license);
+       const base = reconcileMediaFolders(
+         ensureLicenseFolder(normalizeWorkspace(workspaceResult.data), license),
+         mediaResult.files,
+       );
       const availableMediaIds = new Set(mediaResult.files.map((file) => file.fileId));
       const existingVideos = base.videos.filter((video) => {
         const mediaFileId = getMediaFileId(video);
         return !mediaFileId || availableMediaIds.has(mediaFileId);
       });
-      const workspaceBase = existingVideos.length === base.videos.length
-        ? base
-        : normalizeWorkspace({ ...base, videos: existingVideos });
+       const workspaceBase = existingVideos.length === base.videos.length
+         ? base
+         : reconcileMediaFolders(normalizeWorkspace({ ...base, videos: existingVideos }), mediaResult.files);
       const knownIds = new Set(workspaceBase.videos.map((video) => getMediaFileId(video)));
       const extraFiles = mediaResult.files.filter((file) => !knownIds.has(file.fileId));
       if (!extraFiles.length) {
