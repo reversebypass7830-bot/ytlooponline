@@ -20,6 +20,7 @@ import {
   TrimMediaFileResponse,
 } from "@workspace/api-zod";
 import ffmpegPath from "ffmpeg-static";
+import { bgutilPluginDir, bgutilPotBaseUrl } from "../lib/bgutilPotProvider";
 
 const router: IRouter = Router();
 const mediaDir = path.resolve(process.cwd(), "attached_assets", "live-media");
@@ -401,6 +402,7 @@ function normalizeQualityLabel(value: string | undefined, fallback: string): str
 }
 
 const YTDLP_PLAYER_CLIENT_FALLBACK = "youtube:player_client=default,-web,-web_safari";
+const YTDLP_BGUTIL_ARGS = ["--extractor-args", `youtubepot-bgutilhttp:base_url=${bgutilPotBaseUrl()}`];
 const YTDLP_DOWNLOAD_TIMEOUT_MS = 60 * 60 * 1000;
 
 type YtDlpCommand = {
@@ -523,10 +525,12 @@ async function downloadViaYtDlp(
   const command = resolveYtDlpCommand();
   const cookie = await createYtDlpCookieFile();
   const destination = path.join(mediaDir, `${fileId}.mp4`);
+  const pluginDir = bgutilPluginDir();
   const baseArgs = [
     "--no-playlist",
     "--no-warnings",
     "--newline",
+    ...(pluginDir ? ["--plugin-dirs", pluginDir, ...YTDLP_BGUTIL_ARGS] : []),
     "--print-json",
     "--format", ytDlpFormatSelector(requestedQuality),
     "--merge-output-format", "mp4",
@@ -773,7 +777,7 @@ router.post("/media/youtube-download", async (req, res): Promise<void> => {
   } catch (error) {
     const rawMessage = error instanceof Error ? error.message : "The YouTube video could not be downloaded.";
     const message = rawMessage.includes("sign in") || rawMessage.includes("not a bot") || rawMessage.includes("bot")
-      ? "yt-dlp was blocked by YouTube. Configure an authorized YOUTUBE_COOKIES secret or try a direct video URL."
+      ? "YouTube rejected this server request. The local open-source PO-token provider was tried automatically; optional YOUTUBE_COOKIES can help with account-restricted videos, or try a direct video URL."
       : rawMessage;
     req.log.warn({ error: message }, "YouTube download failed");
     res.status(400).json({ error: message });
