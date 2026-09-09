@@ -132,7 +132,8 @@ export function LandingPage() {
           <motion.h1 initial={{ opacity: 0, y: 22 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: .35, duration: .8, ease }}>Make the long<br /><em>signal feel alive.</em></motion.h1>
           <motion.p initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: .48, duration: .7, ease }}>R Loop Bypass turns a playlist into a dependable 24-hour live channel. Build once, broadcast with confidence.</motion.p>
           <motion.div className="hero-actions" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: .6, duration: .7, ease }}>
-            <Link href="/access" className="signal-button" data-testid="link-hero-access"><span>Start your channel</span><ArrowRight size={16} /></Link>
+            <Link href="/pricing" className="offer-button" data-testid="link-hero-offer"><span className="offer-button-copy"><small>20% offer</small><strong>Get offer · ₹799</strong></span><ArrowRight size={16} /></Link>
+            <Link href="/access" className="text-button" data-testid="link-hero-access"><span>Start your channel</span><ArrowRight size={14} /></Link>
             <button className="text-button" onClick={() => document.querySelector("#capabilities")?.scrollIntoView({ behavior: "smooth" })} data-testid="button-explore-product"><Play size={14} /><span>See how it works</span></button>
           </motion.div>
           <motion.div className="hero-proof" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: .8, duration: .6 }}><span><Check size={13} /> 4K / 1080p output</span><span><Check size={13} /> YouTube + Facebook</span><span><Check size={13} /> Automatic recovery</span></motion.div>
