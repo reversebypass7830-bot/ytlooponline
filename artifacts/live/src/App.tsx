@@ -2,9 +2,9 @@ import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode, t
 import { Link, Route, Switch, useLocation, Router as WouterRouter } from "wouter";
 import {
   Activity as ActivityIcon, ArrowRight, BookOpen, Check, CircleHelp, Clipboard,
-  Download, FileVideo, FolderOpen, Gauge, LayoutDashboard,
-  Link2, Menu, MonitorPlay, Pencil, Play, Plus, Radio, Scissors, Search, Settings,
-  ShieldCheck, Square, Trash2, Upload, Video, X,
+  Download, FileVideo, FolderOpen, Gauge, Instagram, LayoutDashboard,
+  Link2, Menu, MessageCircle, MonitorPlay, Pencil, Play, Plus, Radio, Scissors, Search, Send, Settings,
+  ShieldCheck, Square, Trash2, Upload, Video, X, Youtube,
 } from "lucide-react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -36,6 +36,12 @@ type VideoGroup = { id: string; name: string; description: string; videoIds: str
 type Activity = { id: string; type: string; message: string; time: string };
 type DataState = { channels: LiveChannel[]; videos: VideoItem[]; groups: VideoGroup[]; activities: Activity[] };
 type LicenseSession = { licenseId: string; key: string; name: string; expiresAt: string; active: boolean; clientId?: string };
+const accessSocialLinks = [
+  { label: "Instagram", detail: "Updates & behind the scenes", href: "https://www.instagram.com/", icon: Instagram },
+  { label: "Telegram", detail: "Channel announcements", href: "https://t.me/", icon: Send },
+  { label: "WhatsApp", detail: "Direct support line", href: "https://wa.me/", icon: MessageCircle },
+  { label: "YouTube", detail: "Watch the live signal", href: "https://www.youtube.com/", icon: Youtube },
+];
 type MediaFileRecord = {
   fileId: string; filename: string; sourcePath: string; playbackUrl: string; title: string; duration: string;
   licenseId: string; licenseName: string; folderName: string; quality: string; createdAt: string; sizeBytes: number;
@@ -594,24 +600,53 @@ function LicenseGate({ license, busy, error, onActivate, onRenew }: { license:Li
     event.preventDefault();
     if (key.trim()) void onActivate(key).catch(() => undefined);
   };
-  return <div className="login-page license-page">
-    <section className="login-visual">
-      <div className="login-logo"><div className="brand-mark"><img src={logoImage} alt="Reverse Bypass logo" /></div><div><div className="brand-name">Reverse Bypass</div><div className="brand-note">reverse access console</div></div></div>
-      <div className="login-copy"><div className="signal-line"><span/>REVERSE BYPASS · READY</div><h1>Bring your<br/><em>room on air.</em></h1><p>Enter your license key to open your private Reverse Bypass workspace. Your channels, videos, and settings stay separate from every other license.</p></div>
-      <div className="signal-line"><span/>ONE LICENSE · ONE PRIVATE WORKSPACE</div>
-    </section>
-    <section className="login-panel"><div className="login-card">
-      <p className="eyebrow">{expired ? "License expired" : "Enter your license"}</p>
-      <h2>{expired ? "Renew your key." : "Unlock the room."}</h2>
-      <p className="subtle">{expired ? "Your workspace is waiting. Renew this same key for 30 more days, or enter a different active key." : "Use the license key provided by the owner to continue."}</p>
-      {error && <div className="error-note" data-testid="status-license-error">{error}</div>}
-      <form className="login-form" onSubmit={submit}>
-        <div className="field"><label htmlFor="license-key">License key</label><input id="license-key" value={key} onChange={e=>setKey(e.target.value)} placeholder="SD-XXXXXXXXXXXX" autoComplete="off" data-testid="input-license-key"/></div>
-        <button className="button login-submit" type="submit" disabled={busy || !key.trim()} data-testid="button-activate-license">{busy ? "Checking…" : "Open workspace"} <ArrowRight size={16}/></button>
-      </form>
-      {expired && <button className="button secondary license-renew" onClick={()=>void onRenew()} disabled={busy} data-testid="button-renew-license">{busy ? "Renewing…" : "Renew your key · 30 days"} <Check size={14}/></button>}
-      {license && <div className="license-status"><strong>{license.name}</strong><span>Key: <span className="mono">{license.key}</span></span><span>Expired {new Date(license.expiresAt).toLocaleDateString()}</span></div>}
-    </div></section>
+  return <div className="access-page">
+    <header className="access-nav">
+      <Link href="/" className="access-brand" data-testid="link-access-home">
+        <span className="access-brand-mark"><img src={logoImage} alt="R Loop Bypass logo" /></span>
+        <span>R LOOP <b>BYPASS</b></span>
+      </Link>
+      <div className="access-nav-status"><span /> PRIVATE ACCESS</div>
+    </header>
+    <main className="access-main">
+      <section className="access-intro">
+        <div>
+          <span className="access-kicker"><i /> R LOOP BYPASS / PRIVATE ROOM</span>
+          <h1>Bring your<br /><em>room on air.</em></h1>
+          <p>Enter your license key to open your private workspace. Your channels, videos, and settings stay separate from every other license.</p>
+          <div className="access-proof"><span><i /> ONE KEY · ONE ROOM</span><span><i /> READY WHEN YOU ARE</span></div>
+        </div>
+        <div className="access-social-block">
+          <div className="access-social-heading"><span>Stay close to the signal</span><small>Follow, ask, and keep up.</small></div>
+          <div className="access-social-grid">
+            {accessSocialLinks.map(({ label, detail, href, icon: Icon }) => <a key={label} href={href} target="_blank" rel="noreferrer" className="access-social-link" data-testid={`link-access-${label.toLowerCase()}`} aria-label={`${label}: ${detail}`}>
+              <span className={`access-social-icon access-social-${label.toLowerCase()}`}><Icon size={18} strokeWidth={2} /></span>
+              <span className="access-social-copy"><strong>{label}</strong><small>{detail}</small></span>
+              <ArrowRight size={15} className="access-social-arrow" />
+            </a>)}
+          </div>
+        </div>
+      </section>
+      <section className="access-panel">
+        <div className="access-panel-grid" />
+        <div className="access-card">
+          <div className="access-card-top"><span className="access-card-led" /> <span>PRIVATE ACCESS GATE</span><span className="access-card-code">01 / 01</span></div>
+          <div className="access-card-icon"><Radio size={20} /></div>
+          <p className="access-eyebrow">{expired ? "License expired" : "Enter your license"}</p>
+          <h2>{expired ? "Renew your key." : "Unlock the room."}</h2>
+          <p className="access-card-copy">{expired ? "Your workspace is waiting. Renew this same key for 30 more days, or enter a different active key." : "Use the license key provided by the owner to continue."}</p>
+          {error && <div className="access-error" data-testid="status-license-error">{error}</div>}
+          <form className="access-form" onSubmit={submit}>
+            <div className="access-field"><label htmlFor="license-key">License key</label><input id="license-key" value={key} onChange={e=>setKey(e.target.value)} placeholder="SD-XXXXXXXXXXXX" autoComplete="off" data-testid="input-license-key"/></div>
+            <button className="access-submit" type="submit" disabled={busy || !key.trim()} data-testid="button-activate-license"><strong>{busy ? "Checking…" : "Open workspace"}</strong><ArrowRight size={16}/></button>
+          </form>
+          {expired && <button className="access-renew" onClick={()=>void onRenew()} disabled={busy} data-testid="button-renew-license">{busy ? "Renewing…" : "Renew your key · 30 days"} <Check size={14}/></button>}
+          {license && <div className="access-license-status"><strong>{license.name}</strong><span>Key: <span className="mono">{license.key}</span></span><span>Expired {new Date(license.expiresAt).toLocaleDateString()}</span></div>}
+          <div className="access-card-foot"><ShieldCheck size={14} /><span>Workspace data stays private to this license.</span></div>
+        </div>
+      </section>
+    </main>
+    <footer className="access-footer"><span>Broadcast automation for the long signal.</span><Link href="/pricing" data-testid="link-access-pricing">View access options <ArrowRight size={13} /></Link></footer>
   </div>;
 }
 
