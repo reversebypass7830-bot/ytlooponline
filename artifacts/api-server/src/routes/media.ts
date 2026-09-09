@@ -310,7 +310,13 @@ async function fetchDirectMedia(url: string): Promise<Response> {
       currentUrl = validateDirectMediaUrl(new URL(location, currentUrl).toString());
       continue;
     }
-    if (!response.ok) throw new Error(`Direct video download failed (${response.status}).`);
+    if (!response.ok) {
+      const hostname = new URL(currentUrl).hostname.toLowerCase();
+      if (response.status === 403 && hostname.endsWith("googlevideo.com")) {
+        throw new Error("YT Ultra returned a signed media URL that Googlevideo rejected for this server (403).");
+      }
+      throw new Error(`Direct video download failed (${response.status}).`);
+    }
     const contentLength = Number(response.headers.get("content-length") || 0);
     if (contentLength > maxUploadBytes) throw new Error("The direct video file is larger than 1.5 GB.");
     const contentType = response.headers.get("content-type")?.toLowerCase() || "";
