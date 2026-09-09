@@ -280,33 +280,6 @@ export const DownloadYoutubeVideoResponse = zod.object({
 
 
 /**
- * @summary Download a direct video file URL
- */
-
-
-
-export const DownloadDirectVideoBody = zod.object({
-  "url": zod.string().min(1),
-  "licenseId": zod.string().optional(),
-  "licenseName": zod.string().optional(),
-  "folderName": zod.string().optional()
-})
-
-export const DownloadDirectVideoResponse = zod.object({
-  "fileId": zod.string(),
-  "filename": zod.string(),
-  "sourcePath": zod.string(),
-  "playbackUrl": zod.string(),
-  "title": zod.string(),
-  "duration": zod.string(),
-  "quality": zod.string(),
-  "licenseId": zod.string(),
-  "licenseName": zod.string(),
-  "folderName": zod.string()
-})
-
-
-/**
  * @summary List available YouTube video qualities
  */
 

@@ -9,8 +9,6 @@ import { Readable } from "node:stream";
 import {
   DownloadYoutubeVideoBody,
   DownloadYoutubeVideoResponse,
-  DownloadDirectVideoBody,
-  DownloadDirectVideoResponse,
   ExtractYoutubeChannelLinksBody,
   ExtractYoutubeChannelLinksResponse,
   GetYoutubeFormatsBody,
@@ -252,62 +250,36 @@ function validateYoutubeChannelUrl(rawUrl: string): string {
   return parsed.toString();
 }
 
-function isAllowedDirectMediaHost(hostname: string): boolean {
-  const normalized = hostname.toLowerCase().replace(/\.$/, "");
-  return normalized === "files.ytcontent.com"
-    || normalized === "googlevideo.com"
-    || normalized.endsWith(".googlevideo.com")
-    || normalized === "youtube.com"
-    || normalized.endsWith(".youtube.com");
-}
-
-function validateDirectMediaUrl(rawUrl: string): string {
-  let parsed: URL;
+async function fetchYtUltraMedia(url: string): Promise<Response> {
+  let currentUrl: string;
   try {
-    parsed = new URL(rawUrl);
-  } catch {
-    throw new Error("Enter a complete direct video URL.");
-  }
-  if (!["http:", "https:"].includes(parsed.protocol) || !isAllowedDirectMediaHost(parsed.hostname)) {
-    throw new Error("Direct downloads support files.ytcontent.com and YouTube video file URLs.");
-  }
-  return parsed.toString();
-}
-
-function safeDirectFilename(response: Response): string {
-  const disposition = response.headers.get("content-disposition") || "";
-  const encodedName = disposition.match(/filename\*=UTF-8''([^;]+)/i)?.[1];
-  const plainName = disposition.match(/filename="?([^";]+)"?/i)?.[1];
-  const urlName = (() => {
-    try {
-      return decodeURIComponent(new URL(response.url).pathname.split("/").filter(Boolean).at(-1) || "");
-    } catch {
-      return "";
+    const parsed = new URL(url);
+    const hostname = parsed.hostname.toLowerCase().replace(/\.$/, "");
+    if (!["http:", "https:"].includes(parsed.protocol) || (!hostname.endsWith("googlevideo.com") && hostname !== "redirector.googlevideo.com")) {
+      throw new Error("YT Ultra returned an unsupported media host.");
     }
-  })();
-  const candidate = (encodedName ? decodeURIComponent(encodedName) : plainName || urlName).trim();
-  const cleaned = candidate.replace(/[\\/:*?"<>|]+/g, "_").replace(/\s+/g, " ").slice(0, 180);
-  if (cleaned && /\.[a-z0-9]{2,5}$/i.test(cleaned)) return cleaned;
-  const contentType = response.headers.get("content-type")?.toLowerCase() || "";
-  const extension = contentType.includes("webm") ? ".webm" : contentType.includes("quicktime") ? ".mov" : ".mp4";
-  return `${cleaned || "direct-video"}${extension}`;
-}
-
-async function fetchDirectMedia(url: string): Promise<Response> {
-  let currentUrl = validateDirectMediaUrl(url);
+    currentUrl = parsed.toString();
+  } catch (error) {
+    if (error instanceof Error && error.message.includes("unsupported media host")) throw error;
+    throw new Error("YT Ultra returned an invalid media URL.");
+  }
   for (let redirect = 0; redirect <= 5; redirect += 1) {
     const response = await fetch(currentUrl, {
       headers: {
-        accept: "video/*,application/octet-stream;q=0.9,*/*;q=0.1",
-        "user-agent": "Mozilla/5.0 Signal Desk media downloader",
+        accept: "*/*",
+        referer: "https://www.ytultra.com/",
+        "user-agent": "Mozilla/5.0 (Signal Desk YT Ultra proxy)",
       },
       redirect: "manual",
       signal: AbortSignal.timeout(60 * 60 * 1000),
     });
     if (response.status >= 300 && response.status < 400) {
       const location = response.headers.get("location");
-      if (!location) throw new Error("The direct video URL returned an invalid redirect.");
-      currentUrl = validateDirectMediaUrl(new URL(location, currentUrl).toString());
+      if (!location) throw new Error("YT Ultra returned an invalid media redirect.");
+      const redirected = new URL(location, currentUrl);
+      const redirectedHost = redirected.hostname.toLowerCase().replace(/\.$/, "");
+      if (!redirectedHost.endsWith("googlevideo.com")) throw new Error("YT Ultra redirected to an unsupported media host.");
+      currentUrl = redirected.toString();
       continue;
     }
     if (!response.ok) {
@@ -315,43 +287,17 @@ async function fetchDirectMedia(url: string): Promise<Response> {
       if (response.status === 403 && hostname.endsWith("googlevideo.com")) {
         throw new Error("YT Ultra returned a signed media URL that Googlevideo rejected for this server (403).");
       }
-      throw new Error(`Direct video download failed (${response.status}).`);
+      throw new Error(`YT Ultra media download failed (${response.status}).`);
     }
     const contentLength = Number(response.headers.get("content-length") || 0);
     if (contentLength > maxUploadBytes) throw new Error("The direct video file is larger than 1.5 GB.");
     const contentType = response.headers.get("content-type")?.toLowerCase() || "";
     if (!contentType.startsWith("video/") && !contentType.includes("application/octet-stream")) {
-      throw new Error("The direct URL did not return a video file.");
+      throw new Error("YT Ultra media URL did not return a video file.");
     }
     return response;
   }
-  throw new Error("The direct video URL redirected too many times.");
-}
-
-async function downloadDirectVideo(
-  url: string,
-  fileId: string,
-  context: MediaContext,
-): Promise<{ path: string; title: string; duration: string; quality: string }> {
-  await mkdir(mediaDir, { recursive: true });
-  const response = await fetchDirectMedia(url);
-  if (!response.body) throw new Error("The direct video response had no file content.");
-  const rawName = safeDirectFilename(response);
-  const partialPath = path.join(mediaDir, `${fileId}.part`);
-  try {
-    const readable = Readable.fromWeb(response.body as import("node:stream/web").ReadableStream);
-    await pipeline(readable, createWriteStream(partialPath));
-    const finalPath = await finalizeMediaFile(fileId, partialPath, rawName, context);
-    return {
-      path: finalPath,
-      title: path.basename(rawName, path.extname(rawName)),
-      duration: "00:00",
-      quality: "direct",
-    };
-  } catch (error) {
-    await unlink(partialPath).catch(() => undefined);
-    throw error;
-  }
+  throw new Error("YT Ultra media URL redirected too many times.");
 }
 
 async function extractYoutubeChannelLinks(url: string): Promise<string[]> {
@@ -402,7 +348,7 @@ async function downloadYoutubeVideo(
 ): Promise<{ path: string; title: string; duration: string; quality: string }> {
   const video = await getYtUltraVideo(url);
   const media = chooseYtUltraMedia(video, context.quality || "best");
-  const response = await fetchDirectMedia(media.url);
+  const response = await fetchYtUltraMedia(media.url);
   if (!response.body) throw new Error("YT Ultra returned an empty video response.");
 
   const extension = media.format.toLowerCase().includes(".webm") ? ".webm" : ".mp4";
@@ -619,54 +565,6 @@ router.post("/media/youtube-download", async (req, res): Promise<void> => {
       ? "YT Ultra could not resolve this YouTube video. Try a public video URL or a lower quality."
       : rawMessage;
     req.log.warn({ error: message }, "YouTube download failed");
-    res.status(400).json({ error: message });
-  }
-});
-
-router.post("/media/direct-download", async (req, res): Promise<void> => {
-  try {
-    const parsed = DownloadDirectVideoBody.safeParse(req.body);
-    if (!parsed.success) {
-      res.status(400).json({ error: parsed.error.message });
-      return;
-    }
-    const fileId = randomUUID();
-    const context: MediaContext = {
-      licenseId: parsed.data.licenseId,
-      licenseName: parsed.data.licenseName,
-      folderName: parsed.data.folderName,
-    };
-    const result = await downloadDirectVideo(parsed.data.url.trim(), fileId, context);
-    const fileStats = await stat(result.path);
-    await saveMediaRecord({
-      fileId,
-      filename: path.basename(result.path),
-      sourcePath: result.path,
-      playbackUrl: `/api/media/files/${fileId}`,
-      title: result.title,
-      duration: result.duration,
-      licenseId: context.licenseId || "",
-      licenseName: context.licenseName || "",
-      folderName: context.folderName || "",
-      quality: result.quality,
-      createdAt: new Date().toISOString(),
-      sizeBytes: fileStats.size,
-    });
-    res.status(201).json(DownloadDirectVideoResponse.parse({
-      fileId,
-      filename: path.basename(result.path),
-      sourcePath: result.path,
-      playbackUrl: `/api/media/files/${fileId}`,
-      title: result.title,
-      duration: result.duration,
-      quality: result.quality,
-      licenseId: context.licenseId || "",
-      licenseName: context.licenseName || "",
-      folderName: context.folderName || "",
-    }));
-  } catch (error) {
-    const message = error instanceof Error ? error.message : "The direct video could not be downloaded.";
-    req.log.warn({ error: message }, "Direct media download failed");
     res.status(400).json({ error: message });
   }
 });

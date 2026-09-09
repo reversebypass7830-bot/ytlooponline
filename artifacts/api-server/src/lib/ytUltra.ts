@@ -81,7 +81,7 @@ export async function getYtUltraVideo(url: string): Promise<YtUltraVideo> {
 
   const payload = await response.json().catch(() => null) as YtUltraResponse | null;
   if (!response.ok) throw new Error(`YT Ultra request failed (${response.status}).`);
-  if (payload?.code !== "0000" || !payload.data) {
+  if (!payload || String(payload.code) !== "0000" || !payload.data) {
     const message = typeof payload?.msg === "string" ? payload.msg : "YT Ultra could not resolve this YouTube URL.";
     throw new Error(message);
   }
