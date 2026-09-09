@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type KeyboardEvent, type PointerEvent, type ReactNode } from "react";
 import { AnimatePresence, motion, useInView, useReducedMotion } from "framer-motion";
-import { ArrowDown, ArrowRight, Check, ChevronDown, Menu, Play, Radio, Signal, X, Zap } from "lucide-react";
+import { ArrowDown, ArrowLeftRight, ArrowRight, Check, ChevronDown, Menu, Play, Radio, Signal, X, Zap } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import GetOfferButton from "@/components/GetOfferButton";
 import heroImage from "@assets/generated_images/rloop-hero.jpg";
@@ -10,7 +10,10 @@ import sleepImage from "@assets/generated_images/rloop-sleep.jpg";
 import musicImage from "@assets/generated_images/rloop-music.jpg";
 import newsImage from "@assets/generated_images/rloop-news.jpg";
 import dramaImage from "@assets/generated_images/rloop-drama.jpg";
+import compareOfflineImage from "@assets/generated_images/rloop-compare-offline.jpg";
+import compareLiveImage from "@assets/generated_images/rloop-compare-live.jpg";
 import logoImage from "@assets/image_1788788255512.png";
+import offlineStreamImage from "@assets/image_1788983555839.png";
 
 const ease = [0.22, 1, 0.36, 1] as const;
 
@@ -88,9 +91,9 @@ function IntroReveal({ onComplete }: { onComplete: () => void }) {
 function SignalMonitor() {
   const [state, setState] = useState(0);
   const statuses = [
-    { label: "Signal locked", sub: "Broadcasting continuously", color: "lime" },
-    { label: "Offline ready", sub: "Playlist standing by", color: "amber" },
-    { label: "Reconnecting", sub: "Automatic recovery engaged", color: "coral" },
+    { label: "Signal locked", sub: "Broadcasting continuously", color: "lime", image: heroImage, alt: "Creator directing a live stream from a control room" },
+    { label: "Offline / connection lost", sub: "Automatic recovery is standing by", color: "amber", image: offlineStreamImage, alt: "Stream offline connection lost status screen" },
+    { label: "Reconnecting", sub: "Automatic recovery engaged", color: "coral", image: offlineStreamImage, alt: "Stream reconnecting after a connection loss" },
   ];
   useEffect(() => {
     const timer = window.setInterval(() => setState((value) => (value + 1) % statuses.length), 4200);
@@ -99,8 +102,8 @@ function SignalMonitor() {
   const current = statuses[state];
   return <div className={`signal-monitor signal-${current.color}`} data-testid="status-broadcast-signal">
     <div className="monitor-head"><span className="monitor-title"><span className="monitor-led" /> Broadcast monitor</span><span className="monitor-time">00:24:08:17</span></div>
-    <div className="monitor-stage">
-      <img src={heroImage} alt="Creator directing a live stream from a control room" />
+      <div className="monitor-stage">
+        <img key={current.image} className="monitor-slide-image" src={current.image} alt={current.alt} />
       <div className="stage-wash" />
       <div className="scan-lines" />
       <div className="monitor-center"><AnimatePresence mode="wait"><motion.div key={current.label} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: .35 }}><div className="monitor-state"><span className="monitor-state-dot" />{current.label}</div><p>{current.sub}</p></motion.div></AnimatePresence></div>
@@ -109,6 +112,102 @@ function SignalMonitor() {
     <div className="monitor-wave"><span /><span /><span /><span /><span /><span /><span /><span /><span /><span /><span /><span /><span /><span /><span /><span /></div>
     <div className="monitor-foot"><span><Signal size={13} /> YouTube</span><span><Signal size={13} /> Facebook</span><strong>Auto-restart <i /></strong></div>
   </div>;
+}
+
+function ComparisonSlider() {
+  const frameRef = useRef<HTMLDivElement>(null);
+  const [position, setPosition] = useState(50);
+  const [dragging, setDragging] = useState(false);
+
+  const updatePosition = (clientX: number) => {
+    const frame = frameRef.current;
+    if (!frame) return;
+    const bounds = frame.getBoundingClientRect();
+    const next = ((clientX - bounds.left) / bounds.width) * 100;
+    setPosition(Math.min(100, Math.max(0, next)));
+  };
+
+  const handlePointerDown = (event: PointerEvent<HTMLButtonElement>) => {
+    event.preventDefault();
+    event.currentTarget.setPointerCapture(event.pointerId);
+    setDragging(true);
+  };
+
+  const handlePointerMove = (event: PointerEvent<HTMLButtonElement>) => {
+    if (dragging) updatePosition(event.clientX);
+  };
+
+  const handlePointerUp = (event: PointerEvent<HTMLButtonElement>) => {
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+    setDragging(false);
+  };
+
+  const handleKeyDown = (event: KeyboardEvent<HTMLButtonElement>) => {
+    const step = event.shiftKey ? 10 : 5;
+    if (event.key === "ArrowLeft") {
+      event.preventDefault();
+      setPosition((value) => Math.max(0, value - step));
+    }
+    if (event.key === "ArrowRight") {
+      event.preventDefault();
+      setPosition((value) => Math.min(100, value + step));
+    }
+    if (event.key === "Home") {
+      event.preventDefault();
+      setPosition(0);
+    }
+    if (event.key === "End") {
+      event.preventDefault();
+      setPosition(100);
+    }
+  };
+
+  return <MarketingSection className="comparison-section">
+    <div className="comparison-copy">
+      <span className="section-index">04 / THE DIFFERENCE</span>
+      <h2>Don’t let your<br /><em>channel go dark.</em></h2>
+      <p>Drag the signal across the frame. See the difference between waiting for viewers and keeping a 24-hour stream earning for you.</p>
+      <div className="comparison-hint"><ArrowLeftRight size={15} /><span>Grab the handle and move it left or right</span></div>
+    </div>
+    <div
+      ref={frameRef}
+      className={`comparison-frame ${dragging ? "is-dragging" : ""}`}
+      onPointerDown={(event) => updatePosition(event.clientX)}
+      data-testid="comparison-slider"
+    >
+      <img className="comparison-image comparison-image-live" src={compareLiveImage} alt="Creator smiling while a 24-hour live broadcast earns money" />
+      <div className="comparison-offline" style={{ clipPath: `inset(0 ${100 - position}% 0 0)` }}>
+        <img className="comparison-image comparison-image-offline" src={compareOfflineImage} alt="Sad creator looking at an offline stream with no earnings" />
+      </div>
+      <div className="comparison-tint comparison-tint-offline" style={{ clipPath: `inset(0 ${100 - position}% 0 0)` }} />
+      <div className="comparison-label comparison-label-offline"><span className="comparison-label-dot" /> STREAM OFFLINE <strong>₹0 earned</strong></div>
+      <div className="comparison-label comparison-label-live"><span className="comparison-label-dot" /> 24H STREAM LIVE <strong>Profit growing</strong></div>
+      <div className="comparison-stat comparison-stat-offline"><span>CONNECTION LOST</span><strong>No viewers. No momentum.</strong></div>
+      <div className="comparison-stat comparison-stat-live"><span>NOW BROADCASTING</span><strong>Audience stays. Revenue moves.</strong></div>
+      <button
+        type="button"
+        className="comparison-handle"
+        style={{ left: `${position}%` }}
+        aria-label="Compare offline and live stream states"
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={Math.round(position)}
+        aria-valuetext={`${Math.round(position)}% offline view, ${Math.round(100 - position)}% live view`}
+        role="slider"
+        tabIndex={0}
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+        onPointerCancel={handlePointerUp}
+        onKeyDown={handleKeyDown}
+        data-testid="comparison-slider-handle"
+      >
+        <span><ArrowLeftRight size={17} /></span>
+      </button>
+    </div>
+  </MarketingSection>;
 }
 
 function MarketingSection({ children, className = "", id }: { children: ReactNode; className?: string; id?: string }) {
@@ -124,7 +223,7 @@ export function LandingPage() {
   const reducedMotion = useReducedMotion();
   const completeIntro = () => setIntro(false);
   return <div className="marketing-page">
-    <AnimatePresence>{intro && !reducedMotion && <IntroReveal onComplete={completeIntro} />}</AnimatePresence>
+    {intro && !reducedMotion && <IntroReveal onComplete={completeIntro} />}
     <PublicNav />
     <main>
       <section className="marketing-hero" data-testid="section-marketing-hero">
@@ -142,7 +241,7 @@ export function LandingPage() {
                aria-label="Get offer"
                data-testid="link-hero-offer"
              >
-               <GetOfferButton />
+                <GetOfferButton />
              </div>
             <button className="text-button" onClick={() => document.querySelector("#capabilities")?.scrollIntoView({ behavior: "smooth" })} data-testid="button-explore-product"><Play size={14} /><span>See how it works</span></button>
           </motion.div>
@@ -151,6 +250,8 @@ export function LandingPage() {
         <motion.div className="hero-monitor-wrap" initial={{ opacity: 0, x: 25 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: .35, duration: .9, ease }}><SignalMonitor /></motion.div>
         <button className="hero-scroll" onClick={() => document.querySelector("#capabilities")?.scrollIntoView({ behavior: "smooth" })} data-testid="button-scroll-capabilities"><span>Scroll to tune in</span><ArrowDown size={15} /></button>
       </section>
+
+       <ComparisonSlider />
 
       <MarketingSection className="signal-strip"><div className="strip-label">Built for the channel that keeps going</div><div className="strip-lines"><span /><span /><span /><span /><span /><span /><span /></div><div className="strip-stats"><strong>24<span>h</span></strong><small>broadcast window</small></div><div className="strip-stats"><strong>4K</strong><small>output ceiling</small></div><div className="strip-stats"><strong>02</strong><small>platform destinations</small></div><div className="strip-platforms"><span>YouTube</span><span>Facebook</span><span>Apps <b>coming soon</b></span></div></MarketingSection>
 

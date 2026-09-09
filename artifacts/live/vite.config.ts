@@ -57,6 +57,12 @@ export default defineConfig({
         '..',
         'attached_assets',
       ),
+      'styled-components': path.resolve(
+        import.meta.dirname,
+        'src',
+        'shims',
+        'styled-components.tsx',
+      ),
     },
     dedupe: ['react', 'react-dom'],
   },

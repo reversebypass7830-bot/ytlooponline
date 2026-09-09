@@ -74,6 +74,6 @@
     "wouter": "^3.3.5",
     "zod": "catalog:",
     "@types/styled-components": "^5.1.36",
-    "styled-components": "^6.5.3"
+    "styled-components": "6.1.19"
   }
 }
