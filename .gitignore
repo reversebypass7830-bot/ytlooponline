@@ -57,3 +57,7 @@ attached_assets/ytvid_-M47B7wsm7c_1080p60.mp4
 
 # Private bot token used only for local URL notifications
 /bottoken.txt
+
+# YouTube authentication cookies must never be committed
+/cookies.txt
+/cokkies.txt

@@ -1,6 +1,6 @@
 import { spawn, spawnSync } from "node:child_process";
 import { createWriteStream, existsSync } from "node:fs";
-import { mkdir, readFile, readdir, rename, stat, unlink, writeFile } from "node:fs/promises";
+import { mkdir, readFile, readdir, rename, rm, stat, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { pipeline } from "node:stream/promises";
 import { Router, type IRouter } from "express";
@@ -470,13 +470,37 @@ function resolveYtDlpCommand(): YtDlpCommand {
 
 async function createYtDlpCookieFile(): Promise<{ path?: string; cleanup: () => Promise<void> }> {
   const configuredPath = process.env.YT_DLP_COOKIES_FILE?.trim();
-  if (configuredPath && existsSync(configuredPath)) return { path: configuredPath, cleanup: async () => undefined };
-  const rawCookies = process.env.YOUTUBE_COOKIES?.trim();
-  if (!rawCookies) return { cleanup: async () => undefined };
-  if (existsSync(rawCookies)) return { path: rawCookies, cleanup: async () => undefined };
-  const cookiePath = path.join("/tmp", `yt-dlp-youtube-cookies-${randomUUID()}.txt`);
-  await writeFile(cookiePath, rawCookies, { encoding: "utf8", mode: 0o600 });
-  return { path: cookiePath, cleanup: () => unlink(cookiePath).catch(() => undefined) };
+  const configuredCookies = process.env.YOUTUBE_COOKIES?.trim();
+  const cookieSources = [configuredPath, configuredCookies].filter((value): value is string => Boolean(value));
+  if (!cookieSources.length) return { cleanup: async () => undefined };
+
+  let cookieText = "";
+  for (const source of cookieSources) {
+    try {
+      const sourceStats = await stat(source);
+      if (sourceStats.isFile()) {
+        cookieText = await readFile(source, "utf8");
+        break;
+      }
+    } catch {
+      if (source === configuredCookies) cookieText = source;
+    }
+  }
+  if (!cookieText.trim()) return { cleanup: async () => undefined };
+
+  const cookieDirectory = path.join("/tmp", `yt-dlp-youtube-cookies-${randomUUID()}`);
+  const cookiePath = path.join(cookieDirectory, "cookies.txt");
+  try {
+    await mkdir(cookieDirectory, { recursive: true, mode: 0o700 });
+    await writeFile(cookiePath, cookieText, { encoding: "utf8", mode: 0o600 });
+  } catch (error) {
+    await rm(cookieDirectory, { recursive: true, force: true }).catch(() => undefined);
+    throw error;
+  }
+  return {
+    path: cookiePath,
+    cleanup: () => rm(cookieDirectory, { recursive: true, force: true }).catch(() => undefined),
+  };
 }
 
 function ytDlpFormatSelector(quality: DownloadQuality): string {
@@ -492,14 +516,12 @@ type YtDlpRun = {
   stderr: string;
 };
 
-function runYtDlp(command: YtDlpCommand, args: string[], cookiePath?: string): Promise<YtDlpRun> {
+function runYtDlp(command: YtDlpCommand, args: string[]): Promise<YtDlpRun> {
   return new Promise((resolve, reject) => {
+    const childEnv = { ...process.env };
+    delete childEnv.YOUTUBE_COOKIES;
     const child = spawn(command.executable, [...command.prefixArgs, ...args], {
-      env: {
-        ...process.env,
-        ...(cookiePath ? { YOUTUBE_COOKIES: undefined } : {}),
-        ...(ffmpegPath ? { PATH: `${path.dirname(ffmpegPath)}${path.delimiter}${process.env.PATH || ""}` } : {}),
-      },
+      env: { ...childEnv, ...(ffmpegPath ? { PATH: `${path.dirname(ffmpegPath)}${path.delimiter}${process.env.PATH || ""}` } : {}) },
       stdio: ["ignore", "pipe", "pipe"],
       windowsHide: true,
     });
@@ -577,13 +599,13 @@ async function downloadViaYtDlp(
   ];
   await mkdir(mediaDir, { recursive: true });
   try {
-    let result = await runYtDlp(command, baseArgs, cookie.path);
+    let result = await runYtDlp(command, baseArgs);
     if (result.code !== 0 && shouldTryYtDlpFallback(result.stderr)) {
       result = await runYtDlp(command, [
         ...baseArgs.slice(0, -1),
         "--extractor-args", YTDLP_PLAYER_CLIENT_FALLBACK,
         url,
-      ], cookie.path);
+      ]);
     }
     if (result.code !== 0) {
       const detail = result.stderr.trim().split(/\r?\n/).filter(Boolean).at(-1)
