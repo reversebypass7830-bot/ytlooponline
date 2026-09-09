@@ -255,6 +255,46 @@ paths:
                 $ref: "#/components/schemas/YoutubeDownloadResponse"
         "400":
           description: Invalid URL or download failure
+  /media/youtube-download/jobs:
+    post:
+      operationId: startYoutubeDownloadJob
+      tags: [media]
+      summary: Start an asynchronous YouTube download job
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/YoutubeDownloadInput"
+      responses:
+        "202":
+          description: Download job accepted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/YoutubeDownloadJobAccepted"
+        "400":
+          description: Invalid URL or download request
+  /media/youtube-download/jobs/{jobId}:
+    get:
+      operationId: getYoutubeDownloadJob
+      tags: [media]
+      summary: Get asynchronous YouTube download job status
+      parameters:
+        - name: jobId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Current download job status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/YoutubeDownloadJob"
+        "404":
+          description: Download job not found
   /media/youtube-formats:
     post:
       operationId: getYoutubeFormats
@@ -720,6 +760,38 @@ components:
         - licenseId
         - licenseName
         - folderName
+    YoutubeDownloadJobAccepted:
+      type: object
+      properties:
+        jobId:
+          type: string
+        status:
+          type: string
+          enum: [queued]
+      required:
+        - jobId
+        - status
+    YoutubeDownloadJob:
+      type: object
+      properties:
+        jobId:
+          type: string
+        status:
+          type: string
+          enum: [queued, running, completed, failed]
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+        result:
+          $ref: "#/components/schemas/YoutubeDownloadResponse"
+        error:
+          type: string
+      required:
+        - jobId
+        - status
+        - createdAt
+        - updatedAt
     YoutubeFormatsInput:
       type: object
       properties:

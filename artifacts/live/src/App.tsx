@@ -10,7 +10,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/toaster";
 import NotFound from "@/pages/not-found";
-import { downloadYoutubeVideo, extractYoutubeChannelLinks, getStreamStatus, startStream, stopStream, trimMediaFile, updateStream } from "@workspace/api-client-react";
+import { extractYoutubeChannelLinks, getStreamStatus, startStream, stopStream, trimMediaFile, updateStream } from "@workspace/api-client-react";
 import logoImage from "@assets/image_1788788255512.png";
 
 type LiveStatus = "live" | "scheduled" | "stopped";
@@ -56,6 +56,34 @@ async function apiJson<T>(path: string, init?: RequestInit): Promise<T> {
   const payload = await response.json().catch(() => ({})) as { error?: string } & T;
   if (!response.ok) throw new Error(payload.error || "The request could not be completed.");
   return payload;
+}
+type YoutubeDownloadResult = {
+  fileId: string;
+  title: string;
+  duration: string;
+  quality: string;
+  sourcePath: string;
+  playbackUrl: string;
+};
+type YoutubeDownloadJobStatus = {
+  jobId: string;
+  status: "queued" | "running" | "completed" | "failed";
+  result?: YoutubeDownloadResult;
+  error?: string;
+};
+async function downloadYoutubeVideoAsync(input: { url: string; quality: DownloadQuality; licenseId?: string; licenseName?: string; folderName?: string }): Promise<YoutubeDownloadResult> {
+  const queued = await apiJson<{ jobId: string }>("/api/media/youtube-download/jobs", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+  let waitMs = 0;
+  while (true) {
+    if (waitMs) await new Promise((resolve) => setTimeout(resolve, waitMs));
+    const job = await apiJson<YoutubeDownloadJobStatus>(`/api/media/youtube-download/jobs/${encodeURIComponent(queued.jobId)}`);
+    if (job.status === "completed" && job.result) return job.result;
+    if (job.status === "failed") throw new Error(job.error || "The YouTube video could not be downloaded.");
+    waitMs = 2000;
+  }
 }
 const fmtTime = (date: string | null) => {
   if (!date) return "—";
@@ -819,7 +847,7 @@ function YoutubeDownloadModal({groups,defaultGroupId="",licenseId="",licenseName
          if(index>=entries.length)return;
          const url=entries[index];
          try{
-             const result=await downloadYoutubeVideo({url,quality,licenseId,licenseName,folderName});
+              const result=await downloadYoutubeVideoAsync({url,quality,licenseId,licenseName,folderName});
              completedVideos[index]={id:uid("vid"),title:result.title,duration:result.duration,status:"published",groupId,sourceUrl:result.playbackUrl,serverSource:result.sourcePath,thumbnailColor:colors[index%colors.length],views:0,createdAt:now(),licenseId,licenseName,folderName,quality:result.quality};
          }catch(reason){failuresByIndex[index]=`${index+1}. ${reason instanceof Error?reason.message:"Download failed."}`;}
          completedCount+=1;

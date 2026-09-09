@@ -111,6 +111,38 @@ type MediaContext = {
   quality?: string;
 };
 
+type YoutubeDownloadInput = {
+  url: string;
+  quality?: string;
+  licenseId?: string;
+  licenseName?: string;
+  folderName?: string;
+};
+
+type YoutubeDownloadResult = {
+  fileId: string;
+  filename: string;
+  sourcePath: string;
+  playbackUrl: string;
+  title: string;
+  duration: string;
+  quality: string;
+  licenseId: string;
+  licenseName: string;
+  folderName: string;
+};
+
+type YoutubeDownloadJob = {
+  jobId: string;
+  status: "queued" | "running" | "completed" | "failed";
+  createdAt: string;
+  updatedAt: string;
+  result?: YoutubeDownloadResult;
+  error?: string;
+};
+
+const youtubeDownloadJobs = new Map<string, YoutubeDownloadJob>();
+
 function slugify(value: string, fallback: string): string {
   const slug = value.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 56);
   return slug || fallback;
@@ -339,6 +371,72 @@ async function inspectYoutubeFormats(url: string): Promise<{ qualities: string[]
   return { qualities: ["best", ...qualities], title: video.title };
 }
 
+function youtubeDownloadError(error: unknown): string {
+  const rawMessage = error instanceof Error ? error.message : "The YouTube video could not be downloaded.";
+  if (/all youtube proxy attempts failed/i.test(rawMessage)) {
+    return "YouTube could not be reached through the configured proxies. Refresh proxy.txt or try again in a few minutes.";
+  }
+  if (/sign in|not a bot|bot check|cookies.*authentication|rejected the configured cookies/i.test(rawMessage)) {
+    return "yt-dlp could not access this YouTube video with the configured cookies. Refresh the YouTube cookies secret and try again.";
+  }
+  return rawMessage;
+}
+
+async function performYoutubeDownload(input: YoutubeDownloadInput): Promise<YoutubeDownloadResult> {
+  const url = validateYoutubeUrl(input.url.trim());
+  const fileId = randomUUID();
+  const context: MediaContext = {
+    quality: input.quality,
+    licenseId: input.licenseId,
+    licenseName: input.licenseName,
+    folderName: input.folderName,
+  };
+  const result = await downloadYoutubeVideo(url, fileId, context);
+  const fileStats = await stat(result.path);
+  await saveMediaRecord({
+    fileId,
+    filename: path.basename(result.path),
+    sourcePath: result.path,
+    playbackUrl: `/api/media/files/${fileId}`,
+    title: result.title,
+    duration: result.duration,
+    licenseId: context.licenseId || "",
+    licenseName: context.licenseName || "",
+    folderName: context.folderName || "",
+    quality: result.quality,
+    createdAt: new Date().toISOString(),
+    sizeBytes: fileStats.size,
+  });
+  return DownloadYoutubeVideoResponse.parse({
+    fileId,
+    filename: path.basename(result.path),
+    sourcePath: result.path,
+    playbackUrl: `/api/media/files/${fileId}`,
+    title: result.title,
+    duration: result.duration,
+    quality: result.quality,
+    licenseId: context.licenseId || "",
+    licenseName: context.licenseName || "",
+    folderName: context.folderName || "",
+  });
+}
+
+async function runYoutubeDownloadJob(jobId: string, input: YoutubeDownloadInput): Promise<void> {
+  const job = youtubeDownloadJobs.get(jobId);
+  if (!job) return;
+  job.status = "running";
+  job.updatedAt = new Date().toISOString();
+  try {
+    job.result = await performYoutubeDownload(input);
+    job.status = "completed";
+  } catch (error) {
+    job.error = youtubeDownloadError(error);
+    job.status = "failed";
+  } finally {
+    job.updatedAt = new Date().toISOString();
+  }
+}
+
 router.get("/media/files", async (req, res): Promise<void> => {
   await mediaIndexWrite;
   const records = await readMediaIndex();
@@ -489,52 +587,40 @@ router.post("/media/youtube-download", async (req, res): Promise<void> => {
       res.status(400).json({ error: parsed.error.message });
       return;
     }
-    const url = validateYoutubeUrl(parsed.data.url.trim());
-    const fileId = randomUUID();
-    const context: MediaContext = {
-      quality: parsed.data.quality,
-      licenseId: parsed.data.licenseId,
-      licenseName: parsed.data.licenseName,
-      folderName: parsed.data.folderName,
-    };
-    const result = await downloadYoutubeVideo(url, fileId, context);
-    const fileStats = await stat(result.path);
-    await saveMediaRecord({
-      fileId,
-      filename: path.basename(result.path),
-      sourcePath: result.path,
-      playbackUrl: `/api/media/files/${fileId}`,
-      title: result.title,
-      duration: result.duration,
-      licenseId: context.licenseId || "",
-      licenseName: context.licenseName || "",
-      folderName: context.folderName || "",
-      quality: result.quality,
-      createdAt: new Date().toISOString(),
-      sizeBytes: fileStats.size,
-    });
-    res.status(201).json(DownloadYoutubeVideoResponse.parse({
-      fileId,
-      filename: path.basename(result.path),
-      sourcePath: result.path,
-      playbackUrl: `/api/media/files/${fileId}`,
-      title: result.title,
-      duration: result.duration,
-      quality: result.quality,
-      licenseId: context.licenseId || "",
-      licenseName: context.licenseName || "",
-      folderName: context.folderName || "",
-    }));
+    res.status(201).json(await performYoutubeDownload(parsed.data));
   } catch (error) {
-    const rawMessage = error instanceof Error ? error.message : "The YouTube video could not be downloaded.";
-    const message = /all youtube proxy attempts failed/i.test(rawMessage)
-      ? "YouTube could not be reached through the configured proxies. Refresh proxy.txt or try again in a few minutes."
-      : /sign in|not a bot|bot check|cookies.*authentication|rejected the configured cookies/i.test(rawMessage)
-      ? "yt-dlp could not access this YouTube video with the configured cookies. Refresh the YouTube cookies secret and try again."
-      : rawMessage;
+    const message = youtubeDownloadError(error);
     req.log.warn({ error: message }, "YouTube download failed");
     res.status(400).json({ error: message });
   }
+});
+
+router.post("/media/youtube-download/jobs", async (req, res): Promise<void> => {
+  const parsed = DownloadYoutubeVideoBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.message });
+    return;
+  }
+  try {
+    validateYoutubeUrl(parsed.data.url.trim());
+  } catch (error) {
+    res.status(400).json({ error: youtubeDownloadError(error) });
+    return;
+  }
+  const now = new Date().toISOString();
+  const jobId = randomUUID();
+  youtubeDownloadJobs.set(jobId, { jobId, status: "queued", createdAt: now, updatedAt: now });
+  void runYoutubeDownloadJob(jobId, parsed.data);
+  res.status(202).json({ jobId, status: "queued" });
+});
+
+router.get("/media/youtube-download/jobs/:jobId", (req, res): void => {
+  const job = youtubeDownloadJobs.get(req.params.jobId);
+  if (!job) {
+    res.status(404).json({ error: "YouTube download job not found." });
+    return;
+  }
+  res.json(job);
 });
 
 router.post("/media/files/:fileId/trim", async (req, res): Promise<void> => {
