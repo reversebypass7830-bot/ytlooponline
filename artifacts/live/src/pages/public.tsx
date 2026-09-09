@@ -219,6 +219,23 @@ function MarketingSection({ children, className = "", id }: { children: ReactNod
   return <motion.section ref={ref} id={id} className={`marketing-section ${className}`} initial="hidden" animate={inView ? "visible" : "hidden"} variants={reveal}>{children}</motion.section>;
 }
 
+function AnimatedCountdownUnit({ value }: { value: string }) {
+  return <span className="monthly-countdown-slot" aria-hidden="true">
+    <AnimatePresence mode="popLayout" initial={false}>
+      <motion.span
+        key={value}
+        className="monthly-countdown-value"
+        initial={{ opacity: 0, filter: "blur(11px)", y: 13, scale: 0.94 }}
+        animate={{ opacity: 1, filter: "blur(0px)", y: 0, scale: 1 }}
+        exit={{ opacity: 0, filter: "blur(11px)", y: -13, scale: 1.04 }}
+        transition={{ duration: 0.38, ease }}
+      >
+        {value}
+      </motion.span>
+    </AnimatePresence>
+  </span>;
+}
+
 function MonthlyOfferCountdown() {
   const [remaining, setRemaining] = useState(MONTHLY_OFFER_DURATION);
 
@@ -247,7 +264,7 @@ function MonthlyOfferCountdown() {
       <span>{expired ? "Monthly offer ended" : "Monthly offer ends in"}</span>
     </div>
     <div className="monthly-countdown-clock" aria-label={expired ? "Monthly offer ended" : `${hours} hours, ${minutes} minutes, ${seconds} seconds remaining`}>
-      <strong>{clock[0]}</strong><span>:</span><strong>{clock[1]}</strong><span>:</span><strong>{clock[2]}</strong>
+      <AnimatedCountdownUnit value={clock[0]} /><span>:</span><AnimatedCountdownUnit value={clock[1]} /><span>:</span><AnimatedCountdownUnit value={clock[2]} />
     </div>
     <div className="monthly-countdown-labels"><span>hours</span><span>minutes</span><span>seconds</span></div>
   </div>;
