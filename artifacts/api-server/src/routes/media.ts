@@ -373,8 +373,11 @@ async function inspectYoutubeFormats(url: string): Promise<{ qualities: string[]
 
 function youtubeDownloadError(error: unknown): string {
   const rawMessage = error instanceof Error ? error.message : "The YouTube video could not be downloaded.";
-  if (/all youtube proxy attempts failed/i.test(rawMessage)) {
+  if (/all youtube (?:media )?proxy attempts failed/i.test(rawMessage)) {
     return "YouTube could not be reached through the configured proxies. Refresh proxy.txt or try again in a few minutes.";
+  }
+  if (/YOUTUBE_COOKIES secret/i.test(rawMessage)) {
+    return "The YouTube proxy could not complete this download, and the authenticated fallback is not available in the API process.";
   }
   if (/sign in|not a bot|bot check|cookies.*authentication|rejected the configured cookies/i.test(rawMessage)) {
     return "yt-dlp could not access this YouTube video with the configured cookies. Refresh the YouTube cookies secret and try again.";
