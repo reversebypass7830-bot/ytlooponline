@@ -111,6 +111,17 @@ type MediaContext = {
   quality?: string;
 };
 
+type ComposeMediaBody = {
+  fileIds?: unknown;
+  title?: unknown;
+  loopCount?: unknown;
+  logoFileId?: unknown;
+  webcamFileId?: unknown;
+  logoPosition?: unknown;
+  webcamPosition?: unknown;
+  overlayScale?: unknown;
+};
+
 type YoutubeDownloadInput = {
   url: string;
   quality?: string;
@@ -227,6 +238,23 @@ function formatDuration(seconds: unknown): string {
   return hours > 0
     ? `${hours}:${String(minutes).padStart(2, "0")}:${String(remainder).padStart(2, "0")}`
     : `${String(minutes).padStart(2, "0")}:${String(remainder).padStart(2, "0")}`;
+}
+
+function parseDurationText(value: string): number {
+  const parts = value.split(":").map(Number);
+  if (parts.some((part) => !Number.isFinite(part))) return 0;
+  if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2];
+  if (parts.length === 2) return parts[0] * 60 + parts[1];
+  return parts[0] || 0;
+}
+
+function overlayCoordinates(position: string, mainWidth: string, mainHeight: string): string {
+  switch (position) {
+    case "top-right": return `${mainWidth}-overlay_w-24:24`;
+    case "bottom-left": return `24:${mainHeight}-overlay_h-24`;
+    case "bottom-right": return `${mainWidth}-overlay_w-24:${mainHeight}-overlay_h-24`;
+    default: return "24:24";
+  }
 }
 
 function decodeHeaderValue(value: string | undefined): string {
@@ -512,8 +540,8 @@ router.post("/media/youtube-formats", async (req, res): Promise<void> => {
 router.post("/media/upload", async (req, res): Promise<void> => {
   const rawName = req.header("x-file-name");
   const contentType = req.header("content-type") || "";
-  if (!rawName || (!contentType.startsWith("video/") && contentType !== "application/octet-stream")) {
-    res.status(400).json({ error: "Send a video file with an X-File-Name header." });
+  if (!rawName || (!contentType.startsWith("video/") && !contentType.startsWith("image/") && contentType !== "application/octet-stream")) {
+    res.status(400).json({ error: "Send a video or image file with an X-File-Name header." });
     return;
   }
 
@@ -624,6 +652,154 @@ router.get("/media/youtube-download/jobs/:jobId", (req, res): void => {
     return;
   }
   res.json(job);
+});
+
+router.post("/media/compose", async (req, res): Promise<void> => {
+  const body = req.body as ComposeMediaBody;
+  const fileIds = Array.isArray(body.fileIds)
+    ? body.fileIds.filter((value): value is string => typeof value === "string" && /^[a-f0-9-]{8,}$/i.test(value))
+    : [];
+  const title = typeof body.title === "string" && body.title.trim() ? body.title.trim() : "Edited video";
+  const loopCount = Math.min(12, Math.max(1, Number.isInteger(Number(body.loopCount)) ? Number(body.loopCount) : 1));
+  const licenseId = req.header("x-license-id") || "";
+  const licenseName = req.header("x-license-name") || "";
+  const folderName = req.header("x-folder-name") || "";
+  const logoFileId = typeof body.logoFileId === "string" ? body.logoFileId : "";
+  const webcamFileId = typeof body.webcamFileId === "string" ? body.webcamFileId : "";
+  const logoPosition = typeof body.logoPosition === "string" ? body.logoPosition : "bottom-right";
+  const webcamPosition = typeof body.webcamPosition === "string" ? body.webcamPosition : "top-right";
+  const overlayScale = Math.min(0.8, Math.max(0.1, Number(body.overlayScale) || 0.25));
+
+  if (!fileIds.length) {
+    res.status(400).json({ error: "Select at least one server-ready video." });
+    return;
+  }
+
+  const records = await readMediaIndex();
+  const recordById = new Map(records.map((record) => [record.fileId, record]));
+  const sourceRecords = fileIds.map((fileId) => recordById.get(fileId)).filter((record): record is MediaRecord => Boolean(record));
+  if (sourceRecords.length !== fileIds.length) {
+    res.status(404).json({ error: "One or more selected videos are no longer available." });
+    return;
+  }
+  const scopedRecords = [...sourceRecords];
+  for (const overlayId of [logoFileId, webcamFileId]) {
+    if (overlayId) {
+      const overlayRecord = recordById.get(overlayId);
+      if (!overlayRecord) {
+        res.status(404).json({ error: "One of the selected overlays is no longer available." });
+        return;
+      }
+      scopedRecords.push(overlayRecord);
+    }
+  }
+  if (scopedRecords.some((record) => record.licenseId && licenseId && record.licenseId !== licenseId)) {
+    res.status(403).json({ error: "Selected media belongs to another license workspace." });
+    return;
+  }
+
+  const fileId = randomUUID();
+  const listPath = path.join(mediaDir, `${fileId}.concat.txt`);
+  const basePath = path.join(mediaDir, `${fileId}.base.mp4`);
+  const destination = path.join(mediaDir, `${fileId}.mp4`);
+  const repeatedSources = Array.from({ length: loopCount }, () => sourceRecords).flat();
+  const concatLines = repeatedSources
+    .map((record) => `file '${record.sourcePath.replaceAll("'", "'\\''")}'`)
+    .join("\n");
+  const estimatedDuration = repeatedSources.reduce((total, record) => total + parseDurationText(record.duration), 0);
+  const context = { licenseId, licenseName, folderName };
+
+  try {
+    await mkdir(mediaDir, { recursive: true });
+    await writeFile(listPath, `${concatLines}\n`);
+    await runFfmpeg([
+      "-y",
+      "-f", "concat",
+      "-safe", "0",
+      "-i", listPath,
+      "-map", "0:v:0",
+      "-map", "0:a?",
+      "-c:v", "libx264",
+      "-preset", "veryfast",
+      "-crf", "18",
+      "-c:a", "aac",
+      "-b:a", "192k",
+      "-movflags", "+faststart",
+      basePath,
+    ]);
+
+    const overlayIds = [logoFileId, webcamFileId].filter(Boolean);
+    if (!overlayIds.length) {
+      await rename(basePath, destination);
+    } else {
+      const filterParts: string[] = [];
+      let current = "[0:v]";
+      overlayIds.forEach((overlayId, index) => {
+        const isLogo = overlayId === logoFileId;
+        const input = `[${index + 1}:v]`;
+        const scaled = `[overlay${index}]`;
+        const next = `[composed${index}]`;
+        const scale = isLogo ? `scale=iw*${overlayScale}:ih*${overlayScale}` : `scale=iw*${overlayScale}:-2`;
+        const position = overlayCoordinates(isLogo ? logoPosition : webcamPosition, "main_w", "main_h");
+        filterParts.push(`${input}${scale}${scaled}`, `${current}${scaled}overlay=${position}:eof_action=repeat${next}`);
+        current = next;
+      });
+      const ffmpegArgs = ["-y", "-i", basePath];
+      overlayIds.forEach((overlayId) => {
+        const record = recordById.get(overlayId);
+        if (record?.filename.match(/\.(png|jpe?g|webp)$/i)) ffmpegArgs.push("-loop", "1");
+        ffmpegArgs.push("-i", record?.sourcePath || "");
+      });
+      ffmpegArgs.push(
+        "-filter_complex", `${filterParts.join(";")};${current}null[outv]`,
+        "-map", "[outv]",
+        "-map", "0:a?",
+        "-c:v", "libx264",
+        "-preset", "veryfast",
+        "-crf", "18",
+        "-c:a", "aac",
+        "-b:a", "192k",
+        "-shortest",
+        ...(estimatedDuration > 0 ? ["-t", String(estimatedDuration)] : []),
+        "-movflags", "+faststart",
+        destination,
+      );
+      await runFfmpeg(ffmpegArgs);
+      await unlink(basePath).catch(() => undefined);
+    }
+
+    const finalPath = await finalizeMediaFile(fileId, destination, `${title}.mp4`, context);
+    const fileStats = await stat(finalPath);
+    await saveMediaRecord({
+      fileId,
+      filename: path.basename(finalPath),
+      sourcePath: finalPath,
+      playbackUrl: `/api/media/files/${fileId}`,
+      title,
+      duration: formatDuration(estimatedDuration),
+      licenseId,
+      licenseName,
+      folderName,
+      quality: "edited",
+      createdAt: new Date().toISOString(),
+      sizeBytes: fileStats.size,
+    });
+    res.status(201).json({
+      fileId,
+      filename: path.basename(finalPath),
+      sourcePath: finalPath,
+      playbackUrl: `/api/media/files/${fileId}`,
+      duration: formatDuration(estimatedDuration),
+    });
+  } catch (error) {
+    await unlink(listPath).catch(() => undefined);
+    await unlink(basePath).catch(() => undefined);
+    await unlink(destination).catch(() => undefined);
+    req.log.warn({ error: error instanceof Error ? error.message : "unknown error" }, "Media compose failed");
+    res.status(400).json({ error: error instanceof Error ? error.message : "The edited video could not be created." });
+  } finally {
+    await unlink(listPath).catch(() => undefined);
+  }
 });
 
 router.post("/media/files/:fileId/trim", async (req, res): Promise<void> => {

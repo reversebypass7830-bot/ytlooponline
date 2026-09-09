@@ -6,6 +6,9 @@
  * OpenAPI spec version: 0.1.0
  */
 
+export * from './composeMediaInput';
+export * from './composeMediaInputLogoPosition';
+export * from './composeMediaInputWebcamPosition';
 export * from './createLicenseInput';
 export * from './deleteLicenseResult';
 export * from './extractYoutubeChannelLinksInput';
@@ -37,6 +40,10 @@ export * from './workspaceSaveResponse';
 export * from './youtubeChannelLinksResponse';
 export * from './youtubeDownloadInput';
 export * from './youtubeDownloadInputQuality';
+export * from './youtubeDownloadJob';
+export * from './youtubeDownloadJobAccepted';
+export * from './youtubeDownloadJobAcceptedStatus';
+export * from './youtubeDownloadJobStatus';
 export * from './youtubeDownloadResponse';
 export * from './youtubeFormatsInput';
 export * from './youtubeFormatsResponse';

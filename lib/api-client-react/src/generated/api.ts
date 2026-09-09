@@ -20,6 +20,7 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
+  ComposeMediaInput,
   CreateLicenseInput,
   DeleteLicenseResult,
   ExtractYoutubeChannelLinksInput,
@@ -43,6 +44,8 @@ import type {
   WorkspaceSaveResponse,
   YoutubeChannelLinksResponse,
   YoutubeDownloadInput,
+  YoutubeDownloadJob,
+  YoutubeDownloadJobAccepted,
   YoutubeDownloadResponse,
   YoutubeFormatsInput,
   YoutubeFormatsResponse
@@ -820,6 +823,77 @@ export const useTrimMediaFile = <TError = ErrorType<void>,
       return useMutation(getTrimMediaFileMutationOptions(options));
     }
 
+export const getComposeMediaUrl = () => {
+
+
+
+
+  return `/api/media/compose`
+}
+
+/**
+ * @summary Merge and loop server media into an edited video
+ */
+export const composeMedia = async (composeMediaInput: ComposeMediaInput, options?: Parameters<typeof customFetch>[1]): Promise<MediaTrimResponse> => {
+
+  return customFetch<MediaTrimResponse>(getComposeMediaUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(composeMediaInput)
+  }
+);}
+
+
+
+
+
+export const getComposeMediaMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof composeMedia>>, TError,{data: BodyType<ComposeMediaInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof composeMedia>>, TError,{data: BodyType<ComposeMediaInput>}, TContext> => {
+
+const mutationKey = ['composeMedia'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof composeMedia>>, {data: BodyType<ComposeMediaInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  composeMedia(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ComposeMediaMutationResult = NonNullable<Awaited<ReturnType<typeof composeMedia>>>
+    export type ComposeMediaMutationBody = BodyType<ComposeMediaInput>
+    export type ComposeMediaMutationError = ErrorType<void>
+
+    /**
+ * @summary Merge and loop server media into an edited video
+ */
+export const useComposeMedia = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof composeMedia>>, TError,{data: BodyType<ComposeMediaInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof composeMedia>>,
+        TError,
+        {data: BodyType<ComposeMediaInput>},
+        TContext
+      > => {
+      return useMutation(getComposeMediaMutationOptions(options));
+    }
+
 export const getDownloadYoutubeVideoUrl = () => {
 
 
@@ -890,6 +964,154 @@ export const useDownloadYoutubeVideo = <TError = ErrorType<void>,
       > => {
       return useMutation(getDownloadYoutubeVideoMutationOptions(options));
     }
+
+export const getStartYoutubeDownloadJobUrl = () => {
+
+
+
+
+  return `/api/media/youtube-download/jobs`
+}
+
+/**
+ * @summary Start an asynchronous YouTube download job
+ */
+export const startYoutubeDownloadJob = async (youtubeDownloadInput: YoutubeDownloadInput, options?: Parameters<typeof customFetch>[1]): Promise<YoutubeDownloadJobAccepted> => {
+
+  return customFetch<YoutubeDownloadJobAccepted>(getStartYoutubeDownloadJobUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(youtubeDownloadInput)
+  }
+);}
+
+
+
+
+
+export const getStartYoutubeDownloadJobMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof startYoutubeDownloadJob>>, TError,{data: BodyType<YoutubeDownloadInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof startYoutubeDownloadJob>>, TError,{data: BodyType<YoutubeDownloadInput>}, TContext> => {
+
+const mutationKey = ['startYoutubeDownloadJob'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof startYoutubeDownloadJob>>, {data: BodyType<YoutubeDownloadInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  startYoutubeDownloadJob(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type StartYoutubeDownloadJobMutationResult = NonNullable<Awaited<ReturnType<typeof startYoutubeDownloadJob>>>
+    export type StartYoutubeDownloadJobMutationBody = BodyType<YoutubeDownloadInput>
+    export type StartYoutubeDownloadJobMutationError = ErrorType<void>
+
+    /**
+ * @summary Start an asynchronous YouTube download job
+ */
+export const useStartYoutubeDownloadJob = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof startYoutubeDownloadJob>>, TError,{data: BodyType<YoutubeDownloadInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof startYoutubeDownloadJob>>,
+        TError,
+        {data: BodyType<YoutubeDownloadInput>},
+        TContext
+      > => {
+      return useMutation(getStartYoutubeDownloadJobMutationOptions(options));
+    }
+
+export const getGetYoutubeDownloadJobUrl = (jobId: string,) => {
+
+
+
+
+  return `/api/media/youtube-download/jobs/${jobId}`
+}
+
+/**
+ * @summary Get asynchronous YouTube download job status
+ */
+export const getYoutubeDownloadJob = async (jobId: string, options?: Parameters<typeof customFetch>[1]): Promise<YoutubeDownloadJob> => {
+
+  return customFetch<YoutubeDownloadJob>(getGetYoutubeDownloadJobUrl(jobId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetYoutubeDownloadJobQueryKey = (jobId: string,) => {
+    return [
+    `/api/media/youtube-download/jobs/${jobId}`
+    ] as const;
+    }
+
+
+export const getGetYoutubeDownloadJobQueryOptions = <TData = Awaited<ReturnType<typeof getYoutubeDownloadJob>>, TError = ErrorType<void>>(jobId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getYoutubeDownloadJob>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetYoutubeDownloadJobQueryKey(jobId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getYoutubeDownloadJob>>> = ({ signal }) => getYoutubeDownloadJob(jobId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: jobId !== null && jobId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getYoutubeDownloadJob>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetYoutubeDownloadJobQueryResult = NonNullable<Awaited<ReturnType<typeof getYoutubeDownloadJob>>>
+export type GetYoutubeDownloadJobQueryError = ErrorType<void>
+
+
+/**
+ * @summary Get asynchronous YouTube download job status
+ */
+
+export function useGetYoutubeDownloadJob<TData = Awaited<ReturnType<typeof getYoutubeDownloadJob>>, TError = ErrorType<void>>(
+ jobId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getYoutubeDownloadJob>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetYoutubeDownloadJobQueryOptions(jobId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
 
 export const getGetYoutubeFormatsUrl = () => {
 

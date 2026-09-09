@@ -252,6 +252,45 @@ export const TrimMediaFileResponse = zod.object({
 
 
 /**
+ * @summary Merge and loop server media into an edited video
+ */
+export const ComposeMediaHeader = zod.object({
+  "X-License-Id": zod.string().optional(),
+  "X-License-Name": zod.string().optional(),
+  "X-Folder-Name": zod.string().optional()
+})
+
+
+export const composeMediaBodyLoopCountDefault = 1;
+export const composeMediaBodyLoopCountMax = 12;
+
+export const composeMediaBodyOverlayScaleDefault = 0.25;
+export const composeMediaBodyOverlayScaleMin = 0.1;
+export const composeMediaBodyOverlayScaleMax = 0.8;
+
+
+
+export const ComposeMediaBody = zod.object({
+  "fileIds": zod.array(zod.string()).min(1),
+  "title": zod.string().optional(),
+  "loopCount": zod.number().min(1).max(composeMediaBodyLoopCountMax).default(composeMediaBodyLoopCountDefault),
+  "logoFileId": zod.string().optional(),
+  "webcamFileId": zod.string().optional(),
+  "logoPosition": zod.enum(['top-left', 'top-right', 'bottom-left', 'bottom-right']).optional(),
+  "webcamPosition": zod.enum(['top-left', 'top-right', 'bottom-left', 'bottom-right']).optional(),
+  "overlayScale": zod.number().min(composeMediaBodyOverlayScaleMin).max(composeMediaBodyOverlayScaleMax).default(composeMediaBodyOverlayScaleDefault)
+})
+
+export const ComposeMediaResponse = zod.object({
+  "fileId": zod.string(),
+  "filename": zod.string(),
+  "sourcePath": zod.string(),
+  "playbackUrl": zod.string(),
+  "duration": zod.string()
+})
+
+
+/**
  * @summary Download a YouTube video at the best available quality
  */
 
@@ -276,6 +315,54 @@ export const DownloadYoutubeVideoResponse = zod.object({
   "licenseId": zod.string(),
   "licenseName": zod.string(),
   "folderName": zod.string()
+})
+
+
+/**
+ * @summary Start an asynchronous YouTube download job
+ */
+
+export const startYoutubeDownloadJobBodyQualityDefault = `best`;
+
+export const StartYoutubeDownloadJobBody = zod.object({
+  "url": zod.string().min(1),
+  "quality": zod.enum(['best', '2160p', '1440p', '1080p', '720p', '480p', '360p', '240p', '144p']).default(startYoutubeDownloadJobBodyQualityDefault),
+  "licenseId": zod.string().optional(),
+  "licenseName": zod.string().optional(),
+  "folderName": zod.string().optional()
+})
+
+export const StartYoutubeDownloadJobResponse = zod.object({
+  "jobId": zod.string(),
+  "status": zod.enum(['queued'])
+})
+
+
+/**
+ * @summary Get asynchronous YouTube download job status
+ */
+export const GetYoutubeDownloadJobParams = zod.object({
+  "jobId": zod.coerce.string()
+})
+
+export const GetYoutubeDownloadJobResponse = zod.object({
+  "jobId": zod.string(),
+  "status": zod.enum(['queued', 'running', 'completed', 'failed']),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string(),
+  "result": zod.object({
+  "fileId": zod.string(),
+  "filename": zod.string(),
+  "sourcePath": zod.string(),
+  "playbackUrl": zod.string(),
+  "title": zod.string(),
+  "duration": zod.string(),
+  "quality": zod.string(),
+  "licenseId": zod.string(),
+  "licenseName": zod.string(),
+  "folderName": zod.string()
+}).optional(),
+  "error": zod.string().optional()
 })
 
 

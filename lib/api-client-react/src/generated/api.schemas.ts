@@ -139,6 +139,46 @@ export interface MediaTrimResponse {
   duration: string;
 }
 
+export type ComposeMediaInputLogoPosition = typeof ComposeMediaInputLogoPosition[keyof typeof ComposeMediaInputLogoPosition];
+
+
+export const ComposeMediaInputLogoPosition = {
+  'top-left': 'top-left',
+  'top-right': 'top-right',
+  'bottom-left': 'bottom-left',
+  'bottom-right': 'bottom-right',
+} as const;
+
+export type ComposeMediaInputWebcamPosition = typeof ComposeMediaInputWebcamPosition[keyof typeof ComposeMediaInputWebcamPosition];
+
+
+export const ComposeMediaInputWebcamPosition = {
+  'top-left': 'top-left',
+  'top-right': 'top-right',
+  'bottom-left': 'bottom-left',
+  'bottom-right': 'bottom-right',
+} as const;
+
+export interface ComposeMediaInput {
+  /** @minItems 1 */
+  fileIds: string[];
+  title?: string;
+  /**
+     * @minimum 1
+     * @maximum 12
+     */
+  loopCount?: number;
+  logoFileId?: string;
+  webcamFileId?: string;
+  logoPosition?: ComposeMediaInputLogoPosition;
+  webcamPosition?: ComposeMediaInputWebcamPosition;
+  /**
+     * @minimum 0.1
+     * @maximum 0.8
+     */
+  overlayScale?: number;
+}
+
 export type YoutubeDownloadInputQuality = typeof YoutubeDownloadInputQuality[keyof typeof YoutubeDownloadInputQuality];
 
 
@@ -174,6 +214,37 @@ export interface YoutubeDownloadResponse {
   licenseId: string;
   licenseName: string;
   folderName: string;
+}
+
+export type YoutubeDownloadJobAcceptedStatus = typeof YoutubeDownloadJobAcceptedStatus[keyof typeof YoutubeDownloadJobAcceptedStatus];
+
+
+export const YoutubeDownloadJobAcceptedStatus = {
+  queued: 'queued',
+} as const;
+
+export interface YoutubeDownloadJobAccepted {
+  jobId: string;
+  status: YoutubeDownloadJobAcceptedStatus;
+}
+
+export type YoutubeDownloadJobStatus = typeof YoutubeDownloadJobStatus[keyof typeof YoutubeDownloadJobStatus];
+
+
+export const YoutubeDownloadJobStatus = {
+  queued: 'queued',
+  running: 'running',
+  completed: 'completed',
+  failed: 'failed',
+} as const;
+
+export interface YoutubeDownloadJob {
+  jobId: string;
+  status: YoutubeDownloadJobStatus;
+  createdAt: string;
+  updatedAt: string;
+  result?: YoutubeDownloadResponse;
+  error?: string;
 }
 
 export interface YoutubeFormatsInput {
