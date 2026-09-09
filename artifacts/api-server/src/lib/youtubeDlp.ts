@@ -1,7 +1,10 @@
 import { spawn } from "node:child_process";
+import { createWriteStream } from "node:fs";
 import { mkdtemp, readFile, readdir, rm, stat, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
+import { pipeline } from "node:stream/promises";
+import { Readable } from "node:stream";
 
 type YoutubeDlpFormat = {
   height?: unknown;
@@ -10,6 +13,21 @@ type YoutubeDlpFormat = {
   acodec?: unknown;
   filesize?: unknown;
   filesize_approx?: unknown;
+};
+
+type DirectProxyVideo = {
+  url?: unknown;
+  quality?: unknown;
+  ext?: unknown;
+  fileSize?: unknown;
+  size?: unknown;
+};
+
+type DirectProxyPayload = {
+  ok?: unknown;
+  title?: unknown;
+  duration?: unknown;
+  video?: unknown;
 };
 
 export type YoutubeDlpInfo = {
@@ -26,10 +44,12 @@ export type YoutubeDlpDownload = {
 };
 
 const commandTimeoutMs = 20 * 60 * 1000;
+const fallbackCommandTimeoutMs = 2 * 60 * 1000;
 const maxOutputBytes = 12 * 1024 * 1024;
 const videoExtensions = new Set([".mp4", ".webm", ".mkv", ".mov", ".m4v", ".avi", ".ts"]);
 const proxyFailureCooldownMs = 2 * 60 * 1000;
-const defaultProxyAttempts = 12;
+const defaultProxyAttempts = 1;
+const directProxyBaseUrl = "https://yt-download-proxy-cqkedn65a-dev-e6b8.vercel.app/api/download";
 let proxyCursor = 0;
 const proxyFailures = new Map<string, number>();
 
@@ -155,6 +175,103 @@ function proxyAttemptLimit(proxyCount: number): number {
   return Math.min(limit, proxyCount);
 }
 
+function directProxyUrl(): string {
+  return process.env.YOUTUBE_DOWNLOAD_PROXY_URL?.trim() || directProxyBaseUrl;
+}
+
+function directProxyHeight(value: unknown): number {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value !== "string") return 0;
+  const normalized = value.trim().toLowerCase();
+  if (normalized === "4k") return 2160;
+  if (normalized === "2k") return 1440;
+  const match = normalized.match(/(\d{3,4})p?/);
+  return match ? Number.parseInt(match[1], 10) : 0;
+}
+
+async function fetchDirectProxyPayload(url: string): Promise<{ payload: DirectProxyPayload; videos: DirectProxyVideo[] }> {
+  const endpoint = `${directProxyUrl()}?url=${encodeURIComponent(url)}`;
+  const response = await fetch(endpoint, {
+    headers: { accept: "application/json", "user-agent": "Mozilla/5.0" },
+    signal: AbortSignal.timeout(45_000),
+  });
+  const payload = await response.json().catch(() => ({})) as DirectProxyPayload & { error?: unknown };
+  if (!response.ok || payload.ok === false) {
+    const detail = typeof payload.error === "string" ? payload.error : `HTTP ${response.status}`;
+    throw new Error(`YouTube link resolver failed: ${detail}`);
+  }
+  const videos = Array.isArray(payload.video)
+    ? payload.video.filter((item): item is DirectProxyVideo => Boolean(item && typeof item === "object" && typeof (item as DirectProxyVideo).url === "string"))
+    : [];
+  if (!videos.length) throw new Error("The YouTube link resolver returned no video streams.");
+  return { payload, videos };
+}
+
+function selectDirectProxyVideo(videos: DirectProxyVideo[], requested: string): DirectProxyVideo {
+  const requestedHeight = requested === "best" ? Number.POSITIVE_INFINITY : directProxyHeight(requested);
+  const ranked = videos
+    .map((video, index) => ({ video, index, height: directProxyHeight(video.quality) }))
+    .filter((item) => item.height > 0 && item.height <= requestedHeight)
+    .sort((left, right) => right.height - left.height || left.index - right.index);
+  if (ranked.length) return ranked[0].video;
+  return videos[0];
+}
+
+async function getDirectProxyInfo(url: string): Promise<YoutubeDlpInfo> {
+  const { payload, videos } = await fetchDirectProxyPayload(url);
+  const duration = typeof payload.duration === "number"
+    ? payload.duration
+    : Number.parseFloat(typeof payload.duration === "string" ? payload.duration : "0");
+  return {
+    title: typeof payload.title === "string" && payload.title.trim() ? payload.title.trim() : "Downloaded YouTube video",
+    duration: Number.isFinite(duration) ? duration : 0,
+    formats: videos.map((video) => ({
+      height: directProxyHeight(video.quality),
+      ext: typeof video.ext === "string" ? video.ext : undefined,
+      filesize: typeof video.fileSize === "number" && video.fileSize > 0 ? video.fileSize : undefined,
+      vcodec: "unknown",
+      acodec: "unknown",
+    })),
+  };
+}
+
+async function downloadDirectProxy(url: string, quality: string): Promise<YoutubeDlpDownload> {
+  const { payload, videos } = await fetchDirectProxyPayload(url);
+  const selected = selectDirectProxyVideo(videos, quality);
+  const mediaUrl = typeof selected.url === "string" ? selected.url : "";
+  if (!mediaUrl) throw new Error("The YouTube link resolver returned an empty video URL.");
+  const tempDir = await mkdtemp(path.join(os.tmpdir(), "signal-desk-youtube-direct-"));
+  const extension = typeof selected.ext === "string" && /^[a-z0-9]{2,5}$/i.test(selected.ext) ? `.${selected.ext.toLowerCase()}` : ".mp4";
+  const outputPath = path.join(tempDir, `youtube.${extension}`);
+  try {
+    const response = await fetch(mediaUrl, {
+      headers: { "user-agent": "Mozilla/5.0", referer: "https://www.youtube.com/" },
+      signal: AbortSignal.timeout(commandTimeoutMs),
+    });
+    if (!response.ok) throw new Error(`Direct YouTube media URL returned HTTP ${response.status}.`);
+    if (!response.body) throw new Error("Direct YouTube media URL returned no file stream.");
+    await pipeline(Readable.fromWeb(response.body as never), createWriteStream(outputPath));
+    const fileStats = await stat(outputPath);
+    if (!fileStats.size) throw new Error("Direct YouTube media URL returned an empty file.");
+    const duration = typeof payload.duration === "number"
+      ? payload.duration
+      : Number.parseFloat(typeof payload.duration === "string" ? payload.duration : "0");
+    return {
+      path: outputPath,
+      tempDir,
+      info: {
+        title: typeof payload.title === "string" && payload.title.trim() ? payload.title.trim() : "Downloaded YouTube video",
+        duration: Number.isFinite(duration) ? duration : 0,
+        formats: videos.map((video) => ({ height: directProxyHeight(video.quality), ext: video.ext, vcodec: "unknown", acodec: "unknown" })),
+      },
+      quality: typeof selected.quality === "string" && selected.quality.trim() ? selected.quality : quality,
+    };
+  } catch (error) {
+    await rm(tempDir, { recursive: true, force: true }).catch(() => undefined);
+    throw error;
+  }
+}
+
 function selectProxyCandidates(proxies: string[]): string[] {
   const now = Date.now();
   const available: string[] = [];
@@ -208,12 +325,13 @@ async function runWithExtractorFallbacks(
   args: string[],
   proxy: string,
   cwd?: string,
+  timeoutMs = commandTimeoutMs,
 ): Promise<{ stdout: string; stderr: string }> {
   let lastError: unknown;
   const errors: string[] = [];
   for (const extractorArgs of extractorStrategies) {
     try {
-      return await runCommand([...commonArgs(cookiePath, proxy, extractorArgs), ...args], cwd);
+      return await runCommand([...commonArgs(cookiePath, proxy, extractorArgs), ...args], cwd, timeoutMs);
     } catch (error) {
       lastError = error;
       if (error instanceof Error && error.message) errors.push(error.message);
@@ -229,6 +347,7 @@ async function runWithProxyFallbacks(
   cookiePath: string,
   args: string[],
   cwd?: string,
+  timeoutMs = commandTimeoutMs,
 ): Promise<{ stdout: string; stderr: string }> {
   const proxies = await loadYoutubeProxies();
   const candidates = selectProxyCandidates(proxies);
@@ -236,7 +355,7 @@ async function runWithProxyFallbacks(
 
   for (const proxy of candidates) {
     try {
-      const result = await runWithExtractorFallbacks(cookiePath, args, proxy, cwd);
+      const result = await runWithExtractorFallbacks(cookiePath, args, proxy, cwd, timeoutMs);
       markProxySuccess(proxy);
       return result;
     } catch (error) {
@@ -249,7 +368,7 @@ async function runWithProxyFallbacks(
   throw new Error(`All YouTube proxy attempts failed (${candidates.length} tried): ${detail}`);
 }
 
-function runCommand(args: string[], cwd?: string): Promise<{ stdout: string; stderr: string }> {
+function runCommand(args: string[], cwd?: string, timeoutMs = commandTimeoutMs): Promise<{ stdout: string; stderr: string }> {
   return new Promise((resolve, reject) => {
     const childEnv = { ...process.env };
     delete childEnv.YOUTUBE_COOKIES;
@@ -267,7 +386,7 @@ function runCommand(args: string[], cwd?: string): Promise<{ stdout: string; std
       setTimeout(() => {
         if (!settled) child.kill("SIGKILL");
       }, 2_000).unref();
-    }, commandTimeoutMs);
+    }, timeoutMs);
     timer.unref();
     const append = (current: Buffer<ArrayBufferLike>, chunk: Buffer): Buffer<ArrayBufferLike> => {
       const next = Buffer.concat([current, chunk]);
@@ -314,10 +433,14 @@ function parseInfo(stdout: string): YoutubeDlpInfo {
 }
 
 export async function getYoutubeDlpInfo(url: string): Promise<YoutubeDlpInfo> {
-  return withCookieFile(async (cookiePath) => {
-    const result = await runWithProxyFallbacks(cookiePath, ["--dump-single-json", "--skip-download", url]);
-    return parseInfo(result.stdout);
-  });
+  try {
+    return await getDirectProxyInfo(url);
+  } catch {
+    return withCookieFile(async (cookiePath) => {
+      const result = await runWithProxyFallbacks(cookiePath, ["--dump-single-json", "--skip-download", url], undefined, fallbackCommandTimeoutMs);
+      return parseInfo(result.stdout);
+    });
+  }
 }
 
 function formatSelector(quality: string): string {
@@ -358,6 +481,12 @@ async function findDownloadedVideo(tempDir: string, stdout: string): Promise<str
 }
 
 export async function downloadYoutubeDlp(url: string, quality: string): Promise<YoutubeDlpDownload> {
+  try {
+    return await downloadDirectProxy(url, quality);
+  } catch {
+    // The direct signed URL can be rejected by server egress even when the
+    // resolver succeeds. Keep the authenticated yt-dlp path as a fallback.
+  }
   const info = await getYoutubeDlpInfo(url);
   const tempDir = await mkdtemp(path.join(os.tmpdir(), "signal-desk-youtube-download-"));
   try {
@@ -374,7 +503,7 @@ export async function downloadYoutubeDlp(url: string, quality: string): Promise<
         "after_move:filepath",
         "--force-overwrites",
         url,
-      ], tempDir);
+      ], tempDir, fallbackCommandTimeoutMs);
       return {
         path: await findDownloadedVideo(tempDir, result.stdout),
         tempDir,
