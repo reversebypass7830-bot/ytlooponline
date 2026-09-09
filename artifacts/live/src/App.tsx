@@ -1075,7 +1075,11 @@ function Routed({workspace}:{workspace:ReturnType<typeof useWorkspace>}) {
 function App() {
   const license = useLicense();
   const workspace=useWorkspace(license.license, license.clear); const [location,setLocation]=useLocation();
-  useEffect(() => { if (isLicenseActive(license.license) && location === "/") setLocation("/dashboard"); }, [license.license, location, setLocation]);
+  useEffect(() => {
+    if (isLicenseActive(license.license) && (location === "/" || location === "/access")) {
+      setLocation("/dashboard");
+    }
+  }, [license.license, location, setLocation]);
   if (location === "/owner") return <OwnerPage/>;
   if (location === "/pricing") return <PricingPage />;
   if (location === "/" && !isLicenseActive(license.license)) return <LandingPage />;
