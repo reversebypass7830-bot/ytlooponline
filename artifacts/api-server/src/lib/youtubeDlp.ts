@@ -36,13 +36,22 @@ function ytdlpCommand(): string {
 function normalizeCookieSecret(raw: string): string {
   const value = raw.trim();
   if (!value) throw new Error("The YouTube cookies secret is empty.");
-  if (!value.startsWith("[")) return value.endsWith("\n") ? value : `${value}\n`;
+  if (value.startsWith("# Netscape") || value.startsWith("# HTTP Cookie File")) {
+    return value.endsWith("\n") ? value : `${value}\n`;
+  }
+  if (!value.startsWith("[") && !value.startsWith("{")) return value.endsWith("\n") ? value : `${value}\n`;
 
   let cookies: unknown;
   try {
     cookies = JSON.parse(value);
   } catch {
     throw new Error("The YouTube cookies secret is not valid cookie JSON.");
+  }
+  if (!Array.isArray(cookies) && cookies && typeof cookies === "object" && Array.isArray((cookies as { cookies?: unknown }).cookies)) {
+    cookies = (cookies as { cookies: unknown[] }).cookies;
+  }
+  if (typeof cookies === "string") {
+    return normalizeCookieSecret(cookies);
   }
   if (!Array.isArray(cookies) || !cookies.length) {
     throw new Error("The YouTube cookies secret does not contain any cookies.");
@@ -56,6 +65,7 @@ function normalizeCookieSecret(raw: string): string {
       hostOnly?: unknown;
       path?: unknown;
       secure?: unknown;
+      httpOnly?: unknown;
       expirationDate?: unknown;
       name?: unknown;
       value?: unknown;
@@ -69,7 +79,8 @@ function normalizeCookieSecret(raw: string): string {
     const expiration = typeof cookie.expirationDate === "number" && Number.isFinite(cookie.expirationDate)
       ? String(Math.max(0, Math.floor(cookie.expirationDate)))
       : "0";
-    lines.push([domain, includeSubdomains, cookiePath, secure, expiration, cookie.name, cookie.value].join("\t"));
+    const netscapeDomain = cookie.httpOnly === true ? `#HttpOnly_${domain}` : domain;
+    lines.push([netscapeDomain, includeSubdomains, cookiePath, secure, expiration, cookie.name, cookie.value.replace(/[\r\n\t]/g, "")].join("\t"));
   }
   if (lines.length === 2) throw new Error("The YouTube cookies secret contains no usable cookies.");
   return `${lines.join("\n")}\n`;
@@ -114,12 +125,17 @@ async function runWithExtractorFallbacks(
   cwd?: string,
 ): Promise<{ stdout: string; stderr: string }> {
   let lastError: unknown;
+  const errors: string[] = [];
   for (const extractorArgs of extractorStrategies) {
     try {
       return await runCommand([...commonArgs(cookiePath, extractorArgs), ...args], cwd);
     } catch (error) {
       lastError = error;
+      if (error instanceof Error && error.message) errors.push(error.message);
     }
+  }
+  if (errors.some((message) => /page needs to be reloaded|requested format is not available|sign in|not a bot|bot check|cookies.*authentication/i.test(message))) {
+    throw new Error("YouTube rejected the configured cookies. Export a fresh cookie set from a signed-in YouTube session, including youtube.com and google.com cookies, then replace YOUTUBE_COOKIES.");
   }
   throw lastError instanceof Error ? lastError : new Error("yt-dlp could not access this YouTube video.");
 }

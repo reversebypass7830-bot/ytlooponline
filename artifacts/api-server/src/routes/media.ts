@@ -515,7 +515,7 @@ router.post("/media/youtube-download", async (req, res): Promise<void> => {
     }));
   } catch (error) {
     const rawMessage = error instanceof Error ? error.message : "The YouTube video could not be downloaded.";
-    const message = rawMessage.includes("sign in") || rawMessage.includes("not a bot") || rawMessage.includes("bot")
+    const message = /sign in|not a bot|bot check|cookies.*authentication|rejected the configured cookies/i.test(rawMessage)
       ? "yt-dlp could not access this YouTube video with the configured cookies. Refresh the YouTube cookies secret and try again."
       : rawMessage;
     req.log.warn({ error: message }, "YouTube download failed");
