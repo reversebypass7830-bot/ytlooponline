@@ -133,10 +133,11 @@ export function LandingPage() {
           <motion.p initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: .48, duration: .7, ease }}>R Loop Bypass turns a playlist into a dependable 24-hour live channel. Build once, broadcast with confidence.</motion.p>
           <motion.div className="hero-actions" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: .6, duration: .7, ease }}>
             <Link href="/pricing" className="offer-button" aria-label="Get offer" data-testid="link-hero-offer">
+              <span className="offer-button-drawer drawer-top">expires in...</span>
+              <span className="offer-button-drawer drawer-bottom">...8 hours</span>
               <span className="offer-button-text">Get Offer</span>
               {["corner-top-left", "corner-top-right", "corner-bottom-right", "corner-bottom-left"].map((corner) => <svg key={corner} className={`offer-button-corner ${corner}`} viewBox="-1 1 32 32" aria-hidden="true"><path d="M32,32C14.355,32,0,17.645,0,0h.985c0,17.102,13.913,31.015,31.015,31.015v.985Z" /></svg>)}
             </Link>
-            <Link href="/access" className="text-button" data-testid="link-hero-access"><span>Start your channel</span><ArrowRight size={14} /></Link>
             <button className="text-button" onClick={() => document.querySelector("#capabilities")?.scrollIntoView({ behavior: "smooth" })} data-testid="button-explore-product"><Play size={14} /><span>See how it works</span></button>
           </motion.div>
           <motion.div className="hero-proof" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: .8, duration: .6 }}><span><Check size={13} /> 4K / 1080p output</span><span><Check size={13} /> YouTube + Facebook</span><span><Check size={13} /> Automatic recovery</span></motion.div>
