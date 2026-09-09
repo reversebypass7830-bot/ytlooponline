@@ -468,10 +468,74 @@ function resolveYtDlpCommand(): YtDlpCommand {
   return { executable: binary, prefixArgs: [], label: binary, supportsCurlCffi: false };
 }
 
+type BrowserCookie = {
+  domain?: unknown;
+  hostOnly?: unknown;
+  path?: unknown;
+  secure?: unknown;
+  httpOnly?: unknown;
+  name?: unknown;
+  value?: unknown;
+  expirationDate?: unknown;
+  expires?: unknown;
+  expiration?: unknown;
+};
+
+function normalizeCookieText(rawText: string): string {
+  const trimmed = rawText.trim();
+  if (!trimmed.startsWith("[") && !trimmed.startsWith("{")) return rawText;
+
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(trimmed);
+  } catch {
+    return rawText;
+  }
+
+  const cookies = Array.isArray(parsed)
+    ? parsed
+    : parsed && typeof parsed === "object" && Array.isArray((parsed as { cookies?: unknown }).cookies)
+      ? (parsed as { cookies: unknown[] }).cookies
+      : [];
+  if (!cookies.length) return rawText;
+
+  const lines = cookies.flatMap((item) => {
+    if (!item || typeof item !== "object") return [];
+    const cookie = item as BrowserCookie;
+    const domainValue = typeof cookie.domain === "string" ? cookie.domain.trim() : "";
+    const name = typeof cookie.name === "string" ? cookie.name : "";
+    if (!domainValue || !name) return [];
+
+    const domain = cookie.httpOnly === true && !domainValue.startsWith("#HttpOnly_")
+      ? `#HttpOnly_${domainValue}`
+      : domainValue;
+    const includeSubdomains = cookie.hostOnly === true
+      ? "FALSE"
+      : cookie.hostOnly === false || domainValue.startsWith(".") ? "TRUE" : "FALSE";
+    const cookiePath = typeof cookie.path === "string" && cookie.path ? cookie.path : "/";
+    const secure = cookie.secure === true ? "TRUE" : "FALSE";
+    const rawExpiration = cookie.expirationDate ?? cookie.expires ?? cookie.expiration;
+    const numericExpiration = Number(rawExpiration);
+    const expiration = Number.isFinite(numericExpiration) && numericExpiration > 0
+      ? String(Math.floor(numericExpiration > 100_000_000_000 ? numericExpiration / 1000 : numericExpiration))
+      : "0";
+    const value = typeof cookie.value === "string" ? cookie.value.replace(/[\r\n\t]/g, "") : "";
+    return [`${domain}\t${includeSubdomains}\t${cookiePath}\t${secure}\t${expiration}\t${name}\t${value}`];
+  });
+  return lines.length ? `# Netscape HTTP Cookie File\n${lines.join("\n")}\n` : rawText;
+}
+
 async function createYtDlpCookieFile(): Promise<{ path?: string; cleanup: () => Promise<void> }> {
   const configuredPath = process.env.YT_DLP_COOKIES_FILE?.trim();
   const configuredCookies = process.env.YOUTUBE_COOKIES?.trim();
-  const cookieSources = [configuredPath, configuredCookies].filter((value): value is string => Boolean(value));
+  const workspaceCookiePaths = [
+    path.resolve(process.cwd(), "cookies.txt"),
+    path.resolve(process.cwd(), "cokkies.txt"),
+    path.resolve(process.cwd(), "..", "..", "cookies.txt"),
+    path.resolve(process.cwd(), "..", "..", "cokkies.txt"),
+  ];
+  const cookieSources = [configuredPath, ...workspaceCookiePaths, configuredCookies]
+    .filter((value): value is string => Boolean(value));
   if (!cookieSources.length) return { cleanup: async () => undefined };
 
   let cookieText = "";
@@ -479,11 +543,11 @@ async function createYtDlpCookieFile(): Promise<{ path?: string; cleanup: () => 
     try {
       const sourceStats = await stat(source);
       if (sourceStats.isFile()) {
-        cookieText = await readFile(source, "utf8");
+        cookieText = normalizeCookieText(await readFile(source, "utf8"));
         break;
       }
     } catch {
-      if (source === configuredCookies) cookieText = source;
+      if (source === configuredCookies) cookieText = normalizeCookieText(source);
     }
   }
   if (!cookieText.trim()) return { cleanup: async () => undefined };
