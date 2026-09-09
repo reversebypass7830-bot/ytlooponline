@@ -259,7 +259,7 @@ export const downloadYoutubeVideoBodyQualityDefault = `best`;
 
 export const DownloadYoutubeVideoBody = zod.object({
   "url": zod.string().min(1),
-  "quality": zod.enum(['best', '2160p', '1440p', '1080p', '720p', '480p']).default(downloadYoutubeVideoBodyQualityDefault),
+  "quality": zod.enum(['best', '2160p', '1440p', '1080p', '720p', '480p', '360p', '240p', '144p']).default(downloadYoutubeVideoBodyQualityDefault),
   "licenseId": zod.string().optional(),
   "licenseName": zod.string().optional(),
   "folderName": zod.string().optional()

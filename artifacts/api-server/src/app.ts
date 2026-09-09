@@ -4,11 +4,8 @@ import path from "node:path";
 import pinoHttp from "pino-http";
 import router from "./routes";
 import { logger } from "./lib/logger";
-import { startBgutilPotProvider } from "./lib/bgutilPotProvider";
 
 const app: Express = express();
-
-startBgutilPotProvider();
 
 app.use(
   pinoHttp({

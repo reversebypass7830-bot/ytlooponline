@@ -1,5 +1,5 @@
-import { spawn, spawnSync } from "node:child_process";
-import { createWriteStream, existsSync } from "node:fs";
+import { spawn } from "node:child_process";
+import { createWriteStream } from "node:fs";
 import { mkdir, readFile, readdir, rename, rm, stat, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { pipeline } from "node:stream/promises";
@@ -20,7 +20,12 @@ import {
   TrimMediaFileResponse,
 } from "@workspace/api-zod";
 import ffmpegPath from "ffmpeg-static";
-import { bgutilPluginDir, bgutilPotBaseUrl } from "../lib/bgutilPotProvider";
+import {
+  chooseYtUltraMedia,
+  getYtUltraVideo,
+  ytUltraAvailableQualities,
+  ytUltraQualityLabel,
+} from "../lib/ytUltra";
 
 const router: IRouter = Router();
 const mediaDir = path.resolve(process.cwd(), "attached_assets", "live-media");
@@ -185,16 +190,6 @@ function formatDuration(seconds: unknown): string {
   return hours > 0
     ? `${hours}:${String(minutes).padStart(2, "0")}:${String(remainder).padStart(2, "0")}`
     : `${String(minutes).padStart(2, "0")}:${String(remainder).padStart(2, "0")}`;
-}
-
-function normalizeDuration(value: unknown): string {
-  if (typeof value === "number") return formatDuration(value);
-  if (typeof value !== "string") return "00:00";
-  const parts = value.trim().split(":").map(Number);
-  if (parts.length < 2 || parts.some((part) => !Number.isFinite(part))) return "00:00";
-  const [first, second, third] = parts;
-  const seconds = parts.length === 3 ? first * 3600 + second * 60 + third : first * 60 + second;
-  return formatDuration(seconds);
 }
 
 function runFfmpeg(args: string[]): Promise<void> {
@@ -394,348 +389,39 @@ async function extractYoutubeChannelLinks(url: string): Promise<string[]> {
   return Array.from(links);
 }
 
-type DownloadQuality = "best" | "2160p" | "1440p" | "1080p" | "720p" | "480p";
-
-function normalizeQualityLabel(value: string | undefined, fallback: string): string {
-  const match = value?.match(/(\d{3,4})p?/i);
-  return match ? `${match[1]}p` : fallback;
-}
-
-const YTDLP_PLAYER_CLIENT_FALLBACKS = [
-  "youtube:player_client=mweb",
-  "youtube:player_client=ios",
-  "youtube:player_client=android",
-  "youtube:player_client=web_safari",
-  "youtube:player_client=default,-web,-web_safari",
-];
-const YTDLP_BGUTIL_ARGS = ["--extractor-args", `youtubepot-bgutilhttp:base_url=${bgutilPotBaseUrl()}`];
-const YTDLP_DOWNLOAD_TIMEOUT_MS = 60 * 60 * 1000;
-
-type YtDlpCommand = {
-  executable: string;
-  prefixArgs: string[];
-  label: string;
-  supportsCurlCffi: boolean;
-};
-
-function ytDlpSourceCandidates(): string[] {
-  return [
-    process.env.YT_DLP_REPO,
-    path.resolve(process.cwd(), "yt-dlp", "yt_dlp", "__main__.py"),
-    path.resolve(process.cwd(), "..", "..", "yt-dlp", "yt_dlp", "__main__.py"),
-  ].filter((candidate): candidate is string => Boolean(candidate));
-}
-
-function preferredPython(): string {
-  const configured = process.env.PYTHON_PATH?.trim();
-  if (configured) return configured;
-
-  const workspacePython = path.resolve(process.cwd(), ".pythonlibs", "bin", "python");
-  if (existsSync(workspacePython)) return workspacePython;
-
-  return "python3";
-}
-
-function pythonSupportsCurlCffi(executable: string): boolean {
-  const result = spawnSync(executable, ["-c", "import curl_cffi"], {
-    stdio: "ignore",
-    windowsHide: true,
-  });
-  return result.status === 0;
-}
-
-function resolveYtDlpCommand(): YtDlpCommand {
-  const configured = process.env.YT_DLP_PATH?.trim();
-  if (configured && existsSync(configured)) {
-    return configured.endsWith(".py")
-      ? {
-          executable: preferredPython(),
-          prefixArgs: [configured],
-          label: configured,
-          supportsCurlCffi: pythonSupportsCurlCffi(preferredPython()),
-        }
-      : { executable: configured, prefixArgs: [], label: configured, supportsCurlCffi: false };
-  }
-
-  const source = ytDlpSourceCandidates()
-    .map((candidate) => candidate.endsWith(".py") ? candidate : path.join(candidate, "yt_dlp", "__main__.py"))
-    .find((candidate) => existsSync(candidate));
-  if (source) {
-    const executable = preferredPython();
-    return {
-      executable,
-      prefixArgs: [source],
-      label: source,
-      supportsCurlCffi: pythonSupportsCurlCffi(executable),
-    };
-  }
-
-  const binary = process.platform === "win32" ? "yt-dlp.exe" : "yt-dlp";
-  return { executable: binary, prefixArgs: [], label: binary, supportsCurlCffi: false };
-}
-
-type BrowserCookie = {
-  domain?: unknown;
-  hostOnly?: unknown;
-  path?: unknown;
-  secure?: unknown;
-  httpOnly?: unknown;
-  name?: unknown;
-  value?: unknown;
-  expirationDate?: unknown;
-  expires?: unknown;
-  expiration?: unknown;
-};
-
-function normalizeCookieText(rawText: string): string {
-  const trimmed = rawText.trim();
-  if (!trimmed.startsWith("[") && !trimmed.startsWith("{")) return rawText;
-
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(trimmed);
-  } catch {
-    return rawText;
-  }
-
-  const cookies = Array.isArray(parsed)
-    ? parsed
-    : parsed && typeof parsed === "object" && Array.isArray((parsed as { cookies?: unknown }).cookies)
-      ? (parsed as { cookies: unknown[] }).cookies
-      : [];
-  if (!cookies.length) return rawText;
-
-  const lines = cookies.flatMap((item) => {
-    if (!item || typeof item !== "object") return [];
-    const cookie = item as BrowserCookie;
-    const domainValue = typeof cookie.domain === "string" ? cookie.domain.trim() : "";
-    const name = typeof cookie.name === "string" ? cookie.name : "";
-    if (!domainValue || !name) return [];
-
-    const domain = cookie.httpOnly === true && !domainValue.startsWith("#HttpOnly_")
-      ? `#HttpOnly_${domainValue}`
-      : domainValue;
-    const includeSubdomains = cookie.hostOnly === true
-      ? "FALSE"
-      : cookie.hostOnly === false || domainValue.startsWith(".") ? "TRUE" : "FALSE";
-    const cookiePath = typeof cookie.path === "string" && cookie.path ? cookie.path : "/";
-    const secure = cookie.secure === true ? "TRUE" : "FALSE";
-    const rawExpiration = cookie.expirationDate ?? cookie.expires ?? cookie.expiration;
-    const numericExpiration = Number(rawExpiration);
-    const expiration = Number.isFinite(numericExpiration) && numericExpiration > 0
-      ? String(Math.floor(numericExpiration > 100_000_000_000 ? numericExpiration / 1000 : numericExpiration))
-      : "0";
-    const value = typeof cookie.value === "string" ? cookie.value.replace(/[\r\n\t]/g, "") : "";
-    return [`${domain}\t${includeSubdomains}\t${cookiePath}\t${secure}\t${expiration}\t${name}\t${value}`];
-  });
-  return lines.length ? `# Netscape HTTP Cookie File\n${lines.join("\n")}\n` : rawText;
-}
-
-async function createYtDlpCookieFile(): Promise<{ path?: string; cleanup: () => Promise<void> }> {
-  const configuredPath = process.env.YT_DLP_COOKIES_FILE?.trim();
-  const configuredCookies = process.env.YOUTUBE_COOKIES?.trim();
-  const workspaceCookiePaths = [
-    path.resolve(process.cwd(), "cookies.txt"),
-    path.resolve(process.cwd(), "cokkies.txt"),
-    path.resolve(process.cwd(), "..", "..", "cookies.txt"),
-    path.resolve(process.cwd(), "..", "..", "cokkies.txt"),
-  ];
-  const cookieSources = [configuredPath, ...workspaceCookiePaths, configuredCookies]
-    .filter((value): value is string => Boolean(value));
-  if (!cookieSources.length) return { cleanup: async () => undefined };
-
-  let cookieText = "";
-  for (const source of cookieSources) {
-    try {
-      const sourceStats = await stat(source);
-      if (sourceStats.isFile()) {
-        cookieText = normalizeCookieText(await readFile(source, "utf8"));
-        break;
-      }
-    } catch {
-      if (source === configuredCookies) cookieText = normalizeCookieText(source);
-    }
-  }
-  if (!cookieText.trim()) return { cleanup: async () => undefined };
-
-  const cookieDirectory = path.join("/tmp", `yt-dlp-youtube-cookies-${randomUUID()}`);
-  const cookiePath = path.join(cookieDirectory, "cookies.txt");
-  try {
-    await mkdir(cookieDirectory, { recursive: true, mode: 0o700 });
-    await writeFile(cookiePath, cookieText, { encoding: "utf8", mode: 0o600 });
-  } catch (error) {
-    await rm(cookieDirectory, { recursive: true, force: true }).catch(() => undefined);
-    throw error;
-  }
-  return {
-    path: cookiePath,
-    cleanup: () => rm(cookieDirectory, { recursive: true, force: true }).catch(() => undefined),
-  };
-}
-
-function ytDlpFormatSelector(quality: DownloadQuality): string {
-  const height = quality === "best" ? undefined : Number.parseInt(quality, 10);
-  return height
-    ? `bv*[height<=${height}]+ba/b[height<=${height}]/b`
-    : "bv*+ba/b";
-}
-
-type YtDlpRun = {
-  code: number;
-  stdout: string;
-  stderr: string;
-};
-
-function runYtDlp(command: YtDlpCommand, args: string[]): Promise<YtDlpRun> {
-  return new Promise((resolve, reject) => {
-    const childEnv = { ...process.env };
-    delete childEnv.YOUTUBE_COOKIES;
-    const child = spawn(command.executable, [...command.prefixArgs, ...args], {
-      env: { ...childEnv, ...(ffmpegPath ? { PATH: `${path.dirname(ffmpegPath)}${path.delimiter}${process.env.PATH || ""}` } : {}) },
-      stdio: ["ignore", "pipe", "pipe"],
-      windowsHide: true,
-    });
-    let stdout = "";
-    let stderr = "";
-    let settled = false;
-    const timer = setTimeout(() => {
-      child.kill("SIGKILL");
-      if (!settled) {
-        settled = true;
-        resolve({ code: -1, stdout, stderr: `${stderr}\nyt-dlp timed out.` });
-      }
-    }, YTDLP_DOWNLOAD_TIMEOUT_MS);
-    child.stdout.on("data", (chunk: Buffer) => { stdout += chunk.toString(); });
-    child.stderr.on("data", (chunk: Buffer) => { stderr += chunk.toString(); });
-    child.once("error", (error) => {
-      clearTimeout(timer);
-      if (settled) return;
-      settled = true;
-      reject(error);
-    });
-    child.once("close", (code) => {
-      clearTimeout(timer);
-      if (settled) return;
-      settled = true;
-      resolve({ code: code ?? -1, stdout, stderr });
-    });
-  });
-}
-
-function lastJsonLine(stdout: string): Record<string, unknown> {
-  for (const line of stdout.trim().split(/\r?\n/).reverse()) {
-    try {
-      const parsed = JSON.parse(line) as unknown;
-      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) return parsed as Record<string, unknown>;
-    } catch {
-      // Progress output can contain non-JSON lines before --print-json.
-    }
-  }
-  return {};
-}
-
-function shouldTryYtDlpFallback(stderr: string): boolean {
-  return /bot|sign in|not available on this app|player response|requested format|po token|page needs to be reloaded/i.test(stderr);
-}
-
-function withYtDlpFormat(args: string[], selector: string): string[] {
-  const formatIndex = args.indexOf("--format");
-  if (formatIndex === -1 || formatIndex === args.length - 1) return args;
-  return [
-    ...args.slice(0, formatIndex),
-    "--format",
-    selector,
-    ...args.slice(formatIndex + 2),
-  ];
-}
-
-async function downloadViaYtDlp(
-  url: string,
-  fileId: string,
-  context: MediaContext,
-): Promise<{ path: string; title: string; duration: string; quality: string }> {
-  const requestedQuality = (context.quality || "best") as DownloadQuality;
-  const command = resolveYtDlpCommand();
-  const cookie = await createYtDlpCookieFile();
-  const destination = path.join(mediaDir, `${fileId}.mp4`);
-  const pluginDir = bgutilPluginDir();
-  const baseArgs = [
-    "--no-playlist",
-    "--no-warnings",
-    "--newline",
-    "--js-runtimes", "node",
-    ...(command.supportsCurlCffi ? ["--impersonate", "chrome"] : []),
-    ...(pluginDir ? ["--plugin-dirs", pluginDir, ...YTDLP_BGUTIL_ARGS] : []),
-    "--print-json",
-    "--format", ytDlpFormatSelector(requestedQuality),
-    "--merge-output-format", "mp4",
-    "--output", destination,
-    "--retries", "20",
-    "--fragment-retries", "20",
-    "--retry-sleep", "fragment:exp=1:20",
-    "--abort-on-unavailable-fragments",
-    "--ffmpeg-location", ffmpegPath ? path.dirname(ffmpegPath) : "ffmpeg",
-    ...(cookie.path ? ["--cookies", cookie.path] : []),
-    url,
-  ];
-  await mkdir(mediaDir, { recursive: true });
-  try {
-    let result = await runYtDlp(command, baseArgs);
-    if (result.code !== 0 && shouldTryYtDlpFallback(result.stderr)) {
-      const fallbackBaseArgs = baseArgs.slice(0, -1);
-      for (const playerClient of YTDLP_PLAYER_CLIENT_FALLBACKS) {
-        result = await runYtDlp(command, [
-          ...fallbackBaseArgs,
-          "--extractor-args", playerClient,
-          url,
-        ]);
-        if (result.code === 0) break;
-        if (/requested format/i.test(result.stderr)) {
-          result = await runYtDlp(command, [
-            ...withYtDlpFormat(fallbackBaseArgs, "b/best"),
-            "--extractor-args", playerClient,
-            url,
-          ]);
-          if (result.code === 0) break;
-        }
-      }
-    }
-    if (result.code !== 0) {
-      const detail = result.stderr.trim().split(/\r?\n/).filter(Boolean).at(-1)
-        || `yt-dlp could not download this YouTube video using ${command.label}.`;
-      throw new Error(detail.slice(-1200));
-    }
-    const metadata = lastJsonLine(result.stdout);
-    const title = typeof metadata.title === "string" && metadata.title.trim() ? metadata.title.trim() : "Downloaded YouTube video";
-    const durationValue = typeof metadata.duration_string === "string" ? metadata.duration_string : metadata.duration;
-    const duration = typeof durationValue === "string" ? normalizeDuration(durationValue) : formatDuration(durationValue);
-    const quality = typeof metadata.height === "number" && metadata.height > 0
-      ? `${metadata.height}p`
-      : normalizeQualityLabel(typeof metadata.resolution === "string" ? metadata.resolution : undefined, requestedQuality);
-    const finalPath = await finalizeMediaFile(fileId, destination, title, context);
-    return { path: finalPath, title, duration, quality };
-  } catch (error) {
-    await unlink(destination).catch(() => undefined);
-    throw error;
-  } finally {
-    await cookie.cleanup();
-  }
-}
-
 async function downloadYoutubeVideo(
   url: string,
   fileId: string,
   context: MediaContext,
 ): Promise<{ path: string; title: string; duration: string; quality: string }> {
-  return downloadViaYtDlp(url, fileId, context);
+  const video = await getYtUltraVideo(url);
+  const media = chooseYtUltraMedia(video, context.quality || "best");
+  const response = await fetchDirectMedia(media.url);
+  if (!response.body) throw new Error("YT Ultra returned an empty video response.");
+
+  const extension = media.format.toLowerCase().includes(".webm") ? ".webm" : ".mp4";
+  const partialPath = path.join(mediaDir, `${fileId}.part`);
+  try {
+    await mkdir(mediaDir, { recursive: true });
+    const readable = Readable.fromWeb(response.body as import("node:stream/web").ReadableStream);
+    await pipeline(readable, createWriteStream(partialPath));
+    const finalPath = await finalizeMediaFile(fileId, partialPath, `${video.title}${extension}`, context);
+    return {
+      path: finalPath,
+      title: video.title,
+      duration: video.duration,
+      quality: ytUltraQualityLabel(media.format),
+    };
+  } catch (error) {
+    await unlink(partialPath).catch(() => undefined);
+    throw error;
+  }
 }
 
 async function inspectYoutubeFormats(url: string): Promise<{ qualities: string[]; title: string }> {
   validateYoutubeUrl(url);
-  return {
-    qualities: ["best", "2160p", "1440p", "1080p", "720p", "480p"],
-    title: "YouTube video",
-  };
+  const video = await getYtUltraVideo(url);
+  return { qualities: ytUltraAvailableQualities(video), title: video.title };
 }
 
 router.get("/media/files", async (req, res): Promise<void> => {
@@ -924,7 +610,7 @@ router.post("/media/youtube-download", async (req, res): Promise<void> => {
   } catch (error) {
     const rawMessage = error instanceof Error ? error.message : "The YouTube video could not be downloaded.";
     const message = rawMessage.includes("sign in") || rawMessage.includes("not a bot") || rawMessage.includes("bot")
-      ? "YouTube rejected this server request. The local open-source PO-token provider was tried automatically; optional YOUTUBE_COOKIES can help with account-restricted videos, or try a direct video URL."
+      ? "YT Ultra could not resolve this YouTube video. Try a public video URL or a lower quality."
       : rawMessage;
     req.log.warn({ error: message }, "YouTube download failed");
     res.status(400).json({ error: message });

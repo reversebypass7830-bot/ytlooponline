@@ -15,7 +15,7 @@ import logoImage from "@assets/image_1788788255512.png";
 
 type LiveStatus = "live" | "scheduled" | "stopped";
 type VideoStatus = "published" | "draft" | "archived";
-type DownloadQuality = "best" | "2160p" | "1440p" | "1080p" | "720p" | "480p";
+type DownloadQuality = "best" | "2160p" | "1440p" | "1080p" | "720p" | "480p" | "360p" | "240p" | "144p";
 type AspectRatio = "shorts" | "full" | "square";
 type StreamQuality = "4k" | "1080p";
 type FacePosition = "top-left" | "top-right" | "bottom-left" | "bottom-right" | "center";

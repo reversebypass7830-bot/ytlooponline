@@ -32,7 +32,6 @@ async function buildAll() {
       "sharp",
       "better-sqlite3",
       "sqlite3",
-      "canvas",
       "bcrypt",
       "argon2",
       "fsevents",
@@ -120,25 +119,6 @@ globalThis.__dirname = __bannerPath.dirname(globalThis.__filename);
     },
   });
 
-  // The POT provider is kept as a small isolated Node process because yt-dlp
-  // talks to it over localhost. Bundle its upstream TypeScript source into a
-  // single runnable file while leaving canvas as a native runtime dependency.
-  await esbuild({
-    entryPoints: [
-      path.resolve(artifactDir, "vendor/bgutil-pot-provider/src/main.ts"),
-      path.resolve(artifactDir, "vendor/bgutil-pot-provider/src/session_manager.ts"),
-      path.resolve(artifactDir, "vendor/bgutil-pot-provider/src/utils.ts"),
-      path.resolve(artifactDir, "vendor/bgutil-pot-provider/src/generate_once.ts"),
-    ],
-    platform: "node",
-    bundle: false,
-    format: "esm",
-    outdir: path.resolve(distDir, "bgutil-pot-provider"),
-    outExtension: { ".js": ".js" },
-    logLevel: "info",
-    target: "node22",
-    sourcemap: true,
-  });
 }
 
 buildAll().catch((err) => {
