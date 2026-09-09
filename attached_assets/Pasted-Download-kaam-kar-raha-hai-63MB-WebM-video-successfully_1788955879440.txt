@@ -1,0 +1,96 @@
+Download kaam kar raha hai! ✅ 63MB WebM video successfully download hua.
+
+
+
+Puri Process — Step by Step
+
+Step 1: API Call karo (links lo)
+
+bash
+curl "https://yt-download-proxy-cqkedn65a-dev-e6b8.vercel.app/api/download?url=https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+curl "https://yt-download-proxy-cqkedn65a-dev-e6b8.vercel.app/api/download?url=https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+
+Response mein video[] aur audio[] arrays milenge with direct URLs.
+
+
+Step 2: URL nikaalo
+
+bash
+# Python se
+python3 -c "
+import requests, json
+data = requests.get('https://yt-download-proxy-cqkedn65a-dev-e6b8.vercel.app/api/download?url=https://www.youtube.com/watch?v=dQw4w9WgXcQ').json()
+for v in data['video']:
+    print(f\"{v['quality']} [{v['ext']}] - {v.get('size','?')}\")
+"
+# Python se
+python3 -c "
+import requests, json
+data = requests.get('https://yt-download-proxy-cqkedn65a-dev-e6b8.vercel.app/api/download?url=https://www.youtube.com/watch?v=dQw4w9WgXcQ').json()
+for v in data['video']:
+    print(f\"{v['quality']} [{v['ext']}] - {v.get('size','?')}\")
+"
+
+Output:
+
+text
+4K [webm] - 342.00MB
+2K [webm] - 144.10MB
+1080p [mp4] - 77.16MB
+720p [mp4] - 44.22MB
+480p [mp4] - 27.48MB
+360p [mp4] - 19.42MB
+240p [mp4] - 10.46MB
+144p [mp4] - 5.76MB
+4K [webm] - 342.00MB
+2K [webm] - 144.10MB
+1080p [mp4] - 77.16MB
+720p [mp4] - 44.22MB
+480p [mp4] - 27.48MB
+360p [mp4] - 19.42MB
+240p [mp4] - 10.46MB
+144p [mp4] - 5.76MB
+
+Step 3: Download karo (client se)
+
+Browser mein:
+
+javascript
+// Simple - new tab mein download
+const res = await fetch('https://yt-download-proxy-cqkedn65a-dev-e6b8.vercel.app/api/download?url=YT_URL');
+const data = await res.json();
+window.open(data.video[0].url);  // Direct download from googlevideo
+// Simple - new tab mein download
+const res = await fetch('https://yt-download-proxy-cqkedn65a-dev-e6b8.vercel.app/api/download?url=YT_URL');
+const data = await res.json();
+window.open(data.video[0].url);  // Direct download from googlevideo
+
+Python se:
+
+python
+import requests
+data = requests.get('https://yt-download-proxy-cqkedn65a-dev-e6b8.vercel.app/api/download?url=YT_URL').json()
+r = requests.get(data['video'][0]['url'], stream=True)
+with open('video.mp4', 'wb') as f:
+    for chunk in r.iter_content(8192):
+        f.write(chunk)
+import requests
+data = requests.get('https://yt-download-proxy-cqkedn65a-dev-e6b8.vercel.app/api/download?url=YT_URL').json()
+r = requests.get(data['video'][0]['url'], stream=True)
+with open('video.mp4', 'wb') as f:
+    for chunk in r.iter_content(8192):
+        f.write(chunk)
+
+cURL se:
+
+bash
+# Step 1: URL lo
+URL=$(curl -s "https://yt-download-proxy-cqkedn65a-dev-e6b8.vercel.app/api/download?url=https://www.youtube.com/watch?v=VIDEO_ID" | python3 -c "import json,sys; print(json.load(sys.stdin)['video'][0]['url'])")
+
+# Step 2: Download karo
+curl -L -o video.webm "$URL"
+# Step 1: URL lo
+URL=$(curl -s "https://yt-download-proxy-cqkedn65a-dev-e6b8.vercel.app/api/download?url=https://www.youtube.com/watch?v=VIDEO_ID" | python3 -c "import json,sys; print(json.load(sys.stdin)['video'][0]['url'])")
+
+# Step 2: Download karo
+curl -L -o video.webm "$URL"

@@ -9,6 +9,8 @@ import { Readable } from "node:stream";
 import {
   DownloadYoutubeVideoBody,
   DownloadYoutubeVideoResponse,
+  GetYoutubeDownloadLinksBody,
+  GetYoutubeDownloadLinksResponse,
   ExtractYoutubeChannelLinksBody,
   ExtractYoutubeChannelLinksResponse,
   GetYoutubeFormatsBody,
@@ -192,6 +194,15 @@ function formatDuration(seconds: unknown): string {
     : `${String(minutes).padStart(2, "0")}:${String(remainder).padStart(2, "0")}`;
 }
 
+function decodeHeaderValue(value: string | undefined): string {
+  if (!value) return "";
+  try {
+    return decodeURIComponent(value).trim();
+  } catch {
+    return value.trim();
+  }
+}
+
 function runFfmpeg(args: string[]): Promise<void> {
   return new Promise((resolve, reject) => {
     const child = spawn(ffmpegPath ?? "ffmpeg", args, { stdio: ["ignore", "ignore", "pipe"] });
@@ -342,6 +353,25 @@ async function inspectYoutubeFormats(url: string): Promise<{ qualities: string[]
   return { qualities: ytDownloadProxyAvailableQualities(video), title: video.title };
 }
 
+async function inspectYoutubeDownloadLinks(
+  url: string,
+  quality: string,
+): Promise<{ title: string; duration: string; formats: Array<{ url: string; quality: string; ext: string; fileSize?: number }> }> {
+  validateYoutubeUrl(url);
+  const video = await getYtDownloadProxyVideo(url);
+  const candidates = ytDownloadProxyMediaCandidates(video, quality);
+  return {
+    title: video.title,
+    duration: video.duration,
+    formats: candidates.map(({ url: mediaUrl, quality: mediaQuality, ext, fileSize }) => ({
+      url: mediaUrl,
+      quality: mediaQuality,
+      ext,
+      ...(typeof fileSize === "number" ? { fileSize } : {}),
+    })),
+  };
+}
+
 router.get("/media/files", async (req, res): Promise<void> => {
   await mediaIndexWrite;
   const records = await readMediaIndex();
@@ -411,6 +441,23 @@ router.post("/media/youtube-formats", async (req, res): Promise<void> => {
   }
 });
 
+router.post("/media/youtube-links", async (req, res): Promise<void> => {
+  try {
+    const parsed = GetYoutubeDownloadLinksBody.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ error: parsed.error.message });
+      return;
+    }
+    const url = validateYoutubeUrl(parsed.data.url.trim());
+    const result = await inspectYoutubeDownloadLinks(url, parsed.data.quality || "best");
+    res.json(GetYoutubeDownloadLinksResponse.parse(result));
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "YouTube download links could not be loaded.";
+    req.log.warn({ error: message }, "YouTube download link resolution failed");
+    res.status(400).json({ error: message });
+  }
+});
+
 router.post("/media/upload", async (req, res): Promise<void> => {
   const rawName = req.header("x-file-name");
   const contentType = req.header("content-type") || "";
@@ -426,6 +473,9 @@ router.post("/media/upload", async (req, res): Promise<void> => {
     licenseName: req.header("x-license-name") || undefined,
     folderName: req.header("x-folder-name") || undefined,
   };
+  const mediaTitle = decodeHeaderValue(req.header("x-media-title"));
+  const mediaDuration = decodeHeaderValue(req.header("x-media-duration"));
+  const mediaQuality = decodeHeaderValue(req.header("x-quality"));
   const filename = storedMediaFilename(fileId, rawName, context);
   const destination = path.join(mediaScopePath(context), filename);
   await mkdir(path.dirname(destination), { recursive: true });
@@ -443,12 +493,12 @@ router.post("/media/upload", async (req, res): Promise<void> => {
       filename: rawName,
       sourcePath: destination,
       playbackUrl: `/api/media/files/${fileId}`,
-      title: path.basename(rawName, path.extname(rawName)),
-      duration: "00:00",
+      title: mediaTitle || path.basename(rawName, path.extname(rawName)),
+      duration: mediaDuration || "00:00",
       licenseId: context.licenseId || "",
       licenseName: context.licenseName || "",
       folderName: context.folderName || "",
-      quality: "uploaded",
+      quality: mediaQuality || "uploaded",
       createdAt: new Date().toISOString(),
       sizeBytes: fileStats.size,
     });

@@ -43,6 +43,8 @@ import type {
   WorkspaceSaveResponse,
   YoutubeChannelLinksResponse,
   YoutubeDownloadInput,
+  YoutubeDownloadLinksInput,
+  YoutubeDownloadLinksResponse,
   YoutubeDownloadResponse,
   YoutubeFormatsInput,
   YoutubeFormatsResponse
@@ -889,6 +891,77 @@ export const useDownloadYoutubeVideo = <TError = ErrorType<void>,
         TContext
       > => {
       return useMutation(getDownloadYoutubeVideoMutationOptions(options));
+    }
+
+export const getGetYoutubeDownloadLinksUrl = () => {
+
+
+
+
+  return `/api/media/youtube-links`
+}
+
+/**
+ * @summary Resolve browser-downloadable YouTube media links
+ */
+export const getYoutubeDownloadLinks = async (youtubeDownloadLinksInput: YoutubeDownloadLinksInput, options?: Parameters<typeof customFetch>[1]): Promise<YoutubeDownloadLinksResponse> => {
+
+  return customFetch<YoutubeDownloadLinksResponse>(getGetYoutubeDownloadLinksUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(youtubeDownloadLinksInput)
+  }
+);}
+
+
+
+
+
+export const getGetYoutubeDownloadLinksMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof getYoutubeDownloadLinks>>, TError,{data: BodyType<YoutubeDownloadLinksInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof getYoutubeDownloadLinks>>, TError,{data: BodyType<YoutubeDownloadLinksInput>}, TContext> => {
+
+const mutationKey = ['getYoutubeDownloadLinks'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof getYoutubeDownloadLinks>>, {data: BodyType<YoutubeDownloadLinksInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  getYoutubeDownloadLinks(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type GetYoutubeDownloadLinksMutationResult = NonNullable<Awaited<ReturnType<typeof getYoutubeDownloadLinks>>>
+    export type GetYoutubeDownloadLinksMutationBody = BodyType<YoutubeDownloadLinksInput>
+    export type GetYoutubeDownloadLinksMutationError = ErrorType<void>
+
+    /**
+ * @summary Resolve browser-downloadable YouTube media links
+ */
+export const useGetYoutubeDownloadLinks = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof getYoutubeDownloadLinks>>, TError,{data: BodyType<YoutubeDownloadLinksInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof getYoutubeDownloadLinks>>,
+        TError,
+        {data: BodyType<YoutubeDownloadLinksInput>},
+        TContext
+      > => {
+      return useMutation(getGetYoutubeDownloadLinksMutationOptions(options));
     }
 
 export const getGetYoutubeFormatsUrl = () => {

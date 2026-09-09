@@ -176,6 +176,48 @@ export interface YoutubeDownloadResponse {
   folderName: string;
 }
 
+export type YoutubeDownloadLinksInputQuality = typeof YoutubeDownloadLinksInputQuality[keyof typeof YoutubeDownloadLinksInputQuality];
+
+
+export const YoutubeDownloadLinksInputQuality = {
+  best: 'best',
+  '2160p': '2160p',
+  '1440p': '1440p',
+  '1080p': '1080p',
+  '720p': '720p',
+  '480p': '480p',
+  '360p': '360p',
+  '240p': '240p',
+  '144p': '144p',
+} as const;
+
+export interface YoutubeDownloadLinksInput {
+  /** @minLength 1 */
+  url: string;
+  quality?: YoutubeDownloadLinksInputQuality;
+}
+
+export type YoutubeDownloadLinkExt = typeof YoutubeDownloadLinkExt[keyof typeof YoutubeDownloadLinkExt];
+
+
+export const YoutubeDownloadLinkExt = {
+  mp4: 'mp4',
+  webm: 'webm',
+} as const;
+
+export interface YoutubeDownloadLink {
+  url: string;
+  quality: string;
+  ext: YoutubeDownloadLinkExt;
+  fileSize?: number;
+}
+
+export interface YoutubeDownloadLinksResponse {
+  title: string;
+  duration: string;
+  formats: YoutubeDownloadLink[];
+}
+
 export interface YoutubeFormatsInput {
   /** @minLength 1 */
   url: string;

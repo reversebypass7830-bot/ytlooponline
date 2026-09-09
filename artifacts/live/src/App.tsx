@@ -10,7 +10,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/toaster";
 import NotFound from "@/pages/not-found";
-import { downloadYoutubeVideo, extractYoutubeChannelLinks, getStreamStatus, startStream, stopStream, trimMediaFile, updateStream } from "@workspace/api-client-react";
+import { extractYoutubeChannelLinks, getStreamStatus, startStream, stopStream, trimMediaFile, updateStream } from "@workspace/api-client-react";
 import logoImage from "@assets/image_1788788255512.png";
 
 type LiveStatus = "live" | "scheduled" | "stopped";
@@ -39,6 +39,8 @@ type MediaFileRecord = {
   fileId: string; filename: string; sourcePath: string; playbackUrl: string; title: string; duration: string;
   licenseId: string; licenseName: string; folderName: string; quality: string; createdAt: string; sizeBytes: number;
 };
+type YoutubeDownloadLink = { url: string; quality: string; ext: "mp4" | "webm"; fileSize?: number };
+type YoutubeDownloadLinksResponse = { title: string; duration: string; formats: YoutubeDownloadLink[] };
 
 const queryClient = new QueryClient();
 const now = () => new Date().toISOString();
@@ -64,6 +66,10 @@ const fmtTime = (date: string | null) => {
 };
 const fmtNumber = (n: number) => new Intl.NumberFormat("en-US").format(n);
 const colors = ["#2c8b88", "#da814b", "#607a98", "#788d52", "#9a6591", "#3f6d66"];
+const safeDownloadFilename = (title: string, ext: string) => {
+  const normalized = title.trim().replace(/[^a-z0-9]+/gi, "-").replace(/^-+|-+$/g, "").slice(0, 80);
+  return `${normalized || "youtube-video"}.${ext}`;
+};
 // These demo files are intentionally not bundled in the public repository.
 // Users can add a video through the upload or YouTube download flow instead.
 const gtv5FaceVideoUrl = "";
@@ -805,6 +811,68 @@ function YoutubeDownloadModal({groups,defaultGroupId="",licenseId="",licenseName
     }catch(reason){setError(reason instanceof Error?reason.message:"Channel links could not be extracted.");}
     finally{setExtracting(false);}
   };
+  const downloadAndUpload = async (url: string, folderName: string, colorIndex: number): Promise<VideoItem> => {
+    const resolved = await apiJson<YoutubeDownloadLinksResponse>("/api/media/youtube-links", {
+      method: "POST",
+      body: JSON.stringify({url, quality}),
+    });
+    let selected: YoutubeDownloadLink | undefined;
+    let mediaResponse: Response | undefined;
+    let lastError: unknown;
+    for (const candidate of resolved.formats) {
+      try {
+        const response = await fetch(candidate.url, {mode: "cors"});
+        if (!response.ok) throw new Error(`The media link returned ${response.status}.`);
+        selected = candidate;
+        mediaResponse = response;
+        break;
+      } catch (reason) {
+        lastError = reason;
+      }
+    }
+    if (!selected || !mediaResponse) {
+      throw lastError instanceof Error ? lastError : new Error("The browser could not fetch the resolved YouTube media link.");
+    }
+    const expectedSize = selected.fileSize || Number(mediaResponse.headers.get("content-length") || 0);
+    if (expectedSize > 1.5 * 1024 * 1024 * 1024) throw new Error("The YouTube video is larger than 1.5 GB.");
+    const blob = await mediaResponse.blob();
+    if (!blob.size) throw new Error("The YouTube media link returned an empty file.");
+    const contentType = blob.type || (selected.ext === "webm" ? "video/webm" : "video/mp4");
+    const upload = await fetch("/api/media/upload", {
+      method: "POST",
+      headers: {
+        "Content-Type": contentType,
+        "X-File-Name": safeDownloadFilename(resolved.title, selected.ext),
+        "X-Media-Title": encodeURIComponent(resolved.title),
+        "X-Media-Duration": resolved.duration,
+        "X-Quality": selected.quality,
+        "X-License-Id": licenseId,
+        "X-License-Name": licenseName,
+        "X-Folder-Name": folderName,
+      },
+      body: blob,
+    });
+    const uploaded = await upload.json() as {sourcePath?: string; playbackUrl?: string; error?: string};
+    if (!upload.ok || !uploaded.sourcePath || !uploaded.playbackUrl) {
+      throw new Error(uploaded.error || "The downloaded video could not be saved to the workspace.");
+    }
+    return {
+      id: uid("vid"),
+      title: resolved.title,
+      duration: resolved.duration,
+      status: "published",
+      groupId,
+      sourceUrl: uploaded.playbackUrl,
+      serverSource: uploaded.sourcePath,
+      thumbnailColor: colors[colorIndex % colors.length],
+      views: 0,
+      createdAt: now(),
+      licenseId,
+      licenseName,
+      folderName,
+      quality: selected.quality,
+    };
+  };
   const submit=async(e:FormEvent)=>{
     e.preventDefault();
       if(!entries.length||!groupId||downloading||extracting||checkingQuality)return;
@@ -819,8 +887,7 @@ function YoutubeDownloadModal({groups,defaultGroupId="",licenseId="",licenseName
          if(index>=entries.length)return;
          const url=entries[index];
          try{
-             const result=await downloadYoutubeVideo({url,quality,licenseId,licenseName,folderName});
-            completedVideos[index]={id:uid("vid"),title:result.title,duration:result.duration,status:"published",groupId,sourceUrl:result.playbackUrl,serverSource:result.sourcePath,thumbnailColor:colors[index%colors.length],views:0,createdAt:now(),licenseId,licenseName,folderName,quality:result.quality};
+             completedVideos[index]=await downloadAndUpload(url, folderName, index);
          }catch(reason){failuresByIndex[index]=`${index+1}. ${reason instanceof Error?reason.message:"Download failed."}`;}
          completedCount+=1;
          setProgress(completedCount);
@@ -834,7 +901,7 @@ function YoutubeDownloadModal({groups,defaultGroupId="",licenseId="",licenseName
     setDownloading(false);
     setError(failures.length?`${videos.length} downloaded, ${failures.length} failed.\n${failures.join("\n")}`:`${videos.length} video${videos.length===1?"":"s"} downloaded and added in order.`);
   };
-    return <Modal title="YouTube bulk downloader" onClose={onClose} footer={<><button className="button ghost" onClick={onClose} disabled={downloading||extracting||checkingQuality} data-testid="button-cancel-youtube-download">Close</button><button className="button" type="submit" form="youtube-download-form" disabled={downloading||extracting||checkingQuality||!entries.length} data-testid="button-start-youtube-download">{downloading?`Downloading ${progress}/${entries.length}…`:"Download all videos"} {!downloading&&<Download size={14}/>}</button></>}><form id="youtube-download-form" onSubmit={submit}><div className="form-grid"><div className="field full"><label>Auto-fill from YouTube channel</label><div className="input-action-row"><input value={channelUrl} onChange={e=>setChannelUrl(e.target.value)} placeholder="https://www.youtube.com/@channel" data-testid="input-youtube-channel-url"/><button type="button" className="button secondary small" onClick={extractChannel} disabled={extracting||downloading||!channelUrl.trim()} data-testid="button-extract-channel-links">{extracting?"Extracting…":"Extract links"} {!extracting&&<Link2 size={13}/>}</button></div><span className="field-hint">Enter a public channel URL, choose how many links to add, then extract them.</span></div><div className="field"><label>Links to add</label><select value={linkLimit} onChange={e=>setLinkLimit(e.target.value as "all"|"5"|"10")} disabled={extracting||downloading} data-testid="select-youtube-link-limit"><option value="all">All links</option><option value="5">First 5 links</option><option value="10">First 10 links</option></select></div><div className="field"><label>Save in category / folder</label><select required value={groupId} onChange={e=>setGroupId(e.target.value)} disabled={downloading} data-testid="select-youtube-group"><option value="">Select a category</option>{groups.map(g=><option value={g.id} key={g.id}>{g.name}</option>)}</select></div><div className="field"><label>Download quality</label><select value={quality} onChange={e=>setQuality(e.target.value as DownloadQuality)} disabled={checkingQuality||downloading} data-testid="select-youtube-quality">{availableQualities.map(item=><option value={item} key={item}>{item==="best"?"Best available":item}</option>)}</select><span className="field-hint">Choose quality for every queued video.</span></div><div className="field"><label>Check this link's qualities</label><button type="button" className="button secondary small" onClick={checkQuality} disabled={checkingQuality||downloading||!entries.length} data-testid="button-check-youtube-quality">{checkingQuality?"Checking…":"Show available quality"} <Gauge size={13}/></button></div><div className="field full"><label>Video links queue</label><textarea autoFocus required value={urls} onChange={e=>setUrls(e.target.value)} placeholder={"Paste one URL per line\nhttps://www.youtube.com/watch?v=…\nhttps://youtu.be/…"} rows={6} data-testid="input-youtube-urls"/><span className="field-hint">{extractedCount ? `${extractedCount} new link${extractedCount===1?"":"s"} added to the queue.` : entries.length ? `${entries.length} URL${entries.length===1?"":"s"} queued · 2 downloads at a time, saved in your pasted order.` : "Paste multiple links manually, or auto-fill them from a channel above."}</span></div></div>{error&&<div className="error-note" style={{whiteSpace:"pre-line"}}>{error}</div>}<div className="form-note"><Download size={14} style={{verticalAlign:"-3px",marginRight:6}}/>YouTube links are resolved through the configured download proxy and streamed into this workspace. The selected quality is applied to every queued link.</div></form></Modal>;
+   return <Modal title="YouTube bulk downloader" onClose={onClose} footer={<><button className="button ghost" onClick={onClose} disabled={downloading||extracting||checkingQuality} data-testid="button-cancel-youtube-download">Close</button><button className="button" type="submit" form="youtube-download-form" disabled={downloading||extracting||checkingQuality||!entries.length} data-testid="button-start-youtube-download">{downloading?`Downloading ${progress}/${entries.length}…`:"Download all videos"} {!downloading&&<Download size={14}/>}</button></>}><form id="youtube-download-form" onSubmit={submit}><div className="form-grid"><div className="field full"><label>Auto-fill from YouTube channel</label><div className="input-action-row"><input value={channelUrl} onChange={e=>setChannelUrl(e.target.value)} placeholder="https://www.youtube.com/@channel" data-testid="input-youtube-channel-url"/><button type="button" className="button secondary small" onClick={extractChannel} disabled={extracting||downloading||!channelUrl.trim()} data-testid="button-extract-channel-links">{extracting?"Extracting…":"Extract links"} {!extracting&&<Link2 size={13}/>}</button></div><span className="field-hint">Enter a public channel URL, choose how many links to add, then extract them.</span></div><div className="field"><label>Links to add</label><select value={linkLimit} onChange={e=>setLinkLimit(e.target.value as "all"|"5"|"10")} disabled={extracting||downloading} data-testid="select-youtube-link-limit"><option value="all">All links</option><option value="5">First 5 links</option><option value="10">First 10 links</option></select></div><div className="field"><label>Save in category / folder</label><select required value={groupId} onChange={e=>setGroupId(e.target.value)} disabled={downloading} data-testid="select-youtube-group"><option value="">Select a category</option>{groups.map(g=><option value={g.id} key={g.id}>{g.name}</option>)}</select></div><div className="field"><label>Download quality</label><select value={quality} onChange={e=>setQuality(e.target.value as DownloadQuality)} disabled={checkingQuality||downloading} data-testid="select-youtube-quality">{availableQualities.map(item=><option value={item} key={item}>{item==="best"?"Best available":item}</option>)}</select><span className="field-hint">Choose quality for every queued video.</span></div><div className="field"><label>Check this link's qualities</label><button type="button" className="button secondary small" onClick={checkQuality} disabled={checkingQuality||downloading||!entries.length} data-testid="button-check-youtube-quality">{checkingQuality?"Checking…":"Show available quality"} <Gauge size={13}/></button></div><div className="field full"><label>Video links queue</label><textarea autoFocus required value={urls} onChange={e=>setUrls(e.target.value)} placeholder={"Paste one URL per line\nhttps://www.youtube.com/watch?v=…\nhttps://youtu.be/…"} rows={6} data-testid="input-youtube-urls"/><span className="field-hint">{extractedCount ? `${extractedCount} new link${extractedCount===1?"":"s"} added to the queue.` : entries.length ? `${entries.length} URL${entries.length===1?"":"s"} queued · 2 downloads at a time, saved in your pasted order.` : "Paste multiple links manually, or auto-fill them from a channel above."}</span></div></div>{error&&<div className="error-note" style={{whiteSpace:"pre-line"}}>{error}</div>}<div className="form-note"><Download size={14} style={{verticalAlign:"-3px",marginRight:6}}/>Links are resolved through the configured download proxy, downloaded by your browser, and saved into this workspace. The selected quality is applied to every queued link.</div></form></Modal>;
 }
 
 function BulkUploadModal({groups,defaultGroupId="",licenseId="",licenseName="",onSaveMany,onClose}:{groups:VideoGroup[];defaultGroupId?:string;licenseId?:string;licenseName?:string;onSaveMany:(videos:VideoItem[])=>void;onClose:()=>void}) {
