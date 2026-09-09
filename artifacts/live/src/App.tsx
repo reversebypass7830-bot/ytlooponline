@@ -45,6 +45,7 @@ type YoutubeDownloadTask = {
   completed: number;
   failed: number;
   done: boolean;
+  errors: string[];
 };
 type StartYoutubeDownloadsInput = {
   entries: string[];
@@ -439,7 +440,7 @@ function useWorkspace(license: LicenseSession | null, clearLicense: () => void) 
   };
   const startYoutubeDownloads = (input: StartYoutubeDownloadsInput) => {
     const taskId = uid("youtube-download");
-    setYoutubeDownloads((current) => [...current, { id: taskId, total: input.entries.length, completed: 0, failed: 0, done: false }]);
+    setYoutubeDownloads((current) => [...current, { id: taskId, total: input.entries.length, completed: 0, failed: 0, done: false, errors: [] }]);
     void (async () => {
       const completedVideos: Array<VideoItem | undefined> = new Array(input.entries.length);
       const failures: Array<string | undefined> = new Array(input.entries.length);
@@ -499,7 +500,7 @@ function useWorkspace(license: LicenseSession | null, clearLicense: () => void) 
         });
       }
       const failureCount = failures.filter(Boolean).length;
-      setYoutubeDownloads((current) => current.map((task) => task.id === taskId ? { ...task, completed: completedCount, failed: failureCount, done: true } : task));
+      setYoutubeDownloads((current) => current.map((task) => task.id === taskId ? { ...task, completed: completedCount, failed: failureCount, errors: failures.filter((failure): failure is string => Boolean(failure)), done: true } : task));
       if (failureCount) {
         setToast(`${videos.length} downloaded, ${failureCount} failed.`);
       } else {
@@ -551,6 +552,7 @@ function Header({ title, onMenu }: { title:string; onMenu:()=>void }) {
 }
 
 function DownloadActivity({ downloads, onDismiss }: { downloads: YoutubeDownloadTask[]; onDismiss: (taskId: string) => void }) {
+  const [expandedTaskId, setExpandedTaskId] = useState<string | null>(null);
   if (!downloads.length) return null;
    return <div className="background-downloads" data-testid="background-downloads" role="status" aria-live="polite">
     {downloads.map((task) => {
@@ -558,10 +560,20 @@ function DownloadActivity({ downloads, onDismiss }: { downloads: YoutubeDownload
       const label = task.done
         ? task.failed ? `${task.completed - task.failed} downloaded · ${task.failed} failed` : `${task.completed} download${task.completed === 1 ? "" : "s"} complete`
         : `Downloading ${task.completed}/${task.total} in background`;
+      const expanded = expandedTaskId === task.id;
+      const detail = task.done
+        ? task.failed
+          ? task.errors.length ? task.errors : ["The download failed without a detailed server message."]
+          : ["All queued videos were added to the library."]
+        : ["Download is still running in the background."];
       return <div className={`background-download ${task.done ? "done" : ""}`} key={task.id}>
         <div className="background-download-icon"><Download size={15}/></div>
-        <div className="background-download-copy"><strong>{label}</strong><span>{task.done ? "You can keep using the website." : "You can keep using the website while this runs."}</span>{!task.done && <div className="background-download-track"><span style={{ width: `${percent}%` }}/></div>}</div>
-        <div className="background-download-meta">{task.done ? <button className="icon-button" onClick={() => onDismiss(task.id)} title="Dismiss download status" aria-label="Dismiss download status"><X size={15}/></button> : <span>{percent}%</span>}</div>
+        <button className="background-download-main" onClick={() => setExpandedTaskId(expanded ? null : task.id)} aria-expanded={expanded} aria-controls={`download-details-${task.id}`}>
+          <span className="background-download-copy"><strong>{label}</strong><span>{task.done ? "Click to see download details." : "Click to see status details."}</span>{!task.done && <span className="background-download-track"><span style={{ width: `${percent}%` }}/></span>}</span>
+          <span className="background-download-meta">{task.done ? <span className="background-download-chevron">{expanded ? "Hide" : "View"}</span> : <span>{percent}%</span>}</span>
+        </button>
+        {task.done && <button className="icon-button background-download-dismiss" onClick={() => onDismiss(task.id)} title="Dismiss download status" aria-label="Dismiss download status"><X size={15}/></button>}
+        {expanded && <div className="background-download-details" id={`download-details-${task.id}`}>{detail.map((message, index) => <div key={`${task.id}-detail-${index}`} className={task.failed && index < task.errors.length ? "background-download-error" : ""}>{message}</div>)}</div>}
       </div>;
     })}
   </div>;

@@ -259,16 +259,22 @@ input:focus, textarea:focus, select:focus { border-color:#5fa49d; box-shadow:0 0
 .download-copy strong { display:block; font-size:12px; margin-bottom:3px; }
 .download-copy span { color:#8a9690; font:10px var(--app-font-mono); }
 .background-downloads { display:flex; flex-direction:column; gap:8px; padding:12px 38px 0; position:relative; z-index:9; }
-.background-download { display:flex; align-items:center; gap:10px; min-height:48px; padding:9px 11px; border:1px solid #cfe1d8; border-radius:10px; background:rgba(239,248,241,.96); box-shadow:0 5px 18px rgba(39,87,77,.07); animation:rise .22s ease-out; }
+.background-download { display:grid; grid-template-columns:28px minmax(0,1fr) auto; align-items:center; gap:10px; min-height:48px; padding:9px 11px; border:1px solid #cfe1d8; border-radius:10px; background:rgba(239,248,241,.96); box-shadow:0 5px 18px rgba(39,87,77,.07); animation:rise .22s ease-out; }
 .background-download.done { border-color:#b8d8c3; background:rgba(245,250,241,.96); }
 .background-download-icon { width:28px; height:28px; flex:0 0 28px; display:grid; place-items:center; border-radius:8px; color:#287976; background:#dcefe3; }
+.background-download-main { display:flex; align-items:center; gap:10px; min-width:0; flex:1; padding:0; border:0; background:transparent; color:inherit; text-align:left; }
+.background-download-main:hover { background:transparent; }
 .background-download-copy { min-width:0; flex:1; }
 .background-download-copy strong { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:#315c57; font-size:11px; }
 .background-download-copy span { display:block; margin-top:2px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:#78908a; font:9px var(--app-font-mono); }
 .background-download-track { height:4px; margin-top:7px; overflow:hidden; border-radius:999px; background:#cfe2d8; }
 .background-download-track span { display:block; height:100%; border-radius:inherit; background:linear-gradient(90deg,#287976,#eaa15b); transition:width .25s ease; }
 .background-download-meta { display:flex; align-items:center; justify-content:flex-end; min-width:38px; color:#287976; font:10px var(--app-font-mono); }
-.background-download-meta .icon-button { width:28px; height:28px; border:0; background:transparent; }
+.background-download-chevron { color:#287976; font-weight:700; }
+.background-download-dismiss { width:28px; height:28px; flex:0 0 28px; border:0; background:transparent; }
+.background-download-details { grid-column:2 / -1; padding:8px 10px; border-top:1px solid #d7e8de; color:#607a72; font:10px/1.5 var(--app-font-mono); }
+.background-download-details > div + div { margin-top:4px; }
+.background-download-error { color:#a0523d; }
 .login-page { min-height:100dvh; display:grid; grid-template-columns:minmax(0,1.15fr) minmax(370px,.85fr); background:#eef3ea; }
 .login-visual { position:relative; overflow:hidden; padding:58px clamp(35px,7vw,100px); display:flex; flex-direction:column; justify-content:space-between; background:#163438; color:#eaf5ec; }
 .login-visual:before { content:''; position:absolute; width:680px; height:680px; right:-270px; top:-220px; border:1px solid rgba(184,226,197,.15); border-radius:50%; box-shadow:0 0 0 38px rgba(184,226,197,.045),0 0 0 78px rgba(184,226,197,.035),0 0 0 118px rgba(184,226,197,.025); }
