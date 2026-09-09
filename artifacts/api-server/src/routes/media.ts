@@ -1,4 +1,4 @@
-import { spawn } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { createWriteStream, existsSync } from "node:fs";
 import { mkdir, readFile, readdir, rename, stat, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
@@ -409,6 +409,7 @@ type YtDlpCommand = {
   executable: string;
   prefixArgs: string[];
   label: string;
+  supportsCurlCffi: boolean;
 };
 
 function ytDlpSourceCandidates(): string[] {
@@ -419,23 +420,52 @@ function ytDlpSourceCandidates(): string[] {
   ].filter((candidate): candidate is string => Boolean(candidate));
 }
 
+function preferredPython(): string {
+  const configured = process.env.PYTHON_PATH?.trim();
+  if (configured) return configured;
+
+  const workspacePython = path.resolve(process.cwd(), ".pythonlibs", "bin", "python");
+  if (existsSync(workspacePython)) return workspacePython;
+
+  return "python3";
+}
+
+function pythonSupportsCurlCffi(executable: string): boolean {
+  const result = spawnSync(executable, ["-c", "import curl_cffi"], {
+    stdio: "ignore",
+    windowsHide: true,
+  });
+  return result.status === 0;
+}
+
 function resolveYtDlpCommand(): YtDlpCommand {
   const configured = process.env.YT_DLP_PATH?.trim();
   if (configured && existsSync(configured)) {
     return configured.endsWith(".py")
-      ? { executable: process.env.PYTHON_PATH?.trim() || "python3", prefixArgs: [configured], label: configured }
-      : { executable: configured, prefixArgs: [], label: configured };
+      ? {
+          executable: preferredPython(),
+          prefixArgs: [configured],
+          label: configured,
+          supportsCurlCffi: pythonSupportsCurlCffi(preferredPython()),
+        }
+      : { executable: configured, prefixArgs: [], label: configured, supportsCurlCffi: false };
   }
 
   const source = ytDlpSourceCandidates()
     .map((candidate) => candidate.endsWith(".py") ? candidate : path.join(candidate, "yt_dlp", "__main__.py"))
     .find((candidate) => existsSync(candidate));
   if (source) {
-    return { executable: process.env.PYTHON_PATH?.trim() || "python3", prefixArgs: [source], label: source };
+    const executable = preferredPython();
+    return {
+      executable,
+      prefixArgs: [source],
+      label: source,
+      supportsCurlCffi: pythonSupportsCurlCffi(executable),
+    };
   }
 
   const binary = process.platform === "win32" ? "yt-dlp.exe" : "yt-dlp";
-  return { executable: binary, prefixArgs: [], label: binary };
+  return { executable: binary, prefixArgs: [], label: binary, supportsCurlCffi: false };
 }
 
 async function createYtDlpCookieFile(): Promise<{ path?: string; cleanup: () => Promise<void> }> {
@@ -530,6 +560,8 @@ async function downloadViaYtDlp(
     "--no-playlist",
     "--no-warnings",
     "--newline",
+    "--js-runtimes", "node",
+    ...(command.supportsCurlCffi ? ["--impersonate", "chrome"] : []),
     ...(pluginDir ? ["--plugin-dirs", pluginDir, ...YTDLP_BGUTIL_ARGS] : []),
     "--print-json",
     "--format", ytDlpFormatSelector(requestedQuality),
