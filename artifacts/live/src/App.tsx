@@ -10,6 +10,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/toaster";
 import NotFound from "@/pages/not-found";
+import { LandingPage, PricingPage } from "@/pages/public";
 import { extractYoutubeChannelLinks, getStreamStatus, startStream, stopStream, trimMediaFile, updateStream } from "@workspace/api-client-react";
 import logoImage from "@assets/image_1788788255512.png";
 
@@ -1041,6 +1042,9 @@ function App() {
   const workspace=useWorkspace(license.license, license.clear); const [location,setLocation]=useLocation();
   useEffect(() => { if (isLicenseActive(license.license) && location === "/") setLocation("/dashboard"); }, [license.license, location, setLocation]);
   if (location === "/owner") return <OwnerPage/>;
+  if (location === "/pricing") return <PricingPage />;
+  if (location === "/" && !isLicenseActive(license.license)) return <LandingPage />;
+  if (location === "/access") return <LicenseGate license={license.license} busy={license.busy} error={license.error} onActivate={license.activate} onRenew={license.renew}/>;
   if (!license.license || !isLicenseActive(license.license)) return <LicenseGate license={license.license} busy={license.busy} error={license.error} onActivate={license.activate} onRenew={license.renew}/>;
   if (!workspace.ready) return <div className="workspace-loading"><Radio size={20}/><span>Loading your private workspace…</span></div>;
   return <Routed workspace={workspace}/>;
