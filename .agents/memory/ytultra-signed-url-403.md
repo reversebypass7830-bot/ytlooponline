@@ -7,4 +7,4 @@ The YT Ultra download endpoint may return valid-looking, IP-bound Googlevideo UR
 
 **Why:** A successful metadata response does not prove that the app's server egress is authorized to stream the returned media URL; retrying headers, redirects, cookies, or FFmpeg does not repair an upstream signed-URL mismatch.
 
-**How to apply:** Treat this as an upstream/provider access failure, surface a specific error, and verify the exact returned media URL before claiming a download works. Do not silently reintroduce yt-dlp as a fallback when the product requirement is YT Ultra-only.
+**How to apply:** Treat this as an upstream/provider access failure, surface a specific error, and verify the exact returned media URL before claiming a download works. If the provider supplies a server-side stream proxy, use that proxy instead of fetching the returned Googlevideo URL directly. Do not silently reintroduce yt-dlp as a fallback when the product requirement is YT Ultra-only.

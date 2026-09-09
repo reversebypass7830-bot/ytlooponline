@@ -19,15 +19,17 @@ import {
 } from "@workspace/api-zod";
 import ffmpegPath from "ffmpeg-static";
 import {
-  chooseYtUltraMedia,
-  getYtUltraVideo,
-  ytUltraAvailableQualities,
-  ytUltraQualityLabel,
-} from "../lib/ytUltra";
+  getYtDownloadProxyVideo,
+  streamYtDownloadProxyMedia,
+  ytDownloadProxyAvailableQualities,
+  ytDownloadProxyMediaCandidates,
+  ytDownloadProxyQualityLabel,
+} from "../lib/ytDownloadProxy";
 
 const router: IRouter = Router();
 const mediaDir = path.resolve(process.cwd(), "attached_assets", "live-media");
 const maxUploadBytes = 1.5 * 1024 * 1024 * 1024;
+const maxProxyStreamDurationMs = 5 * 60 * 1000;
 const mediaIndexPath = path.join(mediaDir, "media-index.json");
 
 type MediaRecord = {
@@ -250,56 +252,6 @@ function validateYoutubeChannelUrl(rawUrl: string): string {
   return parsed.toString();
 }
 
-async function fetchYtUltraMedia(url: string): Promise<Response> {
-  let currentUrl: string;
-  try {
-    const parsed = new URL(url);
-    const hostname = parsed.hostname.toLowerCase().replace(/\.$/, "");
-    if (!["http:", "https:"].includes(parsed.protocol) || (!hostname.endsWith("googlevideo.com") && hostname !== "redirector.googlevideo.com")) {
-      throw new Error("YT Ultra returned an unsupported media host.");
-    }
-    currentUrl = parsed.toString();
-  } catch (error) {
-    if (error instanceof Error && error.message.includes("unsupported media host")) throw error;
-    throw new Error("YT Ultra returned an invalid media URL.");
-  }
-  for (let redirect = 0; redirect <= 5; redirect += 1) {
-    const response = await fetch(currentUrl, {
-      headers: {
-        accept: "*/*",
-        referer: "https://www.ytultra.com/",
-        "user-agent": "Mozilla/5.0 (Signal Desk YT Ultra proxy)",
-      },
-      redirect: "manual",
-      signal: AbortSignal.timeout(60 * 60 * 1000),
-    });
-    if (response.status >= 300 && response.status < 400) {
-      const location = response.headers.get("location");
-      if (!location) throw new Error("YT Ultra returned an invalid media redirect.");
-      const redirected = new URL(location, currentUrl);
-      const redirectedHost = redirected.hostname.toLowerCase().replace(/\.$/, "");
-      if (!redirectedHost.endsWith("googlevideo.com")) throw new Error("YT Ultra redirected to an unsupported media host.");
-      currentUrl = redirected.toString();
-      continue;
-    }
-    if (!response.ok) {
-      const hostname = new URL(currentUrl).hostname.toLowerCase();
-      if (response.status === 403 && hostname.endsWith("googlevideo.com")) {
-        throw new Error("YT Ultra returned a signed media URL that Googlevideo rejected for this server (403).");
-      }
-      throw new Error(`YT Ultra media download failed (${response.status}).`);
-    }
-    const contentLength = Number(response.headers.get("content-length") || 0);
-    if (contentLength > maxUploadBytes) throw new Error("The direct video file is larger than 1.5 GB.");
-    const contentType = response.headers.get("content-type")?.toLowerCase() || "";
-    if (!contentType.startsWith("video/") && !contentType.includes("application/octet-stream")) {
-      throw new Error("YT Ultra media URL did not return a video file.");
-    }
-    return response;
-  }
-  throw new Error("YT Ultra media URL redirected too many times.");
-}
-
 async function extractYoutubeChannelLinks(url: string): Promise<string[]> {
   const response = await fetch("https://tubepilot.ai/wp-admin/admin-ajax.php", {
     method: "POST",
@@ -346,23 +298,37 @@ async function downloadYoutubeVideo(
   fileId: string,
   context: MediaContext,
 ): Promise<{ path: string; title: string; duration: string; quality: string }> {
-  const video = await getYtUltraVideo(url);
-  const media = chooseYtUltraMedia(video, context.quality || "best");
-  const response = await fetchYtUltraMedia(media.url);
-  if (!response.body) throw new Error("YT Ultra returned an empty video response.");
+  const video = await getYtDownloadProxyVideo(url);
+  const candidates = ytDownloadProxyMediaCandidates(video, context.quality || "best");
+  let media = candidates[0];
+  let response: Response | undefined;
+  let lastStreamError: unknown;
+  for (const candidate of candidates) {
+    try {
+      response = await streamYtDownloadProxyMedia(url, candidate);
+      media = candidate;
+      break;
+    } catch (error) {
+      lastStreamError = error;
+    }
+  }
+  if (!response) throw lastStreamError instanceof Error ? lastStreamError : new Error("The YouTube download proxy could not stream this video.");
+  if (!response.body) throw new Error("YT download proxy returned an empty video response.");
 
-  const extension = media.format.toLowerCase().includes(".webm") ? ".webm" : ".mp4";
+  const extension = media.ext === "webm" ? ".webm" : ".mp4";
   const partialPath = path.join(mediaDir, `${fileId}.part`);
   try {
     await mkdir(mediaDir, { recursive: true });
     const readable = Readable.fromWeb(response.body as import("node:stream/web").ReadableStream);
-    await pipeline(readable, createWriteStream(partialPath));
+    await pipeline(readable, createWriteStream(partialPath), {
+      signal: AbortSignal.timeout(maxProxyStreamDurationMs),
+    });
     const finalPath = await finalizeMediaFile(fileId, partialPath, `${video.title}${extension}`, context);
     return {
       path: finalPath,
       title: video.title,
       duration: video.duration,
-      quality: ytUltraQualityLabel(media.format),
+      quality: ytDownloadProxyQualityLabel(media),
     };
   } catch (error) {
     await unlink(partialPath).catch(() => undefined);
@@ -372,8 +338,8 @@ async function downloadYoutubeVideo(
 
 async function inspectYoutubeFormats(url: string): Promise<{ qualities: string[]; title: string }> {
   validateYoutubeUrl(url);
-  const video = await getYtUltraVideo(url);
-  return { qualities: ytUltraAvailableQualities(video), title: video.title };
+  const video = await getYtDownloadProxyVideo(url);
+  return { qualities: ytDownloadProxyAvailableQualities(video), title: video.title };
 }
 
 router.get("/media/files", async (req, res): Promise<void> => {
@@ -562,7 +528,7 @@ router.post("/media/youtube-download", async (req, res): Promise<void> => {
   } catch (error) {
     const rawMessage = error instanceof Error ? error.message : "The YouTube video could not be downloaded.";
     const message = rawMessage.includes("sign in") || rawMessage.includes("not a bot") || rawMessage.includes("bot")
-      ? "YT Ultra could not resolve this YouTube video. Try a public video URL or a lower quality."
+      ? "The YouTube download proxy could not resolve this video. Try a public video URL or a lower quality."
       : rawMessage;
     req.log.warn({ error: message }, "YouTube download failed");
     res.status(400).json({ error: message });
