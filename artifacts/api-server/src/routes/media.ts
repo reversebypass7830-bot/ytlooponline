@@ -401,7 +401,13 @@ function normalizeQualityLabel(value: string | undefined, fallback: string): str
   return match ? `${match[1]}p` : fallback;
 }
 
-const YTDLP_PLAYER_CLIENT_FALLBACK = "youtube:player_client=default,-web,-web_safari";
+const YTDLP_PLAYER_CLIENT_FALLBACKS = [
+  "youtube:player_client=mweb",
+  "youtube:player_client=ios",
+  "youtube:player_client=android",
+  "youtube:player_client=web_safari",
+  "youtube:player_client=default,-web,-web_safari",
+];
 const YTDLP_BGUTIL_ARGS = ["--extractor-args", `youtubepot-bgutilhttp:base_url=${bgutilPotBaseUrl()}`];
 const YTDLP_DOWNLOAD_TIMEOUT_MS = 60 * 60 * 1000;
 
@@ -629,7 +635,18 @@ function lastJsonLine(stdout: string): Record<string, unknown> {
 }
 
 function shouldTryYtDlpFallback(stderr: string): boolean {
-  return /bot|sign in|not available on this app|player response|requested format|po token/i.test(stderr);
+  return /bot|sign in|not available on this app|player response|requested format|po token|page needs to be reloaded/i.test(stderr);
+}
+
+function withYtDlpFormat(args: string[], selector: string): string[] {
+  const formatIndex = args.indexOf("--format");
+  if (formatIndex === -1 || formatIndex === args.length - 1) return args;
+  return [
+    ...args.slice(0, formatIndex),
+    "--format",
+    selector,
+    ...args.slice(formatIndex + 2),
+  ];
 }
 
 async function downloadViaYtDlp(
@@ -665,11 +682,23 @@ async function downloadViaYtDlp(
   try {
     let result = await runYtDlp(command, baseArgs);
     if (result.code !== 0 && shouldTryYtDlpFallback(result.stderr)) {
-      result = await runYtDlp(command, [
-        ...baseArgs.slice(0, -1),
-        "--extractor-args", YTDLP_PLAYER_CLIENT_FALLBACK,
-        url,
-      ]);
+      const fallbackBaseArgs = baseArgs.slice(0, -1);
+      for (const playerClient of YTDLP_PLAYER_CLIENT_FALLBACKS) {
+        result = await runYtDlp(command, [
+          ...fallbackBaseArgs,
+          "--extractor-args", playerClient,
+          url,
+        ]);
+        if (result.code === 0) break;
+        if (/requested format/i.test(result.stderr)) {
+          result = await runYtDlp(command, [
+            ...withYtDlpFormat(fallbackBaseArgs, "b/best"),
+            "--extractor-args", playerClient,
+            url,
+          ]);
+          if (result.code === 0) break;
+        }
+      }
     }
     if (result.code !== 0) {
       const detail = result.stderr.trim().split(/\r?\n/).filter(Boolean).at(-1)
