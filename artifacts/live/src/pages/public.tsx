@@ -37,6 +37,9 @@ const navItems = [
   { label: "Pricing", href: "/pricing" },
 ];
 
+const MONTHLY_OFFER_DURATION = 3 * 60 * 60 * 1000;
+const MONTHLY_OFFER_DEADLINE_KEY = "r-loop-bypass-monthly-offer-deadline";
+
 function BrandMark() {
   return <span className="marketing-mark"><img src={logoImage} alt="" /></span>;
 }
@@ -216,6 +219,40 @@ function MarketingSection({ children, className = "", id }: { children: ReactNod
   return <motion.section ref={ref} id={id} className={`marketing-section ${className}`} initial="hidden" animate={inView ? "visible" : "hidden"} variants={reveal}>{children}</motion.section>;
 }
 
+function MonthlyOfferCountdown() {
+  const [remaining, setRemaining] = useState(MONTHLY_OFFER_DURATION);
+
+  useEffect(() => {
+    const now = Date.now();
+    const savedDeadline = Number(window.localStorage.getItem(MONTHLY_OFFER_DEADLINE_KEY));
+    const deadline = savedDeadline > now ? savedDeadline : now + MONTHLY_OFFER_DURATION;
+
+    window.localStorage.setItem(MONTHLY_OFFER_DEADLINE_KEY, String(deadline));
+    const update = () => setRemaining(Math.max(0, deadline - Date.now()));
+    update();
+    const timer = window.setInterval(update, 1000);
+    return () => window.clearInterval(timer);
+  }, []);
+
+  const totalSeconds = Math.floor(remaining / 1000);
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  const clock = [hours, minutes, seconds].map((value) => String(value).padStart(2, "0"));
+  const expired = totalSeconds === 0;
+
+  return <div className={`monthly-countdown ${expired ? "is-expired" : ""}`} aria-live="polite">
+    <div className="monthly-countdown-heading">
+      <span className="monthly-countdown-dot" />
+      <span>{expired ? "Monthly offer ended" : "Monthly offer ends in"}</span>
+    </div>
+    <div className="monthly-countdown-clock" aria-label={expired ? "Monthly offer ended" : `${hours} hours, ${minutes} minutes, ${seconds} seconds remaining`}>
+      <strong>{clock[0]}</strong><span>:</span><strong>{clock[1]}</strong><span>:</span><strong>{clock[2]}</strong>
+    </div>
+    <div className="monthly-countdown-labels"><span>hours</span><span>minutes</span><span>seconds</span></div>
+  </div>;
+}
+
 export function LandingPage() {
   const [intro, setIntro] = useState(true);
   const [activeCase, setActiveCase] = useState(0);
@@ -270,5 +307,5 @@ export function LandingPage() {
 export function PricingPage() {
   const [annual, setAnnual] = useState(false);
   const plans = annual ? { price: "₹7,999", crossed: "₹10,000", label: "12 months", offer: "20% annual offer" } : { price: "₹799", crossed: "₹1,000", label: "1 month", offer: "20% offer" };
-  return <div className="marketing-page pricing-page"><PublicNav /><main className="pricing-main"><div className="pricing-intro"><span className="section-index">R LOOP BYPASS / ACCESS</span><h1>A clear signal<br /><em>starts here.</em></h1><p>One focused plan for creators and small media teams building reliable live channels.</p></div><div className="pricing-toggle" role="group" aria-label="Billing period"><button className={!annual ? "active" : ""} onClick={() => setAnnual(false)} data-testid="button-monthly-plan">1 month</button><button className={annual ? "active" : ""} onClick={() => setAnnual(true)} data-testid="button-annual-plan">12 months <span>save 20%</span></button></div><motion.div className="price-card" layout><div className="price-card-glow" /><div className="price-card-top"><span className="signal-tag"><span className="signal-tag-dot" /> FOCUSED ACCESS</span><span className="price-card-badge">Most direct route</span></div><h2>Broadcast plan</h2><p className="price-description">Everything needed to turn a library into a channel that keeps its place on air.</p><div className="price-line"><span className="price-crossed">{plans.crossed}</span><strong>{plans.price}</strong><span className="price-period">/ {plans.label}</span></div><div className="offer-line"><Zap size={14} /> {plans.offer} included</div><Link href="/access" className="signal-button price-button" data-testid="link-pricing-access"><span>Access / activate a key</span><ArrowRight size={16} /></Link><div className="price-features">{["Loop videos into 24-hour channels", "Playlist builder and scheduled broadcasts", "YouTube and Facebook destinations", "4K / 1080p stream output", "Automatic reconnect and restart"].map((feature) => <span key={feature}><Check size={14} /> {feature}</span>)}</div></motion.div><div className="pricing-note"><Radio size={16} /><span>Already have a key? <Link href="/access" data-testid="link-pricing-existing-key">Enter it in the access room.</Link></span></div></main><footer className="marketing-footer"><Link href="/" className="marketing-brand" data-testid="link-pricing-footer-home"><BrandMark /><span>R LOOP <b>BYPASS</b></span></Link><span>Simple access. Serious signal.</span><Link href="/" data-testid="link-pricing-back">Back to overview <ArrowRight size={13} /></Link></footer></div>;
+  return <div className="marketing-page pricing-page"><PublicNav /><main className="pricing-main"><div className="pricing-intro"><span className="section-index">R LOOP BYPASS / ACCESS</span><h1>A clear signal<br /><em>starts here.</em></h1><p>One focused plan for creators and small media teams building reliable live channels.</p></div><div className="pricing-toggle" role="group" aria-label="Billing period"><button className={!annual ? "active" : ""} onClick={() => setAnnual(false)} data-testid="button-monthly-plan">1 month</button><button className={annual ? "active" : ""} onClick={() => setAnnual(true)} data-testid="button-annual-plan">12 months <span>save 20%</span></button></div><motion.div className="price-card" layout><div className="price-card-glow" /><div className="price-card-top"><span className="signal-tag"><span className="signal-tag-dot" /> FOCUSED ACCESS</span><span className="price-card-badge">Most direct route</span></div><h2>Broadcast plan</h2><p className="price-description">Everything needed to turn a library into a channel that keeps its place on air.</p><div className="price-line"><span className="price-crossed">{plans.crossed}</span><strong>{plans.price}</strong><span className="price-period">/ {plans.label}</span></div><div className="offer-line"><Zap size={14} /> {plans.offer} included</div>{!annual && <MonthlyOfferCountdown />}<Link href="/access" className="signal-button price-button" data-testid="link-pricing-access"><span>Access / activate a key</span><ArrowRight size={16} /></Link><div className="price-features">{["Loop videos into 24-hour channels", "Playlist builder and scheduled broadcasts", "YouTube and Facebook destinations", "4K / 1080p stream output", "Automatic reconnect and restart"].map((feature) => <span key={feature}><Check size={14} /> {feature}</span>)}</div></motion.div><div className="pricing-note"><Radio size={16} /><span>Already have a key? <Link href="/access" data-testid="link-pricing-existing-key">Enter it in the access room.</Link></span></div></main><footer className="marketing-footer"><Link href="/" className="marketing-brand" data-testid="link-pricing-footer-home"><BrandMark /><span>R LOOP <b>BYPASS</b></span></Link><span>Simple access. Serious signal.</span><Link href="/" data-testid="link-pricing-back">Back to overview <ArrowRight size={13} /></Link></footer></div>;
 }
