@@ -9,8 +9,6 @@ import { Readable } from "node:stream";
 import {
   DownloadYoutubeVideoBody,
   DownloadYoutubeVideoResponse,
-  GetYoutubeDownloadLinksBody,
-  GetYoutubeDownloadLinksResponse,
   ExtractYoutubeChannelLinksBody,
   ExtractYoutubeChannelLinksResponse,
   GetYoutubeFormatsBody,
@@ -20,18 +18,11 @@ import {
   TrimMediaFileResponse,
 } from "@workspace/api-zod";
 import ffmpegPath from "ffmpeg-static";
-import {
-  getYtDownloadProxyVideo,
-  streamYtDownloadProxyMedia,
-  ytDownloadProxyAvailableQualities,
-  ytDownloadProxyMediaCandidates,
-  ytDownloadProxyQualityLabel,
-} from "../lib/ytDownloadProxy";
+import { cleanupYoutubeDlpDownload, downloadYoutubeDlp, getYoutubeDlpInfo } from "../lib/youtubeDlp";
 
 const router: IRouter = Router();
 const mediaDir = path.resolve(process.cwd(), "attached_assets", "live-media");
 const maxUploadBytes = 1.5 * 1024 * 1024 * 1024;
-const maxProxyStreamDurationMs = 5 * 60 * 1000;
 const mediaIndexPath = path.join(mediaDir, "media-index.json");
 
 type MediaRecord = {
@@ -309,67 +300,31 @@ async function downloadYoutubeVideo(
   fileId: string,
   context: MediaContext,
 ): Promise<{ path: string; title: string; duration: string; quality: string }> {
-  const video = await getYtDownloadProxyVideo(url);
-  const candidates = ytDownloadProxyMediaCandidates(video, context.quality || "best");
-  let media = candidates[0];
-  let response: Response | undefined;
-  let lastStreamError: unknown;
-  for (const candidate of candidates) {
-    try {
-      response = await streamYtDownloadProxyMedia(url, candidate);
-      media = candidate;
-      break;
-    } catch (error) {
-      lastStreamError = error;
-    }
-  }
-  if (!response) throw lastStreamError instanceof Error ? lastStreamError : new Error("The YouTube download proxy could not stream this video.");
-  if (!response.body) throw new Error("YT download proxy returned an empty video response.");
-
-  const extension = media.ext === "webm" ? ".webm" : ".mp4";
-  const partialPath = path.join(mediaDir, `${fileId}.part`);
+  const download = await downloadYoutubeDlp(url, context.quality || "best");
   try {
-    await mkdir(mediaDir, { recursive: true });
-    const readable = Readable.fromWeb(response.body as import("node:stream/web").ReadableStream);
-    await pipeline(readable, createWriteStream(partialPath), {
-      signal: AbortSignal.timeout(maxProxyStreamDurationMs),
-    });
-    const finalPath = await finalizeMediaFile(fileId, partialPath, `${video.title}${extension}`, context);
+    const extension = path.extname(download.path).toLowerCase() || ".mp4";
+    const finalPath = await finalizeMediaFile(fileId, download.path, `${download.info.title}${extension}`, context);
     return {
       path: finalPath,
-      title: video.title,
-      duration: video.duration,
-      quality: ytDownloadProxyQualityLabel(media),
+      title: download.info.title,
+      duration: formatDuration(download.info.duration),
+      quality: download.quality,
     };
-  } catch (error) {
-    await unlink(partialPath).catch(() => undefined);
-    throw error;
+  } finally {
+    await cleanupYoutubeDlpDownload(download.tempDir);
   }
 }
 
 async function inspectYoutubeFormats(url: string): Promise<{ qualities: string[]; title: string }> {
   validateYoutubeUrl(url);
-  const video = await getYtDownloadProxyVideo(url);
-  return { qualities: ytDownloadProxyAvailableQualities(video), title: video.title };
-}
-
-async function inspectYoutubeDownloadLinks(
-  url: string,
-  quality: string,
-): Promise<{ title: string; duration: string; formats: Array<{ url: string; quality: string; ext: string; fileSize?: number }> }> {
-  validateYoutubeUrl(url);
-  const video = await getYtDownloadProxyVideo(url);
-  const candidates = ytDownloadProxyMediaCandidates(video, quality);
-  return {
-    title: video.title,
-    duration: video.duration,
-    formats: candidates.map(({ url: mediaUrl, quality: mediaQuality, ext, fileSize }) => ({
-      url: mediaUrl,
-      quality: mediaQuality,
-      ext,
-      ...(typeof fileSize === "number" ? { fileSize } : {}),
-    })),
-  };
+  const video = await getYoutubeDlpInfo(url);
+  const qualities = video.formats
+    .map((format) => typeof format.height === "number" ? format.height : 0)
+    .filter((height) => height > 0)
+    .sort((left, right) => right - left)
+    .filter((height, index, all) => all.indexOf(height) === index)
+    .map((height) => `${height}p`);
+  return { qualities: ["best", ...qualities], title: video.title };
 }
 
 router.get("/media/files", async (req, res): Promise<void> => {
@@ -437,23 +392,6 @@ router.post("/media/youtube-formats", async (req, res): Promise<void> => {
   } catch (error) {
     const message = error instanceof Error ? error.message : "YouTube qualities could not be loaded.";
     req.log.warn({ error: message }, "YouTube format inspection failed");
-    res.status(400).json({ error: message });
-  }
-});
-
-router.post("/media/youtube-links", async (req, res): Promise<void> => {
-  try {
-    const parsed = GetYoutubeDownloadLinksBody.safeParse(req.body);
-    if (!parsed.success) {
-      res.status(400).json({ error: parsed.error.message });
-      return;
-    }
-    const url = validateYoutubeUrl(parsed.data.url.trim());
-    const result = await inspectYoutubeDownloadLinks(url, parsed.data.quality || "best");
-    res.json(GetYoutubeDownloadLinksResponse.parse(result));
-  } catch (error) {
-    const message = error instanceof Error ? error.message : "YouTube download links could not be loaded.";
-    req.log.warn({ error: message }, "YouTube download link resolution failed");
     res.status(400).json({ error: message });
   }
 });
@@ -578,7 +516,7 @@ router.post("/media/youtube-download", async (req, res): Promise<void> => {
   } catch (error) {
     const rawMessage = error instanceof Error ? error.message : "The YouTube video could not be downloaded.";
     const message = rawMessage.includes("sign in") || rawMessage.includes("not a bot") || rawMessage.includes("bot")
-      ? "The YouTube download proxy could not resolve this video. Try a public video URL or a lower quality."
+      ? "yt-dlp could not access this YouTube video with the configured cookies. Refresh the YouTube cookies secret and try again."
       : rawMessage;
     req.log.warn({ error: message }, "YouTube download failed");
     res.status(400).json({ error: message });

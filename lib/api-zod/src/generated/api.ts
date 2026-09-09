@@ -280,29 +280,6 @@ export const DownloadYoutubeVideoResponse = zod.object({
 
 
 /**
- * @summary Resolve browser-downloadable YouTube media links
- */
-
-export const getYoutubeDownloadLinksBodyQualityDefault = `best`;
-
-export const GetYoutubeDownloadLinksBody = zod.object({
-  "url": zod.string().min(1),
-  "quality": zod.enum(['best', '2160p', '1440p', '1080p', '720p', '480p', '360p', '240p', '144p']).default(getYoutubeDownloadLinksBodyQualityDefault)
-})
-
-export const GetYoutubeDownloadLinksResponse = zod.object({
-  "title": zod.string(),
-  "duration": zod.string(),
-  "formats": zod.array(zod.object({
-  "url": zod.string(),
-  "quality": zod.string(),
-  "ext": zod.enum(['mp4', 'webm']),
-  "fileSize": zod.number().optional()
-}))
-})
-
-
-/**
  * @summary List available YouTube video qualities
  */
 

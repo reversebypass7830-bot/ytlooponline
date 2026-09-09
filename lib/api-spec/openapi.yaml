@@ -255,26 +255,6 @@ paths:
                 $ref: "#/components/schemas/YoutubeDownloadResponse"
         "400":
           description: Invalid URL or download failure
-  /media/youtube-links:
-    post:
-      operationId: getYoutubeDownloadLinks
-      tags: [media]
-      summary: Resolve browser-downloadable YouTube media links
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/YoutubeDownloadLinksInput"
-      responses:
-        "200":
-          description: Signed browser-downloadable media links
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/YoutubeDownloadLinksResponse"
-        "400":
-          description: Invalid URL or link resolution failure
   /media/youtube-formats:
     post:
       operationId: getYoutubeFormats
@@ -740,49 +720,6 @@ components:
         - licenseId
         - licenseName
         - folderName
-    YoutubeDownloadLinksInput:
-      type: object
-      properties:
-        url:
-          type: string
-          minLength: 1
-        quality:
-          type: string
-          enum: [best, 2160p, 1440p, 1080p, 720p, 480p, 360p, 240p, 144p]
-          default: best
-      required:
-        - url
-    YoutubeDownloadLink:
-      type: object
-      properties:
-        url:
-          type: string
-        quality:
-          type: string
-        ext:
-          type: string
-          enum: [mp4, webm]
-        fileSize:
-          type: number
-      required:
-        - url
-        - quality
-        - ext
-    YoutubeDownloadLinksResponse:
-      type: object
-      properties:
-        title:
-          type: string
-        duration:
-          type: string
-        formats:
-          type: array
-          items:
-            $ref: "#/components/schemas/YoutubeDownloadLink"
-      required:
-        - title
-        - duration
-        - formats
     YoutubeFormatsInput:
       type: object
       properties:
