@@ -1,5 +1,5 @@
 import { spawn } from "node:child_process";
-import { mkdtemp, readdir, rm, stat, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile, readdir, rm, stat, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 
@@ -28,6 +28,10 @@ export type YoutubeDlpDownload = {
 const commandTimeoutMs = 20 * 60 * 1000;
 const maxOutputBytes = 12 * 1024 * 1024;
 const videoExtensions = new Set([".mp4", ".webm", ".mkv", ".mov", ".m4v", ".avi", ".ts"]);
+const proxyFailureCooldownMs = 2 * 60 * 1000;
+const defaultProxyAttempts = 12;
+let proxyCursor = 0;
+const proxyFailures = new Map<string, number>();
 
 function ytdlpCommand(): string {
   return process.env.YTDLP_PATH?.trim() || process.env.YTDLP_MCP_YTDLP_PATH?.trim() || "yt-dlp";
@@ -107,13 +111,93 @@ const extractorStrategies: Array<string | undefined> = [
   "youtube:player_client=android",
 ];
 
-function commonArgs(cookiePath: string, extractorArgs?: string): string[] {
+async function loadYoutubeProxies(): Promise<string[]> {
+  const configuredPath = process.env.YOUTUBE_PROXY_FILE?.trim();
+  const candidatePaths = configuredPath
+    ? [path.resolve(configuredPath)]
+    : [
+        path.resolve(process.cwd(), "proxy.txt"),
+        path.resolve(process.cwd(), "../../proxy.txt"),
+      ];
+  let proxyPath = candidatePaths[0];
+  let raw = "";
+  for (const candidatePath of candidatePaths) {
+    const candidateRaw = await readFile(candidatePath, "utf8").catch(() => "");
+    if (!candidateRaw.trim()) continue;
+    proxyPath = candidatePath;
+    raw = candidateRaw;
+    break;
+  }
+  const proxies = new Set<string>();
+
+  for (const line of raw.split(/\r?\n/)) {
+    const candidate = line.trim();
+    if (!candidate || candidate.startsWith("#")) continue;
+    try {
+      const parsed = new URL(candidate);
+      if (!["http:", "https:", "socks4:", "socks5:"].includes(parsed.protocol)) continue;
+      if (!parsed.hostname || !parsed.port) continue;
+      proxies.add(parsed.toString());
+    } catch {
+      // Ignore malformed entries and continue with the rest of the pool.
+    }
+  }
+
+  if (!proxies.size) {
+    throw new Error(`The YouTube proxy list is missing or empty: ${proxyPath}`);
+  }
+  return Array.from(proxies);
+}
+
+function proxyAttemptLimit(proxyCount: number): number {
+  const configured = Number.parseInt(process.env.YOUTUBE_PROXY_MAX_ATTEMPTS || "", 10);
+  const limit = Number.isFinite(configured) && configured > 0 ? configured : defaultProxyAttempts;
+  return Math.min(limit, proxyCount);
+}
+
+function selectProxyCandidates(proxies: string[]): string[] {
+  const now = Date.now();
+  const available: string[] = [];
+  const coolingDown: string[] = [];
+
+  for (let offset = 0; offset < proxies.length; offset += 1) {
+    const proxy = proxies[(proxyCursor + offset) % proxies.length];
+    const failedAt = proxyFailures.get(proxy);
+    if (failedAt && now - failedAt < proxyFailureCooldownMs) {
+      coolingDown.push(proxy);
+    } else {
+      available.push(proxy);
+    }
+  }
+
+  const ordered = [...available, ...coolingDown];
+  proxyCursor = (proxyCursor + 1) % proxies.length;
+  return ordered.slice(0, proxyAttemptLimit(proxies.length));
+}
+
+function markProxySuccess(proxy: string): void {
+  proxyFailures.delete(proxy);
+}
+
+function markProxyFailure(proxy: string): void {
+  proxyFailures.set(proxy, Date.now());
+}
+
+function commonArgs(cookiePath: string, proxy: string, extractorArgs?: string): string[] {
   const args = [
     "--ignore-config",
     "--no-warnings",
     "--no-playlist",
     "--cookies",
     cookiePath,
+    "--proxy",
+    proxy,
+    "--socket-timeout",
+    "15",
+    "--retries",
+    "2",
+    "--fragment-retries",
+    "2",
   ];
   if (extractorArgs) args.push("--extractor-args", extractorArgs);
   return args;
@@ -122,13 +206,14 @@ function commonArgs(cookiePath: string, extractorArgs?: string): string[] {
 async function runWithExtractorFallbacks(
   cookiePath: string,
   args: string[],
+  proxy: string,
   cwd?: string,
 ): Promise<{ stdout: string; stderr: string }> {
   let lastError: unknown;
   const errors: string[] = [];
   for (const extractorArgs of extractorStrategies) {
     try {
-      return await runCommand([...commonArgs(cookiePath, extractorArgs), ...args], cwd);
+      return await runCommand([...commonArgs(cookiePath, proxy, extractorArgs), ...args], cwd);
     } catch (error) {
       lastError = error;
       if (error instanceof Error && error.message) errors.push(error.message);
@@ -138,6 +223,30 @@ async function runWithExtractorFallbacks(
     throw new Error("YouTube rejected the configured cookies. Export a fresh cookie set from a signed-in YouTube session, including youtube.com and google.com cookies, then replace YOUTUBE_COOKIES.");
   }
   throw lastError instanceof Error ? lastError : new Error("yt-dlp could not access this YouTube video.");
+}
+
+async function runWithProxyFallbacks(
+  cookiePath: string,
+  args: string[],
+  cwd?: string,
+): Promise<{ stdout: string; stderr: string }> {
+  const proxies = await loadYoutubeProxies();
+  const candidates = selectProxyCandidates(proxies);
+  let lastError: unknown;
+
+  for (const proxy of candidates) {
+    try {
+      const result = await runWithExtractorFallbacks(cookiePath, args, proxy, cwd);
+      markProxySuccess(proxy);
+      return result;
+    } catch (error) {
+      lastError = error;
+      markProxyFailure(proxy);
+    }
+  }
+
+  const detail = lastError instanceof Error ? lastError.message : "unknown proxy error";
+  throw new Error(`All YouTube proxy attempts failed (${candidates.length} tried): ${detail}`);
 }
 
 function runCommand(args: string[], cwd?: string): Promise<{ stdout: string; stderr: string }> {
@@ -206,7 +315,7 @@ function parseInfo(stdout: string): YoutubeDlpInfo {
 
 export async function getYoutubeDlpInfo(url: string): Promise<YoutubeDlpInfo> {
   return withCookieFile(async (cookiePath) => {
-    const result = await runWithExtractorFallbacks(cookiePath, ["--dump-single-json", "--skip-download", url]);
+    const result = await runWithProxyFallbacks(cookiePath, ["--dump-single-json", "--skip-download", url]);
     return parseInfo(result.stdout);
   });
 }
@@ -254,7 +363,7 @@ export async function downloadYoutubeDlp(url: string, quality: string): Promise<
   try {
     return await withCookieFile(async (cookiePath) => {
       const outputTemplate = path.join(tempDir, "%(id)s.%(ext)s");
-      const result = await runWithExtractorFallbacks(cookiePath, [
+      const result = await runWithProxyFallbacks(cookiePath, [
         "--format",
         formatSelector(quality),
         "--merge-output-format",

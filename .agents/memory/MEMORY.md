@@ -11,3 +11,4 @@
 - [Live playlist folder scope](live-playlist-folder-scope.md) — live streams must derive playlist membership from each video's groupId, not only cached folder arrays.
 - [BgUtils POT provider integration](bgutil-pot-provider.md) — compile the local provider separately and pass yt-dlp its parent plugin directory.
 - [YT Ultra signed URL access](ytultra-signed-url-403.md) — metadata can resolve while every returned Googlevideo media URL is rejected with 403 from server egress.
+- [YouTube proxy download](youtube-proxy-download.md) — root proxy lists and /tmp downloads need artifact-path lookup and cross-device-safe media finalization.

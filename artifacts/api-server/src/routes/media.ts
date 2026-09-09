@@ -1,6 +1,6 @@
 import { spawn } from "node:child_process";
 import { createWriteStream } from "node:fs";
-import { mkdir, readFile, readdir, rename, rm, stat, unlink, writeFile } from "node:fs/promises";
+import { copyFile, mkdir, readFile, readdir, rename, rm, stat, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { pipeline } from "node:stream/promises";
 import { Router, type IRouter } from "express";
@@ -138,7 +138,19 @@ async function finalizeMediaFile(fileId: string, currentPath: string, rawName: s
   await mkdir(path.dirname(destination), { recursive: true });
   if (currentPath !== destination) {
     await unlink(destination).catch(() => undefined);
-    await rename(currentPath, destination);
+    try {
+      await rename(currentPath, destination);
+    } catch (error) {
+      const errorCode = error && typeof error === "object" && "code" in error ? error.code : undefined;
+      if (errorCode !== "EXDEV") throw error;
+      try {
+        await copyFile(currentPath, destination);
+        await unlink(currentPath);
+      } catch (copyError) {
+        await unlink(destination).catch(() => undefined);
+        throw copyError;
+      }
+    }
   }
   return destination;
 }
@@ -515,7 +527,9 @@ router.post("/media/youtube-download", async (req, res): Promise<void> => {
     }));
   } catch (error) {
     const rawMessage = error instanceof Error ? error.message : "The YouTube video could not be downloaded.";
-    const message = /sign in|not a bot|bot check|cookies.*authentication|rejected the configured cookies/i.test(rawMessage)
+    const message = /all youtube proxy attempts failed/i.test(rawMessage)
+      ? "YouTube could not be reached through the configured proxies. Refresh proxy.txt or try again in a few minutes."
+      : /sign in|not a bot|bot check|cookies.*authentication|rejected the configured cookies/i.test(rawMessage)
       ? "yt-dlp could not access this YouTube video with the configured cookies. Refresh the YouTube cookies secret and try again."
       : rawMessage;
     req.log.warn({ error: message }, "YouTube download failed");
