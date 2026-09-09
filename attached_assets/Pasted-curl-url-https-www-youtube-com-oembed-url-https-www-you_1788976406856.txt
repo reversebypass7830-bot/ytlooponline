@@ -1,0 +1,67 @@
+curl --url ^"https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=rjg7enocBvU^&format=json^" ^
+  -H ^"accept: */*^" ^
+  -H ^"accept-language: en-IN,en-GB;q=0.9,en-US;q=0.8,en;q=0.7,hi;q=0.6,ee;q=0.5^" ^
+  -H ^"origin: https://frame.y2meta-uk.com^" ^
+  -H ^"priority: u=1, i^" ^
+  -H ^"referer: https://frame.y2meta-uk.com/^" ^
+  -H ^"sec-ch-ua: ^\^"Chromium^\^";v=^\^"152^\^", ^\^"Not?A_Brand^\^";v=^\^"24^\^", ^\^"Google Chrome^\^";v=^\^"152^\^"^" ^
+  -H ^"sec-ch-ua-mobile: ?0^" ^
+  -H ^"sec-ch-ua-platform: ^\^"Windows^\^"^" ^
+  -H ^"sec-fetch-dest: empty^" ^
+  -H ^"sec-fetch-mode: cors^" ^
+  -H ^"sec-fetch-site: cross-site^" ^
+  -H ^"user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36^" ^
+  -H ^"x-browser-channel: stable^" ^
+  -H ^"x-browser-copyright: Copyright 2026 Google LLC. All Rights Reserved.^" ^
+  -H ^"x-browser-validation: vgyhv7tDQEn+LFULEOyfsn7nRqI=^" ^
+  -H ^"x-browser-year: 2026^" ^
+  -H ^"x-client-data: CKmdygEIkqHLAQiFoM0BCLHflDAIlueUMBis35Qw^"
+  curl --url ^"https://www.google-analytics.com/g/collect?v=2^&tid=G-E0WR58JC5B^&gtm=45je6941v9252035009za200zd9252035009^&_p=1788975829203^&gcd=13l3l3l3l1l1^&npa=0^&dma=0^&_eu=AAAAAAQ^&cid=132008275.1788549866^&frm=0^&ngs=1^&pscdl=noapi^&rcb=5^&sr=1366x768^&uaa=x86^&uab=64^&uafvl=Chromium^%^3B152.0.7977.83^%^7CNot^%^253FA_Brand^%^3B24.0.0.0^%^7CGoogle^%^2520Chrome^%^3B152.0.7977.83^&uam=^&uamb=0^&uap=Windows^&uapv=10.0.0^&uaw=0^&ul=en-in^&_s=1^&tag_exp=115938465~115938468~118897920~118897930~120213116~120385423~120420416~120469145~120469153~120914213^&sid=1788975793^&sct=5^&seg=1^&dl=https^%^3A^%^2F^%^2Fwww.y2mate.in.net^%^2Fconvert^%^2F^&dr=https^%^3A^%^2F^%^2Fwww.y2mate.in.net^%^2Fen1^%^2F^&dt=Y2mate^%^3A^%^20Free^%^20Online^%^20YouTube^%^20Video^%^20Downloader^%^20(1080p^%^2C^%^204K)^&en=page_view^&_ee=1^&tfd=8091^" ^
+  -X ^"POST^" ^
+  -H ^"accept: */*^" ^
+  -H ^"accept-language: en-IN,en-GB;q=0.9,en-US;q=0.8,en;q=0.7,hi;q=0.6,ee;q=0.5^" ^
+  -H ^"cache-control: no-cache^" ^
+  -H ^"content-length: 0^" ^
+  -H ^"origin: https://www.y2mate.in.net^" ^
+  -H ^"pragma: no-cache^" ^
+  -H ^"priority: u=1, i^" ^
+  -H ^"referer: https://www.y2mate.in.net/^" ^
+  -H ^"sec-ch-ua: ^\^"Chromium^\^";v=^\^"152^\^", ^\^"Not?A_Brand^\^";v=^\^"24^\^", ^\^"Google Chrome^\^";v=^\^"152^\^"^" ^
+  -H ^"sec-ch-ua-mobile: ?0^" ^
+  -H ^"sec-ch-ua-platform: ^\^"Windows^\^"^" ^
+  -H ^"sec-fetch-dest: empty^" ^
+  -H ^"sec-fetch-mode: no-cors^" ^
+  -H ^"sec-fetch-site: cross-site^" ^
+  -H ^"sec-fetch-storage-access: none^" ^
+  -H ^"user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36^"
+  curl --url ^"https://cnv.cx/v2/sanity/key?id=rjg7enocBvU^" ^
+  -H ^"accept: */*^" ^
+  -H ^"accept-language: en-IN,en-GB;q=0.9,en-US;q=0.8,en;q=0.7,hi;q=0.6,ee;q=0.5^" ^
+  -H ^"content-type: application/json^" ^
+  -H ^"origin: https://frame.y2meta-uk.com^" ^
+  -H ^"priority: u=1, i^" ^
+  -H ^"referer: https://frame.y2meta-uk.com/^" ^
+  -H ^"sec-ch-ua: ^\^"Chromium^\^";v=^\^"152^\^", ^\^"Not?A_Brand^\^";v=^\^"24^\^", ^\^"Google Chrome^\^";v=^\^"152^\^"^" ^
+  -H ^"sec-ch-ua-mobile: ?0^" ^
+  -H ^"sec-ch-ua-platform: ^\^"Windows^\^"^" ^
+  -H ^"sec-fetch-dest: empty^" ^
+  -H ^"sec-fetch-mode: cors^" ^
+  -H ^"sec-fetch-site: cross-site^" ^
+  -H ^"user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36^"
+  curl --url ^"https://cnv.cx/v2/converter^" ^
+  -H ^"accept: */*^" ^
+  -H ^"accept-language: en-IN,en-GB;q=0.9,en-US;q=0.8,en;q=0.7,hi;q=0.6,ee;q=0.5^" ^
+  -H ^"content-type: application/x-www-form-urlencoded^" ^
+  -H ^"key: MzVmYTRmOTMzNjViMGU1ZWU4OWZmZDgwMmEzYjViMzMwMWZiOGIxMzdhYTI4YzNiNTVlNDgxZTAzMzJmZWVjOXxNVGM0T0RrM05UZzNPRGswTUE9PQ==^" ^
+  -H ^"origin: https://frame.y2meta-uk.com^" ^
+  -H ^"priority: u=1, i^" ^
+  -H ^"referer: https://frame.y2meta-uk.com/^" ^
+  -H ^"sec-ch-ua: ^\^"Chromium^\^";v=^\^"152^\^", ^\^"Not?A_Brand^\^";v=^\^"24^\^", ^\^"Google Chrome^\^";v=^\^"152^\^"^" ^
+  -H ^"sec-ch-ua-mobile: ?0^" ^
+  -H ^"sec-ch-ua-platform: ^\^"Windows^\^"^" ^
+  -H ^"sec-fetch-dest: empty^" ^
+  -H ^"sec-fetch-mode: cors^" ^
+  -H ^"sec-fetch-site: cross-site^" ^
+  -H ^"user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36^" ^
+  --data-raw ^"link=https^%^3A^%^2F^%^2Fyoutu.be^%^2Frjg7enocBvU^&format=mp4^&audioBitrate=128^&videoQuality=1080^&filenameStyle=pretty^&vCodec=h264^"
+  
