@@ -10,8 +10,8 @@ import sleepImage from "@assets/generated_images/rloop-sleep.jpg";
 import musicImage from "@assets/generated_images/rloop-music.jpg";
 import newsImage from "@assets/generated_images/rloop-news.jpg";
 import dramaImage from "@assets/generated_images/rloop-drama.jpg";
-import compareOfflineImage from "@assets/generated_images/rloop-compare-offline.jpg";
-import compareLiveImage from "@assets/generated_images/rloop-compare-live.jpg";
+import compareOfflineImage from "@assets/generated_images/rloop-compare-server-loss.jpg";
+import compareLiveImage from "@assets/generated_images/rloop-compare-sleeping-live.jpg";
 import logoImage from "@assets/image_1788788255512.png";
 import offlineStreamImage from "@assets/image_1788983555839.png";
 
@@ -46,6 +46,10 @@ function BrandMark() {
 
 function RollLabel({ children }: { children: string }) {
   return <span className="roll-label"><span>{children}</span><span aria-hidden="true">{children}</span></span>;
+}
+
+function HeroRollText({ children }: { children: string }) {
+  return <span className="hero-roll-line"><span>{children}</span><span aria-hidden="true">{children}</span></span>;
 }
 
 function PublicNav({ onAccess }: { onAccess?: () => void }) {
@@ -180,9 +184,9 @@ function ComparisonSlider() {
       onPointerDown={(event) => updatePosition(event.clientX)}
       data-testid="comparison-slider"
     >
-      <img className="comparison-image comparison-image-live" src={compareLiveImage} alt="Creator smiling while a 24-hour live broadcast earns money" />
+      <img className="comparison-image comparison-image-live" src={compareLiveImage} alt="Creator sleeping peacefully while a 24-hour live broadcast earns money" />
       <div className="comparison-offline" style={{ clipPath: `inset(0 ${100 - position}% 0 0)` }}>
-        <img className="comparison-image comparison-image-offline" src={compareOfflineImage} alt="Sad creator looking at an offline stream with no earnings" />
+        <img className="comparison-image comparison-image-offline" src={compareOfflineImage} alt="Creator facing a server-loss error on a computer with no stream earnings" />
       </div>
       <div className="comparison-tint comparison-tint-offline" style={{ clipPath: `inset(0 ${100 - position}% 0 0)` }} />
       <div className="comparison-label comparison-label-offline"><span className="comparison-label-dot" /> STREAM OFFLINE <strong>₹0 earned</strong></div>
@@ -284,7 +288,7 @@ export function LandingPage() {
         <div className="hero-orbit hero-orbit-one" /><div className="hero-orbit hero-orbit-two" />
         <div className="hero-copy">
           <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: .25, duration: .7, ease }} className="signal-tag"><span className="signal-tag-dot" /> YOUR CHANNEL, ON LOOP</motion.div>
-          <motion.h1 initial={{ opacity: 0, y: 22 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: .35, duration: .8, ease }}>Make the long<br /><em>signal feel alive.</em></motion.h1>
+          <motion.h1 initial={{ opacity: 0, y: 22 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: .35, duration: .8, ease }}><HeroRollText>Make the long</HeroRollText><br /><em><HeroRollText>signal feel alive.</HeroRollText></em></motion.h1>
           <motion.p initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: .48, duration: .7, ease }}>R Loop Bypass turns a playlist into a dependable 24-hour live channel. Build once, broadcast with confidence.</motion.p>
           <motion.div className="hero-actions" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: .6, duration: .7, ease }}>
              <div
