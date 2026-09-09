@@ -39,6 +39,21 @@ type MediaFileRecord = {
   fileId: string; filename: string; sourcePath: string; playbackUrl: string; title: string; duration: string;
   licenseId: string; licenseName: string; folderName: string; quality: string; createdAt: string; sizeBytes: number;
 };
+type YoutubeDownloadTask = {
+  id: string;
+  total: number;
+  completed: number;
+  failed: number;
+  done: boolean;
+};
+type StartYoutubeDownloadsInput = {
+  entries: string[];
+  quality: DownloadQuality;
+  groupId: string;
+  licenseId: string;
+  licenseName: string;
+  folderName: string;
+};
 
 const queryClient = new QueryClient();
 const now = () => new Date().toISOString();
@@ -327,6 +342,7 @@ function useWorkspace(license: LicenseSession | null, clearLicense: () => void) 
   const [data, setData] = useState<DataState>(seed);
   const [ready, setReady] = useState(false);
   const [toast, setToast] = useState("");
+  const [youtubeDownloads, setYoutubeDownloads] = useState<YoutubeDownloadTask[]>([]);
   const user = license?.name || "";
   useEffect(() => {
     let cancelled = false;
@@ -418,8 +434,82 @@ function useWorkspace(license: LicenseSession | null, clearLicense: () => void) 
     setData((old) => ({ ...old, ...next, activities: activity ? [addActivity(activity.message, activity.type), ...old.activities].slice(0, 8) : old.activities }));
     if (activity) setToast(activity.message);
   };
+  const dismissYoutubeDownload = (taskId: string) => {
+    setYoutubeDownloads((current) => current.filter((task) => task.id !== taskId));
+  };
+  const startYoutubeDownloads = (input: StartYoutubeDownloadsInput) => {
+    const taskId = uid("youtube-download");
+    setYoutubeDownloads((current) => [...current, { id: taskId, total: input.entries.length, completed: 0, failed: 0, done: false }]);
+    void (async () => {
+      const completedVideos: Array<VideoItem | undefined> = new Array(input.entries.length);
+      const failures: Array<string | undefined> = new Array(input.entries.length);
+      let nextIndex = 0;
+      let completedCount = 0;
+      let failedCount = 0;
+      const downloadNext = async () => {
+        while (true) {
+          const index = nextIndex++;
+          if (index >= input.entries.length) return;
+          try {
+            const result = await downloadYoutubeVideoAsync({
+              url: input.entries[index],
+              quality: input.quality,
+              licenseId: input.licenseId,
+              licenseName: input.licenseName,
+              folderName: input.folderName,
+            });
+            completedVideos[index] = {
+              id: uid("vid"),
+              title: result.title,
+              duration: result.duration,
+              status: "published",
+              groupId: input.groupId,
+              sourceUrl: result.playbackUrl,
+              serverSource: result.sourcePath,
+              thumbnailColor: colors[index % colors.length],
+              views: 0,
+              createdAt: now(),
+              licenseId: input.licenseId,
+              licenseName: input.licenseName,
+              folderName: input.folderName,
+              quality: result.quality,
+            };
+          } catch (reason) {
+            failures[index] = `${index + 1}. ${reason instanceof Error ? reason.message : "Download failed."}`;
+            failedCount += 1;
+          } finally {
+            completedCount += 1;
+            setYoutubeDownloads((current) => current.map((task) => task.id === taskId
+              ? { ...task, completed: completedCount, failed: failedCount }
+              : task));
+          }
+        }
+      };
+      await Promise.all(Array.from({ length: Math.min(2, input.entries.length) }, () => downloadNext()));
+      const videos = completedVideos.filter((video): video is VideoItem => Boolean(video));
+      if (videos.length) {
+        setData((old) => {
+          const nextVideos = [...old.videos, ...videos];
+          return {
+            ...old,
+            videos: nextVideos,
+            groups: rebuildGroupMembership(old.groups, nextVideos),
+            activities: [{ id: uid("act"), type: "video", message: `${videos.length} YouTube video${videos.length === 1 ? "" : "s"} added to the library`, time: "Just now" }, ...old.activities].slice(0, 8),
+          };
+        });
+      }
+      const failureCount = failures.filter(Boolean).length;
+      setYoutubeDownloads((current) => current.map((task) => task.id === taskId ? { ...task, completed: completedCount, failed: failureCount, done: true } : task));
+      if (failureCount) {
+        setToast(`${videos.length} downloaded, ${failureCount} failed.`);
+      } else {
+        setToast(`${videos.length} YouTube video${videos.length === 1 ? "" : "s"} added to the library.`);
+      }
+      window.setTimeout(() => dismissYoutubeDownload(taskId), failureCount ? 20000 : 8000);
+    })();
+  };
   const logout = () => { clearLicense(); };
-  return { clientId: license?.clientId || "", licenseId: license?.licenseId || "", data, user, toast, ready, update, logout, setToast };
+  return { clientId: license?.clientId || "", licenseId: license?.licenseId || "", data, user, toast, ready, update, logout, setToast, youtubeDownloads, startYoutubeDownloads, dismissYoutubeDownload };
 }
 
 function Brand({ compact = false }: { compact?: boolean }) {
@@ -460,10 +550,27 @@ function Header({ title, onMenu }: { title:string; onMenu:()=>void }) {
   </header>;
 }
 
+function DownloadActivity({ downloads, onDismiss }: { downloads: YoutubeDownloadTask[]; onDismiss: (taskId: string) => void }) {
+  if (!downloads.length) return null;
+   return <div className="background-downloads" data-testid="background-downloads" role="status" aria-live="polite">
+    {downloads.map((task) => {
+      const percent = task.total ? Math.round((task.completed / task.total) * 100) : 0;
+      const label = task.done
+        ? task.failed ? `${task.completed - task.failed} downloaded · ${task.failed} failed` : `${task.completed} download${task.completed === 1 ? "" : "s"} complete`
+        : `Downloading ${task.completed}/${task.total} in background`;
+      return <div className={`background-download ${task.done ? "done" : ""}`} key={task.id}>
+        <div className="background-download-icon"><Download size={15}/></div>
+        <div className="background-download-copy"><strong>{label}</strong><span>{task.done ? "You can keep using the website." : "You can keep using the website while this runs."}</span>{!task.done && <div className="background-download-track"><span style={{ width: `${percent}%` }}/></div>}</div>
+        <div className="background-download-meta">{task.done ? <button className="icon-button" onClick={() => onDismiss(task.id)} title="Dismiss download status" aria-label="Dismiss download status"><X size={15}/></button> : <span>{percent}%</span>}</div>
+      </div>;
+    })}
+  </div>;
+}
+
 function AppShell({ children, title, workspace }: { children:ReactNode; title:string; workspace:ReturnType<typeof useWorkspace> }) {
   const [path] = useLocation();
   const [menu, setMenu] = useState(false);
-  return <div className="shell"><Sidebar path={path} open={menu} onClose={()=>setMenu(false)} user={workspace.user} onLogout={workspace.logout} data={workspace.data}/><main className="main"><Header title={title} onMenu={()=>setMenu(true)}/>{children}</main>{workspace.toast && <div className="toast" data-testid="status-toast"><Check size={14} style={{verticalAlign:"-2px", marginRight:7}}/>{workspace.toast}</div>}</div>;
+  return <div className="shell"><Sidebar path={path} open={menu} onClose={()=>setMenu(false)} user={workspace.user} onLogout={workspace.logout} data={workspace.data}/><main className="main"><Header title={title} onMenu={()=>setMenu(true)}/><DownloadActivity downloads={workspace.youtubeDownloads} onDismiss={workspace.dismissYoutubeDownload}/>{children}</main>{workspace.toast && <div className="toast" data-testid="status-toast"><Check size={14} style={{verticalAlign:"-2px", marginRight:7}}/>{workspace.toast}</div>}</div>;
 }
 
 function LicenseGate({ license, busy, error, onActivate, onRenew }: { license:LicenseSession|null; busy:boolean; error:string; onActivate:(key:string)=>Promise<void>; onRenew:()=>Promise<void> }) {
@@ -804,7 +911,7 @@ function TrimModal({video,licenseId="",licenseName="",folderName="",onCreate,onC
   </form></Modal>;
 }
 
-function YoutubeDownloadModal({groups,defaultGroupId="",licenseId="",licenseName="",onSaveMany,onClose}:{groups:VideoGroup[];defaultGroupId?:string;licenseId?:string;licenseName?:string;onSaveMany:(videos:VideoItem[])=>void;onClose:()=>void}) {
+function YoutubeDownloadModal({groups,defaultGroupId="",licenseId="",licenseName="",onSaveMany,onClose}:{groups:VideoGroup[];defaultGroupId?:string;licenseId?:string;licenseName?:string;onSaveMany:(input:VideoItem[] | StartYoutubeDownloadsInput)=>void;onClose:()=>void}) {
   const [urls,setUrls]=useState(""); const [groupId,setGroupId]=useState(defaultGroupId); const [quality,setQuality]=useState<DownloadQuality>("best"); const [availableQualities,setAvailableQualities]=useState<string[]>(["best","2160p","1440p","1080p","720p","480p"]); const [checkingQuality,setCheckingQuality]=useState(false);
   const [channelUrl,setChannelUrl]=useState(""); const [linkLimit,setLinkLimit]=useState<"all"|"5"|"10">("all"); const [extracting,setExtracting]=useState(false); const [downloading,setDownloading]=useState(false); const [progress,setProgress]=useState(0); const [error,setError]=useState(""); const [extractedCount,setExtractedCount]=useState(0);
   const entries=urls.split(/\r?\n|,/).map(value=>value.trim()).filter(Boolean);
@@ -833,36 +940,13 @@ function YoutubeDownloadModal({groups,defaultGroupId="",licenseId="",licenseName
     }catch(reason){setError(reason instanceof Error?reason.message:"Channel links could not be extracted.");}
     finally{setExtracting(false);}
   };
-  const submit=async(e:FormEvent)=>{
+  const submit=(e:FormEvent)=>{
     e.preventDefault();
-      if(!entries.length||!groupId||downloading||extracting||checkingQuality)return;
-    setDownloading(true);setError("");setProgress(0);
-     const completedVideos:Array<VideoItem|undefined>=new Array(entries.length);
-     const failuresByIndex:Array<string|undefined>=new Array(entries.length);
-     let nextIndex=0;
-     let completedCount=0;
-     const downloadNext=async()=>{
-       while(true){
-         const index=nextIndex++;
-         if(index>=entries.length)return;
-         const url=entries[index];
-         try{
-              const result=await downloadYoutubeVideoAsync({url,quality,licenseId,licenseName,folderName});
-             completedVideos[index]={id:uid("vid"),title:result.title,duration:result.duration,status:"published",groupId,sourceUrl:result.playbackUrl,serverSource:result.sourcePath,thumbnailColor:colors[index%colors.length],views:0,createdAt:now(),licenseId,licenseName,folderName,quality:result.quality};
-         }catch(reason){failuresByIndex[index]=`${index+1}. ${reason instanceof Error?reason.message:"Download failed."}`;}
-         completedCount+=1;
-         setProgress(completedCount);
-       }
-     };
-     const workerCount=Math.min(2,entries.length);
-     await Promise.all(Array.from({length:workerCount},()=>downloadNext()));
-     const videos=completedVideos.filter((video):video is VideoItem=>Boolean(video));
-     const failures=failuresByIndex.filter((failure):failure is string=>Boolean(failure));
-    if(videos.length)onSaveMany(videos);
-    setDownloading(false);
-    setError(failures.length?`${videos.length} downloaded, ${failures.length} failed.\n${failures.join("\n")}`:`${videos.length} video${videos.length===1?"":"s"} downloaded and added in order.`);
+    if(!entries.length||!groupId||downloading||extracting||checkingQuality)return;
+    onSaveMany({ entries, quality, groupId, licenseId, licenseName, folderName });
+    onClose();
   };
-   return <Modal title="YouTube bulk downloader" onClose={onClose} footer={<><button className="button ghost" onClick={onClose} disabled={downloading||extracting||checkingQuality} data-testid="button-cancel-youtube-download">Close</button><button className="button" type="submit" form="youtube-download-form" disabled={downloading||extracting||checkingQuality||!entries.length} data-testid="button-start-youtube-download">{downloading?`Downloading ${progress}/${entries.length}…`:"Download all videos"} {!downloading&&<Download size={14}/>}</button></>}><form id="youtube-download-form" onSubmit={submit}><div className="form-grid"><div className="field full"><label>Auto-fill from YouTube channel</label><div className="input-action-row"><input value={channelUrl} onChange={e=>setChannelUrl(e.target.value)} placeholder="https://www.youtube.com/@channel" data-testid="input-youtube-channel-url"/><button type="button" className="button secondary small" onClick={extractChannel} disabled={extracting||downloading||!channelUrl.trim()} data-testid="button-extract-channel-links">{extracting?"Extracting…":"Extract links"} {!extracting&&<Link2 size={13}/>}</button></div><span className="field-hint">Enter a public channel URL, choose how many links to add, then extract them.</span></div><div className="field"><label>Links to add</label><select value={linkLimit} onChange={e=>setLinkLimit(e.target.value as "all"|"5"|"10")} disabled={extracting||downloading} data-testid="select-youtube-link-limit"><option value="all">All links</option><option value="5">First 5 links</option><option value="10">First 10 links</option></select></div><div className="field"><label>Save in category / folder</label><select required value={groupId} onChange={e=>setGroupId(e.target.value)} disabled={downloading} data-testid="select-youtube-group"><option value="">Select a category</option>{groups.map(g=><option value={g.id} key={g.id}>{g.name}</option>)}</select></div><div className="field"><label>Download quality</label><select value={quality} onChange={e=>setQuality(e.target.value as DownloadQuality)} disabled={checkingQuality||downloading} data-testid="select-youtube-quality">{availableQualities.map(item=><option value={item} key={item}>{item==="best"?"Best available":item}</option>)}</select><span className="field-hint">Choose quality for every queued video.</span></div><div className="field"><label>Check this link's qualities</label><button type="button" className="button secondary small" onClick={checkQuality} disabled={checkingQuality||downloading||!entries.length} data-testid="button-check-youtube-quality">{checkingQuality?"Checking…":"Show available quality"} <Gauge size={13}/></button></div><div className="field full"><label>Video links queue</label><textarea autoFocus required value={urls} onChange={e=>setUrls(e.target.value)} placeholder={"Paste one URL per line\nhttps://www.youtube.com/watch?v=…\nhttps://youtu.be/…"} rows={6} data-testid="input-youtube-urls"/><span className="field-hint">{extractedCount ? `${extractedCount} new link${extractedCount===1?"":"s"} added to the queue.` : entries.length ? `${entries.length} URL${entries.length===1?"":"s"} queued · 2 downloads at a time, saved in your pasted order.` : "Paste multiple links manually, or auto-fill them from a channel above."}</span></div></div>{error&&<div className="error-note" style={{whiteSpace:"pre-line"}}>{error}</div>}<div className="form-note"><Download size={14} style={{verticalAlign:"-3px",marginRight:6}}/>Downloads use the secure YouTube cookies configured for this workspace and are saved directly into the media library. The selected quality is applied to every queued link.</div></form></Modal>;
+   return <Modal title="YouTube bulk downloader" onClose={onClose} footer={<><button className="button ghost" onClick={onClose} disabled={downloading||extracting||checkingQuality} data-testid="button-cancel-youtube-download">Close</button><button className="button" type="submit" form="youtube-download-form" disabled={downloading||extracting||checkingQuality||!entries.length} data-testid="button-start-youtube-download">Start background download <Download size={14}/></button></>}><form id="youtube-download-form" onSubmit={submit}><div className="form-grid"><div className="field full"><label>Auto-fill from YouTube channel</label><div className="input-action-row"><input value={channelUrl} onChange={e=>setChannelUrl(e.target.value)} placeholder="https://www.youtube.com/@channel" data-testid="input-youtube-channel-url"/><button type="button" className="button secondary small" onClick={extractChannel} disabled={extracting||downloading||!channelUrl.trim()} data-testid="button-extract-channel-links">{extracting?"Extracting…":"Extract links"} {!extracting&&<Link2 size={13}/>}</button></div><span className="field-hint">Enter a public channel URL, choose how many links to add, then extract them.</span></div><div className="field"><label>Links to add</label><select value={linkLimit} onChange={e=>setLinkLimit(e.target.value as "all"|"5"|"10")} disabled={extracting||downloading} data-testid="select-youtube-link-limit"><option value="all">All links</option><option value="5">First 5 links</option><option value="10">First 10 links</option></select></div><div className="field"><label>Save in category / folder</label><select required value={groupId} onChange={e=>setGroupId(e.target.value)} disabled={downloading} data-testid="select-youtube-group"><option value="">Select a category</option>{groups.map(g=><option value={g.id} key={g.id}>{g.name}</option>)}</select></div><div className="field"><label>Download quality</label><select value={quality} onChange={e=>setQuality(e.target.value as DownloadQuality)} disabled={checkingQuality||downloading} data-testid="select-youtube-quality">{availableQualities.map(item=><option value={item} key={item}>{item==="best"?"Best available":item}</option>)}</select><span className="field-hint">Choose quality for every queued video.</span></div><div className="field"><label>Check this link's qualities</label><button type="button" className="button secondary small" onClick={checkQuality} disabled={checkingQuality||downloading||!entries.length} data-testid="button-check-youtube-quality">{checkingQuality?"Checking…":"Show available quality"} <Gauge size={13}/></button></div><div className="field full"><label>Video links queue</label><textarea autoFocus required value={urls} onChange={e=>setUrls(e.target.value)} placeholder={"Paste one URL per line\nhttps://www.youtube.com/watch?v=…\nhttps://youtu.be/…"} rows={6} data-testid="input-youtube-urls"/><span className="field-hint">{extractedCount ? `${extractedCount} new link${extractedCount===1?"":"s"} added to the queue.` : entries.length ? `${entries.length} URL${entries.length===1?"":"s"} queued · 2 downloads at a time, saved in your pasted order.` : "Paste multiple links manually, or auto-fill them from a channel above."}</span></div></div>{error&&<div className="error-note" style={{whiteSpace:"pre-line"}}>{error}</div>}<div className="form-note"><Download size={14} style={{verticalAlign:"-3px",marginRight:6}}/>Dialog submit karte hi close ho jayega. Download background mein chalega aur status library ke top par dikhega.</div></form></Modal>;
 }
 
 function BulkUploadModal({groups,defaultGroupId="",licenseId="",licenseName="",onSaveMany,onClose}:{groups:VideoGroup[];defaultGroupId?:string;licenseId?:string;licenseName?:string;onSaveMany:(videos:VideoItem[])=>void;onClose:()=>void}) {
@@ -911,7 +995,7 @@ function VideosPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}) {
   const filtered=useMemo(()=>data.videos.filter(v=>(!search||v.title.toLowerCase().includes(search.toLowerCase()))&&(status==="all"||v.status===status)&&(group==="all"||v.groupId===group)),[data.videos,search,status,group]);
   const openAddVideo=(groupId="")=>{setVideoGroupId(groupId);setVideoModal(true);};
   const openGroup=(groupId:string)=>{setGroup(groupId);setTab("library");};
-   const saveVideos=(items:VideoItem[])=>{if(!items.length)return;const byId=new Map(data.videos.map(video=>[video.id,video]));for(const item of items)byId.set(item.id,item);const videos=Array.from(byId.values());const groups=rebuildGroupMembership(data.groups,videos);update({videos,groups},{message:items.length===1?`${items[0].title} was added to the library`:`${items.length} videos were added in playlist order`,type:"video"});};
+    const saveVideos=(items:VideoItem[]|StartYoutubeDownloadsInput)=>{if(!Array.isArray(items)){workspace.startYoutubeDownloads(items);return;}if(!items.length)return;const byId=new Map(data.videos.map(video=>[video.id,video]));for(const item of items)byId.set(item.id,item);const videos=Array.from(byId.values());const groups=rebuildGroupMembership(data.groups,videos);update({videos,groups},{message:items.length===1?`${items[0].title} was added to the library`:`${items.length} videos were added in playlist order`,type:"video"});};
   const saveVideo=(v:VideoItem)=>{saveVideos([v]);setVideoModal(false);setVideoGroupId("");setEditingVideo(undefined);};
   const openEditVideo=(video:VideoItem)=>{setEditingVideo(video);setVideoGroupId(video.groupId);setVideoModal(true);};
   const saveGroup=(g:VideoGroup)=>{const exists=data.groups.some(x=>x.id===g.id);update({groups:exists?data.groups.map(x=>x.id===g.id?g:x):[...data.groups,g]},{message:exists?`${g.name} was updated`:`${g.name} was created`,type:"group"});setGroupModal(false);setEditingGroup(undefined);};

@@ -12,5 +12,19 @@
     "quality": "360p",
     "createdAt": "2026-09-09T16:27:53.190Z",
     "sizeBytes": 87335141
+  },
+  {
+    "fileId": "8e92333c-02c9-45b8-b8a8-e4fef367bbe3",
+    "filename": "8e92333c-02c9-45b8-b8a8-e4fef367bbe3__spider-man-rescue-batman-vs-iron-man-vs-venom-funny-game.mp4",
+    "sourcePath": "/home/runner/workspace/artifacts/api-server/attached_assets/live-media/youtube-proxy-test/async-smoke-test/8e92333c-02c9-45b8-b8a8-e4fef367bbe3__spider-man-rescue-batman-vs-iron-man-vs-venom-funny-game.mp4",
+    "playbackUrl": "/api/media/files/8e92333c-02c9-45b8-b8a8-e4fef367bbe3",
+    "title": "الرجل العنكبوت انقاذ باتمان Spider-Man Rescue batman vs iron man vs venom funny Game GTA 5 superhero",
+    "duration": "21:05",
+    "licenseId": "async-smoke-test",
+    "licenseName": "Async smoke test",
+    "folderName": "YouTube proxy test",
+    "quality": "360p",
+    "createdAt": "2026-09-09T16:50:48.102Z",
+    "sizeBytes": 87335141
   }
 ]
