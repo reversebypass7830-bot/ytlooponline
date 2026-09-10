@@ -3,7 +3,7 @@ import { createWriteStream } from "node:fs";
 import { copyFile, mkdir, readFile, readdir, rename, rm, stat, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { pipeline } from "node:stream/promises";
-import { Router, type IRouter } from "express";
+import { Router, type IRouter, type Request } from "express";
 import { randomUUID } from "node:crypto";
 import { Readable } from "node:stream";
 import {
@@ -24,6 +24,8 @@ const router: IRouter = Router();
 const mediaDir = path.resolve(process.cwd(), "attached_assets", "live-media");
 const maxUploadBytes = 1.5 * 1024 * 1024 * 1024;
 const mediaIndexPath = path.join(mediaDir, "media-index.json");
+const includedMediaLicenseId = "__included__";
+const defaultOwnerPassword = "traderp1wer";
 
 type MediaRecord = {
   fileId: string;
@@ -39,6 +41,11 @@ type MediaRecord = {
   createdAt: string;
   sizeBytes: number;
 };
+
+function ownerAuthorized(req: Request): boolean {
+  const expected = process.env.OWNER_PASSWORD?.trim() || defaultOwnerPassword;
+  return Boolean(expected && req.header("x-owner-password") === expected);
+}
 
 let mediaIndexWrite = Promise.resolve();
 
@@ -523,7 +530,9 @@ router.get("/media/files", async (req, res): Promise<void> => {
     });
   }
   const licenseId = typeof req.query.licenseId === "string" ? req.query.licenseId : "";
-  const filtered = licenseId ? result.filter((file) => file.licenseId === licenseId) : result;
+  const filtered = licenseId
+    ? result.filter((file) => file.licenseId === licenseId || file.licenseId === includedMediaLicenseId)
+    : result;
   res.json(ListMediaFilesResponse.parse({ files: filtered.sort((a, b) => b.createdAt.localeCompare(a.createdAt)) }));
 });
 
@@ -532,6 +541,10 @@ router.delete("/media/files", async (req, res): Promise<void> => {
   const folderName = typeof req.query.folderName === "string" ? req.query.folderName.trim() : "";
   if (!licenseId) {
     res.status(400).json({ error: "A license id is required to delete workspace media." });
+    return;
+  }
+  if (licenseId === includedMediaLicenseId && !ownerAuthorized(req)) {
+    res.status(403).json({ error: "Only the owner can remove included animations." });
     return;
   }
   try {
@@ -576,6 +589,10 @@ router.post("/media/upload", async (req, res): Promise<void> => {
     licenseName: req.header("x-license-name") || undefined,
     folderName: req.header("x-folder-name") || undefined,
   };
+  if (context.licenseId === includedMediaLicenseId && !ownerAuthorized(req)) {
+    res.status(403).json({ error: "Only the owner can add included animations." });
+    return;
+  }
   const mediaTitle = decodeHeaderValue(req.header("x-media-title"));
   const mediaDuration = decodeHeaderValue(req.header("x-media-duration"));
   const mediaQuality = decodeHeaderValue(req.header("x-quality"));
@@ -733,7 +750,12 @@ router.post("/media/compose", async (req, res): Promise<void> => {
       scopedRecords.push(overlayRecord);
     }
   }
-  if (scopedRecords.some((record) => record.licenseId && licenseId && record.licenseId !== licenseId)) {
+  if (scopedRecords.some((record) =>
+    record.licenseId
+    && record.licenseId !== includedMediaLicenseId
+    && licenseId
+    && record.licenseId !== licenseId
+  )) {
     res.status(403).json({ error: "Selected media belongs to another license workspace." });
     return;
   }
@@ -879,7 +901,11 @@ router.post("/media/files/:fileId/trim", async (req, res): Promise<void> => {
   const quality = req.header("x-quality") || sourceRecord?.quality || "clip";
   const clipTitle = req.header("x-clip-title")?.trim() || `${sourceRecord?.title || path.basename(input, path.extname(input))} · clip`;
   const replaceFileId = req.header("x-replace-file-id")?.trim() || "";
-  if (sourceRecord?.licenseId && sourceRecord.licenseId !== licenseId) {
+  if (
+    sourceRecord?.licenseId
+    && sourceRecord.licenseId !== includedMediaLicenseId
+    && sourceRecord.licenseId !== licenseId
+  ) {
     res.status(403).json({ error: "This video belongs to another license workspace." });
     return;
   }
@@ -956,6 +982,18 @@ router.post("/media/files/:fileId/trim", async (req, res): Promise<void> => {
 });
 
 router.get("/media/files/:fileId", async (req, res): Promise<void> => {
+  const record = (await readMediaIndex()).find((item) => item.fileId === req.params.fileId);
+  const requestedLicenseId = typeof req.query.licenseId === "string"
+    ? req.query.licenseId.trim()
+    : req.header("x-license-id")?.trim() || "";
+  if (
+    record?.licenseId
+    && record.licenseId !== includedMediaLicenseId
+    && record.licenseId !== requestedLicenseId
+  ) {
+    res.status(403).json({ error: "This video belongs to another license workspace." });
+    return;
+  }
   const filename = await findMediaFile(req.params.fileId);
   if (!filename) {
     res.status(404).json({ error: "Media file not found." });
@@ -973,6 +1011,10 @@ router.delete("/media/files/:fileId", async (req, res): Promise<void> => {
     ? req.query.licenseId.trim()
     : req.header("x-license-id")?.trim() || "";
   const record = (await readMediaIndex()).find((item) => item.fileId === req.params.fileId);
+  if (record?.licenseId === includedMediaLicenseId && !ownerAuthorized(req)) {
+    res.status(403).json({ error: "Only the owner can remove included animations." });
+    return;
+  }
   if (record?.licenseId && record.licenseId !== requestedLicenseId) {
     res.status(403).json({ error: "This video belongs to another license workspace." });
     return;

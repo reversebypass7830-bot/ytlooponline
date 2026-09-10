@@ -1,0 +1,35 @@
+अरे भाई! मैं क्या बोल रहा हूँ, YouTube animations के अंदर video रहना चाहिए proper. Video animation के अंदर दो folder बनाओ, ठीक है? Folder के अंदर folder भी बना सकते हैं, वह दे दो। ठीक है, इसमें update कर दो। और क्या कर रहे हो? जैसे video animation के अंदर my animations का एक रहना चाहिए। पहले से included animations, पहले से ही वो animations रहना चाहिए। My animation में जाएंगे तो अपन जैसे normal video download करते हैं, हमारे जो पसंद आएंगे वो animations download करेंगे। ठीक है? जो पहले से included मतलब सबके folders में पहले से include रहता है, वो एक ही animation जो मैं add करके अभी रख दे रहा हूँ। ठीक है properly, admin से add कर सकते हैं। Included animations, ठीक है। ऐसे कर दो properly. Folders में folders भी बना सकते हो properly, वो बता दो, वो बना दो। देखो वह break नहीं होना चाहिए। जैसे कि मेरा license free है। जैसे कि मेरे videos, my animations के रहेंगे तो my animations दूसरे बंदे के key के अंदर नहीं जाना चाहिए। वह बता दे रहा हूँ अभी। वह mistake मत करना। ठीक है। बस मेरे admin से एक control होता है वह latest animations। latest नहीं। अभी मैंने बताया था ना, यह क्या बोलते हैं? Included animations करके। पहले से include होते हैं वह animations। ठीक है। वह एक ही सबके पास दिखेंगे।
+
+SA
+sapofo1803
+sapofo1803
+Free
+4 minutes ago
+Implementing animation storage
+
+Implementing animation storage
+अब requirement clear है: root folder के अंदर सिर्फ दो folders होंगे—Included Animations और My Animations।
+
+Included Animations: admin से जो animation add होगा, वह सभी license keys को दिखाई देगा।
+My Animations: जिस license/key ने video download किया, वही देखेगा; दूसरे user के workspace में नहीं जाएगा।
+दोनों folders YouTube Animations के अंदर child folders होंगे।
+Existing per-license videos को global नहीं बनाऊँगा।
+पहले admin upload flow और media access scope देख रहा हूँ, ताकि included animation सच में shared हो और My Animations strictly license-scoped रहे।
+
+
+
+15 actions
+पहले बनाए गए पुराने चार child folders अब सही structure नहीं हैं। उन्हें तीन-level structure में migrate करूँगा:
+
+YouTube Animations
+├── Included Animations
+└── My Animations
+
+पुराने child folders में अगर कोई media हो तो उसे My Animations में migrate करूँगा; खाली पुराने folders हट जाएँगे। Included Animations global shared media scope में रहेगा, My Animations license-specific रहेगा।
+
+
+
+Edited App.tsx
+
+Worked for 1 minute
+You've reached your daily free quota limit. It will reset at 12:00 AM UTC.
