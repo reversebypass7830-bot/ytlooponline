@@ -157,6 +157,10 @@ function ComparisonSlider() {
   const frameRef = useRef<HTMLDivElement>(null);
   const [position, setPosition] = useState(50);
   const [dragging, setDragging] = useState(false);
+  const [autoPaused, setAutoPaused] = useState(false);
+  const autoDirectionRef = useRef(1);
+  const resumeTimerRef = useRef<number | null>(null);
+  const reducedMotion = useReducedMotion();
 
   const updatePosition = (clientX: number) => {
     const frame = frameRef.current;
@@ -166,8 +170,54 @@ function ComparisonSlider() {
     setPosition(Math.min(100, Math.max(0, next)));
   };
 
+  useEffect(() => {
+    if (reducedMotion) return;
+
+    let frameId = 0;
+    let previousTime = 0;
+    const moveHandle = (time: number) => {
+      if (!previousTime) previousTime = time;
+      const delta = Math.min(time - previousTime, 64);
+      previousTime = time;
+
+      if (!autoPaused && !dragging) {
+        setPosition((value) => {
+          const next = value + autoDirectionRef.current * delta * 0.009;
+          if (next >= 76) {
+            autoDirectionRef.current = -1;
+            return 76;
+          }
+          if (next <= 24) {
+            autoDirectionRef.current = 1;
+            return 24;
+          }
+          return next;
+        });
+      }
+
+      frameId = window.requestAnimationFrame(moveHandle);
+    };
+
+    frameId = window.requestAnimationFrame(moveHandle);
+    return () => window.cancelAnimationFrame(frameId);
+  }, [autoPaused, dragging, reducedMotion]);
+
+  useEffect(() => () => {
+    if (resumeTimerRef.current !== null) window.clearTimeout(resumeTimerRef.current);
+  }, []);
+
+  const pauseAuto = () => {
+    setAutoPaused(true);
+    if (resumeTimerRef.current !== null) window.clearTimeout(resumeTimerRef.current);
+    resumeTimerRef.current = window.setTimeout(() => {
+      setAutoPaused(false);
+      resumeTimerRef.current = null;
+    }, 2200);
+  };
+
   const handlePointerDown = (event: PointerEvent<HTMLButtonElement>) => {
     event.preventDefault();
+    pauseAuto();
     event.currentTarget.setPointerCapture(event.pointerId);
     setDragging(true);
   };
@@ -181,24 +231,29 @@ function ComparisonSlider() {
       event.currentTarget.releasePointerCapture(event.pointerId);
     }
     setDragging(false);
+    pauseAuto();
   };
 
   const handleKeyDown = (event: KeyboardEvent<HTMLButtonElement>) => {
     const step = event.shiftKey ? 10 : 5;
     if (event.key === "ArrowLeft") {
       event.preventDefault();
+      pauseAuto();
       setPosition((value) => Math.max(0, value - step));
     }
     if (event.key === "ArrowRight") {
       event.preventDefault();
+      pauseAuto();
       setPosition((value) => Math.min(100, value + step));
     }
     if (event.key === "Home") {
       event.preventDefault();
+      pauseAuto();
       setPosition(0);
     }
     if (event.key === "End") {
       event.preventDefault();
+      pauseAuto();
       setPosition(100);
     }
   };
@@ -208,7 +263,7 @@ function ComparisonSlider() {
       <span className="section-index">04 / THE DIFFERENCE</span>
       <h2>Don’t let your<br /><em>channel go dark.</em></h2>
       <p>Drag the signal across the frame. See the difference between waiting for viewers and keeping a 24-hour stream earning for you.</p>
-      <div className="comparison-hint"><ArrowLeftRight size={15} /><span>Grab the handle and move it left or right</span></div>
+       <div className="comparison-hint"><ArrowLeftRight size={15} /><span>It keeps moving — grab the handle anytime</span></div>
     </div>
     <div
       ref={frameRef}
