@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type KeyboardEvent, type PointerEvent, type ReactNode } from "react";
 import { AnimatePresence, motion, useInView, useReducedMotion } from "framer-motion";
-import { ArrowDown, ArrowLeftRight, ArrowRight, Check, Menu, Play, Radio, Signal, X, Zap } from "lucide-react";
+import { ArrowDown, ArrowLeftRight, ArrowRight, Check, Menu, MessageCircle, Play, Radio, Send, Signal, X, Zap } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import GetOfferButton from "@/components/GetOfferButton";
 import logoImage from "@assets/image_1788788255512.png";
@@ -406,6 +406,11 @@ const planFeatures = [
   ["Playlist + auto scheduler", "Build loops, schedule broadcasts, and restart automatically."],
 ];
 
+const contactChannels = [
+  { label: "WhatsApp", Icon: MessageCircle },
+  { label: "Telegram", Icon: Send },
+] as const;
+
 const paywallPlans = [
   { term: "Free 1 day", price: "FREE", crossed: "", label: "24 hours", offer: "Try the full broadcast room", bonus: "No payment to start", featured: true },
   { term: "1 month", price: "₹799", crossed: "₹1,000", label: "1 month", offer: "20% offer included", bonus: "10 days extra" },
@@ -418,8 +423,17 @@ const paywallPlans = [
 function PlanOfferSlider() {
   const [selectedPlan, setSelectedPlan] = useState<(typeof accessPlans)[number] | null>(null);
   const [selectedChannel, setSelectedChannel] = useState<string | null>(null);
+  const [, setLocation] = useLocation();
   const closeContact = () => {
     setSelectedPlan(null);
+    setSelectedChannel(null);
+  };
+  const choosePlan = (plan: (typeof accessPlans)[number]) => {
+    if (!plan.isFree) {
+      setLocation(`/gateway?plan=${encodeURIComponent(plan.term)}`);
+      return;
+    }
+    setSelectedPlan(plan);
     setSelectedChannel(null);
   };
 
@@ -450,7 +464,7 @@ function PlanOfferSlider() {
               <div><strong>{title}</strong><span>{detail}</span></div>
             </div>)}
           </div>
-          <button type="button" className="plan-offer-card-cta" onClick={() => { setSelectedPlan(plan); setSelectedChannel(null); }} data-testid={`button-plan-offer-${index}`}>
+          <button type="button" className="plan-offer-card-cta" onClick={() => choosePlan(plan)} data-testid={`button-plan-offer-${index}`}>
              Choose {plan.term} <ArrowRight size={13} />
           </button>
         </article>)}
@@ -465,8 +479,8 @@ function PlanOfferSlider() {
           <h3 id="plan-contact-title">Choose how to activate <em>{selectedPlan.term}</em></h3>
           <p>First choose a contact option. We will help you with access, payment, and setup for this plan.</p>
           <div className="plan-contact-options" aria-label="Contact options">
-            {["WhatsApp", "Facebook", "Telegram"].map((channel) => <button type="button" className={`plan-contact-option ${selectedChannel === channel ? "is-selected" : ""}`} key={channel} onClick={() => setSelectedChannel(channel)}>
-              <span className="plan-contact-option-mark">{channel.slice(0, 1)}</span><span><strong>{channel}</strong><small>Contact us about {selectedPlan.term}</small></span><ArrowRight size={14} />
+            {contactChannels.map(({ label, Icon }) => <button type="button" className={`plan-contact-option ${selectedChannel === label ? "is-selected" : ""}`} key={label} onClick={() => setSelectedChannel(label)}>
+              <span className="plan-contact-option-mark"><Icon size={17} strokeWidth={2.3} /></span><span><strong>{label}</strong><small>Contact us about {selectedPlan.term}</small></span><ArrowRight size={14} />
             </button>)}
           </div>
           {selectedChannel && <div className="plan-contact-confirmation"><span className="monitor-led" /><strong>{selectedChannel} selected</strong><span>We’ll connect you about your {selectedPlan.term} access.</span></div>}
@@ -557,11 +571,39 @@ export function LandingPage() {
   </div>;
 }
 
+export function GatewayPage() {
+  const [, setLocation] = useLocation();
+  const plan = new URLSearchParams(window.location.search).get("plan") || "1 month";
+
+  return <div className="marketing-page pricing-page">
+    <PublicNav />
+    <main className="gateway-main">
+      <div className="gateway-card">
+        <span className="section-index">PAYMENT GATEWAY / READY</span>
+        <h1>Continue with<br /><em>{plan}.</em></h1>
+        <p className="gateway-copy">Your selected plan is ready for the payment gateway. Add the gateway details here when you are ready to connect checkout.</p>
+        <div className="gateway-selection"><span className="monitor-led" /><strong>{plan}</strong><span>Selected access window</span></div>
+        <button type="button" className="signal-button" onClick={() => setLocation("/pricing")}><span>Back to pricing</span><ArrowRight size={16} /></button>
+      </div>
+    </main>
+    <footer className="marketing-footer"><Link href="/" className="marketing-brand" data-testid="link-gateway-footer-home"><BrandMark /><span>R LOOP <b>BYPASS</b></span></Link><span>Secure access setup.</span><Link href="/pricing" data-testid="link-gateway-pricing">Back to pricing <ArrowRight size={13} /></Link></footer>
+  </div>;
+}
+
 export function PricingPage() {
   const [selectedPlan, setSelectedPlan] = useState<(typeof paywallPlans)[number] | null>(null);
   const [selectedChannel, setSelectedChannel] = useState<string | null>(null);
+  const [, setLocation] = useLocation();
   const closeContact = () => {
     setSelectedPlan(null);
+    setSelectedChannel(null);
+  };
+  const choosePlan = (plan: (typeof paywallPlans)[number]) => {
+    if (!plan.featured || plan.term !== "Free 1 day") {
+      setLocation(`/gateway?plan=${encodeURIComponent(plan.term)}`);
+      return;
+    }
+    setSelectedPlan(plan);
     setSelectedChannel(null);
   };
 
@@ -589,7 +631,7 @@ export function PricingPage() {
           <div className="offer-line"><Zap size={14} /> {plan.offer}</div>
           {plan.term === "1 month" && <MonthlyOfferCountdown />}
           <div className="paywall-plan-bonus"><span>PLAN BENEFIT</span><strong>{plan.bonus}</strong></div>
-          <button type="button" className="signal-button paywall-plan-button" onClick={() => { setSelectedPlan(plan); setSelectedChannel(null); }} data-testid={`button-paywall-plan-${index}`}><span>Choose {plan.term}</span><ArrowRight size={16} /></button>
+          <button type="button" className="signal-button paywall-plan-button" onClick={() => choosePlan(plan)} data-testid={`button-paywall-plan-${index}`}><span>{plan.term === "Free 1 day" ? "Choose free access" : `Continue to gateway`}</span><ArrowRight size={16} /></button>
           <div className="paywall-plan-features">{["Unlimited storage", "2 live monitor bots", "24-hour live streams", "YouTube + Facebook + RTMP", "VPS + direct downloads"].map((feature) => <span key={feature}><Check size={13} /> {feature}</span>)}</div>
         </motion.article>)}
       </div>
@@ -602,8 +644,8 @@ export function PricingPage() {
             <h3 id="paywall-contact-title">Activate <em>{selectedPlan.term}</em></h3>
             <p>First choose a contact option. We will help you with access, payment, and setup for this plan.</p>
             <div className="plan-contact-options" aria-label="Contact options">
-              {["WhatsApp", "Facebook", "Telegram"].map((channel) => <button type="button" className={`plan-contact-option ${selectedChannel === channel ? "is-selected" : ""}`} key={channel} onClick={() => setSelectedChannel(channel)}>
-                <span className="plan-contact-option-mark">{channel.slice(0, 1)}</span><span><strong>{channel}</strong><small>Contact us about {selectedPlan.term}</small></span><ArrowRight size={14} />
+              {contactChannels.map(({ label, Icon }) => <button type="button" className={`plan-contact-option ${selectedChannel === label ? "is-selected" : ""}`} key={label} onClick={() => setSelectedChannel(label)}>
+                <span className="plan-contact-option-mark"><Icon size={17} strokeWidth={2.3} /></span><span><strong>{label}</strong><small>Contact us about {selectedPlan.term}</small></span><ArrowRight size={14} />
               </button>)}
             </div>
             {selectedChannel && <div className="plan-contact-confirmation"><span className="monitor-led" /><strong>{selectedChannel} selected</strong><span>We’ll connect you about your {selectedPlan.term} access.</span></div>}
