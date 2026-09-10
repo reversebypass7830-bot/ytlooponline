@@ -95,6 +95,7 @@ function PublicNav({ onAccess }: { onAccess?: () => void }) {
     </nav>
     <div className="marketing-nav-actions">
       <Link href="/access" className="nav-access" onClick={onAccess} data-testid="link-access-workspace"><RollLabel>Access workspace</RollLabel><ArrowRight size={14} /></Link>
+      <Link href="/access" className="mobile-nav-access" onClick={onAccess} data-testid="mobile-button-access-workspace">Access workspace<ArrowRight size={13} /></Link>
       <button className="marketing-menu-button" onClick={() => setMenuOpen((value) => !value)} aria-label={menuOpen ? "Close navigation" : "Open navigation"} aria-expanded={menuOpen} data-testid="button-mobile-menu">{menuOpen ? <X size={19} /> : <Menu size={19} />}</button>
     </div>
     {menuOpen && <div className="mobile-marketing-menu">
