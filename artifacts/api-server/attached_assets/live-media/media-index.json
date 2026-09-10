@@ -82,5 +82,47 @@
     "quality": "1080p",
     "createdAt": "2026-09-10T13:34:15.037Z",
     "sizeBytes": 5117423
+  },
+  {
+    "fileId": "f8a616e0-62e9-425b-9f31-20ca53f0d876",
+    "filename": "f8a616e0-62e9-425b-9f31-20ca53f0d876__no-copyright-subscribe-and-bell-icon-intro-sound-animati.mp4",
+    "sourcePath": "/home/runner/workspace/artifacts/api-server/attached_assets/live-media/my-youtube-animation-included-animations-like-and-subscr/included-animations/f8a616e0-62e9-425b-9f31-20ca53f0d876__no-copyright-subscribe-and-bell-icon-intro-sound-animati.mp4",
+    "playbackUrl": "/api/media/files/f8a616e0-62e9-425b-9f31-20ca53f0d876",
+    "title": "No Copyright, Subscribe and Bell icon intro sound animation | 100% Free download | Subscribe Button",
+    "duration": "00:06",
+    "licenseId": "__included__",
+    "licenseName": "Included Animations",
+    "folderName": "My YouTube Animation/Included Animations/Like and Subscribe",
+    "quality": "1080p",
+    "createdAt": "2026-09-10T15:16:05.101Z",
+    "sizeBytes": 159788
+  },
+  {
+    "fileId": "be9bac13-8205-44d7-9cce-ce692cec8010",
+    "filename": "be9bac13-8205-44d7-9cce-ce692cec8010__like-and-subscribe-outro-free-to-use.mp4",
+    "sourcePath": "/home/runner/workspace/artifacts/api-server/attached_assets/live-media/my-youtube-animation-included-animations-like-and-subscr/included-animations/be9bac13-8205-44d7-9cce-ce692cec8010__like-and-subscribe-outro-free-to-use.mp4",
+    "playbackUrl": "/api/media/files/be9bac13-8205-44d7-9cce-ce692cec8010",
+    "title": "Like and Subscribe Outro (Free to use)",
+    "duration": "00:12",
+    "licenseId": "__included__",
+    "licenseName": "Included Animations",
+    "folderName": "My YouTube Animation/Included Animations/Like and Subscribe",
+    "quality": "1080p",
+    "createdAt": "2026-09-10T15:16:09.764Z",
+    "sizeBytes": 2605559
+  },
+  {
+    "fileId": "6e34d1d3-9a45-438b-b74e-42e873853528",
+    "filename": "6e34d1d3-9a45-438b-b74e-42e873853528__subscribe-and-bell-icon-intro-and-sound-without-copyrigh.mp4",
+    "sourcePath": "/home/runner/workspace/artifacts/api-server/attached_assets/live-media/my-youtube-animation-included-animations-like-and-subscr/included-animations/6e34d1d3-9a45-438b-b74e-42e873853528__subscribe-and-bell-icon-intro-and-sound-without-copyrigh.mp4",
+    "playbackUrl": "/api/media/files/6e34d1d3-9a45-438b-b74e-42e873853528",
+    "title": "Subscribe and bell icon intro and sound without copyright | Subscribe Like share and comment",
+    "duration": "00:28",
+    "licenseId": "__included__",
+    "licenseName": "Included Animations",
+    "folderName": "My YouTube Animation/Included Animations/Like and Subscribe",
+    "quality": "1080p",
+    "createdAt": "2026-09-10T15:16:16.760Z",
+    "sizeBytes": 738938
   }
 ]
