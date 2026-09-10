@@ -204,6 +204,15 @@ function folderPathForGroup(groupId: string | undefined, groups: VideoGroup[]): 
   return path.join("/");
 }
 
+function normalizeYoutubeMediaFolder(folderName: string): string {
+  const segments = folderName.split("/").map((segment) => segment.trim()).filter(Boolean);
+  if (!segments.length) return "";
+  if (segments[0].toLowerCase() === "included animations" || segments[0].toLowerCase() === "my animations") {
+    return ["YouTube Animations", ...segments].join("/");
+  }
+  return segments.join("/");
+}
+
 function groupDepth(groupId: string, groups: VideoGroup[]): number {
   let depth = 0;
   const seen = new Set<string>();
@@ -378,7 +387,8 @@ function normalizeWorkspace(value: unknown): DataState {
 function reconcileMediaFolders(value: DataState, files: MediaFileRecord[]): DataState {
   let groups = [...value.groups];
   const groupForFolder = (folderName: string, createdAt: string): VideoGroup | undefined => {
-    const segments = folderName.split("/").map((segment) => segment.trim()).filter(Boolean);
+    const normalizedFolderName = normalizeYoutubeMediaFolder(folderName);
+    const segments = normalizedFolderName.split("/").map((segment) => segment.trim()).filter(Boolean);
     if (!segments.length) return undefined;
     let parentId: string | undefined;
     let current: VideoGroup | undefined;
@@ -402,9 +412,10 @@ function reconcileMediaFolders(value: DataState, files: MediaFileRecord[]): Data
     const fileId = getMediaFileId(video);
     const record = fileId ? records.get(fileId) : undefined;
     const folderName = video.folderName?.trim() || record?.folderName?.trim() || "";
+    const normalizedFolderName = normalizeYoutubeMediaFolder(folderName);
     const group = groupForFolder(folderName, record?.createdAt || video.createdAt);
     return group
-      ? { ...video, groupId: group.id, folderName: folderName || group.name }
+      ? { ...video, groupId: group.id, folderName: normalizedFolderName || group.name }
       : video;
   });
   return normalizeWorkspace({ ...value, groups, videos });
@@ -824,7 +835,7 @@ function IncludedAnimationsModal({ ownerPassword, onClose }: { ownerPassword: st
   const folderForFile = (file: File) => {
     const parts = (file.webkitRelativePath || "").split("/").filter(Boolean);
     const nested = parts.length > 2 ? parts.slice(1, -1) : [];
-    return ["Included Animations", ...nested].join("/");
+    return ["YouTube Animations", "Included Animations", ...nested].join("/");
   };
 
   const submit = async (event: FormEvent) => {
@@ -1154,7 +1165,7 @@ function VideoModal({video,groups,defaultGroupId="",licenseId="",licenseName="",
     if(file){
       setUploading(true);
       try{
-         const folderName=groups.find(group=>group.id===form.groupId)?.name||"";
+         const folderName=folderPathForGroup(form.groupId, groups);
          const response=await fetch("/api/media/upload",{method:"POST",headers:{"Content-Type":file.type||"application/octet-stream","X-File-Name":file.name,"X-License-Id":licenseId,"X-License-Name":licenseName,"X-Folder-Name":folderName},body:file});
         const payload=await response.json() as {sourcePath?:string;playbackUrl?:string;error?:string};
         if(!response.ok || !payload.sourcePath || !payload.playbackUrl) throw new Error(payload.error||"Video upload failed.");
@@ -1224,7 +1235,7 @@ function YoutubeDownloadModal({groups,defaultGroupId="",licenseId="",licenseName
   const [urls,setUrls]=useState(""); const [groupId,setGroupId]=useState(defaultGroupId); const [quality,setQuality]=useState<DownloadQuality>("best"); const [availableQualities,setAvailableQualities]=useState<string[]>(["best","1080p","720p","480p","360p"]); const [checkingQuality,setCheckingQuality]=useState(false);
   const [channelUrl,setChannelUrl]=useState(""); const [linkLimit,setLinkLimit]=useState<"all"|"5"|"10">("all"); const [extracting,setExtracting]=useState(false); const [downloading,setDownloading]=useState(false); const [progress,setProgress]=useState(0); const [error,setError]=useState(""); const [extractedCount,setExtractedCount]=useState(0);
   const entries=urls.split(/\r?\n|,/).map(value=>value.trim()).filter(Boolean);
-  const folderName=groups.find(group=>group.id===groupId)?.name||"";
+  const folderName=folderPathForGroup(groupId, groups);
   const checkQuality=async()=>{
     if(!entries[0]||checkingQuality||downloading)return;
     setCheckingQuality(true);setError("");
@@ -1275,7 +1286,7 @@ function BulkUploadModal({groups,defaultGroupId="",licenseId="",licenseName="",o
     for(let index=0;index<files.length;index+=1){
       const file=files[index];
       try{
-         const folderName=groups.find(group=>group.id===groupId)?.name||"";
+         const folderName=folderPathForGroup(groupId, groups);
          const response=await fetch("/api/media/upload",{method:"POST",headers:{"Content-Type":file.type||"application/octet-stream","X-File-Name":file.name,"X-License-Id":licenseId,"X-License-Name":licenseName,"X-Folder-Name":folderName},body:file});
         const payload=await response.json() as {sourcePath?:string;playbackUrl?:string;error?:string};
         if(!response.ok||!payload.sourcePath||!payload.playbackUrl)throw new Error(payload.error||"Upload failed.");
@@ -1311,6 +1322,11 @@ function GroupModal({group,groups,onSave,onClose}:{group?:VideoGroup;groups:Vide
   );
   const submit = () => {
     if (!name.trim()) return;
+    const reservedName = name.trim().toLowerCase();
+    if (
+      (reservedName === "included animations" || reservedName === "my animations")
+      && parentId !== youtubeAnimationFolderId
+    ) return;
     onSave({
       id: group?.id || uid("grp"),
       name: name.trim(),
@@ -1339,7 +1355,11 @@ function VideosPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}) {
     const remove=async()=>{if(!deleting)return;try{if(deleting.kind==="video"){const video=data.videos.find(item=>item.id===deleting.id);if(isIncludedVideo(video)){setDeleting(undefined);return;}const fileId=getMediaFileId(video);if(fileId)await apiJson(`/api/media/files/${encodeURIComponent(fileId)}?licenseId=${encodeURIComponent(workspace.licenseId)}`,{method:"DELETE"});update({videos:data.videos.filter(v=>v.id!==deleting.id),groups:data.groups.map(g=>({...g,videoIds:g.videoIds.filter(id=>id!==deleting.id)}))},{message:`${deleting.name} and its stored file were deleted`,type:"video"});}else{const target=data.groups.find((item)=>item.id===deleting.id);if(!target||isBuiltInYoutubeFolder(target)){setDeleting(undefined);return;}const removedGroupIds=new Set<string>([deleting.id]);let changed=true;while(changed){changed=false;for(const item of data.groups){if(item.parentId&&removedGroupIds.has(item.parentId)&&!removedGroupIds.has(item.id)){removedGroupIds.add(item.id);changed=true;}}}const groupVideos=data.videos.filter((video)=>removedGroupIds.has(video.groupId));const fileIds=groupVideos.map(getMediaFileId).filter((id):id is string=>Boolean(id));await Promise.all([...new Set(groupVideos.map((video)=>folderPathForGroup(video.groupId,data.groups)))].map((folderName)=>apiJson(`/api/media/files?licenseId=${encodeURIComponent(workspace.licenseId)}&folderName=${encodeURIComponent(folderName)}`,{method:"DELETE"}).catch(()=>undefined)));await Promise.all(fileIds.map(fileId=>apiJson(`/api/media/files/${encodeURIComponent(fileId)}?licenseId=${encodeURIComponent(workspace.licenseId)}`,{method:"DELETE"}).catch(()=>undefined)));update({groups:data.groups.filter(g=>!removedGroupIds.has(g.id)),videos:data.videos.filter(v=>!removedGroupIds.has(v.groupId))},{message:`${deleting.name} and its nested folders were deleted`,type:"group"});if(removedGroupIds.has(group))setGroup("all");}setDeleting(undefined);}catch(reason){workspace.setToast(reason instanceof Error?reason.message:"The video files could not be deleted.");}};
     const removeAll=async()=>{if(!workspace.licenseId)return;try{await apiJson(`/api/media/files?licenseId=${encodeURIComponent(workspace.licenseId)}`,{method:"DELETE"});const includedVideos=data.videos.filter((video)=>isIncludedVideo(video));update({videos:includedVideos,groups:rebuildGroupMembership(data.groups,includedVideos)},{message:"All personal videos and stored files were deleted from this license workspace",type:"video"});setDeletingAll(false);}catch(reason){workspace.setToast(reason instanceof Error?reason.message:"All workspace videos could not be deleted.");}};
    const library=<div className="card section-card"><div className="section-head"><div><h2 className="section-title">{filtered.length} video{filtered.length===1?"":"s"}</h2><p className="subtle" style={{margin:"5px 0 0",fontSize:11}}>{search||status!=="all"||group!=="all"?"Filtered library":"Your server media index · shared Included Animations and this license’s files are shown here"}</p></div></div>{filtered.length===0?<EmptyState icon={<Search size={21}/>} title="No videos found" copy="Try a different search, or add a new piece to your library." action="Add video" onClick={()=>openAddVideo(group!=="all"?group:"")}/>:<div className="table-wrap"><table className="data-table"><thead><tr><th>Video</th><th>Status</th><th>Category</th><th>Quality</th><th>Source</th><th/></tr></thead><tbody>{filtered.map(v=><tr key={v.id} data-testid={`row-video-${v.id}`}><td><div style={{display:"flex",alignItems:"center",gap:10}}><div className="thumb" style={{background:v.thumbnailColor,width:52,height:34}}><Video size={14}/><span style={{fontSize:9,marginLeft:-3}}>{v.duration}</span></div><div><div className="table-title">{v.title}</div><div className="table-sub">Added {new Date(v.createdAt).toLocaleDateString()}{isIncludedVideo(v)?" · Included for every license":v.licenseName?` · ${v.licenseName}`:""}</div></div></div></td><td><span className={`status ${v.status==="published"?"live":v.status==="draft"?"scheduled":"stopped"}`}><span className="status-dot"/>{v.status}</span></td><td><span className="table-sub">{folderPathForGroup(v.groupId,data.groups)||v.folderName||"Unassigned"}</span></td><td><span className="table-sub">{v.quality&&v.quality!=="best"?v.quality:v.quality==="best"?"Best":"—"}</span></td><td>{v.sourceUrl?<a href={v.sourceUrl} target="_blank" rel="noreferrer" className="section-link" data-testid={`link-source-${v.id}`}><Link2 size={12} style={{verticalAlign:"-2px"}}/> {v.serverSource?"Server-ready":"Preview only"}</a>:<span className="table-sub">Not attached</span>}</td><td><div className="actions">{!isIncludedVideo(v)&&v.serverSource&&<button className="icon-button" style={{width:30,height:30}} onClick={()=>setTrimVideo(v)} title="Trim clip" data-testid={`button-trim-video-${v.id}`}><Scissors size={13}/></button>}{!isIncludedVideo(v)&&<><button className="icon-button" style={{width:30,height:30}} onClick={()=>openEditVideo(v)} title="Edit video" data-testid={`button-edit-video-${v.id}`}><Pencil size={13}/></button><button className="icon-button" style={{width:30,height:30}} onClick={()=>setDeleting({kind:"video",id:v.id,name:v.title})} title="Delete video" data-testid={`button-delete-video-${v.id}`}><Trash2 size={13}/></button></>}</div></td></tr>)}</tbody></table></div>}</div>;
-   const groups=<div>{data.groups.length===0?<div className="card"><EmptyState icon={<FolderOpen size={21}/>} title="No categories yet" copy="Create a category to organize videos into a series or collection." action="Create category" onClick={()=>setGroupModal(true)}/></div>:<div className="group-grid">{data.groups.map(g=><div className="card group-card" key={g.id} data-testid={`card-group-${g.id}`} style={{marginLeft:`${Math.min(groupDepth(g.id,data.groups),3)*12}px`}}><button className="group-open" onClick={()=>openGroup(g.id)} data-testid={`button-open-group-${g.id}`}><h3>{folderPathForGroup(g.id,data.groups)}</h3><p>{g.description||"No description yet."}</p><span className="group-open-label">{g.id===includedAnimationFolderId?"Shared with every license":g.id===myAnimationFolderId?"Private to this license":"Open category"} <ArrowRight size={12}/></span></button><div className="group-foot"><span>{g.videoIds.length} video{g.videoIds.length===1?"":"s"}</span>{!isBuiltInYoutubeFolder(g)&&<button onClick={()=>setDeleting({kind:"group",id:g.id,name:g.name})} className="section-link" style={{color:"#a05b45"}} data-testid={`button-delete-group-${g.id}`}>Delete</button>}</div></div>)}</div>}</div>;
+   const renderGroupCard=(g:VideoGroup):ReactNode=>{
+     const children=data.groups.filter((child)=>child.parentId===g.id);
+     return <div className="folder-tree-node" key={g.id}><div className="card group-card" data-testid={`card-group-${g.id}`}><button className="group-open" onClick={()=>openGroup(g.id)} data-testid={`button-open-group-${g.id}`}><h3>{g.name}</h3><p>{g.description||"No description yet."}</p><span className="group-open-label">{g.id===youtubeAnimationFolderId?"Contains Included Animations and My Animations":g.id===includedAnimationFolderId?"Admin managed · shared with every license":g.id===myAnimationFolderId?"Private to this license":"Open category"} <ArrowRight size={12}/></span></button><div className="group-foot"><span>{g.videoIds.length} video{g.videoIds.length===1?"":"s"}</span>{!isBuiltInYoutubeFolder(g)&&<button onClick={()=>setDeleting({kind:"group",id:g.id,name:g.name})} className="section-link" style={{color:"#a05b45"}} data-testid={`button-delete-group-${g.id}`}>Delete</button>}</div></div>{children.length>0&&<div className="folder-tree-children"><span className="folder-tree-label">Inside {g.name}</span>{children.map(renderGroupCard)}</div>}</div>;
+   };
+   const groups=<div>{data.groups.length===0?<div className="card"><EmptyState icon={<FolderOpen size={21}/>} title="No categories yet" copy="Create a category to organize videos into a series or collection." action="Create category" onClick={()=>setGroupModal(true)}/></div>:<div className="group-tree">{data.groups.filter((item)=>!item.parentId).map(renderGroupCard)}</div>}</div>;
         return <AppShell title="Video library" workspace={workspace}><div className="page"><div className="page-head"><div><p className="eyebrow">Archive & distribution</p><h1>Video library</h1><p className="subtle">YouTube Animations always contains shared Included Animations and private My Animations. Personal folders can go inside one another.</p></div><div style={{display:"flex",gap:8,flexWrap:"wrap",justifyContent:"flex-end"}}><Link className="button secondary" href="/editor" data-testid="link-open-video-editor"><Wand2 size={15}/> Video editor</Link>{tab==="groups"&&<button className="button secondary" onClick={()=>setGroupModal(true)} data-testid="button-add-group"><Plus size={15}/> New category</button>}{tab==="library"&&<button className="button danger" onClick={()=>setDeletingAll(true)} disabled={!data.videos.some((video)=>!isIncludedVideo(video))} data-testid="button-delete-all-videos"><Trash2 size={15}/> Delete personal videos</button>}<button className="button secondary" onClick={()=>setFolderModal(true)} data-testid="button-folder-upload"><FolderOpen size={15}/> Add folder</button><button className="button secondary" onClick={()=>setYoutubeModal(true)} data-testid="button-youtube-downloader"><Download size={15}/> Bulk YouTube download</button><button className="button" onClick={()=>openAddVideo(group!=="all"?group:myAnimationFolderId)} data-testid="button-add-video"><Plus size={15}/> Add video</button></div></div><div className="toolbar"><div className="filter-row"><button className={`button small ${tab==="library"?"":"ghost"}`} onClick={()=>setTab("library")} data-testid="button-tab-library"><FileVideo size={13}/> Videos</button><button className={`button small ${tab==="groups"?"":"ghost"}`} onClick={()=>setTab("groups")} data-testid="button-tab-groups"><FolderOpen size={13}/> Categories</button></div>{tab==="library"&&<div className="filter-row"><div className="input-wrap"><Search size={14} color="#899791"/><input type="search" value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search videos…" data-testid="input-search-videos"/></div><select value={status} onChange={e=>setStatus(e.target.value)} data-testid="select-filter-status"><option value="all">All statuses</option><option value="published">Published</option><option value="draft">Draft</option><option value="archived">Archived</option></select><select value={group} onChange={e=>setGroup(e.target.value)} data-testid="select-filter-group"><option value="all">All categories</option>{data.groups.map(g=><option value={g.id} key={g.id}>{folderPathForGroup(g.id,data.groups)}</option>)}</select></div>}</div>{tab==="library"?library:groups}</div>{videoModal&&<VideoModal video={editingVideo} groups={data.groups} defaultGroupId={videoGroupId} licenseId={workspace.licenseId} licenseName={workspace.user} onSave={saveVideo} onClose={()=>{setVideoModal(false);setVideoGroupId("");setEditingVideo(undefined)}}/>}{trimVideo&&<TrimModal video={trimVideo} licenseId={workspace.licenseId} licenseName={workspace.user} folderName={folderPathForGroup(trimVideo.groupId,data.groups)||trimVideo.folderName||""} onCreate={clip=>{const videos=data.videos.filter(video=>video.id!==trimVideo.id);update({videos:[...videos,clip],groups:rebuildGroupMembership(data.groups,[...videos,clip])},{message:`${trimVideo.title} was replaced by ${clip.title}`,type:"video"});setTrimVideo(undefined)}} onClose={()=>setTrimVideo(undefined)}/>} {youtubeModal&&<YoutubeDownloadModal groups={data.groups} defaultGroupId={group!=="all"&&!isReadOnlyFolder(group,data.groups)?group:myAnimationFolderId} licenseId={workspace.licenseId} licenseName={workspace.user} onSaveMany={saveVideos} onClose={()=>setYoutubeModal(false)}/>} {folderModal&&<BulkUploadModal groups={data.groups} defaultGroupId={group!=="all"&&!isReadOnlyFolder(group,data.groups)?group:myAnimationFolderId} licenseId={workspace.licenseId} licenseName={workspace.user} onSaveMany={saveVideos} onClose={()=>setFolderModal(false)}/>} {groupModal&&<GroupModal group={editingGroup} groups={data.groups} onSave={saveGroup} onClose={()=>{setGroupModal(false);setEditingGroup(undefined)}}/>}{deleting&&<ConfirmModal title={`Delete this ${deleting.kind}?`} copy={`“${deleting.name}” will be removed from the ${deleting.kind==="video"?"library and its stored file":"workspace along with every video inside it"}. This cannot be undone.`} onClose={()=>setDeleting(undefined)} onConfirm={()=>void remove()}/>} {deletingAll&&<ConfirmModal title="Delete personal videos?" copy="Every stored video file for this license will be deleted. Included Animations will stay available to everyone." onClose={()=>setDeletingAll(false)} onConfirm={()=>void removeAll()}/>}</AppShell>;
 }
 
@@ -1449,7 +1469,7 @@ function VideoEditorPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}
         headers: {
           "X-License-Id": workspace.licenseId,
           "X-License-Name": workspace.user,
-          "X-Folder-Name": selectedGroup?.name || "",
+           "X-Folder-Name": folderPathForGroup(selectedGroup?.id, data.groups),
         },
         body: JSON.stringify({
           fileIds: selectedVideos.map((video) => getMediaFileId(video)).filter((id): id is string => Boolean(id)),
@@ -1482,7 +1502,7 @@ function VideoEditorPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}
         createdAt: now(),
         licenseId: workspace.licenseId,
         licenseName: workspace.user,
-        folderName: selectedGroup?.name || "",
+         folderName: folderPathForGroup(selectedGroup?.id, data.groups),
         quality: "edited",
       };
       const videos = [...data.videos, output];
