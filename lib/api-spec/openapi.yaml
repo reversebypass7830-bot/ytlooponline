@@ -1066,6 +1066,8 @@ components:
           type: string
         webcamFileId:
           type: string
+        animationFileId:
+          type: string
         logoPosition:
           type: string
           enum: [top-left, top-right, bottom-left, bottom-right]
@@ -1078,6 +1080,11 @@ components:
           maximum: 0.8
           default: 0.25
         webcamScale:
+          type: number
+          minimum: 0.1
+          maximum: 0.8
+          default: 0.25
+        animationScale:
           type: number
           minimum: 0.1
           maximum: 0.8
@@ -1103,6 +1110,16 @@ components:
           maximum: 48
           default: 0
         webcamY:
+          type: number
+          minimum: -48
+          maximum: 48
+          default: 0
+        animationX:
+          type: number
+          minimum: -48
+          maximum: 48
+          default: 0
+        animationY:
           type: number
           minimum: -48
           maximum: 48

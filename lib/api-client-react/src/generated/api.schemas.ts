@@ -236,6 +236,7 @@ export interface ComposeMediaInput {
   loopCount?: number;
   logoFileId?: string;
   webcamFileId?: string;
+  animationFileId?: string;
   logoPosition?: ComposeMediaInputLogoPosition;
   webcamPosition?: ComposeMediaInputWebcamPosition;
   /**
@@ -248,6 +249,11 @@ export interface ComposeMediaInput {
      * @maximum 0.8
      */
   webcamScale?: number;
+  /**
+     * @minimum 0.1
+     * @maximum 0.8
+     */
+  animationScale?: number;
   /**
      * @minimum -48
      * @maximum 48
@@ -273,6 +279,16 @@ export interface ComposeMediaInput {
      * @maximum 48
      */
   webcamY?: number;
+  /**
+     * @minimum -48
+     * @maximum 48
+     */
+  animationX?: number;
+  /**
+     * @minimum -48
+     * @maximum 48
+     */
+  animationY?: number;
   animationPreset?: ComposeMediaInputAnimationPreset;
   outputAspectRatio?: ComposeMediaInputOutputAspectRatio;
 }

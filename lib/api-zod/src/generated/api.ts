@@ -409,6 +409,10 @@ export const composeMediaBodyWebcamScaleDefault = 0.25;
 export const composeMediaBodyWebcamScaleMin = 0.1;
 export const composeMediaBodyWebcamScaleMax = 0.8;
 
+export const composeMediaBodyAnimationScaleDefault = 0.25;
+export const composeMediaBodyAnimationScaleMin = 0.1;
+export const composeMediaBodyAnimationScaleMax = 0.8;
+
 export const composeMediaBodyMainXDefault = 0;
 export const composeMediaBodyMainXMin = -48;
 export const composeMediaBodyMainXMax = 48;
@@ -429,6 +433,14 @@ export const composeMediaBodyWebcamYDefault = 0;
 export const composeMediaBodyWebcamYMin = -48;
 export const composeMediaBodyWebcamYMax = 48;
 
+export const composeMediaBodyAnimationXDefault = 0;
+export const composeMediaBodyAnimationXMin = -48;
+export const composeMediaBodyAnimationXMax = 48;
+
+export const composeMediaBodyAnimationYDefault = 0;
+export const composeMediaBodyAnimationYMin = -48;
+export const composeMediaBodyAnimationYMax = 48;
+
 export const composeMediaBodyAnimationPresetDefault = `none`;
 export const composeMediaBodyOutputAspectRatioDefault = `full`;
 
@@ -438,15 +450,19 @@ export const ComposeMediaBody = zod.object({
   "loopCount": zod.number().min(1).max(composeMediaBodyLoopCountMax).default(composeMediaBodyLoopCountDefault),
   "logoFileId": zod.string().optional(),
   "webcamFileId": zod.string().optional(),
+  "animationFileId": zod.string().optional(),
   "logoPosition": zod.enum(['top-left', 'top-right', 'bottom-left', 'bottom-right']).optional(),
   "webcamPosition": zod.enum(['top-left', 'top-right', 'bottom-left', 'bottom-right']).optional(),
   "overlayScale": zod.number().min(composeMediaBodyOverlayScaleMin).max(composeMediaBodyOverlayScaleMax).default(composeMediaBodyOverlayScaleDefault),
   "webcamScale": zod.number().min(composeMediaBodyWebcamScaleMin).max(composeMediaBodyWebcamScaleMax).default(composeMediaBodyWebcamScaleDefault),
+  "animationScale": zod.number().min(composeMediaBodyAnimationScaleMin).max(composeMediaBodyAnimationScaleMax).default(composeMediaBodyAnimationScaleDefault),
   "mainX": zod.number().min(composeMediaBodyMainXMin).max(composeMediaBodyMainXMax).default(composeMediaBodyMainXDefault),
   "mainY": zod.number().min(composeMediaBodyMainYMin).max(composeMediaBodyMainYMax).default(composeMediaBodyMainYDefault),
   "mainScale": zod.number().min(composeMediaBodyMainScaleMin).max(composeMediaBodyMainScaleMax).default(composeMediaBodyMainScaleDefault),
   "webcamX": zod.number().min(composeMediaBodyWebcamXMin).max(composeMediaBodyWebcamXMax).default(composeMediaBodyWebcamXDefault),
   "webcamY": zod.number().min(composeMediaBodyWebcamYMin).max(composeMediaBodyWebcamYMax).default(composeMediaBodyWebcamYDefault),
+  "animationX": zod.number().min(composeMediaBodyAnimationXMin).max(composeMediaBodyAnimationXMax).default(composeMediaBodyAnimationXDefault),
+  "animationY": zod.number().min(composeMediaBodyAnimationYMin).max(composeMediaBodyAnimationYMax).default(composeMediaBodyAnimationYDefault),
   "animationPreset": zod.enum(['none', 'subscribe', 'like', 'follow']).default(composeMediaBodyAnimationPresetDefault),
   "outputAspectRatio": zod.enum(['shorts', 'full', 'square']).default(composeMediaBodyOutputAspectRatioDefault)
 })

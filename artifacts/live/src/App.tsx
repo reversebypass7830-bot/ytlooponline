@@ -20,7 +20,7 @@ type DownloadQuality = "best" | "1080p" | "720p" | "480p" | "360p";
 type AspectRatio = "shorts" | "full" | "square";
 type StreamQuality = "4k" | "1080p";
 type FacePosition = "top-left" | "top-right" | "bottom-left" | "bottom-right" | "center";
-type EditorLayer = "main" | "webcam";
+type EditorLayer = "main" | "webcam" | "animation";
 type AnimationPreset = "none" | "subscribe" | "like" | "follow";
 type EditorTransform = { x: number; y: number; scale: number };
 type EditorColorAdjustments = {
@@ -1714,6 +1714,8 @@ function VideoEditorPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}
   const [chromaSimilarity, setChromaSimilarity] = useState(0.32);
   const [chromaBlend, setChromaBlend] = useState(0.08);
   const [webcamId, setWebcamId] = useState("");
+  const [animationId, setAnimationId] = useState("");
+  const [animationTransform, setAnimationTransform] = useState<EditorTransform>({ x: 0, y: 0, scale: 0.25 });
   const [logoId, setLogoId] = useState("");
   const [previewExpanded, setPreviewExpanded] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -1759,21 +1761,34 @@ function VideoEditorPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}
     [data.videos, previewVideo?.id, workspace.licenseId],
   );
   const webcam = webcamVideos.find((video) => video.id === webcamId);
+  const animationVideos = useMemo(
+    () => data.videos.filter((video) => video.serverSource && isIncludedVideo(video)),
+    [data.videos],
+  );
+  const animation = animationVideos.find((video) => video.id === animationId);
   useEffect(() => {
     if (webcamId && !webcam) {
       setWebcamId("");
       setSelectedLayer("main");
     }
   }, [webcamId, webcam]);
+  useEffect(() => {
+    if (animationId && !animation) {
+      setAnimationId("");
+      if (selectedLayer === "animation") setSelectedLayer("main");
+    }
+  }, [animationId, animation, selectedLayer]);
   const previewUrl = videoPlaybackUrl(previewVideo, workspace.licenseId);
   const editorCanvasProps = {
     previewUrl,
     webcamUrl: videoPlaybackUrl(webcam, workspace.licenseId),
+    animationUrl: videoPlaybackUrl(animation, workspace.licenseId),
     logo,
     logoPosition,
     outputAspectRatio,
     mainTransform,
     webcamTransform,
+    animationTransform,
     selectedLayer,
     animationPreset,
     reverseVideo,
@@ -1785,6 +1800,7 @@ function VideoEditorPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}
     onSelectLayer: setSelectedLayer,
     onMainTransformChange: setMainTransform,
     onWebcamTransformChange: setWebcamTransform,
+    onAnimationTransformChange: setAnimationTransform,
   };
   const setGroup = (nextGroupId: string) => {
     setGroupId(nextGroupId);
@@ -1796,6 +1812,7 @@ function VideoEditorPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}
     const nextGroup = data.groups.find((group) => group.id === nextGroupId);
     setTitle(nextGroup ? `${nextGroup.name} · edited` : "");
     setWebcamId("");
+    setAnimationId("");
   };
   const chooseEditorLibrary = (nextLibrary: "personal" | "youtube") => {
     setEditorLibrary(nextLibrary);
@@ -1803,6 +1820,7 @@ function VideoEditorPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}
     setSelectedIds([]);
     setTitle("");
     setWebcamId("");
+    setAnimationId("");
     setReverseVideo(false);
     setColorAdjustments({ brightness: 0, contrast: 1, saturation: 1, hue: 0 });
     setChromaKeyEnabled(false);
@@ -1868,6 +1886,7 @@ function VideoEditorPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}
           loopCount: Number(loopCount),
           logoFileId: logo?.fileId,
           webcamFileId: webcam ? getMediaFileId(webcam) : undefined,
+          animationFileId: animation ? getMediaFileId(animation) : undefined,
           logoPosition,
           mainX: mainTransform.x,
           mainY: mainTransform.y,
@@ -1875,6 +1894,9 @@ function VideoEditorPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}
           webcamX: webcamTransform.x,
           webcamY: webcamTransform.y,
           webcamScale: webcamTransform.scale,
+          animationX: animationTransform.x,
+          animationY: animationTransform.y,
+          animationScale: animationTransform.scale,
           overlayScale: Number(overlayScale) / 100,
           animationPreset,
           outputAspectRatio,
@@ -1939,7 +1961,7 @@ function VideoEditorPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}
            <div className="editor-focus-window">
              <div className="editor-focus-head"><div><span className="metric-kicker">Focused editor</span><strong>{previewVideo?.title || "Selected video"}</strong><span>Drag to move · scroll or pinch to zoom · use the handle to resize face cam</span></div><button type="button" className="editor-focus-close" onClick={() => setPreviewExpanded(false)} aria-label="Close large preview"><X size={17}/><span>Close</span></button></div>
              <div className="editor-focus-stage"><EditorCanvas {...editorCanvasProps} expanded onCloseExpanded={() => setPreviewExpanded(false)} /></div>
-             <div className="editor-focus-controls"><EditorTransformControls {...editorCanvasProps} hasWebcam={Boolean(webcam)} /></div>
+              <div className="editor-focus-controls"><EditorTransformControls {...editorCanvasProps} hasWebcam={Boolean(webcam)} hasAnimation={Boolean(animation)} /></div>
            </div>
          </div>}
         <aside className="editor-controls">
@@ -1964,17 +1986,22 @@ function VideoEditorPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}
              <div className="section-head"><div><h2 className="section-title">3. Face cam & brand layers</h2><p className="subtle">Place a face cam video on top of the main video, then add a logo if needed.</p></div><Image size={17} color="#6c8b83"/></div>
             <div className="field"><label>Logo / watermark</label><div className="input-action-row"><select value={logoId} onChange={(event) => setLogoId(event.target.value)}><option value="">No logo</option>{data.editorAssets.map((asset) => <option key={asset.id} value={asset.id}>{asset.title}</option>)}</select><label className="button secondary small editor-file-button"><Upload size={13}/>{uploadingLogo ? "Uploading…" : "Upload"}<input type="file" accept="image/png,image/jpeg,image/webp" disabled={uploadingLogo} onChange={(event) => { const file = event.target.files?.[0]; if (file) void uploadLogo(file); event.currentTarget.value = ""; }}/></label></div></div>
             {logo && <div className="form-grid"><div className="field"><label>Logo position</label><select value={logoPosition} onChange={(event) => setLogoPosition(event.target.value)}><option value="top-left">Top left</option><option value="top-right">Top right</option><option value="bottom-left">Bottom left</option><option value="bottom-right">Bottom right</option></select></div><div className="field"><label>Logo size · {overlayScale}%</label><input type="range" min="10" max="60" value={overlayScale} onChange={(event) => setOverlayScale(event.target.value)}/></div></div>}
-              <div className="field"><label>Face cam video</label><select value={webcamId} onChange={(event) => { setWebcamId(event.target.value); setSelectedLayer(event.target.value ? "webcam" : "main"); }} data-testid="select-editor-facecam"><option value="">No face cam</option>{webcamVideos.map((video) => <option key={video.id} value={video.id}>{video.title}</option>)}</select><span className="field-hint">Only videos from this license workspace are available here. Included Animations stay separate.</span></div>
+              <div className="field"><label>Face cam video</label><select value={webcamId} onChange={(event) => { setWebcamId(event.target.value); setSelectedLayer(event.target.value ? "webcam" : "main"); }} data-testid="select-editor-facecam"><option value="">No face cam</option>{webcamVideos.map((video) => <option key={video.id} value={video.id}>{video.title}</option>)}</select><span className="field-hint">Only videos from this license workspace are available here.</span></div>
              {webcam && <div className="editor-layer-note"><span>Canvas face cam: {Math.round(webcamTransform.scale * 100)}%</span><button type="button" className="section-link" onClick={() => setSelectedLayer("webcam")}>Edit on canvas <ArrowRight size={12}/></button></div>}
+              <div className="field"><label>Video animation overlay</label><select value={animationId} onChange={(event) => { setAnimationId(event.target.value); setSelectedLayer(event.target.value ? "animation" : "main"); }} data-testid="select-editor-animation-overlay"><option value="">No video animation</option>{animationVideos.map((video) => <option key={video.id} value={video.id}>{video.title}</option>)}</select><span className="field-hint">Choose an Included Animation to place it above the personal video.</span></div>
+              {animation && <div className="editor-layer-note"><span>Animation overlay: {Math.round(animationTransform.scale * 100)}%</span><button type="button" className="section-link" onClick={() => setSelectedLayer("animation")}>Edit on canvas <ArrowRight size={12}/></button></div>}
              <div className="field"><label>Animated callout</label><select value={animationPreset} onChange={(event) => setAnimationPreset(event.target.value as AnimationPreset)} data-testid="select-editor-animation"><option value="none">No animation</option><option value="subscribe">Subscribe pop-in</option><option value="like">Like burst</option><option value="follow">Follow pulse</option></select><span className="field-hint">The animation is previewed on the canvas and burned into the final MP4.</span></div>
              <EditorTransformControls
                selectedLayer={selectedLayer}
                hasWebcam={Boolean(webcam)}
+                hasAnimation={Boolean(animation)}
                mainTransform={mainTransform}
                webcamTransform={webcamTransform}
+                animationTransform={animationTransform}
                onSelectLayer={setSelectedLayer}
                onMainTransformChange={setMainTransform}
                onWebcamTransformChange={setWebcamTransform}
+                onAnimationTransformChange={setAnimationTransform}
              />
              {webcam && <div className="form-grid"><div className="field"><label>Face cam position</label><select value={webcamPosition} onChange={(event) => setWebcamPosition(event.target.value)} data-testid="select-editor-facecam-position"><option value="top-left">Top left</option><option value="top-right">Top right</option><option value="bottom-left">Bottom left</option><option value="bottom-right">Bottom right</option></select></div><div className="field"><label>Face cam size · {webcamScale}%</label><input type="range" min="10" max="60" value={webcamScale} onChange={(event) => setWebcamScale(event.target.value)} data-testid="input-editor-facecam-size"/></div></div>}
           </section>
@@ -2007,11 +2034,13 @@ function GripIcon() {
 type EditorCanvasProps = {
   previewUrl: string;
   webcamUrl: string;
+  animationUrl: string;
   logo?: EditorAsset;
   logoPosition: string;
   outputAspectRatio: AspectRatio;
   mainTransform: EditorTransform;
   webcamTransform: EditorTransform;
+  animationTransform: EditorTransform;
   selectedLayer: EditorLayer;
   animationPreset: AnimationPreset;
   reverseVideo: boolean;
@@ -2023,6 +2052,7 @@ type EditorCanvasProps = {
   onSelectLayer: (layer: EditorLayer) => void;
   onMainTransformChange: (transform: EditorTransform) => void;
   onWebcamTransformChange: (transform: EditorTransform) => void;
+  onAnimationTransformChange: (transform: EditorTransform) => void;
   expanded?: boolean;
   onCloseExpanded?: () => void;
 };
@@ -2030,11 +2060,13 @@ type EditorCanvasProps = {
 function EditorCanvas({
   previewUrl,
   webcamUrl,
+  animationUrl,
   logo,
   logoPosition,
   outputAspectRatio,
   mainTransform,
   webcamTransform,
+  animationTransform,
   selectedLayer,
   animationPreset,
   reverseVideo,
@@ -2046,6 +2078,7 @@ function EditorCanvas({
   onSelectLayer,
   onMainTransformChange,
   onWebcamTransformChange,
+  onAnimationTransformChange,
   expanded = false,
   onCloseExpanded,
 }: EditorCanvasProps) {
@@ -2077,10 +2110,15 @@ function EditorCanvas({
     const rect = canvasRef.current?.getBoundingClientRect();
     return rect ? { x: event.clientX, y: event.clientY, width: rect.width, height: rect.height } : undefined;
   };
-  const getTransform = (layer: EditorLayer) => layer === "main" ? mainTransform : webcamTransform;
+  const getTransform = (layer: EditorLayer) => {
+    if (layer === "main") return mainTransform;
+    if (layer === "webcam") return webcamTransform;
+    return animationTransform;
+  };
   const updateTransform = (layer: EditorLayer, next: EditorTransform) => {
     if (layer === "main") onMainTransformChange(next);
-    else onWebcamTransformChange(next);
+    else if (layer === "webcam") onWebcamTransformChange(next);
+    else onAnimationTransformChange(next);
   };
   const clampTransform = (layer: EditorLayer, transform: EditorTransform): EditorTransform => ({
     x: Math.max(-48, Math.min(48, transform.x)),
@@ -2101,7 +2139,7 @@ function EditorCanvas({
     const targetLayer = target?.closest<HTMLElement>("[data-editor-layer]")?.dataset.editorLayer as EditorLayer | undefined;
     const resizeLayer = target?.closest<HTMLElement>("[data-editor-resize]")?.dataset.editorResize as EditorLayer | undefined;
     const layer = resizeLayer || targetLayer || selectedLayer;
-    if (layer === "webcam" && !webcamUrl) return;
+    if ((layer === "webcam" && !webcamUrl) || (layer === "animation" && !animationUrl)) return;
     onSelectLayer(layer);
     const point = getPoint(event);
     if (!point) return;
@@ -2155,7 +2193,11 @@ function EditorCanvas({
   };
 
   const onWheel = (event: WheelEvent) => {
-    const layer = selectedLayer === "webcam" && webcamUrl ? "webcam" : "main";
+    const layer = selectedLayer === "webcam" && webcamUrl
+      ? "webcam"
+      : selectedLayer === "animation" && animationUrl
+        ? "animation"
+        : "main";
     event.preventDefault();
     event.stopPropagation();
     const current = getTransform(layer);
@@ -2205,7 +2247,7 @@ function EditorCanvas({
          filter: `brightness(${1 + colorAdjustments.brightness}) contrast(${colorAdjustments.contrast}) saturate(${colorAdjustments.saturation}) hue-rotate(${colorAdjustments.hue}deg)`,
        }}
     /> : <div className="editor-empty"><Layers size={27}/><strong>Your composition appears here</strong><span>Choose a category and tick the clips you want to merge.</span></div>}
-    {webcamUrl && <video
+     {webcamUrl && <video
       src={webcamUrl}
       muted
       autoPlay
@@ -2218,6 +2260,16 @@ function EditorCanvas({
        data-key-blend={chromaBlend}
       style={{ left: `${50 + webcamTransform.x}%`, top: `${50 + webcamTransform.y}%`, width: `${webcamTransform.scale * 100}%` }}
     />}
+     {animationUrl && <video
+       src={animationUrl}
+       muted
+       autoPlay
+       loop
+       playsInline
+       className={`editor-face-layer editor-animation-layer ${selectedLayer === "animation" ? "active" : ""}`}
+       data-editor-layer="animation"
+       style={{ left: `${50 + animationTransform.x}%`, top: `${50 + animationTransform.y}%`, width: `${animationTransform.scale * 100}%` }}
+     />}
     {logo && <img src={logo.playbackUrl} alt="Logo overlay preview" className={`editor-overlay logo-${logoPosition}`}/>}
     {logo && <span className={`editor-watermark-label logo-${logoPosition}`}>BRANDED</span>}
     {animationCopy && <div className={`editor-animation-preview editor-animation-${animationPreset}`}><strong>{animationCopy}</strong><span>{animationPreset === "subscribe" ? "New drop live" : animationPreset === "like" ? "Show some love" : "Stay with us"}</span></div>}
@@ -2227,6 +2279,11 @@ function EditorCanvas({
       aria-hidden="true"
       style={{ left: `${50 + webcamTransform.x}%`, top: `${50 + webcamTransform.y}%`, width: `${webcamTransform.scale * 100}%` }}
     ><span className="editor-selection-label">Face cam · {Math.round(webcamTransform.scale * 100)}%</span><button type="button" data-editor-resize="webcam" aria-label="Resize face cam" className="editor-resize-handle" /></div>}
+     {selectedLayer === "animation" && animationUrl && <div
+       className="editor-selection editor-selection-webcam editor-selection-animation"
+       aria-hidden="true"
+       style={{ left: `${50 + animationTransform.x}%`, top: `${50 + animationTransform.y}%`, width: `${animationTransform.scale * 100}%` }}
+     ><span className="editor-selection-label">Animation · {Math.round(animationTransform.scale * 100)}%</span><button type="button" data-editor-resize="animation" aria-label="Resize animation" className="editor-resize-handle" /></div>}
      {(reverseVideo || chromaKeyEnabled || colorAdjustments.brightness !== 0 || colorAdjustments.contrast !== 1 || colorAdjustments.saturation !== 1 || colorAdjustments.hue !== 0) && <div className="editor-effect-badges"><span>{reverseVideo ? "Reverse" : "Effects"}</span>{chromaKeyEnabled && <span>Green screen removed</span>}{colorAdjustments.brightness !== 0 || colorAdjustments.contrast !== 1 || colorAdjustments.saturation !== 1 || colorAdjustments.hue !== 0 ? <span>Color grade</span> : null}</div>}
     <div className="editor-canvas-toolbar">
       <span className="editor-canvas-hint">{isFullscreen ? "Fullscreen preview" : "Drag to move · wheel or pinch to zoom"}</span>
@@ -2239,27 +2296,34 @@ function EditorCanvas({
 type EditorTransformControlsProps = {
   selectedLayer: EditorLayer;
   hasWebcam: boolean;
+  hasAnimation: boolean;
   mainTransform: EditorTransform;
   webcamTransform: EditorTransform;
+  animationTransform: EditorTransform;
   onSelectLayer: (layer: EditorLayer) => void;
   onMainTransformChange: (transform: EditorTransform) => void;
   onWebcamTransformChange: (transform: EditorTransform) => void;
+  onAnimationTransformChange: (transform: EditorTransform) => void;
 };
 
-function EditorTransformControls({ selectedLayer, hasWebcam, mainTransform, webcamTransform, onSelectLayer, onMainTransformChange, onWebcamTransformChange }: EditorTransformControlsProps) {
-  const transform = selectedLayer === "main" ? mainTransform : webcamTransform;
+function EditorTransformControls({ selectedLayer, hasWebcam, hasAnimation, mainTransform, webcamTransform, animationTransform, onSelectLayer, onMainTransformChange, onWebcamTransformChange, onAnimationTransformChange }: EditorTransformControlsProps) {
+  const transform = selectedLayer === "main" ? mainTransform : selectedLayer === "webcam" ? webcamTransform : animationTransform;
   const update = (scale: number) => {
     const next = { ...transform, scale };
     if (selectedLayer === "main") onMainTransformChange(next);
-    else onWebcamTransformChange(next);
+    else if (selectedLayer === "webcam") onWebcamTransformChange(next);
+    else onAnimationTransformChange(next);
   };
   const reset = () => {
     if (selectedLayer === "main") onMainTransformChange({ x: 0, y: 0, scale: 1 });
-    else onWebcamTransformChange({ x: 0, y: 0, scale: 0.25 });
+    else if (selectedLayer === "webcam") onWebcamTransformChange({ x: 0, y: 0, scale: 0.25 });
+    else onAnimationTransformChange({ x: 0, y: 0, scale: 0.25 });
   };
+  const isMain = selectedLayer === "main";
+  const isAnimation = selectedLayer === "animation";
   return <div className="editor-transform-controls">
-    <div className="editor-layer-tabs"><button type="button" className={selectedLayer === "main" ? "active" : ""} onClick={() => onSelectLayer("main")}>Main video</button><button type="button" className={selectedLayer === "webcam" ? "active" : ""} onClick={() => onSelectLayer("webcam")} disabled={!hasWebcam}>Face cam</button></div>
-    <div className="editor-control-row"><label>{selectedLayer === "main" ? "Video zoom" : "Face cam size"} <strong>{Math.round(transform.scale * 100)}%</strong></label><input type="range" min={selectedLayer === "main" ? "50" : "10"} max={selectedLayer === "main" ? "250" : "80"} value={Math.round(transform.scale * 100)} onChange={(event) => update(Number(event.target.value) / 100)} data-testid={`input-editor-${selectedLayer}-zoom`}/></div>
+    <div className="editor-layer-tabs"><button type="button" className={selectedLayer === "main" ? "active" : ""} onClick={() => onSelectLayer("main")}>Main video</button><button type="button" className={selectedLayer === "webcam" ? "active" : ""} onClick={() => onSelectLayer("webcam")} disabled={!hasWebcam}>Face cam</button><button type="button" className={selectedLayer === "animation" ? "active" : ""} onClick={() => onSelectLayer("animation")} disabled={!hasAnimation}>Animation</button></div>
+    <div className="editor-control-row"><label>{isMain ? "Video zoom" : isAnimation ? "Animation size" : "Face cam size"} <strong>{Math.round(transform.scale * 100)}%</strong></label><input type="range" min={isMain ? "50" : "10"} max={isMain ? "250" : "80"} value={Math.round(transform.scale * 100)} onChange={(event) => update(Number(event.target.value) / 100)} data-testid={`input-editor-${selectedLayer}-zoom`}/></div>
     <div className="editor-control-actions"><span>Position {Math.round(transform.x)} / {Math.round(transform.y)}</span><button type="button" className="section-link" onClick={reset}>Reset layer</button></div>
     <p className="field-hint">Select a layer, drag it with the cursor, pinch with two fingers, or scroll over the canvas to zoom.</p>
   </div>;

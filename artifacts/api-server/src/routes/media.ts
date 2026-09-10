@@ -201,15 +201,19 @@ type ComposeMediaBody = {
   loopCount?: unknown;
   logoFileId?: unknown;
   webcamFileId?: unknown;
+  animationFileId?: unknown;
   logoPosition?: unknown;
   webcamPosition?: unknown;
   overlayScale?: unknown;
   webcamScale?: unknown;
+  animationScale?: unknown;
   mainX?: unknown;
   mainY?: unknown;
   mainScale?: unknown;
   webcamX?: unknown;
   webcamY?: unknown;
+  animationX?: unknown;
+  animationY?: unknown;
   animationPreset?: unknown;
   outputAspectRatio?: unknown;
   reverseVideo?: unknown;
@@ -1004,15 +1008,19 @@ router.post("/media/compose", async (req, res): Promise<void> => {
   const folderName = req.header("x-folder-name") || "";
   const logoFileId = typeof body.logoFileId === "string" ? body.logoFileId : "";
   const webcamFileId = typeof body.webcamFileId === "string" ? body.webcamFileId : "";
+  const animationFileId = typeof body.animationFileId === "string" ? body.animationFileId : "";
   const logoPosition = typeof body.logoPosition === "string" ? body.logoPosition : "bottom-right";
   const webcamPosition = typeof body.webcamPosition === "string" ? body.webcamPosition : "top-right";
   const overlayScale = Math.min(0.8, Math.max(0.1, Number(body.overlayScale) || 0.25));
   const webcamScale = clampNumber(body.webcamScale, 0.1, 0.8, 0.25);
+  const animationScale = clampNumber(body.animationScale, 0.1, 0.8, 0.25);
   const mainScale = clampNumber(body.mainScale, 0.5, 2.5, 1);
   const mainX = clampNumber(body.mainX, -48, 48, 0);
   const mainY = clampNumber(body.mainY, -48, 48, 0);
   const webcamX = clampNumber(body.webcamX, -48, 48, 0);
   const webcamY = clampNumber(body.webcamY, -48, 48, 0);
+  const animationX = clampNumber(body.animationX, -48, 48, 0);
+  const animationY = clampNumber(body.animationY, -48, 48, 0);
   const animationPreset = body.animationPreset === "subscribe" || body.animationPreset === "like" || body.animationPreset === "follow"
     ? body.animationPreset
     : "none";
@@ -1049,7 +1057,7 @@ router.post("/media/compose", async (req, res): Promise<void> => {
     return;
   }
   const scopedRecords = [...sourceRecords];
-  for (const overlayId of [logoFileId, webcamFileId]) {
+  for (const overlayId of [logoFileId, webcamFileId, animationFileId]) {
     if (overlayId) {
       const overlayRecord = recordById.get(overlayId);
       if (!overlayRecord) {
@@ -1100,7 +1108,11 @@ router.post("/media/compose", async (req, res): Promise<void> => {
     ]);
 
     const [width, height] = outputDimensions;
-    const overlayIds = [logoFileId, webcamFileId].filter(Boolean);
+    const overlayInputs = [
+      { id: logoFileId, kind: "logo" as const },
+      { id: webcamFileId, kind: "webcam" as const },
+      { id: animationFileId, kind: "animation" as const },
+    ].filter((overlay): overlay is { id: string; kind: "logo" | "webcam" | "animation" } => Boolean(overlay.id));
     const mainFilters = [
       reverseVideo ? "reverse" : "",
       `scale=${Math.round(width * mainScale)}:${Math.round(height * mainScale)}:force_original_aspect_ratio=decrease`,
@@ -1113,18 +1125,22 @@ router.post("/media/compose", async (req, res): Promise<void> => {
       `[canvas][main]overlay=x='(W-w)/2+${Math.round(width * mainX / 100)}':y='(H-h)/2+${Math.round(height * mainY / 100)}'[base]`,
     ];
     let current = "[base]";
-    overlayIds.forEach((overlayId, index) => {
-      const isLogo = overlayId === logoFileId;
+    overlayInputs.forEach(({ id: overlayId, kind }, index) => {
+      const isLogo = kind === "logo";
       const input = `[${index + 1}:v]`;
       const scaled = `[overlay${index}]`;
       const next = `[composed${index}]`;
-      const scale = isLogo ? `scale=iw*${overlayScale}:ih*${overlayScale}` : `scale=${Math.round(width * webcamScale)}:-2`;
-      const chroma = !isLogo && chromaKeyEnabled
+      const scale = isLogo
+        ? `scale=iw*${overlayScale}:ih*${overlayScale}`
+        : `scale=${Math.round(width * (kind === "animation" ? animationScale : webcamScale))}:-2`;
+      const chroma = kind === "webcam" && chromaKeyEnabled
         ? `,chromakey=${chromaKeyColor}:similarity=${chromaSimilarity}:blend=${chromaBlend}`
         : "";
       const position = isLogo
         ? overlayCoordinates(logoPosition, "main_w", "main_h")
-        : `(main_w-overlay_w)/2+${Math.round(width * webcamX / 100)}:(main_h-overlay_h)/2+${Math.round(height * webcamY / 100)}`;
+        : kind === "animation"
+          ? `(main_w-overlay_w)/2+${Math.round(width * animationX / 100)}:(main_h-overlay_h)/2+${Math.round(height * animationY / 100)}`
+          : `(main_w-overlay_w)/2+${Math.round(width * webcamX / 100)}:(main_h-overlay_h)/2+${Math.round(height * webcamY / 100)}`;
       filterParts.push(`${input}${scale}${chroma}${scaled}`, `${current}${scaled}overlay=${position}:eof_action=repeat${next}`);
       current = next;
     });
@@ -1134,9 +1150,15 @@ router.post("/media/compose", async (req, res): Promise<void> => {
       current = "[animated]";
     }
     const ffmpegArgs = ["-y", "-i", basePath];
-    overlayIds.forEach((overlayId) => {
+    overlayInputs.forEach(({ id: overlayId }) => {
       const record = recordById.get(overlayId);
-      if (record?.filename.match(/\.(png|jpe?g|webp)$/i)) ffmpegArgs.push("-loop", "1");
+      if (record?.filename.match(/\.(png|jpe?g|webp)$/i)) {
+        ffmpegArgs.push("-loop", "1");
+      } else {
+        // Keep video overlays alive for the whole main composition. The output
+        // duration is still bounded by the main video's estimated duration.
+        ffmpegArgs.push("-stream_loop", "-1");
+      }
       ffmpegArgs.push("-i", record?.sourcePath || "");
     });
     ffmpegArgs.push(

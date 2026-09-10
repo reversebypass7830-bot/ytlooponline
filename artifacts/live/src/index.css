@@ -507,7 +507,7 @@ input:focus, textarea:focus, select:focus { border-color:#5fa49d; box-shadow:0 0
 .editor-effect-grid .field input[type="range"] { width:100%; }
 .chroma-key-grid { grid-template-columns:86px 1fr 1fr; align-items:end; }
 .chroma-key-grid input[type="color"] { height:39px; padding:4px; cursor:pointer; }
-.editor-layer-tabs { display:grid; grid-template-columns:1fr 1fr; gap:5px; }
+.editor-layer-tabs { display:grid; grid-template-columns:repeat(3,1fr); gap:5px; }
 .editor-layer-tabs button { padding:8px 7px; border:1px solid #cbdccf; border-radius:6px; color:#55706b; background:#fff; font:10px var(--app-font-mono); cursor:pointer; }
 .editor-layer-tabs button.active { border-color:#287f7a; color:#145a56; background:#dff1e6; }
 .editor-layer-tabs button:disabled { opacity:.45; cursor:not-allowed; }
