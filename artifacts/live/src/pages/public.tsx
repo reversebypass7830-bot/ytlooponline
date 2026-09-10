@@ -15,8 +15,8 @@ import qualityArtwork from "@assets/loopstream_reference/feature-1080p-4k.jpeg";
 import schedulerArtwork from "@assets/loopstream_reference/feature-advanced-scheduler.jpeg";
 import scheduleStreamArtwork from "@assets/loopstream_reference/schedule-stream.jpeg";
 import heroTwoScreenImage from "@assets/loopstream_reference/hero-two-screen.webp";
-import compareAfterImage from "@assets/loopstream_reference/after-loop-stream.webp";
-import compareBeforeImage from "@assets/loopstream_reference/before-loop-stream.webp";
+import connectionLostImage from "@assets/loopstream_reference/comparison-connection-lost.png";
+import loopRunningImage from "@assets/loopstream_reference/comparison-loop-running.png";
 import newsReferenceImage from "@assets/loopstream_reference/news.webp";
 import devotionalReferenceImage from "@assets/loopstream_reference/devotional.webp";
 import musicReferenceImage from "@assets/loopstream_reference/music.webp";
@@ -131,8 +131,8 @@ function SignalMonitor() {
   const [state, setState] = useState(0);
   const statuses = [
     { label: "Signal locked", sub: "Broadcasting continuously", color: "lime", image: heroTwoScreenImage, alt: "Loop Stream dashboard and YouTube live screen" },
-    { label: "Offline / connection lost", sub: "Automatic recovery is standing by", color: "amber", image: compareBeforeImage, alt: "Stream before Loop Stream recovery" },
-    { label: "Reconnecting", sub: "Automatic recovery engaged", color: "coral", image: compareAfterImage, alt: "Loop Stream recovery and continuous broadcast" },
+    { label: "Offline / connection lost", sub: "Automatic recovery is standing by", color: "amber", image: connectionLostImage, alt: "Creator facing a connection lost screen" },
+    { label: "Reconnecting", sub: "Automatic recovery engaged", color: "coral", image: loopRunningImage, alt: "Loop Stream running continuously while the creator rests" },
   ];
   useEffect(() => {
     const timer = window.setInterval(() => setState((value) => (value + 1) % statuses.length), 4200);
@@ -216,9 +216,9 @@ function ComparisonSlider() {
       onPointerDown={(event) => updatePosition(event.clientX)}
       data-testid="comparison-slider"
     >
-       <img className="comparison-image comparison-image-live" src={compareAfterImage} alt="Loop Stream 24-hour always-on live broadcast" />
+        <img className="comparison-image comparison-image-live" src={loopRunningImage} alt="Loop Stream 24-hour live broadcast running while the creator rests" />
       <div className="comparison-offline" style={{ clipPath: `inset(0 ${100 - position}% 0 0)` }}>
-         <img className="comparison-image comparison-image-offline" src={compareBeforeImage} alt="Regular stream ending before Loop Stream recovery" />
+         <img className="comparison-image comparison-image-offline" src={connectionLostImage} alt="Connection lost screen stopping a regular live stream" />
       </div>
       <div className="comparison-tint comparison-tint-offline" style={{ clipPath: `inset(0 ${100 - position}% 0 0)` }} />
       <div className="comparison-label comparison-label-offline"><span className="comparison-label-dot" /> STREAM OFFLINE <strong>₹0 earned</strong></div>
