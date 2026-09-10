@@ -4,10 +4,6 @@ import { ArrowDown, ArrowLeftRight, ArrowRight, Check, Menu, Play, Radio, Signal
 import { Link, useLocation } from "wouter";
 import GetOfferButton from "@/components/GetOfferButton";
 import logoImage from "@assets/image_1788788255512.png";
-import planOneMonthPoster from "@assets/generated_images/rloop-plan-1-month-poster.png";
-import planThreeMonthsPoster from "@assets/generated_images/rloop-plan-3-months-poster.png";
-import planSixMonthsPoster from "@assets/generated_images/rloop-plan-6-months-poster.png";
-import planOneYearPoster from "@assets/generated_images/rloop-plan-1-year-poster.png";
 import loopControlArtwork from "@assets/loopstream_reference/feature-loop-control.jpeg";
 import streamingArtwork from "@assets/loopstream_reference/feature-24x7-streaming.jpeg";
 import playlistArtwork from "@assets/loopstream_reference/feature-playlist-builder.jpeg";
@@ -364,47 +360,77 @@ function MonthlyOfferCountdown() {
 const accessPlans = [
   {
     term: "1 month",
+    label: "Quick start",
     bonus: "10 days extra",
     totalAccess: "1 month + 10 days",
-    image: planOneMonthPoster,
   },
   {
     term: "3 months",
+    label: "Creator pace",
     bonus: "1 month extra",
     totalAccess: "3 months + 1 month",
-    image: planThreeMonthsPoster,
   },
   {
     term: "6 months",
+    label: "Growth window",
     bonus: "2 months extra",
     totalAccess: "6 months + 2 months",
-    image: planSixMonthsPoster,
   },
   {
     term: "1 year",
+    label: "Best value",
     bonus: "5 months extra",
     totalAccess: "1 year + 5 months",
-    image: planOneYearPoster,
   },
+];
+
+const planFeatures = [
+  ["Unlimited storage", "Keep your full media library ready to stream."],
+  ["2 live monitor bots", "Two bots keep watching your stream health continuously."],
+  ["Unlimited live streams", "Run as many concurrent streams as your plan needs."],
+  ["Unlimited account streams", "Use streams from unlimited connected accounts."],
+  ["YouTube + Facebook Live", "Go live directly to YouTube and Facebook."],
+  ["Twitch, Kick + RTMP", "Connect more platforms with standard stream keys."],
+  ["24-hour live streaming", "Keep channels running around the clock."],
+  ["VPS access", "Use a dedicated remote streaming environment."],
+  ["Direct downloads", "Download your videos and media directly."],
+  ["Playlist + auto scheduler", "Build loops, schedule broadcasts, and restart automatically."],
 ];
 
 function PlanOfferSlider() {
   return <MarketingSection className="plan-offer-section">
     <div className="plan-offer-heading">
-      <span className="section-index">05 / PREMIUM ACCESS</span>
-      <p>Choose the access window that fits your channel. Every plan stays visible so the value is easy to compare.</p>
+      <div><span className="section-index">05 / PREMIUM ACCESS</span><h2>Choose your <em>access window.</em></h2></div>
+      <p>Pick your access window and get the full broadcast toolkit: storage, monitoring bots, unlimited streams, VPS access, and multi-platform delivery.</p>
     </div>
     <div className="plan-offer-shell">
       <div className="plan-offer-status"><span className="monitor-led" /> ACCESS WINDOWS / 04 PLANS <span className="plan-offer-status-line" /></div>
       <div className="plan-offer-grid" aria-label="All access plans">
         {accessPlans.map((plan, index) => <article className={`plan-offer-card ${index === accessPlans.length - 1 ? "is-featured" : ""}`} key={plan.term}>
-          <Link href="/pricing" className="plan-offer-poster-link" data-testid={`link-plan-offer-${index}`}>
-            <img className="plan-offer-poster" src={plan.image} alt={`${plan.term} premium access offer poster with ${plan.bonus} and ${plan.totalAccess} total access`} />
-            <span className="plan-offer-card-cta">Choose {plan.term} <ArrowRight size={13} /></span>
+          <div className="plan-offer-card-header">
+            <div>
+              <span className="plan-offer-card-kicker">R LOOP BYPASS / {plan.label}</span>
+              <h3>{plan.term}</h3>
+            </div>
+            {index === accessPlans.length - 1 && <span className="plan-offer-best-value">BEST VALUE</span>}
+          </div>
+          <div className="plan-offer-bonus">
+            <span>OFFER</span>
+            <strong>+ {plan.bonus}</strong>
+            <small>{plan.totalAccess} total access</small>
+          </div>
+          <div className="plan-offer-features">
+            {planFeatures.map(([title, detail]) => <div className="plan-offer-feature" key={title}>
+              <Check size={14} />
+              <div><strong>{title}</strong><span>{detail}</span></div>
+            </div>)}
+          </div>
+          <Link href="/pricing" className="plan-offer-card-cta" data-testid={`link-plan-offer-${index}`}>
+            Choose {plan.term} <ArrowRight size={13} />
           </Link>
         </article>)}
       </div>
-      <p className="plan-offer-hint"><Check size={13} /> Compare all four access windows together</p>
+      <p className="plan-offer-hint"><Check size={13} /> Every plan includes the complete feature set shown above</p>
     </div>
   </MarketingSection>;
 }
