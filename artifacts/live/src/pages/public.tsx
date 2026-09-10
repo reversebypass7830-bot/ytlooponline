@@ -329,31 +329,53 @@ function PlanOfferSlider() {
   const [activePlan, setActivePlan] = useState(3);
   const [isInteracting, setIsInteracting] = useState(false);
   const [dragStart, setDragStart] = useState<number | null>(null);
+  const [slideDirection, setSlideDirection] = useState(1);
+  const resumeTimerRef = useRef<number | null>(null);
   const reducedMotion = useReducedMotion();
 
-  const goToPlan = (index: number) => {
+  const goToPlan = (index: number, direction = 1) => {
+    setSlideDirection(direction);
     setActivePlan((index + accessPlans.length) % accessPlans.length);
   };
 
   useEffect(() => {
     if (reducedMotion || isInteracting) return;
-    const timer = window.setInterval(() => setActivePlan((current) => (current + 1) % accessPlans.length), 6500);
+    const timer = window.setInterval(() => {
+      setSlideDirection(1);
+      setActivePlan((current) => (current + 1) % accessPlans.length);
+    }, 6500);
     return () => window.clearInterval(timer);
   }, [isInteracting, reducedMotion]);
 
+  useEffect(() => () => {
+    if (resumeTimerRef.current !== null) window.clearTimeout(resumeTimerRef.current);
+  }, []);
+
+  const pauseAutoplay = () => {
+    setIsInteracting(true);
+    if (resumeTimerRef.current !== null) window.clearTimeout(resumeTimerRef.current);
+    resumeTimerRef.current = window.setTimeout(() => {
+      setIsInteracting(false);
+      resumeTimerRef.current = null;
+    }, 2800);
+  };
+
   const handlePointerDown = (event: PointerEvent<HTMLDivElement>) => {
     setDragStart(event.clientX);
-    setIsInteracting(true);
+    pauseAutoplay();
     event.currentTarget.setPointerCapture(event.pointerId);
   };
 
   const handlePointerUp = (event: PointerEvent<HTMLDivElement>) => {
     if (dragStart !== null) {
       const distance = event.clientX - dragStart;
-      if (Math.abs(distance) > 42) goToPlan(activePlan + (distance < 0 ? 1 : -1));
+      if (Math.abs(distance) > 42) {
+        const direction = distance < 0 ? 1 : -1;
+        goToPlan(activePlan + direction, direction);
+      }
     }
     setDragStart(null);
-    setIsInteracting(false);
+    pauseAutoplay();
     if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
   };
 
@@ -376,9 +398,9 @@ function PlanOfferSlider() {
           <motion.article
             key={currentPlan.term}
             className={`plan-offer-card ${activePlan === accessPlans.length - 1 ? "is-featured" : ""}`}
-            initial={reducedMotion ? { opacity: 0 } : { opacity: 0, x: 26 }}
+             initial={reducedMotion ? { opacity: 0 } : { opacity: 0, x: slideDirection > 0 ? -26 : 26 }}
             animate={{ opacity: 1, x: 0 }}
-            exit={reducedMotion ? { opacity: 0 } : { opacity: 0, x: -26 }}
+             exit={reducedMotion ? { opacity: 0 } : { opacity: 0, x: slideDirection > 0 ? 26 : -26 }}
             transition={{ duration: reducedMotion ? 0.01 : 0.42, ease }}
           >
             <Link href="/pricing" className="plan-offer-poster-link" data-testid={`link-plan-offer-${activePlan}`} onClick={() => setIsInteracting(true)}>
@@ -388,13 +410,13 @@ function PlanOfferSlider() {
         </AnimatePresence>
       </div>
       <div className="plan-offer-controls">
-        <button type="button" className="plan-offer-arrow" onClick={() => { goToPlan(activePlan - 1); setIsInteracting(true); }} aria-label="Previous access plan" data-testid="button-plan-previous"><ChevronLeft size={17} /></button>
+         <button type="button" className="plan-offer-arrow" onClick={() => { goToPlan(activePlan - 1, -1); pauseAutoplay(); }} aria-label="Previous access plan" data-testid="button-plan-previous"><ChevronLeft size={17} /></button>
         <div className="plan-offer-dots" role="tablist" aria-label="Choose an access plan">
-          {accessPlans.map((plan, index) => <button key={plan.term} type="button" className={`plan-offer-dot ${index === activePlan ? "active" : ""}`} onClick={() => { goToPlan(index); setIsInteracting(true); }} role="tab" aria-selected={index === activePlan} aria-label={`Show ${plan.term} plan`} data-testid={`button-plan-${index}`}><span /></button>)}
+           {accessPlans.map((plan, index) => <button key={plan.term} type="button" className={`plan-offer-dot ${index === activePlan ? "active" : ""}`} onClick={() => { goToPlan(index, index >= activePlan ? 1 : -1); pauseAutoplay(); }} role="tab" aria-selected={index === activePlan} aria-label={`Show ${plan.term} plan`} data-testid={`button-plan-${index}`}><span /></button>)}
         </div>
-        <button type="button" className="plan-offer-arrow" onClick={() => { goToPlan(activePlan + 1); setIsInteracting(true); }} aria-label="Next access plan" data-testid="button-plan-next"><ChevronRight size={17} /></button>
+         <button type="button" className="plan-offer-arrow" onClick={() => { goToPlan(activePlan + 1, 1); pauseAutoplay(); }} aria-label="Next access plan" data-testid="button-plan-next"><ChevronRight size={17} /></button>
       </div>
-      <p className="plan-offer-hint"><ArrowLeftRight size={13} /> Swipe or use the controls to tune the runway</p>
+       <p className="plan-offer-hint"><ArrowLeftRight size={13} /> Auto-advancing · swipe or use the controls</p>
     </div>
   </MarketingSection>;
 }
