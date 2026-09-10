@@ -109,10 +109,12 @@ type YoutubeDownloadJobStatus = {
   result?: YoutubeDownloadResult;
   error?: string;
 };
-async function downloadYoutubeVideoAsync(input: { url: string; quality: DownloadQuality; licenseId?: string; licenseName?: string; folderName?: string }): Promise<YoutubeDownloadResult> {
+async function downloadYoutubeVideoAsync(input: { url: string; quality: DownloadQuality; licenseId?: string; licenseName?: string; folderName?: string; ownerPassword?: string }): Promise<YoutubeDownloadResult> {
+  const { ownerPassword, ...payload } = input;
   const queueJob = () => apiJson<{ jobId: string }>("/api/media/youtube-download/jobs", {
     method: "POST",
-    body: JSON.stringify(input),
+    headers: ownerPassword ? { "X-Owner-Password": ownerPassword } : undefined,
+    body: JSON.stringify(payload),
   });
   let queued = await queueJob();
   let recoveredMissingJob = false;
@@ -874,16 +876,19 @@ function LicenseGate({ license, busy, error, onActivate, onRenew }: { license:Li
 }
 
 function IncludedAnimationsModal({ ownerPassword, onClose }: { ownerPassword: string; onClose: () => void }) {
-  const inputRef = useRef<HTMLInputElement>(null);
+  const videoInputRef = useRef<HTMLInputElement>(null);
+  const folderInputRef = useRef<HTMLInputElement>(null);
   const [files, setFiles] = useState<File[]>([]);
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const [youtubeUrl, setYoutubeUrl] = useState("");
+  const [youtubeDownloading, setYoutubeDownloading] = useState(false);
 
   useEffect(() => {
-    inputRef.current?.setAttribute("webkitdirectory", "");
-    inputRef.current?.setAttribute("directory", "");
+    folderInputRef.current?.setAttribute("webkitdirectory", "");
+    folderInputRef.current?.setAttribute("directory", "");
   }, []);
 
   const chooseFiles = (list: FileList | null) => {
@@ -893,6 +898,30 @@ function IncludedAnimationsModal({ ownerPassword, onClose }: { ownerPassword: st
     setFiles(selected);
     setMessage("");
     setError(selected.length ? "" : "Choose a folder containing animation videos.");
+  };
+
+  const downloadYoutube = async () => {
+    const url = youtubeUrl.trim();
+    if (!url || youtubeDownloading || uploading) return;
+    setYoutubeDownloading(true);
+    setMessage("");
+    setError("");
+    try {
+      const result = await downloadYoutubeVideoAsync({
+        url,
+        quality: "best",
+        licenseId: includedMediaLicenseId,
+        licenseName: "Included Animations",
+        folderName: `${youtubeAnimationRootName}/Included Animations`,
+        ownerPassword,
+      });
+      setYoutubeUrl("");
+      setMessage(`YouTube animation "${result.title}" downloaded and added to Included Animations.`);
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "The YouTube animation could not be downloaded.");
+    } finally {
+      setYoutubeDownloading(false);
+    }
   };
 
   const folderForFile = (file: File) => {
@@ -943,7 +972,17 @@ function IncludedAnimationsModal({ ownerPassword, onClose }: { ownerPassword: st
     }
   };
 
-  return <Modal title="Add included animations" onClose={onClose} footer={<><button className="button ghost" onClick={onClose} disabled={uploading}>Close</button><button className="button" type="submit" form="included-animation-form" disabled={uploading || !files.length}>{uploading ? `Uploading ${progress}/${files.length}…` : "Add to Included Animations"} {!uploading && <Upload size={14}/>}</button></>}><form id="included-animation-form" onSubmit={submit}><div className="form-grid"><div className="field full"><label>Choose animation folder</label><input ref={inputRef} autoFocus type="file" multiple accept="video/*" onChange={(event) => chooseFiles(event.target.files)} data-testid="input-included-animations"/><span className="field-hint">{files.length ? `${files.length} animation${files.length === 1 ? "" : "s"} selected. Nested subfolders are preserved under Included Animations.` : "Select a folder. Its subfolders will become nested Included Animations folders."}</span></div></div>{message && <div className="file-picked"><Check size={13}/> {message}</div>}{error && <div className="error-note" style={{whiteSpace:"pre-line"}}>{error}</div>}<div className="form-note"><ShieldCheck size={14} style={{verticalAlign:"-3px",marginRight:6}}/>Only the owner can add or remove shared animations. License users can watch and use them, but cannot change them.</div></form></Modal>;
+  return <Modal title="Add included animations" onClose={onClose} footer={<><button className="button ghost" onClick={onClose} disabled={uploading || youtubeDownloading}>Close</button><button className="button" type="submit" form="included-animation-form" disabled={uploading || youtubeDownloading || !files.length}>{uploading ? `Uploading ${progress}/${files.length}…` : "Upload selected videos"} {!uploading && <Upload size={14}/>}</button></>}><form id="included-animation-form" onSubmit={submit}>
+    <div className="included-youtube-import">
+      <div className="included-import-heading"><div><strong>Download from YouTube</strong><span>Paste a public YouTube video link and add it directly to the shared Included Animations folder.</span></div><Youtube size={18}/></div>
+      <div className="input-action-row"><input value={youtubeUrl} onChange={(event) => setYoutubeUrl(event.target.value)} placeholder="https://www.youtube.com/watch?v=…" type="url" inputMode="url" disabled={uploading || youtubeDownloading} data-testid="input-owner-included-youtube-url"/><button type="button" className="button secondary small" onClick={() => void downloadYoutube()} disabled={uploading || youtubeDownloading || !youtubeUrl.trim()} data-testid="button-owner-download-included-youtube">{youtubeDownloading ? "Downloading…" : "Download"} {!youtubeDownloading && <Download size={13}/>}</button></div>
+    </div>
+    <div className="included-upload-divider"><span>OR UPLOAD MANUALLY</span></div>
+    <div className="form-grid">
+      <div className="field full"><label>Choose videos from phone or computer</label><input ref={videoInputRef} autoFocus type="file" multiple accept="video/*,.mp4,.mov,.m4v,.webm,.mkv,.avi,.ts" onChange={(event) => chooseFiles(event.target.files)} data-testid="input-included-animation-videos"/><span className="field-hint">{files.length ? `${files.length} animation${files.length === 1 ? "" : "s"} selected.` : "On phone, tap here to select videos from Files or Gallery. You can select multiple videos."}</span></div>
+      <div className="field full"><label>Or choose an animation folder <span className="field-optional">desktop</span></label><input ref={folderInputRef} type="file" multiple accept="video/*,.mp4,.mov,.m4v,.webm,.mkv,.avi,.ts" onChange={(event) => chooseFiles(event.target.files)} data-testid="input-included-animation-folder"/><span className="field-hint">Folder subfolders are preserved under Included Animations. Use the video option above on phones.</span></div>
+    </div>
+    {message && <div className="file-picked"><Check size={13}/> {message}</div>}{error && <div className="error-note" style={{whiteSpace:"pre-line"}}>{error}</div>}<div className="form-note"><ShieldCheck size={14} style={{verticalAlign:"-3px",marginRight:6}}/>Only the owner can add or remove shared animations. License users can watch and use them, but cannot change them.</div></form></Modal>;
 }
 
 function OwnerPage() {

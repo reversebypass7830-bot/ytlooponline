@@ -668,6 +668,10 @@ router.post("/media/youtube-download", async (req, res): Promise<void> => {
       res.status(400).json({ error: parsed.error.message });
       return;
     }
+    if (parsed.data.licenseId === includedMediaLicenseId && !ownerAuthorized(req)) {
+      res.status(403).json({ error: "Only the owner can add included animations." });
+      return;
+    }
     res.status(201).json(await performYoutubeDownload(parsed.data));
   } catch (error) {
     const message = youtubeDownloadError(error);
@@ -680,6 +684,10 @@ router.post("/media/youtube-download/jobs", async (req, res): Promise<void> => {
   const parsed = DownloadYoutubeVideoBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.message });
+    return;
+  }
+  if (parsed.data.licenseId === includedMediaLicenseId && !ownerAuthorized(req)) {
+    res.status(403).json({ error: "Only the owner can add included animations." });
     return;
   }
   try {
