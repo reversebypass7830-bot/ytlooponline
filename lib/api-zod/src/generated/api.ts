@@ -494,6 +494,65 @@ export const RenewLicenseResponse = zod.object({
 
 
 /**
+ * @summary List the owner's VidKraken token pool without exposing token values
+ */
+export const ListVidKrakenTokensHeader = zod.object({
+  "X-Owner-Password": zod.string()
+})
+
+export const ListVidKrakenTokensResponse = zod.object({
+  "count": zod.number(),
+  "tokens": zod.array(zod.object({
+  "key": zod.string(),
+  "status": zod.enum(['ready', 'cooldown']),
+  "cooldownUntil": zod.union([zod.coerce.date(),zod.null()])
+}))
+})
+
+
+/**
+ * @summary Add a VidKraken token to the owner's rotation pool
+ */
+export const AddVidKrakenTokenHeader = zod.object({
+  "X-Owner-Password": zod.string()
+})
+
+
+
+
+export const AddVidKrakenTokenBody = zod.object({
+  "token": zod.string().min(1)
+})
+
+export const AddVidKrakenTokenResponse = zod.object({
+  "key": zod.string(),
+  "added": zod.boolean().optional(),
+  "deleted": zod.boolean().optional()
+})
+
+
+/**
+ * @summary Remove a VidKraken token from the owner's rotation pool
+ */
+export const deleteVidKrakenTokenPathTokenKeyRegExp = new RegExp('^TOKEN(_[0-9]+)?$');
+
+
+export const DeleteVidKrakenTokenParams = zod.object({
+  "tokenKey": zod.coerce.string().regex(deleteVidKrakenTokenPathTokenKeyRegExp)
+})
+
+export const DeleteVidKrakenTokenHeader = zod.object({
+  "X-Owner-Password": zod.string()
+})
+
+export const DeleteVidKrakenTokenResponse = zod.object({
+  "key": zod.string(),
+  "added": zod.boolean().optional(),
+  "deleted": zod.boolean().optional()
+})
+
+
+/**
  * @summary Validate a license key for a browser
  */
 export const validateLicenseBodyKeyMin = 8;

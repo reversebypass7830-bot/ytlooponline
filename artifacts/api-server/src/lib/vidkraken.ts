@@ -1,5 +1,6 @@
 import { createWriteStream } from "node:fs";
-import { mkdtemp, rm, stat } from "node:fs/promises";
+import { chmod, mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
+import { createHash } from "node:crypto";
 import os from "node:os";
 import path from "node:path";
 import { pipeline } from "node:stream/promises";
@@ -24,6 +25,17 @@ const apiBaseUrl = "https://vidkraken.com/api/v2";
 const pollIntervalMs = 2_000;
 const infoTimeoutMs = 5 * 60 * 1_000;
 const downloadTimeoutMs = 30 * 60 * 1_000;
+const tokenCooldownMs = 3 * 60 * 60 * 1_000;
+const configuredEnvFilePath = process.env.VIDKRAKEN_ENV_FILE?.trim();
+const configuredTokenStateFilePath = process.env.VIDKRAKEN_TOKEN_STATE_FILE?.trim();
+const envFileCandidates = [
+  configuredEnvFilePath,
+  path.resolve(process.cwd(), ".env"),
+  path.resolve(process.cwd(), "../../.env"),
+  path.resolve(import.meta.dirname, "../../../../.env"),
+  path.resolve(import.meta.dirname, "../../../.env"),
+].filter((candidate): candidate is string => Boolean(candidate));
+const tokenStateFilePath = configuredTokenStateFilePath || path.resolve(process.cwd(), "../../.vidkraken-token-state.json");
 const supportedFormats = [
   { height: 1080, ext: "mp4" },
   { height: 720, ext: "mp4" },
@@ -31,12 +43,203 @@ const supportedFormats = [
   { height: 360, ext: "mp4" },
 ];
 
-function token(): string {
-  const value = process.env.TOKEN?.trim();
-  if (!value) {
-    throw new Error("VidKraken TOKEN is missing. Add it to the project's .env file.");
+type TokenEntry = {
+  key: string;
+  value: string;
+  fingerprint: string;
+};
+
+type TokenState = {
+  cooldowns: Record<string, number>;
+};
+
+type VidKrakenTokenStatus = {
+  key: string;
+  status: "ready" | "cooldown";
+  cooldownUntil: string | null;
+};
+
+let tokenCursor = 0;
+let tokenStateLoad: Promise<TokenState> | undefined;
+let tokenStateWrite = Promise.resolve();
+let envFileWrite = Promise.resolve();
+
+function fingerprint(value: string): string {
+  return createHash("sha256").update(value).digest("hex");
+}
+
+function parseEnvValue(raw: string): string {
+  const value = raw.trim();
+  if (value.length >= 2 && value.startsWith('"') && value.endsWith('"')) {
+    try {
+      const parsed = JSON.parse(value);
+      return typeof parsed === "string" ? parsed.trim() : "";
+    } catch {
+      return value.slice(1, -1).trim();
+    }
   }
+  if (value.length >= 2 && value.startsWith("'") && value.endsWith("'")) return value.slice(1, -1).trim();
   return value;
+}
+
+function tokenKeyOrder(key: string): number {
+  return key === "TOKEN" ? 1 : Number.parseInt(key.slice("TOKEN_".length), 10) || Number.MAX_SAFE_INTEGER;
+}
+
+async function readTokenEntries(): Promise<TokenEntry[]> {
+  const source = await readEnvSource();
+  const raw = source.raw;
+  const values = new Map<string, string>();
+  for (const line of raw.split(/\r?\n/)) {
+    const match = line.match(/^\s*(TOKEN(?:_\d+)?)\s*=(.*)$/);
+    if (!match) continue;
+    const value = parseEnvValue(match[2]);
+    if (value) values.set(match[1], value);
+  }
+  if (!source.exists) {
+    for (const [key, value] of Object.entries(process.env)) {
+      if (/^TOKEN(?:_\d+)?$/.test(key) && value?.trim()) values.set(key, value.trim());
+    }
+  }
+  return [...values.entries()]
+    .sort(([left], [right]) => tokenKeyOrder(left) - tokenKeyOrder(right))
+    .map(([key, value]) => ({ key, value, fingerprint: fingerprint(value) }));
+}
+
+type EnvSource = { filePath: string; raw: string; exists: boolean };
+
+async function readEnvSource(): Promise<EnvSource> {
+  for (const candidate of envFileCandidates) {
+    const raw = await readFile(candidate, "utf8").catch(() => null);
+    if (raw !== null) return { filePath: candidate, raw, exists: true };
+  }
+  return { filePath: envFileCandidates[0] || path.resolve(process.cwd(), ".env"), raw: "", exists: false };
+}
+
+async function resolveEnvFilePath(): Promise<string> {
+  return (await readEnvSource()).filePath;
+}
+
+async function readTokenState(): Promise<TokenState> {
+  if (!tokenStateLoad) {
+    tokenStateLoad = readFile(tokenStateFilePath, "utf8")
+      .then((raw) => {
+        const parsed = JSON.parse(raw) as Partial<TokenState>;
+        const cooldowns = parsed.cooldowns && typeof parsed.cooldowns === "object" ? parsed.cooldowns : {};
+        return { cooldowns: Object.fromEntries(Object.entries(cooldowns).filter(([, value]) => typeof value === "number")) };
+      })
+      .catch(() => ({ cooldowns: {} }));
+  }
+  return tokenStateLoad;
+}
+
+function saveTokenState(state: TokenState): Promise<void> {
+  tokenStateWrite = tokenStateWrite.then(async () => {
+    await writeFile(tokenStateFilePath, JSON.stringify(state, null, 2), { mode: 0o600 });
+    await chmod(tokenStateFilePath, 0o600).catch(() => undefined);
+  });
+  return tokenStateWrite;
+}
+
+function cooldownUntil(entry: TokenEntry, state: TokenState): number {
+  const until = state.cooldowns[entry.fingerprint] || 0;
+  return until > Date.now() ? until : 0;
+}
+
+function tokenAvailable(entry: TokenEntry, state: TokenState): boolean {
+  return cooldownUntil(entry, state) === 0;
+}
+
+async function markTokenCooldown(entry: TokenEntry): Promise<void> {
+  const state = await readTokenState();
+  state.cooldowns[entry.fingerprint] = Date.now() + tokenCooldownMs;
+  await saveTokenState(state);
+}
+
+function tokenCandidates(entries: TokenEntry[], state: TokenState): TokenEntry[] {
+  const available = entries.filter((entry) => tokenAvailable(entry, state));
+  if (!available.length) return [];
+  const start = tokenCursor % available.length;
+  tokenCursor = (tokenCursor + 1) % available.length;
+  return [...available.slice(start), ...available.slice(0, start)];
+}
+
+function tokenLimitError(status: number, message: string): boolean {
+  return status === 401 || status === 403 || status === 429 || /credit|quota|rate.?limit|too many pending|limit reached|account.*limit/i.test(message);
+}
+
+function tokenErrorMessage(payload: VidKrakenPayload, status: number): string {
+  return stringValue(payload, "error", "message", "detail") || `VidKraken returned HTTP ${status}.`;
+}
+
+function envTokenLines(raw: string): string[] {
+  return raw.split(/\r?\n/);
+}
+
+function nextTokenKey(lines: string[]): string {
+  const used = new Set(lines.map((line) => line.match(/^\s*(TOKEN(?:_\d+)?)\s*=/)?.[1]).filter((value): value is string => Boolean(value)));
+  if (!used.has("TOKEN")) return "TOKEN";
+  for (let index = 2; index < 10_000; index += 1) {
+    const key = `TOKEN_${index}`;
+    if (!used.has(key)) return key;
+  }
+  throw new Error("The VidKraken token pool is full.");
+}
+
+async function updateEnvToken(mutator: (lines: string[]) => { lines: string[]; key: string }): Promise<string> {
+  let addedKey = "";
+  envFileWrite = envFileWrite.then(async () => {
+    const filePath = await resolveEnvFilePath();
+    const raw = await readFile(filePath, "utf8").catch(() => "");
+    const updated = mutator(envTokenLines(raw));
+    const content = `${updated.lines.join("\n").replace(/\n+$/, "")}\n`;
+    await writeFile(filePath, content, { mode: 0o600 });
+    await chmod(filePath, 0o600).catch(() => undefined);
+    addedKey = updated.key;
+  });
+  await envFileWrite;
+  return addedKey;
+}
+
+export async function listVidKrakenTokens(): Promise<VidKrakenTokenStatus[]> {
+  const [entries, state] = await Promise.all([readTokenEntries(), readTokenState()]);
+  const statuses = entries.map((entry) => {
+    const until = cooldownUntil(entry, state);
+    return {
+      key: entry.key,
+      status: until ? "cooldown" as const : "ready" as const,
+      cooldownUntil: until ? new Date(until).toISOString() : null,
+    };
+  });
+  return statuses;
+}
+
+export async function addVidKrakenToken(value: string): Promise<string> {
+  const normalized = value.trim();
+  if (!normalized || normalized.includes("\n") || normalized.includes("\r")) {
+    throw new Error("Enter one valid VidKraken token.");
+  }
+  const existing = await readTokenEntries();
+  if (existing.some((entry) => entry.value === normalized)) throw new Error("This VidKraken token is already configured.");
+  return updateEnvToken((lines) => {
+    const key = nextTokenKey(lines);
+    return { key, lines: [...lines, `${key}=${JSON.stringify(normalized)}`] };
+  });
+}
+
+export async function deleteVidKrakenToken(key: string): Promise<void> {
+  if (!/^TOKEN(?:_\d+)?$/.test(key)) throw new Error("Invalid VidKraken token key.");
+  await new Promise<void>((resolve, reject) => {
+    envFileWrite = envFileWrite.then(async () => {
+      const filePath = await resolveEnvFilePath();
+      const raw = await readFile(filePath, "utf8").catch(() => "");
+      const lines = envTokenLines(raw);
+      const remaining = lines.filter((line) => !new RegExp(`^\\s*${key}\\s*=`).test(line));
+      if (remaining.length === lines.length) throw new Error("VidKraken token key not found.");
+      await writeFile(filePath, `${remaining.join("\n").replace(/\n+$/, "")}\n`, { mode: 0o600 });
+      await chmod(filePath, 0o600).catch(() => undefined);
+    }).then(resolve, reject);
+  });
 }
 
 function apiUrl(endpoint: string): string {
@@ -44,22 +247,31 @@ function apiUrl(endpoint: string): string {
 }
 
 async function vidKrakenRequest(endpoint: string, init: RequestInit = {}): Promise<VidKrakenPayload> {
-  const headers = new Headers(init.headers);
-  headers.set("Authorization", `Bearer ${token()}`);
-  headers.set("Accept", "application/json");
-  if (init.body && !headers.has("Content-Type")) headers.set("Content-Type", "application/json");
+  const entries = await readTokenEntries();
+  if (!entries.length) throw new Error("VidKraken TOKEN is missing. Add it to the project's .env file.");
+  const state = await readTokenState();
+  const candidates = tokenCandidates(entries, state);
+  if (!candidates.length) throw new Error("All VidKraken tokens are on cooldown. Please try again after the 3-hour limit window.");
+  let lastError = "VidKraken could not process this request.";
 
-  const response = await fetch(apiUrl(endpoint), {
-    ...init,
-    headers,
-    signal: init.signal || AbortSignal.timeout(60_000),
-  });
-  const payload = await response.json().catch(() => ({})) as VidKrakenPayload;
-  if (!response.ok) {
-    const detail = typeof payload.error === "string" ? payload.error : `VidKraken returned HTTP ${response.status}.`;
-    throw new Error(detail);
+  for (const entry of candidates) {
+    const headers = new Headers(init.headers);
+    headers.set("Authorization", `Bearer ${entry.value}`);
+    headers.set("Accept", "application/json");
+    if (init.body && !headers.has("Content-Type")) headers.set("Content-Type", "application/json");
+    const response = await fetch(apiUrl(endpoint), {
+      ...init,
+      headers,
+      signal: init.signal || AbortSignal.timeout(60_000),
+    });
+    const payload = await response.json().catch(() => ({})) as VidKrakenPayload;
+    if (response.ok) return payload;
+    const message = tokenErrorMessage(payload, response.status);
+    lastError = message;
+    if (!tokenLimitError(response.status, message)) throw new Error(message);
+    await markTokenCooldown(entry);
   }
-  return payload;
+  throw new Error(lastError);
 }
 
 function stringValue(payload: VidKrakenPayload, ...keys: string[]): string {

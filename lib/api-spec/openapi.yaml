@@ -456,6 +456,69 @@ paths:
                 $ref: "#/components/schemas/LicenseAccess"
         "401":
           description: Owner password is incorrect
+  /owner/vidkraken-keys:
+    get:
+      operationId: listVidKrakenTokens
+      tags: [licenses]
+      summary: List the owner's VidKraken token pool without exposing token values
+      parameters:
+        - $ref: "#/components/parameters/OwnerPassword"
+      responses:
+        "200":
+          description: VidKraken token statuses
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VidKrakenTokenListResponse"
+        "401":
+          description: Owner password is incorrect
+    post:
+      operationId: addVidKrakenToken
+      tags: [licenses]
+      summary: Add a VidKraken token to the owner's rotation pool
+      parameters:
+        - $ref: "#/components/parameters/OwnerPassword"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AddVidKrakenTokenInput"
+      responses:
+        "201":
+          description: Token added; the token value is never returned
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VidKrakenTokenMutationResponse"
+        "400":
+          description: Invalid or duplicate token
+        "401":
+          description: Owner password is incorrect
+  /owner/vidkraken-keys/{tokenKey}:
+    delete:
+      operationId: deleteVidKrakenToken
+      tags: [licenses]
+      summary: Remove a VidKraken token from the owner's rotation pool
+      parameters:
+        - $ref: "#/components/parameters/OwnerPassword"
+        - name: tokenKey
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: "^TOKEN(_[0-9]+)?$"
+      responses:
+        "200":
+          description: Token removed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VidKrakenTokenMutationResponse"
+        "400":
+          description: Invalid token key
+        "401":
+          description: Owner password is incorrect
   /licenses/validate:
     post:
       operationId: validateLicense
@@ -987,6 +1050,54 @@ components:
       required:
         - licenseId
         - deleted
+    VidKrakenTokenStatus:
+      type: object
+      properties:
+        key:
+          type: string
+        status:
+          type: string
+          enum: [ready, cooldown]
+        cooldownUntil:
+          oneOf:
+            - type: string
+              format: date-time
+            - type: "null"
+      required:
+        - key
+        - status
+        - cooldownUntil
+    VidKrakenTokenListResponse:
+      type: object
+      properties:
+        count:
+          type: number
+        tokens:
+          type: array
+          items:
+            $ref: "#/components/schemas/VidKrakenTokenStatus"
+      required:
+        - count
+        - tokens
+    AddVidKrakenTokenInput:
+      type: object
+      properties:
+        token:
+          type: string
+          minLength: 1
+      required:
+        - token
+    VidKrakenTokenMutationResponse:
+      type: object
+      properties:
+        key:
+          type: string
+        added:
+          type: boolean
+        deleted:
+          type: boolean
+      required:
+        - key
     LicenseWorkspaceData:
       type: object
       additionalProperties: true

@@ -319,6 +319,36 @@ export interface DeleteLicenseResult {
   deleted: boolean;
 }
 
+export type VidKrakenTokenStatusStatus = typeof VidKrakenTokenStatusStatus[keyof typeof VidKrakenTokenStatusStatus];
+
+
+export const VidKrakenTokenStatusStatus = {
+  ready: 'ready',
+  cooldown: 'cooldown',
+} as const;
+
+export interface VidKrakenTokenStatus {
+  key: string;
+  status: VidKrakenTokenStatusStatus;
+  cooldownUntil: string | null;
+}
+
+export interface VidKrakenTokenListResponse {
+  count: number;
+  tokens: VidKrakenTokenStatus[];
+}
+
+export interface AddVidKrakenTokenInput {
+  /** @minLength 1 */
+  token: string;
+}
+
+export interface VidKrakenTokenMutationResponse {
+  key: string;
+  added?: boolean;
+  deleted?: boolean;
+}
+
 export interface LicenseWorkspaceData { [key: string]: unknown }
 
 export interface LicenseWorkspaceResponse {

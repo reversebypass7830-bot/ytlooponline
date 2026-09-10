@@ -20,6 +20,7 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
+  AddVidKrakenTokenInput,
   ComposeMediaInput,
   CreateLicenseInput,
   DeleteLicenseResult,
@@ -41,6 +42,8 @@ import type {
   StreamStartInput,
   StreamStopInput,
   TrimMediaInput,
+  VidKrakenTokenListResponse,
+  VidKrakenTokenMutationResponse,
   WorkspaceSaveResponse,
   YoutubeChannelLinksResponse,
   YoutubeDownloadInput,
@@ -1544,6 +1547,225 @@ export const useRenewLicense = <TError = ErrorType<void>,
         TContext
       > => {
       return useMutation(getRenewLicenseMutationOptions(options));
+    }
+
+export const getListVidKrakenTokensUrl = () => {
+
+
+
+
+  return `/api/owner/vidkraken-keys`
+}
+
+/**
+ * @summary List the owner's VidKraken token pool without exposing token values
+ */
+export const listVidKrakenTokens = async ( options?: Parameters<typeof customFetch>[1]): Promise<VidKrakenTokenListResponse> => {
+
+  return customFetch<VidKrakenTokenListResponse>(getListVidKrakenTokensUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListVidKrakenTokensQueryKey = () => {
+    return [
+    `/api/owner/vidkraken-keys`
+    ] as const;
+    }
+
+
+export const getListVidKrakenTokensQueryOptions = <TData = Awaited<ReturnType<typeof listVidKrakenTokens>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listVidKrakenTokens>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListVidKrakenTokensQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listVidKrakenTokens>>> = ({ signal }) => listVidKrakenTokens({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listVidKrakenTokens>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListVidKrakenTokensQueryResult = NonNullable<Awaited<ReturnType<typeof listVidKrakenTokens>>>
+export type ListVidKrakenTokensQueryError = ErrorType<void>
+
+
+/**
+ * @summary List the owner's VidKraken token pool without exposing token values
+ */
+
+export function useListVidKrakenTokens<TData = Awaited<ReturnType<typeof listVidKrakenTokens>>, TError = ErrorType<void>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listVidKrakenTokens>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListVidKrakenTokensQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getAddVidKrakenTokenUrl = () => {
+
+
+
+
+  return `/api/owner/vidkraken-keys`
+}
+
+/**
+ * @summary Add a VidKraken token to the owner's rotation pool
+ */
+export const addVidKrakenToken = async (addVidKrakenTokenInput: AddVidKrakenTokenInput, options?: Parameters<typeof customFetch>[1]): Promise<VidKrakenTokenMutationResponse> => {
+
+  return customFetch<VidKrakenTokenMutationResponse>(getAddVidKrakenTokenUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(addVidKrakenTokenInput)
+  }
+);}
+
+
+
+
+
+export const getAddVidKrakenTokenMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof addVidKrakenToken>>, TError,{data: BodyType<AddVidKrakenTokenInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof addVidKrakenToken>>, TError,{data: BodyType<AddVidKrakenTokenInput>}, TContext> => {
+
+const mutationKey = ['addVidKrakenToken'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof addVidKrakenToken>>, {data: BodyType<AddVidKrakenTokenInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  addVidKrakenToken(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AddVidKrakenTokenMutationResult = NonNullable<Awaited<ReturnType<typeof addVidKrakenToken>>>
+    export type AddVidKrakenTokenMutationBody = BodyType<AddVidKrakenTokenInput>
+    export type AddVidKrakenTokenMutationError = ErrorType<void>
+
+    /**
+ * @summary Add a VidKraken token to the owner's rotation pool
+ */
+export const useAddVidKrakenToken = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof addVidKrakenToken>>, TError,{data: BodyType<AddVidKrakenTokenInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof addVidKrakenToken>>,
+        TError,
+        {data: BodyType<AddVidKrakenTokenInput>},
+        TContext
+      > => {
+      return useMutation(getAddVidKrakenTokenMutationOptions(options));
+    }
+
+export const getDeleteVidKrakenTokenUrl = (tokenKey: string,) => {
+
+
+
+
+  return `/api/owner/vidkraken-keys/${tokenKey}`
+}
+
+/**
+ * @summary Remove a VidKraken token from the owner's rotation pool
+ */
+export const deleteVidKrakenToken = async (tokenKey: string, options?: Parameters<typeof customFetch>[1]): Promise<VidKrakenTokenMutationResponse> => {
+
+  return customFetch<VidKrakenTokenMutationResponse>(getDeleteVidKrakenTokenUrl(tokenKey),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getDeleteVidKrakenTokenMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteVidKrakenToken>>, TError,{tokenKey: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteVidKrakenToken>>, TError,{tokenKey: string}, TContext> => {
+
+const mutationKey = ['deleteVidKrakenToken'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteVidKrakenToken>>, {tokenKey: string}> = (props) => {
+          const {tokenKey} = props ?? {};
+
+          return  deleteVidKrakenToken(tokenKey,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteVidKrakenTokenMutationResult = NonNullable<Awaited<ReturnType<typeof deleteVidKrakenToken>>>
+
+    export type DeleteVidKrakenTokenMutationError = ErrorType<void>
+
+    /**
+ * @summary Remove a VidKraken token from the owner's rotation pool
+ */
+export const useDeleteVidKrakenToken = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteVidKrakenToken>>, TError,{tokenKey: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof deleteVidKrakenToken>>,
+        TError,
+        {tokenKey: string},
+        TContext
+      > => {
+      return useMutation(getDeleteVidKrakenTokenMutationOptions(options));
     }
 
 export const getValidateLicenseUrl = () => {

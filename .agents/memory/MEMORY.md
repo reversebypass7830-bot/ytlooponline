@@ -13,3 +13,4 @@
 - [YT Ultra signed URL access](ytultra-signed-url-403.md) — metadata can resolve while every returned Googlevideo media URL is rejected with 403 from server egress.
 - [YouTube proxy download](youtube-proxy-download.md) — root proxy lists and /tmp downloads need artifact-path lookup and cross-device-safe media finalization.
 - [Orval integer schemas](orval-integer-schemas.md) — this workspace's generated Zod runtime may reject zod.int(); prefer compatible numeric OpenAPI schemas when codegen needs an integer.
+- [VidKraken token rotation](vidkraken-token-rotation.md) — owner-managed TOKEN entries must rotate on quota errors and keep cooldown state outside the process.

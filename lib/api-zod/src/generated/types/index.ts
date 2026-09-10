@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 
+export * from './addVidKrakenTokenInput';
 export * from './composeMediaInput';
 export * from './composeMediaInputLogoPosition';
 export * from './composeMediaInputWebcamPosition';
@@ -36,6 +37,10 @@ export * from './streamStartInputFacePosition';
 export * from './streamStartInputQuality';
 export * from './streamStopInput';
 export * from './trimMediaInput';
+export * from './vidKrakenTokenListResponse';
+export * from './vidKrakenTokenMutationResponse';
+export * from './vidKrakenTokenStatus';
+export * from './vidKrakenTokenStatusStatus';
 export * from './workspaceSaveResponse';
 export * from './youtubeChannelLinksResponse';
 export * from './youtubeDownloadInput';

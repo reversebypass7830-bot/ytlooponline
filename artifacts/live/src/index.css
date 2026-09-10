@@ -382,6 +382,17 @@ input:focus, textarea:focus, select:focus { border-color:#5fa49d; box-shadow:0 0
 .license-row-main strong { font-size:12px; margin-bottom:4px; }
 .license-row-main span { color:#68817a; font-size:10px; }
 .license-key-badge { width:30px; height:30px; flex:0 0 30px; display:grid; place-items:center; border-radius:8px; color:#287976; background:#e4f1e9; }
+.key-panel { display:grid; gap:18px; }
+.key-panel-summary { display:flex; justify-content:space-between; gap:18px; padding:15px; border:1px solid #d7e4d4; border-radius:12px; background:linear-gradient(135deg,#eef6e3,#fbfcf5); }
+.key-panel-summary h3 { margin:5px 0 0; font-size:20px; letter-spacing:-.04em; }
+.owner-key-form { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:12px; align-items:end; padding-bottom:18px; border-bottom:1px solid #e1e8dc; }
+.owner-key-form .button { height:41px; white-space:nowrap; }
+.key-list { display:grid; gap:8px; }
+.key-row { display:grid; grid-template-columns:minmax(0,1fr) auto auto; gap:12px; align-items:center; padding:12px 13px; border:1px solid #e2e9df; border-radius:10px; background:#fcfdf9; }
+.key-row strong, .key-row .subtle { display:block; }
+.key-row strong { font:12px var(--app-font-mono); color:#2d5d57; }
+.key-row .subtle { margin-top:4px; font-size:10px; }
+.key-row .status { white-space:nowrap; }
 .workspace-loading { min-height:100dvh; display:flex; align-items:center; justify-content:center; gap:10px; color:#47736b; font:12px var(--app-font-mono); background:hsl(var(--background)); }
 .mobile-menu { display:none; }
 .toast { position:fixed; right:22px; bottom:22px; padding:12px 15px; border-radius:9px; background:#214e4d; color:#eff9ed; box-shadow:0 8px 30px rgba(20,51,48,.22); font-size:12px; z-index:50; animation:rise .22s ease-out; }
@@ -988,6 +999,10 @@ input:focus, textarea:focus, select:focus { border-color: #68a99c; box-shadow: 0
   .editor-steps { width:100%; justify-content:space-between; gap:2px; }
   .editor-step { flex-direction:column; gap:5px; padding:5px; text-align:center; font-size:9px; }
   .editor-step b { width:24px; height:24px; }
+  .owner-key-form { grid-template-columns:1fr; }
+  .key-row { grid-template-columns:minmax(0,1fr) auto; }
+  .key-row .icon-button { grid-column:2; grid-row:1; }
+  .key-row .status { grid-column:1 / -1; grid-row:2; justify-self:start; }
 }
 
 /* Final control-room pass: the authenticated surfaces share the same broadcast
