@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type KeyboardEvent, type PointerEvent, type ReactNode } from "react";
 import { AnimatePresence, motion, useInView, useReducedMotion } from "framer-motion";
-import { ArrowDown, ArrowLeftRight, ArrowRight, Check, ChevronDown, ChevronLeft, ChevronRight, Menu, Play, Radio, Signal, X, Zap } from "lucide-react";
+import { ArrowDown, ArrowLeftRight, ArrowRight, Check, ChevronDown, ChevronLeft, ChevronRight, Menu, Play, Radio, Signal, X, Youtube, Zap } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import GetOfferButton from "@/components/GetOfferButton";
 import heroImage from "@assets/generated_images/rloop-hero.jpg";
@@ -18,6 +18,11 @@ import planOneMonthPoster from "@assets/generated_images/rloop-plan-1-month-post
 import planThreeMonthsPoster from "@assets/generated_images/rloop-plan-3-months-poster.png";
 import planSixMonthsPoster from "@assets/generated_images/rloop-plan-6-months-poster.png";
 import planOneYearPoster from "@assets/generated_images/rloop-plan-1-year-poster.png";
+import loopControlArtwork from "@assets/generated_images/rloop-feature-loop-control.png";
+import streamingArtwork from "@assets/generated_images/rloop-feature-24x7.png";
+import playlistArtwork from "@assets/generated_images/rloop-feature-playlist.png";
+import qualityArtwork from "@assets/generated_images/rloop-feature-quality.png";
+import schedulerArtwork from "@assets/generated_images/rloop-feature-scheduler.png";
 
 const ease = [0.22, 1, 0.36, 1] as const;
 
@@ -33,6 +38,14 @@ const useCases = [
   { title: "Music & radio", note: "A visual stream that never drops", image: musicImage },
   { title: "News & live updates", note: "Keep the daily signal moving", image: newsImage },
   { title: "Drama & traditions", note: "Stories with a steady stage", image: dramaImage },
+];
+
+const powerfulFeatures = [
+  { title: "Loop Control", description: "Stream videos once, repeat N times, or loop endlessly", artwork: loopControlArtwork },
+  { title: "24x7 Streaming", description: "Stay live around the clock - without staying online", artwork: streamingArtwork },
+  { title: "Playlist Builder", description: "Line up multiple videos and go live in sequence", artwork: playlistArtwork },
+  { title: "1080p & 4K Output", description: "Crystal-clear live streams up to 2160p", artwork: qualityArtwork },
+  { title: "Advanced Scheduler", description: "Plan your streams for days, weeks, or months ahead", artwork: schedulerArtwork },
 ];
 
 const navItems = [
@@ -410,7 +423,28 @@ export function LandingPage() {
 
       <MarketingSection className="signal-strip"><div className="strip-label">Built for the channel that keeps going</div><div className="strip-lines"><span /><span /><span /><span /><span /><span /><span /></div><div className="strip-stats"><strong>24<span>h</span></strong><small>broadcast window</small></div><div className="strip-stats"><strong>4K</strong><small>output ceiling</small></div><div className="strip-stats"><strong>02</strong><small>platform destinations</small></div><div className="strip-platforms"><span>YouTube</span><span>Facebook</span><span>Apps <b>coming soon</b></span></div></MarketingSection>
 
-      <MarketingSection id="capabilities" className="capabilities-section"><div className="section-intro"><span className="section-index">01 / THE CONTROL ROOM</span><h2>From playlist<br /><em>to transmission.</em></h2><p>Every part of the broadcast is deliberate. R Loop Bypass gives a small team the calm, precise controls of a real channel room.</p></div><div className="capability-list"><div className="capability-item"><span>01</span><div><h3>Loop without babysitting</h3><p>Keep a selected library in motion, with playback that comes back on its own when a connection gets noisy.</p></div><Zap size={18} /></div><div className="capability-item"><span>02</span><div><h3>Schedule the handoff</h3><p>Shape a playlist, set the duration, and send the next broadcast out when your audience expects it.</p></div><Zap size={18} /></div><div className="capability-item"><span>03</span><div><h3>Meet the platform</h3><p>Stream to YouTube and Facebook with crisp 4K or 1080p output, depending on the room and the moment.</p></div><Zap size={18} /></div></div></MarketingSection>
+       <MarketingSection id="capabilities" className="capabilities-section"><div className="section-intro"><span className="section-index">01 / THE CONTROL ROOM</span><h2>From playlist<br /><em>to transmission.</em></h2><p>Every part of the broadcast is deliberate. R Loop Bypass gives a small team the calm, precise controls of a real channel room.</p></div><div className="capability-list"><div className="capability-item"><span>01</span><div><h3>Loop without babysitting</h3><p>Keep a selected library in motion, with playback that comes back on its own when a connection gets noisy.</p></div><Zap size={18} /></div><div className="capability-item"><span>02</span><div><h3>Schedule the handoff</h3><p>Shape a playlist, set the duration, and send the next broadcast out when your audience expects it.</p></div><Zap size={18} /></div><div className="capability-item"><span>03</span><div><h3>Meet the platform</h3><p>Stream to YouTube and Facebook with crisp 4K or 1080p output, depending on the room and the moment.</p></div><Zap size={18} /></div></div></MarketingSection>
+
+       <MarketingSection className="power-features-section">
+         <div className="power-features-head">
+           <div>
+             <span className="section-index">POWERFUL FEATURES</span>
+             <h2>Minimal <em>effort.</em></h2>
+           </div>
+           <div className="power-features-platforms" aria-label="Supported streaming platforms">
+             <div className="power-features-youtube"><Youtube size={18} fill="currentColor" /><span>YouTube ready</span></div>
+             <span>Facebook</span><span>Kick</span><span>More platforms</span>
+           </div>
+         </div>
+         <div className="power-features-grid">
+            {powerfulFeatures.map(({ title, description, artwork }, index) => <article className={`power-feature-card ${index === 2 ? "is-accented" : ""}`} key={title}>
+              <div className="power-feature-art"><img src={artwork} alt="" /></div>
+             <h3>{title}</h3>
+             <p>{description}</p>
+             <span className="power-feature-index">0{index + 1}</span>
+           </article>)}
+         </div>
+       </MarketingSection>
 
       <MarketingSection id="use-cases" className="use-cases-section"><div className="use-case-head"><div><span className="section-index">02 / PROGRAMMING</span><h2>A channel for<br /><em>every rhythm.</em></h2></div><p>From early morning movement to a quiet night sky, build the loop your audience returns to.</p></div><div className="use-case-feature"><div className="use-case-image"><AnimatePresence mode="wait"><motion.img key={useCases[activeCase].title} src={useCases[activeCase].image} alt={useCases[activeCase].title} initial={{ opacity: 0, scale: 1.05 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} transition={{ duration: .6 }} /></AnimatePresence><div className="image-caption"><span>Now programming</span><strong>{useCases[activeCase].title}</strong></div></div><div className="use-case-rail">{useCases.map((item, index) => <button key={item.title} className={`use-case-tab ${activeCase === index ? "active" : ""}`} onClick={() => setActiveCase(index)} data-testid={`button-use-case-${index}`}><span>0{index + 1}</span><strong>{item.title}</strong><small>{item.note}</small><ArrowRight size={15} /></button>)}</div></div></MarketingSection>
 
