@@ -7,4 +7,4 @@ VidKraken token pools should select available tokens round-robin, mark a token u
 
 **Why:** A single provider token can be rate-limited while other configured tokens remain usable; reusing the limited token immediately causes otherwise valid downloads to fail.
 
-**How to apply:** Keep token values server-side, expose only token keys and status to the owner UI, and when an environment file is present treat it as the source of truth so deleted entries are not resurrected from startup environment variables.
+**How to apply:** Keep token values server-side, expose only token keys and status to the owner UI, and when an environment file is present treat it as the source of truth so deleted entries are not resurrected from startup environment variables. Pin the token that creates a VidKraken job for every status poll and CDN request in that job's lifecycle; round-robin only between separate jobs.

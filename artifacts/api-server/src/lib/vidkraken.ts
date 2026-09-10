@@ -246,11 +246,22 @@ function apiUrl(endpoint: string): string {
   return `${process.env.VIDKRAKEN_API_URL?.trim() || apiBaseUrl}${endpoint}`;
 }
 
-async function vidKrakenRequest(endpoint: string, init: RequestInit = {}): Promise<VidKrakenPayload> {
+type VidKrakenRequestResult = {
+  payload: VidKrakenPayload;
+  token: TokenEntry;
+};
+
+async function vidKrakenRequest(
+  endpoint: string,
+  init: RequestInit = {},
+  preferredToken?: TokenEntry,
+): Promise<VidKrakenRequestResult> {
   const entries = await readTokenEntries();
   if (!entries.length) throw new Error("VidKraken TOKEN is missing. Add it to the project's .env file.");
   const state = await readTokenState();
-  const candidates = tokenCandidates(entries, state);
+  const candidates = preferredToken
+    ? [entries.find((entry) => entry.fingerprint === preferredToken.fingerprint) || preferredToken]
+    : tokenCandidates(entries, state);
   if (!candidates.length) throw new Error("All VidKraken tokens are on cooldown. Please try again after the 3-hour limit window.");
   let lastError = "VidKraken could not process this request.";
 
@@ -265,7 +276,7 @@ async function vidKrakenRequest(endpoint: string, init: RequestInit = {}): Promi
       signal: init.signal || AbortSignal.timeout(60_000),
     });
     const payload = await response.json().catch(() => ({})) as VidKrakenPayload;
-    if (response.ok) return payload;
+    if (response.ok) return { payload, token: entry };
     const message = tokenErrorMessage(payload, response.status);
     lastError = message;
     if (!tokenLimitError(response.status, message)) throw new Error(message);
@@ -327,6 +338,7 @@ async function pollJob(
   endpoint: (id: string) => string,
   initial: VidKrakenPayload,
   timeoutMs: number,
+  token: TokenEntry,
 ): Promise<VidKrakenPayload> {
   const id = jobId(initial);
   const startedAt = Date.now();
@@ -336,7 +348,7 @@ async function pollJob(
     if (["COMPLETED", "COMPLETE", "SUCCEEDED", "SUCCESS", "DONE"].includes(status)) return current;
     if (["FAILED", "ERROR", "CANCELLED", "CANCELED"].includes(status)) throw new Error(errorMessage(current));
     await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
-    current = await vidKrakenRequest(endpoint(id));
+    current = (await vidKrakenRequest(endpoint(id), {}, token)).payload;
   }
   throw new Error("VidKraken took too long to finish this request. Please try again.");
 }
@@ -346,7 +358,7 @@ async function fetchInfo(url: string): Promise<VidKrakenInfo> {
     method: "POST",
     body: JSON.stringify({ url }),
   });
-  return parseInfo(await pollJob((id) => `/info/${encodeURIComponent(id)}`, submitted, infoTimeoutMs));
+  return parseInfo(await pollJob((id) => `/info/${encodeURIComponent(id)}`, submitted.payload, infoTimeoutMs, submitted.token));
 }
 
 function requestedFormat(quality: string): string {
@@ -413,9 +425,9 @@ export async function downloadVidKraken(url: string, quality: string): Promise<V
     method: "POST",
     body: JSON.stringify({ url, format }),
   });
-  const completed = await pollJob((id) => `/download/${encodeURIComponent(id)}`, submitted, downloadTimeoutMs);
+  const completed = await pollJob((id) => `/download/${encodeURIComponent(id)}`, submitted.payload, downloadTimeoutMs, submitted.token);
   const resolved = expandedPayload(completed);
-  const submittedResolved = expandedPayload(submitted);
+  const submittedResolved = expandedPayload(submitted.payload);
   const info = {
     title: stringValue(resolved, "title") || stringValue(submittedResolved, "title") || "Downloaded YouTube video",
     duration: numberValue(resolved, "duration") || numberValue(submittedResolved, "duration"),
