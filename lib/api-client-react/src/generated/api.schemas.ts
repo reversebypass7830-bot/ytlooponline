@@ -124,6 +124,48 @@ export interface MediaFileListResponse {
   files: MediaFileRecord[];
 }
 
+export interface IncludedFolderRecord {
+  path: string;
+  createdAt: string;
+}
+
+export interface IncludedFoldersResponse {
+  root: string;
+  folders: IncludedFolderRecord[];
+  files: MediaFileRecord[];
+}
+
+export interface IncludedFolderInput {
+  /** @minLength 1 */
+  folderName: string;
+}
+
+export interface IncludedFolderMoveInput {
+  /** @minLength 1 */
+  from: string;
+  /** @minLength 1 */
+  to: string;
+}
+
+export interface IncludedFolderMoveResponse {
+  from: string;
+  to: string;
+}
+
+export interface IncludedFolderDeleteResponse {
+  path: string;
+  deleted: number;
+}
+
+export interface IncludedFileMoveInput {
+  /** @minLength 1 */
+  folderName: string;
+}
+
+export interface IncludedFileMoveResponse {
+  file: MediaFileRecord;
+}
+
 export interface TrimMediaInput {
   /** @minimum 0 */
   startSeconds?: number;
@@ -419,5 +461,9 @@ export type OwnerPasswordParameter = string;
 
 export type ListMediaFilesParams = {
 licenseId?: string;
+};
+
+export type DeleteIncludedFolderParams = {
+folderName: string;
 };
 

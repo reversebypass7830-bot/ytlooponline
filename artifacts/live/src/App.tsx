@@ -57,6 +57,8 @@ type MediaFileRecord = {
   fileId: string; filename: string; sourcePath: string; playbackUrl: string; title: string; duration: string;
   licenseId: string; licenseName: string; folderName: string; quality: string; createdAt: string; sizeBytes: number;
 };
+type IncludedFolderRecord = { path: string; createdAt: string };
+type IncludedFoldersResponse = { root: string; folders: IncludedFolderRecord[]; files: MediaFileRecord[] };
 type YoutubeDownloadTask = {
   id: string;
   total: number;
@@ -170,6 +172,7 @@ const includedAnimationFolderId = "folder-youtube-included";
 const myAnimationFolderId = "folder-youtube-my";
 const includedMediaLicenseId = "__included__";
 const youtubeAnimationRootName = "My YouTube Animation";
+const includedFolderRoot = `${youtubeAnimationRootName}/Included Animations`;
 const youtubeAnimationRootAliases = new Set(["youtube animations", "my youtube animation", "my youtube animations"]);
 const defaultYoutubeFolders = [
   { id: youtubeAnimationFolderId, name: youtubeAnimationRootName, description: "Reusable YouTube animation clips shared through the workspace.", parentId: undefined },
@@ -875,7 +878,7 @@ function LicenseGate({ license, busy, error, onActivate, onRenew }: { license:Li
   </div>;
 }
 
-function IncludedAnimationsModal({ ownerPassword, onClose }: { ownerPassword: string; onClose: () => void }) {
+function IncludedAnimationsModal({ ownerPassword, onClose, folderName = includedFolderRoot, onChanged }: { ownerPassword: string; onClose: () => void; folderName?: string; onChanged?: () => void }) {
   const videoInputRef = useRef<HTMLInputElement>(null);
   const folderInputRef = useRef<HTMLInputElement>(null);
   const [files, setFiles] = useState<File[]>([]);
@@ -912,11 +915,12 @@ function IncludedAnimationsModal({ ownerPassword, onClose }: { ownerPassword: st
         quality: "best",
         licenseId: includedMediaLicenseId,
         licenseName: "Included Animations",
-        folderName: `${youtubeAnimationRootName}/Included Animations`,
+        folderName,
         ownerPassword,
       });
       setYoutubeUrl("");
       setMessage(`YouTube animation "${result.title}" downloaded and added to Included Animations.`);
+      onChanged?.();
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "The YouTube animation could not be downloaded.");
     } finally {
@@ -927,7 +931,7 @@ function IncludedAnimationsModal({ ownerPassword, onClose }: { ownerPassword: st
   const folderForFile = (file: File) => {
     const parts = (file.webkitRelativePath || "").split("/").filter(Boolean);
     const nested = parts.length > 2 ? parts.slice(1, -1) : [];
-    return [youtubeAnimationRootName, "Included Animations", ...nested].join("/");
+    return [folderName, ...nested].join("/");
   };
 
   const submit = async (event: FormEvent) => {
@@ -969,12 +973,13 @@ function IncludedAnimationsModal({ ownerPassword, onClose }: { ownerPassword: st
     } else {
       setMessage(`${uploaded} included animation${uploaded === 1 ? "" : "s"} added. They are now available to every active license.`);
       setFiles([]);
+      onChanged?.();
     }
   };
 
   return <Modal title="Add included animations" onClose={onClose} footer={<><button className="button ghost" onClick={onClose} disabled={uploading || youtubeDownloading}>Close</button><button className="button" type="submit" form="included-animation-form" disabled={uploading || youtubeDownloading || !files.length}>{uploading ? `Uploading ${progress}/${files.length}…` : "Upload selected videos"} {!uploading && <Upload size={14}/>}</button></>}><form id="included-animation-form" onSubmit={submit}>
-    <div className="included-youtube-import">
-      <div className="included-import-heading"><div><strong>Download from YouTube</strong><span>Paste a public YouTube video link and add it directly to the shared Included Animations folder.</span></div><Youtube size={18}/></div>
+      <div className="included-youtube-import">
+       <div className="included-import-heading"><div><strong>Download from YouTube</strong><span>Add a video directly to <b>{folderName.split("/").at(-1) || "Included Animations"}</b>.</span></div><Youtube size={18}/></div>
       <div className="input-action-row"><input value={youtubeUrl} onChange={(event) => setYoutubeUrl(event.target.value)} placeholder="https://www.youtube.com/watch?v=…" type="url" inputMode="url" disabled={uploading || youtubeDownloading} data-testid="input-owner-included-youtube-url"/><button type="button" className="button secondary small" onClick={() => void downloadYoutube()} disabled={uploading || youtubeDownloading || !youtubeUrl.trim()} data-testid="button-owner-download-included-youtube">{youtubeDownloading ? "Downloading…" : "Download"} {!youtubeDownloading && <Download size={13}/>}</button></div>
     </div>
     <div className="included-upload-divider"><span>OR UPLOAD MANUALLY</span></div>
@@ -983,6 +988,151 @@ function IncludedAnimationsModal({ ownerPassword, onClose }: { ownerPassword: st
       <div className="field full"><label>Or choose an animation folder <span className="field-optional">desktop</span></label><input ref={folderInputRef} type="file" multiple accept="video/*,.mp4,.mov,.m4v,.webm,.mkv,.avi,.ts" onChange={(event) => chooseFiles(event.target.files)} data-testid="input-included-animation-folder"/><span className="field-hint">Folder subfolders are preserved under Included Animations. Use the video option above on phones.</span></div>
     </div>
     {message && <div className="file-picked"><Check size={13}/> {message}</div>}{error && <div className="error-note" style={{whiteSpace:"pre-line"}}>{error}</div>}<div className="form-note"><ShieldCheck size={14} style={{verticalAlign:"-3px",marginRight:6}}/>Only the owner can add or remove shared animations. License users can watch and use them, but cannot change them.</div></form></Modal>;
+}
+
+function OwnerFoldersPage({ ownerPassword, onBack }: { ownerPassword: string; onBack: () => void }) {
+  const [library, setLibrary] = useState<IncludedFoldersResponse | null>(null);
+  const [selectedFolder, setSelectedFolder] = useState(includedFolderRoot);
+  const [search, setSearch] = useState("");
+  const [folderDialog, setFolderDialog] = useState<"create" | "rename" | null>(null);
+  const [folderDraft, setFolderDraft] = useState("");
+  const [uploadFolder, setUploadFolder] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [message, setMessage] = useState("");
+
+  const load = async () => {
+    setLoading(true);
+    try {
+      const result = await apiJson<IncludedFoldersResponse>("/api/owner/included-folders", { headers: { "X-Owner-Password": ownerPassword } });
+      setLibrary(result);
+      setSelectedFolder((current) => result.folders.some((folder) => folder.path === current) ? current : result.root);
+      setError("");
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "The included folders could not be loaded.");
+    } finally {
+      setLoading(false);
+    }
+  };
+  useEffect(() => { void load(); }, [ownerPassword]);
+  useEffect(() => {
+    if (!message) return;
+    const timer = window.setTimeout(() => setMessage(""), 2800);
+    return () => window.clearTimeout(timer);
+  }, [message]);
+
+  const folders = library?.folders || [];
+  const files = library?.files || [];
+  const root = library?.root || includedFolderRoot;
+  const selectedFiles = useMemo(() => files.filter((file) => (file.folderName || root) === selectedFolder), [files, root, selectedFolder]);
+  const childFolders = useMemo(() => folders.filter((folder) => folder.path !== selectedFolder && folder.path.split("/").slice(0, -1).join("/") === selectedFolder), [folders, selectedFolder]);
+  const filteredFiles = useMemo(() => {
+    const needle = search.trim().toLowerCase();
+    return needle ? selectedFiles.filter((file) => `${file.title} ${file.filename}`.toLowerCase().includes(needle)) : selectedFiles;
+  }, [search, selectedFiles]);
+  const folderLabel = (folderPath: string) => {
+    const relative = folderPath.startsWith(`${root}/`) ? folderPath.slice(root.length + 1) : folderPath;
+    return relative || "Included Animations";
+  };
+  const folderDepth = (folderPath: string) => Math.max(0, folderPath.split("/").length - root.split("/").length);
+  const folderName = selectedFolder.split("/").at(-1) || "Included Animations";
+  const isRoot = selectedFolder === root;
+  const totalBytes = files.reduce((sum, file) => sum + (Number.isFinite(file.sizeBytes) ? file.sizeBytes : 0), 0);
+  const formatBytes = (value: number) => value < 1024 * 1024 ? `${Math.max(1, Math.round(value / 1024))} KB` : `${(value / (1024 * 1024)).toFixed(1)} MB`;
+
+  const submitFolder = async (event: FormEvent) => {
+    event.preventDefault();
+    const trimmed = folderDraft.trim();
+    if (!trimmed || busy) return;
+    setBusy(true);
+    setError("");
+    try {
+      if (folderDialog === "create") {
+        const result = await apiJson<{ path: string }>("/api/owner/included-folders", { method: "POST", headers: { "X-Owner-Password": ownerPassword }, body: JSON.stringify({ folderName: `${selectedFolder}/${trimmed}` }) });
+        await load();
+        setSelectedFolder(result.path);
+        setMessage(`Folder "${trimmed}" created.`);
+      } else {
+        const parent = selectedFolder.split("/").slice(0, -1).join("/");
+        const result = await apiJson<{ to: string }>("/api/owner/included-folders", { method: "PATCH", headers: { "X-Owner-Password": ownerPassword }, body: JSON.stringify({ from: selectedFolder, to: `${parent}/${trimmed}` }) });
+        await load();
+        setSelectedFolder(result.to);
+        setMessage(`Folder renamed to "${trimmed}".`);
+      }
+      setFolderDraft("");
+      setFolderDialog(null);
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "The folder could not be saved.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const deleteFolder = async () => {
+    if (isRoot || busy || !window.confirm(`Delete "${folderName}" and all videos inside it? This cannot be undone.`)) return;
+    setBusy(true);
+    setError("");
+    try {
+      const result = await apiJson<{ deleted: number }>(`/api/owner/included-folders?folderName=${encodeURIComponent(selectedFolder)}`, { method: "DELETE", headers: { "X-Owner-Password": ownerPassword } });
+      await load();
+      setSelectedFolder(root);
+      setMessage(result.deleted ? `Folder deleted with ${result.deleted} video${result.deleted === 1 ? "" : "s"}.` : "Empty folder deleted.");
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "The folder could not be deleted.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const moveVideo = async (fileId: string, folderName: string) => {
+    if (!folderName || busy) return;
+    setBusy(true);
+    setError("");
+    try {
+      await apiJson(`/api/owner/included-files/${encodeURIComponent(fileId)}`, { method: "PATCH", headers: { "X-Owner-Password": ownerPassword }, body: JSON.stringify({ folderName }) });
+      await load();
+      setMessage("Video moved.");
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "The video could not be moved.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const deleteVideo = async (file: MediaFileRecord) => {
+    if (busy || !window.confirm(`Delete "${file.title}"? This removes the shared video for every license.`)) return;
+    setBusy(true);
+    setError("");
+    try {
+      await apiJson(`/api/media/files/${encodeURIComponent(file.fileId)}?licenseId=${encodeURIComponent(includedMediaLicenseId)}`, { method: "DELETE", headers: { "X-Owner-Password": ownerPassword } });
+      await load();
+      setMessage("Video deleted from the shared library.");
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "The video could not be deleted.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return <div className="owner-page owner-folders-page">
+    <header className="owner-topbar"><Brand /><div className="actions"><button className="button secondary" onClick={onBack}><ArrowRight size={14} style={{ transform: "rotate(180deg)" }} /> License keys</button><a href="/" className="button secondary">Open license gate <ArrowRight size={14} /></a></div></header>
+    <main className="owner-content">
+      <div className="page-head owner-folder-page-head"><div><p className="eyebrow">Admin library control</p><h1>My folders</h1><p className="subtle">Organize the shared Included Animations library. Changes here are visible to every active license.</p></div><div className="owner-folder-summary"><strong>{folders.length}</strong><span>folders</span><strong>{files.length}</strong><span>videos · {formatBytes(totalBytes)}</span></div></div>
+      {error && <div className="error-note" style={{ marginBottom: 16 }}>{error}</div>}
+      {message && <div className="form-note owner-folder-message"><Check size={14} /> {message}</div>}
+      <div className="folder-manager-grid">
+        <aside className="card folder-tree-panel"><div className="section-head"><div><h2 className="section-title">Folder structure</h2><p className="subtle" style={{ margin: "5px 0 0", fontSize: 11 }}>Create, rename, move, or remove folders.</p></div><FolderOpen size={17} color="#6c8b83" /></div><button className={`folder-tree-item root ${isRoot ? "selected" : ""}`} onClick={() => setSelectedFolder(root)}><FolderOpen size={15} /><span>Included Animations</span><b>{files.filter((file) => file.folderName === root).length}</b></button><div className="folder-tree-list">{folders.filter((folder) => folder.path !== root).map((folder) => <button key={folder.path} className={`folder-tree-item ${selectedFolder === folder.path ? "selected" : ""}`} style={{ paddingLeft: `${14 + folderDepth(folder.path) * 16}px` }} onClick={() => setSelectedFolder(folder.path)}><FolderOpen size={14} /><span>{folder.path.split("/").at(-1)}</span><b>{files.filter((file) => file.folderName === folder.path).length}</b></button>)}</div><button className="button secondary folder-create-button" onClick={() => { setFolderDraft(""); setFolderDialog("create"); }}><Plus size={14} /> New folder</button></aside>
+        <section className="folder-manager-main">
+          <div className="card folder-manager-toolbar"><div><p className="eyebrow">Selected folder</p><h2>{folderLabel(selectedFolder)}</h2><p className="subtle">{isRoot ? "Shared root folder" : "Shared admin folder"} · {selectedFiles.length} direct video{selectedFiles.length === 1 ? "" : "s"}</p></div><div className="folder-toolbar-actions"><button className="button" onClick={() => setUploadFolder(selectedFolder)}><Upload size={14} /> Add videos</button>{!isRoot && <><button className="button secondary" onClick={() => { setFolderDraft(folderName); setFolderDialog("rename"); }}><Pencil size={14} /> Rename</button><button className="button ghost danger" onClick={() => void deleteFolder()} disabled={busy}><Trash2 size={14} /> Delete</button></>}</div></div>
+          <div className="folder-child-grid">{childFolders.map((folder) => <button className="folder-child-card" key={folder.path} onClick={() => setSelectedFolder(folder.path)}><FolderOpen size={18} /><span><strong>{folder.path.split("/").at(-1)}</strong><small>{files.filter((file) => file.folderName === folder.path).length} videos</small></span><ArrowRight size={14} /></button>)}</div>
+          <div className="card folder-video-panel"><div className="section-head"><div><h2 className="section-title">Videos in {folderName}</h2><p className="subtle" style={{ margin: "5px 0 0", fontSize: 11 }}>Move a video to another folder or remove it from the shared library.</p></div><div className="folder-video-tools"><div className="input-wrap"><Search size={14} /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search videos" /></div><span className="mono">{filteredFiles.length}/{selectedFiles.length}</span></div></div>{loading ? <div className="owner-folder-empty"><FolderOpen size={22} /><strong>Loading shared folders…</strong></div> : filteredFiles.length === 0 ? <div className="owner-folder-empty"><FileVideo size={22} /><strong>{search ? "No matching videos" : "This folder is empty"}</strong><span>Use Add videos to upload files or download a YouTube animation here.</span></div> : <div className="folder-video-list">{filteredFiles.map((file) => <div className="folder-video-row" key={file.fileId}><div className="folder-video-icon"><Play size={14} /></div><div className="folder-video-copy"><strong>{file.title}</strong><span>{file.duration} · {file.quality || "included"} · {formatBytes(file.sizeBytes)}</span></div><a className="icon-button" href={file.playbackUrl} target="_blank" rel="noreferrer" title="Preview video"><Play size={13} /></a><select value={file.folderName || root} onChange={(event) => void moveVideo(file.fileId, event.target.value)} disabled={busy} aria-label={`Move ${file.title}`}><option value={file.folderName || root}>Move to…</option>{folders.map((folder) => <option key={folder.path} value={folder.path}>{folderLabel(folder.path)}</option>)}</select><button className="icon-button" onClick={() => void deleteVideo(file)} disabled={busy} title="Delete shared video"><Trash2 size={13} /></button></div>)}</div>}</div>
+        </section>
+      </div>
+    </main>
+    {folderDialog && <Modal title={folderDialog === "create" ? "Create folder" : "Rename folder"} onClose={() => setFolderDialog(null)} footer={<><button className="button ghost" onClick={() => setFolderDialog(null)}>Cancel</button><button className="button" type="submit" form="owner-folder-form" disabled={busy || !folderDraft.trim()}>{folderDialog === "create" ? "Create folder" : "Save name"} <Check size={14} /></button></>}><form id="owner-folder-form" onSubmit={submitFolder}><div className="field"><label>{folderDialog === "create" ? "Folder name" : "New folder name"}</label><input autoFocus value={folderDraft} onChange={(event) => setFolderDraft(event.target.value)} placeholder="e.g. Subscribe animations" /></div><span className="field-hint">{folderDialog === "create" ? `This folder will be created inside ${folderName}.` : "All child folders and videos will move with it."}</span></form></Modal>}
+    {uploadFolder && <IncludedAnimationsModal ownerPassword={ownerPassword} folderName={uploadFolder} onClose={() => setUploadFolder(null)} onChanged={() => void load()} />}
+  </div>;
 }
 
 function OwnerPage() {
@@ -998,6 +1148,7 @@ function OwnerPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [showIncludedAnimations, setShowIncludedAnimations] = useState(false);
+  const [ownerView, setOwnerView] = useState<"licenses" | "folders">("licenses");
   const load = async (ownerPassword: string) => {
     const result = await apiJson<{ licenses?: LicenseSession[] }>("/api/licenses", { headers: { "X-Owner-Password": ownerPassword } });
     if (!Array.isArray(result?.licenses)) {
@@ -1058,7 +1209,8 @@ function OwnerPage() {
     catch (reason) { setError(reason instanceof Error ? reason.message : "Could not delete the license."); } finally { setBusy(false); }
   };
   if (!authorizedPassword) return <div className="login-page owner-login-page"><section className="login-visual"><div className="login-logo"><div className="brand-mark"><img src={logoImage} alt="Reverse Bypass logo" /></div><div><div className="brand-name">Reverse Bypass</div><div className="brand-note">owner console</div></div></div><div className="login-copy"><div className="signal-line"><span/>OWNER CONSOLE · PRIVATE</div><h1>Keep every<br/><em>key in hand.</em></h1><p>Create, renew, and remove license access for the workspaces you manage.</p></div><div className="signal-line"><span/>LICENSE ADMINISTRATION</div></section><section className="login-panel"><div className="login-card"><p className="eyebrow">Owner access</p><h2>Welcome, owner.</h2><p className="subtle">Enter the owner password to manage license keys.</p>{error&&<div className="error-note">{error}</div>}<form className="login-form" onSubmit={signIn}><div className="field"><label htmlFor="owner-password">Owner password</label><input id="owner-password" type="password" value={password} onChange={e=>setPassword(e.target.value)} autoFocus data-testid="input-owner-password"/></div><button className="button login-submit" type="submit" disabled={busy||!password} data-testid="button-owner-login">{busy?"Checking…":"Open owner console"} <ArrowRight size={16}/></button></form><div className="demo-note"><ShieldCheck size={15}/><span>Public license access is enabled by the Firebase Realtime Database rules.</span></div><a href="/" className="section-link">Back to license access</a></div></section></div>;
-  return <div className="owner-page"><header className="owner-topbar"><Brand/><div className="actions"><button className="button secondary" onClick={()=>setShowIncludedAnimations(true)} data-testid="button-owner-included-animations"><Upload size={14}/> Included animations</button><button className="button secondary" onClick={()=>void openKeys()} disabled={keyBusy} data-testid="button-owner-keys"><ShieldCheck size={14}/> KEY{vidKrakenTokens.length ? ` · ${vidKrakenTokens.length}` : ""}</button><a href="/" className="button secondary">Open license gate <ArrowRight size={14}/></a></div></header><main className="owner-content"><div className="page-head"><div><p className="eyebrow">Owner console</p><h1>License keys</h1><p className="subtle">Create access keys, keep customer workspaces separate, and manage the shared Included Animations library.</p></div><div className="status live"><span className="status-dot"/>Firebase connected</div></div>{error&&<div className="error-note">{error}</div>}<section className="card section-card owner-create"><div className="section-head"><div><h2 className="section-title">Create license</h2><p className="subtle" style={{margin:"5px 0 0",fontSize:11}}>The generated key can be used by more than one browser; each browser gets its own workspace.</p></div><Plus size={17} color="#6c8b83"/></div><form className="owner-create-form" onSubmit={create}><div className="field"><label>Customer / workspace name</label><input value={name} onChange={e=>setName(e.target.value)} placeholder="Studio A" data-testid="input-license-name"/></div><div className="field"><label>Valid for days</label><input type="number" min="1" max="3650" value={days} onChange={e=>setDays(e.target.value)} data-testid="input-license-days"/></div><button className="button" type="submit" disabled={busy||!name.trim()} data-testid="button-create-license"><Plus size={15}/> Create license</button></form></section><section className="card section-card owner-list"><div className="section-head"><div><h2 className="section-title">{licenses.length} license{licenses.length===1?"":"s"}</h2><p className="subtle" style={{margin:"5px 0 0",fontSize:11}}>Existing access keys and renewal controls.</p></div><Clipboard size={17} color="#6c8b83"/></div>{licenses.length===0?<EmptyState icon={<ShieldCheck size={21}/>} title="No licenses yet" copy="Create the first key above to give a workspace access."/>:<div className="license-list">{licenses.map(license=>{const active=isLicenseActive(license);return <div className="license-row" key={license.licenseId}><div className="license-row-main"><div className="license-key-badge"><ShieldCheck size={15}/></div><div><strong>{license.name}</strong><span className="mono">{license.key}</span></div></div><div className={`status ${active?"live":"stopped"}`}><span className="status-dot"/>{active?"Active":"Expired"} · {new Date(license.expiresAt).toLocaleDateString()}</div><div className="actions"><button className="button secondary small" onClick={()=>void renew(license.licenseId)} disabled={busy}>Renew 30 days</button><button className="icon-button" onClick={()=>void remove(license)} disabled={busy} title="Delete license" data-testid={`button-delete-license-${license.licenseId}`}><Trash2 size={13}/></button></div></div>})}</div>}</section></main>{showKeys&&<Modal title="VidKraken KEY pool" onClose={()=>setShowKeys(false)} footer={<button className="button ghost" onClick={()=>setShowKeys(false)} data-testid="button-close-owner-keys">Close</button>}><div className="key-panel"><div className="key-panel-summary"><div><p className="eyebrow">Server token rotation</p><h3 data-testid="text-vidkraken-token-count">{vidKrakenTokens.length} token{vidKrakenTokens.length===1?"":"s"} configured</h3><p className="subtle">Token values stay hidden. A limited token is paused for 3 hours, then becomes available again.</p></div><a className="button secondary" href="https://vidkraken.com/" target="_blank" rel="noreferrer" data-testid="link-get-vidkraken-key">Get key <ArrowRight size={14}/></a></div><form className="owner-key-form" onSubmit={addToken}><div className="field"><label htmlFor="vidkraken-token">Add new VidKraken token</label><input id="vidkraken-token" type="password" autoComplete="new-password" value={tokenDraft} onChange={e=>setTokenDraft(e.target.value)} placeholder="Paste token securely" disabled={keyBusy} data-testid="input-vidkraken-token"/></div><button className="button" type="submit" disabled={keyBusy||!tokenDraft.trim()} data-testid="button-add-vidkraken-token"><Plus size={15}/> Add token</button></form>{vidKrakenTokens.length===0?<EmptyState icon={<ShieldCheck size={21}/>} title="No VidKraken tokens" copy="Add a token to enable YouTube downloads."/>:<div className="key-list">{vidKrakenTokens.map(token=>{const cooling=token.status==="cooldown";return <div className="key-row" key={token.key} data-testid={`row-vidkraken-token-${token.key}`}><div><strong>{token.key}</strong><span className="subtle">Secret value hidden</span></div><div className={`status ${cooling?"stopped":"live"}`} data-testid={`status-vidkraken-token-${token.key}`}><span className="status-dot"/>{cooling&&token.cooldownUntil?`Cooldown until ${new Date(token.cooldownUntil).toLocaleTimeString()}`:"Ready"}</div><button className="icon-button" onClick={()=>void removeToken(token)} disabled={keyBusy} title={`Delete ${token.key}`} data-testid={`button-delete-vidkraken-token-${token.key}`}><Trash2 size={13}/></button></div>})}</div>}</div></Modal>}{showIncludedAnimations&&<IncludedAnimationsModal ownerPassword={authorizedPassword} onClose={()=>setShowIncludedAnimations(false)}/>}</div>;
+  if (ownerView === "folders") return <OwnerFoldersPage ownerPassword={authorizedPassword} onBack={() => setOwnerView("licenses")} />;
+  return <div className="owner-page"><header className="owner-topbar"><Brand/><div className="actions"><button className="button secondary" onClick={()=>setOwnerView("folders")} data-testid="button-owner-folders"><FolderOpen size={14}/> My folders</button><button className="button secondary" onClick={()=>setShowIncludedAnimations(true)} data-testid="button-owner-included-animations"><Upload size={14}/> Included animations</button><button className="button secondary" onClick={()=>void openKeys()} disabled={keyBusy} data-testid="button-owner-keys"><ShieldCheck size={14}/> KEY{vidKrakenTokens.length ? ` · ${vidKrakenTokens.length}` : ""}</button><a href="/" className="button secondary">Open license gate <ArrowRight size={14}/></a></div></header><main className="owner-content"><div className="page-head"><div><p className="eyebrow">Owner console</p><h1>License keys</h1><p className="subtle">Create access keys, keep customer workspaces separate, and manage the shared Included Animations library.</p></div><div className="status live"><span className="status-dot"/>Firebase connected</div></div>{error&&<div className="error-note">{error}</div>}<section className="card section-card owner-create"><div className="section-head"><div><h2 className="section-title">Create license</h2><p className="subtle" style={{margin:"5px 0 0",fontSize:11}}>The generated key can be used by more than one browser; each browser gets its own workspace.</p></div><Plus size={17} color="#6c8b83"/></div><form className="owner-create-form" onSubmit={create}><div className="field"><label>Customer / workspace name</label><input value={name} onChange={e=>setName(e.target.value)} placeholder="Studio A" data-testid="input-license-name"/></div><div className="field"><label>Valid for days</label><input type="number" min="1" max="3650" value={days} onChange={e=>setDays(e.target.value)} data-testid="input-license-days"/></div><button className="button" type="submit" disabled={busy||!name.trim()} data-testid="button-create-license"><Plus size={15}/> Create license</button></form></section><section className="card section-card owner-list"><div className="section-head"><div><h2 className="section-title">{licenses.length} license{licenses.length===1?"":"s"}</h2><p className="subtle" style={{margin:"5px 0 0",fontSize:11}}>Existing access keys and renewal controls.</p></div><Clipboard size={17} color="#6c8b83"/></div>{licenses.length===0?<EmptyState icon={<ShieldCheck size={21}/>} title="No licenses yet" copy="Create the first key above to give a workspace access."/>:<div className="license-list">{licenses.map(license=>{const active=isLicenseActive(license);return <div className="license-row" key={license.licenseId}><div className="license-row-main"><div className="license-key-badge"><ShieldCheck size={15}/></div><div><strong>{license.name}</strong><span className="mono">{license.key}</span></div></div><div className={`status ${active?"live":"stopped"}`}><span className="status-dot"/>{active?"Active":"Expired"} · {new Date(license.expiresAt).toLocaleDateString()}</div><div className="actions"><button className="button secondary small" onClick={()=>void renew(license.licenseId)} disabled={busy}>Renew 30 days</button><button className="icon-button" onClick={()=>void remove(license)} disabled={busy} title="Delete license" data-testid={`button-delete-license-${license.licenseId}`}><Trash2 size={13}/></button></div></div>})}</div>}</section></main>{showKeys&&<Modal title="VidKraken KEY pool" onClose={()=>setShowKeys(false)} footer={<button className="button ghost" onClick={()=>setShowKeys(false)} data-testid="button-close-owner-keys">Close</button>}><div className="key-panel"><div className="key-panel-summary"><div><p className="eyebrow">Server token rotation</p><h3 data-testid="text-vidkraken-token-count">{vidKrakenTokens.length} token{vidKrakenTokens.length===1?"":"s"} configured</h3><p className="subtle">Token values stay hidden. A limited token is paused for 3 hours, then becomes available again.</p></div><a className="button secondary" href="https://vidkraken.com/" target="_blank" rel="noreferrer" data-testid="link-get-vidkraken-key">Get key <ArrowRight size={14}/></a></div><form className="owner-key-form" onSubmit={addToken}><div className="field"><label htmlFor="vidkraken-token">Add new VidKraken token</label><input id="vidkraken-token" type="password" autoComplete="new-password" value={tokenDraft} onChange={e=>setTokenDraft(e.target.value)} placeholder="Paste token securely" disabled={keyBusy} data-testid="input-vidkraken-token"/></div><button className="button" type="submit" disabled={keyBusy||!tokenDraft.trim()} data-testid="button-add-vidkraken-token"><Plus size={15}/> Add token</button></form>{vidKrakenTokens.length===0?<EmptyState icon={<ShieldCheck size={21}/>} title="No VidKraken tokens" copy="Add a token to enable YouTube downloads."/>:<div className="key-list">{vidKrakenTokens.map(token=>{const cooling=token.status==="cooldown";return <div className="key-row" key={token.key} data-testid={`row-vidkraken-token-${token.key}`}><div><strong>{token.key}</strong><span className="subtle">Secret value hidden</span></div><div className={`status ${cooling?"stopped":"live"}`} data-testid={`status-vidkraken-token-${token.key}`}><span className="status-dot"/>{cooling&&token.cooldownUntil?`Cooldown until ${new Date(token.cooldownUntil).toLocaleTimeString()}`:"Ready"}</div><button className="icon-button" onClick={()=>void removeToken(token)} disabled={keyBusy} title={`Delete ${token.key}`} data-testid={`button-delete-vidkraken-token-${token.key}`}><Trash2 size={13}/></button></div>})}</div>}</div></Modal>}{showIncludedAnimations&&<IncludedAnimationsModal ownerPassword={authorizedPassword} onClose={()=>setShowIncludedAnimations(false)}/>}</div>;
 }
 
 function Metric({ label, value, detail, dim }: { label:string; value:string|number; detail:string; dim?:boolean }) { return <div className="card metric" data-testid={`metric-${label.toLowerCase().replaceAll(" ","-")}`}><div className="metric-kicker">{label}</div><div className="metric-value">{value}</div><div className={`metric-delta ${dim ? "dim":""}`}>{detail}</div></div>; }

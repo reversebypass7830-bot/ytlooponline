@@ -221,6 +221,131 @@ export const ListMediaFilesResponse = zod.object({
 
 
 /**
+ * @summary List the owner's shared Included Animations folders
+ */
+export const ListIncludedFoldersHeader = zod.object({
+  "X-Owner-Password": zod.string()
+})
+
+export const ListIncludedFoldersResponse = zod.object({
+  "root": zod.string(),
+  "folders": zod.array(zod.object({
+  "path": zod.string(),
+  "createdAt": zod.coerce.date()
+})),
+  "files": zod.array(zod.object({
+  "fileId": zod.string(),
+  "filename": zod.string(),
+  "sourcePath": zod.string(),
+  "playbackUrl": zod.string(),
+  "title": zod.string(),
+  "duration": zod.string(),
+  "licenseId": zod.string(),
+  "licenseName": zod.string(),
+  "folderName": zod.string(),
+  "quality": zod.string(),
+  "createdAt": zod.coerce.date(),
+  "sizeBytes": zod.number()
+}))
+})
+
+
+/**
+ * @summary Create an owner's shared Included Animations folder
+ */
+export const CreateIncludedFolderHeader = zod.object({
+  "X-Owner-Password": zod.string()
+})
+
+
+
+
+export const CreateIncludedFolderBody = zod.object({
+  "folderName": zod.string().min(1)
+})
+
+export const CreateIncludedFolderResponse = zod.object({
+  "path": zod.string(),
+  "createdAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Rename or move an owner's shared folder
+ */
+export const RenameIncludedFolderHeader = zod.object({
+  "X-Owner-Password": zod.string()
+})
+
+
+
+
+
+export const RenameIncludedFolderBody = zod.object({
+  "from": zod.string().min(1),
+  "to": zod.string().min(1)
+})
+
+export const RenameIncludedFolderResponse = zod.object({
+  "from": zod.string(),
+  "to": zod.string()
+})
+
+
+/**
+ * @summary Delete an owner's shared folder and its videos
+ */
+export const DeleteIncludedFolderQueryParams = zod.object({
+  "folderName": zod.coerce.string()
+})
+
+export const DeleteIncludedFolderHeader = zod.object({
+  "X-Owner-Password": zod.string()
+})
+
+export const DeleteIncludedFolderResponse = zod.object({
+  "path": zod.string(),
+  "deleted": zod.number()
+})
+
+
+/**
+ * @summary Move an included video to another shared folder
+ */
+export const MoveIncludedFileParams = zod.object({
+  "fileId": zod.coerce.string()
+})
+
+export const MoveIncludedFileHeader = zod.object({
+  "X-Owner-Password": zod.string()
+})
+
+
+
+
+export const MoveIncludedFileBody = zod.object({
+  "folderName": zod.string().min(1)
+})
+
+export const MoveIncludedFileResponse = zod.object({
+  "file": zod.object({
+  "fileId": zod.string(),
+  "filename": zod.string(),
+  "sourcePath": zod.string(),
+  "playbackUrl": zod.string(),
+  "title": zod.string(),
+  "duration": zod.string(),
+  "licenseId": zod.string(),
+  "licenseName": zod.string(),
+  "folderName": zod.string(),
+  "quality": zod.string(),
+  "createdAt": zod.coerce.date(),
+  "sizeBytes": zod.number()
+})
+})
+
+
+/**
  * @summary Create a trimmed MP4 clip from a local media file
  */
 

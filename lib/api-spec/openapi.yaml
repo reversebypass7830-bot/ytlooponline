@@ -208,6 +208,139 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/MediaFileListResponse"
+  /owner/included-folders:
+    get:
+      operationId: listIncludedFolders
+      tags: [media]
+      summary: List the owner's shared Included Animations folders
+      parameters:
+        - name: X-Owner-Password
+          in: header
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Shared folder tree and included videos
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IncludedFoldersResponse"
+        "401":
+          description: Owner access is required
+    post:
+      operationId: createIncludedFolder
+      tags: [media]
+      summary: Create an owner's shared Included Animations folder
+      parameters:
+        - name: X-Owner-Password
+          in: header
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/IncludedFolderInput"
+      responses:
+        "201":
+          description: Folder created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IncludedFolderRecord"
+        "400":
+          description: Invalid folder name
+        "401":
+          description: Owner access is required
+    patch:
+      operationId: renameIncludedFolder
+      tags: [media]
+      summary: Rename or move an owner's shared folder
+      parameters:
+        - name: X-Owner-Password
+          in: header
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/IncludedFolderMoveInput"
+      responses:
+        "200":
+          description: Folder moved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IncludedFolderMoveResponse"
+        "400":
+          description: Invalid folder move
+        "401":
+          description: Owner access is required
+    delete:
+      operationId: deleteIncludedFolder
+      tags: [media]
+      summary: Delete an owner's shared folder and its videos
+      parameters:
+        - name: X-Owner-Password
+          in: header
+          required: true
+          schema:
+            type: string
+        - name: folderName
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Folder deletion result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IncludedFolderDeleteResponse"
+        "400":
+          description: The root folder cannot be deleted
+        "401":
+          description: Owner access is required
+  /owner/included-files/{fileId}:
+    patch:
+      operationId: moveIncludedFile
+      tags: [media]
+      summary: Move an included video to another shared folder
+      parameters:
+        - name: fileId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: X-Owner-Password
+          in: header
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/IncludedFileMoveInput"
+      responses:
+        "200":
+          description: Video moved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IncludedFileMoveResponse"
+        "401":
+          description: Owner access is required
+        "404":
+          description: Included video not found
   /media/files/{fileId}/trim:
     post:
       operationId: trimMediaFile
@@ -776,6 +909,89 @@ components:
             $ref: "#/components/schemas/MediaFileRecord"
       required:
         - files
+    IncludedFolderRecord:
+      type: object
+      properties:
+        path:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - path
+        - createdAt
+    IncludedFoldersResponse:
+      type: object
+      properties:
+        root:
+          type: string
+        folders:
+          type: array
+          items:
+            $ref: "#/components/schemas/IncludedFolderRecord"
+        files:
+          type: array
+          items:
+            $ref: "#/components/schemas/MediaFileRecord"
+      required:
+        - root
+        - folders
+        - files
+    IncludedFolderInput:
+      type: object
+      properties:
+        folderName:
+          type: string
+          minLength: 1
+      required:
+        - folderName
+    IncludedFolderMoveInput:
+      type: object
+      properties:
+        from:
+          type: string
+          minLength: 1
+        to:
+          type: string
+          minLength: 1
+      required:
+        - from
+        - to
+    IncludedFolderMoveResponse:
+      type: object
+      properties:
+        from:
+          type: string
+        to:
+          type: string
+      required:
+        - from
+        - to
+    IncludedFolderDeleteResponse:
+      type: object
+      properties:
+        path:
+          type: string
+        deleted:
+          type: number
+      required:
+        - path
+        - deleted
+    IncludedFileMoveInput:
+      type: object
+      properties:
+        folderName:
+          type: string
+          minLength: 1
+      required:
+        - folderName
+    IncludedFileMoveResponse:
+      type: object
+      properties:
+        file:
+          $ref: "#/components/schemas/MediaFileRecord"
+      required:
+        - file
     TrimMediaInput:
       type: object
       properties:

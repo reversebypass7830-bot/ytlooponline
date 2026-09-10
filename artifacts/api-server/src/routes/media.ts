@@ -24,7 +24,9 @@ const router: IRouter = Router();
 const mediaDir = path.resolve(process.cwd(), "attached_assets", "live-media");
 const maxUploadBytes = 1.5 * 1024 * 1024 * 1024;
 const mediaIndexPath = path.join(mediaDir, "media-index.json");
+const includedFoldersPath = path.join(mediaDir, "included-folders.json");
 const includedMediaLicenseId = "__included__";
+const includedFolderRoot = "My YouTube Animation/Included Animations";
 const defaultOwnerPassword = "traderp1wer";
 
 type MediaRecord = {
@@ -40,6 +42,11 @@ type MediaRecord = {
   quality: string;
   createdAt: string;
   sizeBytes: number;
+};
+
+type IncludedFolderRecord = {
+  path: string;
+  createdAt: string;
 };
 
 function ownerAuthorized(req: Request): boolean {
@@ -59,6 +66,38 @@ async function readMediaIndex(): Promise<MediaRecord[]> {
   }
 }
 
+async function readIncludedFolders(): Promise<IncludedFolderRecord[]> {
+  try {
+    const raw = await readFile(includedFoldersPath, "utf8");
+    const value = JSON.parse(raw) as unknown;
+    if (!Array.isArray(value)) return [];
+    return value.filter((item): item is IncludedFolderRecord => Boolean(
+      item
+      && typeof item === "object"
+      && typeof (item as IncludedFolderRecord).path === "string"
+      && typeof (item as IncludedFolderRecord).createdAt === "string",
+    ));
+  } catch {
+    return [];
+  }
+}
+
+function writeMediaIndex(records: MediaRecord[]): Promise<void> {
+  mediaIndexWrite = mediaIndexWrite.then(async () => {
+    await mkdir(mediaDir, { recursive: true });
+    await writeFile(mediaIndexPath, JSON.stringify(records, null, 2));
+  });
+  return mediaIndexWrite;
+}
+
+function writeIncludedFolders(folders: IncludedFolderRecord[]): Promise<void> {
+  mediaIndexWrite = mediaIndexWrite.then(async () => {
+    await mkdir(mediaDir, { recursive: true });
+    await writeFile(includedFoldersPath, JSON.stringify(folders, null, 2));
+  });
+  return mediaIndexWrite;
+}
+
 function saveMediaRecord(record: MediaRecord): Promise<void> {
   mediaIndexWrite = mediaIndexWrite.then(async () => {
     await mkdir(mediaDir, { recursive: true });
@@ -75,6 +114,44 @@ function removeMediaRecord(fileId: string): Promise<void> {
     await writeFile(mediaIndexPath, JSON.stringify(records.filter((item) => item.fileId !== fileId), null, 2));
   });
   return mediaIndexWrite;
+}
+
+function normalizeIncludedFolderName(value: string): string {
+  const parts = value
+    .replaceAll("\\", "/")
+    .split("/")
+    .map((part) => part.trim())
+    .filter(Boolean)
+    .filter((part) => part !== "." && part !== "..");
+  if (!parts.length) return includedFolderRoot;
+  const lower = parts.map((part) => part.toLowerCase());
+  const rootParts = includedFolderRoot.split("/");
+  if (lower.slice(0, rootParts.length).join("/") === rootParts.map((part) => part.toLowerCase()).join("/")) {
+    return [...rootParts, ...parts.slice(rootParts.length)].join("/");
+  }
+  if (lower[0] === "included animations") return [rootParts[0], rootParts[1], ...parts.slice(1)].join("/");
+  return [...rootParts, ...parts].join("/");
+}
+
+function isIncludedFolderPath(value: string): boolean {
+  const normalized = normalizeIncludedFolderName(value).toLowerCase();
+  const root = includedFolderRoot.toLowerCase();
+  return normalized === root || normalized.startsWith(`${root}/`);
+}
+
+function isFolderInScope(value: string, folder: string): boolean {
+  const candidate = normalizeIncludedFolderName(value).toLowerCase();
+  const target = normalizeIncludedFolderName(folder).toLowerCase();
+  return candidate === target || candidate.startsWith(`${target}/`);
+}
+
+function replaceFolderPrefix(value: string, from: string, to: string): string {
+  const normalizedValue = normalizeIncludedFolderName(value);
+  const normalizedFrom = normalizeIncludedFolderName(from);
+  const normalizedTo = normalizeIncludedFolderName(to);
+  return normalizedValue === normalizedFrom
+    ? normalizedTo
+    : `${normalizedTo}${normalizedValue.slice(normalizedFrom.length)}`;
 }
 
 async function deleteIndexedMedia(
@@ -187,6 +264,12 @@ function mediaScopePath(context: MediaContext): string {
   const license = slugify(context.licenseName || context.licenseId || "workspace", "workspace");
   const folder = slugify(context.folderName || "media", "media");
   return path.join(mediaDir, folder, license);
+}
+
+function folderAncestors(folderName: string): string[] {
+  const normalized = normalizeIncludedFolderName(folderName);
+  const parts = normalized.split("/");
+  return parts.map((_part, index) => parts.slice(0, index + 1).join("/"));
 }
 
 export function ensureLicenseMediaFolder(licenseId: string, licenseName: string): Promise<void> {
@@ -543,6 +626,184 @@ router.get("/media/files", async (req, res): Promise<void> => {
     ? result.filter((file) => file.licenseId === licenseId || file.licenseId === includedMediaLicenseId)
     : result;
   res.json(ListMediaFilesResponse.parse({ files: filtered.sort((a, b) => b.createdAt.localeCompare(a.createdAt)) }));
+});
+
+router.get("/owner/included-folders", async (req, res): Promise<void> => {
+  if (!ownerAuthorized(req)) {
+    res.status(401).json({ error: "Owner access is required." });
+    return;
+  }
+  await mediaIndexWrite;
+  const [records, savedFolders] = await Promise.all([readMediaIndex(), readIncludedFolders()]);
+  const includedFiles = records.filter((record) => record.licenseId === includedMediaLicenseId);
+  const folderMap = new Map<string, IncludedFolderRecord>();
+  const addFolder = (folderName: string, createdAt = new Date().toISOString()) => {
+    for (const folder of folderAncestors(folderName)) {
+      if (!isIncludedFolderPath(folder)) continue;
+      const key = folder.toLowerCase();
+      if (!folderMap.has(key)) folderMap.set(key, { path: folder, createdAt });
+    }
+  };
+  addFolder(includedFolderRoot);
+  for (const folder of savedFolders) addFolder(folder.path, folder.createdAt);
+  for (const record of includedFiles) addFolder(record.folderName || includedFolderRoot, record.createdAt);
+  res.json({
+    root: includedFolderRoot,
+    folders: [...folderMap.values()].sort((a, b) => a.path.localeCompare(b.path)),
+    files: includedFiles.sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
+  });
+});
+
+router.post("/owner/included-folders", async (req, res): Promise<void> => {
+  if (!ownerAuthorized(req)) {
+    res.status(401).json({ error: "Owner access is required." });
+    return;
+  }
+  const rawFolderName = typeof req.body?.folderName === "string" ? req.body.folderName : "";
+  if (!rawFolderName.trim()) {
+    res.status(400).json({ error: "A folder name is required." });
+    return;
+  }
+  const folderName = normalizeIncludedFolderName(rawFolderName);
+  if (folderName === includedFolderRoot) {
+    res.status(409).json({ error: "The Included Animations root folder already exists." });
+    return;
+  }
+  await mediaIndexWrite;
+  const folders = await readIncludedFolders();
+  if (folders.some((folder) => folder.path.toLowerCase() === folderName.toLowerCase())) {
+    res.status(409).json({ error: "That folder already exists." });
+    return;
+  }
+  const createdAt = new Date().toISOString();
+  const next = [...folders, { path: folderName, createdAt }];
+  await writeIncludedFolders(next);
+  res.status(201).json({ path: folderName, createdAt });
+});
+
+router.patch("/owner/included-folders", async (req, res): Promise<void> => {
+  if (!ownerAuthorized(req)) {
+    res.status(401).json({ error: "Owner access is required." });
+    return;
+  }
+  const rawFrom = typeof req.body?.from === "string" ? req.body.from : "";
+  const rawTo = typeof req.body?.to === "string" ? req.body.to : "";
+  if (!rawFrom.trim() || !rawTo.trim()) {
+    res.status(400).json({ error: "Both the current and new folder names are required." });
+    return;
+  }
+  const from = normalizeIncludedFolderName(rawFrom);
+  const to = normalizeIncludedFolderName(rawTo);
+  if (from === includedFolderRoot) {
+    res.status(400).json({ error: "The Included Animations root folder cannot be renamed." });
+    return;
+  }
+  if (to === includedFolderRoot || isFolderInScope(to, from)) {
+    res.status(400).json({ error: "A folder cannot be moved into itself." });
+    return;
+  }
+  await mediaIndexWrite;
+  const [records, folders] = await Promise.all([readMediaIndex(), readIncludedFolders()]);
+  const duplicate = folders.some((folder) => folder.path.toLowerCase() === to.toLowerCase() && !isFolderInScope(folder.path, from));
+  if (duplicate) {
+    res.status(409).json({ error: "That destination folder already exists." });
+    return;
+  }
+  const nextRecords = records.map((record) => ({ ...record }));
+  for (let index = 0; index < nextRecords.length; index += 1) {
+    const record = nextRecords[index];
+    if (record.licenseId !== includedMediaLicenseId || !isFolderInScope(record.folderName || includedFolderRoot, from)) continue;
+    const nextFolder = replaceFolderPrefix(record.folderName || includedFolderRoot, from, to);
+    const currentPath = await findMediaFile(record.fileId);
+    if (currentPath) {
+      nextRecords[index].sourcePath = await finalizeMediaFile(record.fileId, currentPath, record.filename, {
+        licenseId: includedMediaLicenseId,
+        licenseName: record.licenseName || "Included Animations",
+        folderName: nextFolder,
+      });
+    }
+    nextRecords[index].folderName = nextFolder;
+  }
+  const nextFolders = folders.map((folder) => isFolderInScope(folder.path, from)
+    ? { ...folder, path: replaceFolderPrefix(folder.path, from, to) }
+    : folder);
+  const allPaths = new Map(nextFolders.map((folder) => [folder.path.toLowerCase(), folder]));
+  for (const ancestor of folderAncestors(to)) {
+    if (!allPaths.has(ancestor.toLowerCase())) allPaths.set(ancestor.toLowerCase(), { path: ancestor, createdAt: new Date().toISOString() });
+  }
+  await writeMediaIndex(nextRecords);
+  await writeIncludedFolders([...allPaths.values()]);
+  res.json({ from, to });
+});
+
+router.delete("/owner/included-folders", async (req, res): Promise<void> => {
+  if (!ownerAuthorized(req)) {
+    res.status(401).json({ error: "Owner access is required." });
+    return;
+  }
+  const rawFolderName = typeof req.query.folderName === "string" ? req.query.folderName : "";
+  const folderName = normalizeIncludedFolderName(rawFolderName);
+  if (!rawFolderName.trim() || folderName === includedFolderRoot) {
+    res.status(400).json({ error: "Choose a child folder to delete." });
+    return;
+  }
+  await mediaIndexWrite;
+  let deleted = 0;
+  mediaIndexWrite = mediaIndexWrite.then(async () => {
+    const records = await readMediaIndex();
+    const remaining: MediaRecord[] = [];
+    for (const record of records) {
+      if (record.licenseId !== includedMediaLicenseId || !isFolderInScope(record.folderName || includedFolderRoot, folderName)) {
+        remaining.push(record);
+        continue;
+      }
+      const filename = await findMediaFile(record.fileId);
+      if (filename) await unlink(filename).catch(() => undefined);
+      deleted += 1;
+    }
+    const folders = await readIncludedFolders();
+    await mkdir(mediaDir, { recursive: true });
+    await writeFile(mediaIndexPath, JSON.stringify(remaining, null, 2));
+    await writeFile(
+      includedFoldersPath,
+      JSON.stringify(folders.filter((folder) => !isFolderInScope(folder.path, folderName)), null, 2),
+    );
+  });
+  await mediaIndexWrite;
+  res.json({ path: folderName, deleted });
+});
+
+router.patch("/owner/included-files/:fileId", async (req, res): Promise<void> => {
+  if (!ownerAuthorized(req)) {
+    res.status(401).json({ error: "Owner access is required." });
+    return;
+  }
+  const requestedFolder = typeof req.body?.folderName === "string" ? req.body.folderName : "";
+  if (!requestedFolder.trim()) {
+    res.status(400).json({ error: "A destination folder is required." });
+    return;
+  }
+  const folderName = normalizeIncludedFolderName(requestedFolder);
+  await mediaIndexWrite;
+  const records = await readMediaIndex();
+  const index = records.findIndex((record) => record.fileId === req.params.fileId);
+  if (index < 0 || records[index].licenseId !== includedMediaLicenseId) {
+    res.status(404).json({ error: "Included video not found." });
+    return;
+  }
+  const nextRecords = records.map((record) => ({ ...record }));
+  const record = nextRecords[index];
+  const currentPath = await findMediaFile(record.fileId);
+  if (currentPath && normalizeIncludedFolderName(record.folderName || includedFolderRoot) !== folderName) {
+    record.sourcePath = await finalizeMediaFile(record.fileId, currentPath, record.filename, {
+      licenseId: includedMediaLicenseId,
+      licenseName: record.licenseName || "Included Animations",
+      folderName,
+    });
+  }
+  record.folderName = folderName;
+  await writeMediaIndex(nextRecords);
+  res.json({ file: record });
 });
 
 router.delete("/media/files", async (req, res): Promise<void> => {

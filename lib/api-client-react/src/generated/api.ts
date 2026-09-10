@@ -23,9 +23,18 @@ import type {
   AddVidKrakenTokenInput,
   ComposeMediaInput,
   CreateLicenseInput,
+  DeleteIncludedFolderParams,
   DeleteLicenseResult,
   ExtractYoutubeChannelLinksInput,
   HealthStatus,
+  IncludedFileMoveInput,
+  IncludedFileMoveResponse,
+  IncludedFolderDeleteResponse,
+  IncludedFolderInput,
+  IncludedFolderMoveInput,
+  IncludedFolderMoveResponse,
+  IncludedFolderRecord,
+  IncludedFoldersResponse,
   LicenseAccess,
   LicenseClientInput,
   LicenseListResponse,
@@ -753,6 +762,375 @@ export function useListMediaFiles<TData = Awaited<ReturnType<typeof listMediaFil
 
 
 
+
+export const getListIncludedFoldersUrl = () => {
+
+
+
+
+  return `/api/owner/included-folders`
+}
+
+/**
+ * @summary List the owner's shared Included Animations folders
+ */
+export const listIncludedFolders = async ( options?: Parameters<typeof customFetch>[1]): Promise<IncludedFoldersResponse> => {
+
+  return customFetch<IncludedFoldersResponse>(getListIncludedFoldersUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListIncludedFoldersQueryKey = () => {
+    return [
+    `/api/owner/included-folders`
+    ] as const;
+    }
+
+
+export const getListIncludedFoldersQueryOptions = <TData = Awaited<ReturnType<typeof listIncludedFolders>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listIncludedFolders>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListIncludedFoldersQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listIncludedFolders>>> = ({ signal }) => listIncludedFolders({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listIncludedFolders>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListIncludedFoldersQueryResult = NonNullable<Awaited<ReturnType<typeof listIncludedFolders>>>
+export type ListIncludedFoldersQueryError = ErrorType<void>
+
+
+/**
+ * @summary List the owner's shared Included Animations folders
+ */
+
+export function useListIncludedFolders<TData = Awaited<ReturnType<typeof listIncludedFolders>>, TError = ErrorType<void>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listIncludedFolders>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListIncludedFoldersQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCreateIncludedFolderUrl = () => {
+
+
+
+
+  return `/api/owner/included-folders`
+}
+
+/**
+ * @summary Create an owner's shared Included Animations folder
+ */
+export const createIncludedFolder = async (includedFolderInput: IncludedFolderInput, options?: Parameters<typeof customFetch>[1]): Promise<IncludedFolderRecord> => {
+
+  return customFetch<IncludedFolderRecord>(getCreateIncludedFolderUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(includedFolderInput)
+  }
+);}
+
+
+
+
+
+export const getCreateIncludedFolderMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createIncludedFolder>>, TError,{data: BodyType<IncludedFolderInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createIncludedFolder>>, TError,{data: BodyType<IncludedFolderInput>}, TContext> => {
+
+const mutationKey = ['createIncludedFolder'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createIncludedFolder>>, {data: BodyType<IncludedFolderInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createIncludedFolder(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateIncludedFolderMutationResult = NonNullable<Awaited<ReturnType<typeof createIncludedFolder>>>
+    export type CreateIncludedFolderMutationBody = BodyType<IncludedFolderInput>
+    export type CreateIncludedFolderMutationError = ErrorType<void>
+
+    /**
+ * @summary Create an owner's shared Included Animations folder
+ */
+export const useCreateIncludedFolder = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createIncludedFolder>>, TError,{data: BodyType<IncludedFolderInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createIncludedFolder>>,
+        TError,
+        {data: BodyType<IncludedFolderInput>},
+        TContext
+      > => {
+      return useMutation(getCreateIncludedFolderMutationOptions(options));
+    }
+
+export const getRenameIncludedFolderUrl = () => {
+
+
+
+
+  return `/api/owner/included-folders`
+}
+
+/**
+ * @summary Rename or move an owner's shared folder
+ */
+export const renameIncludedFolder = async (includedFolderMoveInput: IncludedFolderMoveInput, options?: Parameters<typeof customFetch>[1]): Promise<IncludedFolderMoveResponse> => {
+
+  return customFetch<IncludedFolderMoveResponse>(getRenameIncludedFolderUrl(),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(includedFolderMoveInput)
+  }
+);}
+
+
+
+
+
+export const getRenameIncludedFolderMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof renameIncludedFolder>>, TError,{data: BodyType<IncludedFolderMoveInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof renameIncludedFolder>>, TError,{data: BodyType<IncludedFolderMoveInput>}, TContext> => {
+
+const mutationKey = ['renameIncludedFolder'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof renameIncludedFolder>>, {data: BodyType<IncludedFolderMoveInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  renameIncludedFolder(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RenameIncludedFolderMutationResult = NonNullable<Awaited<ReturnType<typeof renameIncludedFolder>>>
+    export type RenameIncludedFolderMutationBody = BodyType<IncludedFolderMoveInput>
+    export type RenameIncludedFolderMutationError = ErrorType<void>
+
+    /**
+ * @summary Rename or move an owner's shared folder
+ */
+export const useRenameIncludedFolder = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof renameIncludedFolder>>, TError,{data: BodyType<IncludedFolderMoveInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof renameIncludedFolder>>,
+        TError,
+        {data: BodyType<IncludedFolderMoveInput>},
+        TContext
+      > => {
+      return useMutation(getRenameIncludedFolderMutationOptions(options));
+    }
+
+export const getDeleteIncludedFolderUrl = (params: DeleteIncludedFolderParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/owner/included-folders?${stringifiedParams}` : `/api/owner/included-folders`
+}
+
+/**
+ * @summary Delete an owner's shared folder and its videos
+ */
+export const deleteIncludedFolder = async (params: DeleteIncludedFolderParams, options?: Parameters<typeof customFetch>[1]): Promise<IncludedFolderDeleteResponse> => {
+
+  return customFetch<IncludedFolderDeleteResponse>(getDeleteIncludedFolderUrl(params),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getDeleteIncludedFolderMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteIncludedFolder>>, TError,{params: DeleteIncludedFolderParams}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteIncludedFolder>>, TError,{params: DeleteIncludedFolderParams}, TContext> => {
+
+const mutationKey = ['deleteIncludedFolder'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteIncludedFolder>>, {params: DeleteIncludedFolderParams}> = (props) => {
+          const {params} = props ?? {};
+
+          return  deleteIncludedFolder(params,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteIncludedFolderMutationResult = NonNullable<Awaited<ReturnType<typeof deleteIncludedFolder>>>
+
+    export type DeleteIncludedFolderMutationError = ErrorType<void>
+
+    /**
+ * @summary Delete an owner's shared folder and its videos
+ */
+export const useDeleteIncludedFolder = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteIncludedFolder>>, TError,{params: DeleteIncludedFolderParams}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof deleteIncludedFolder>>,
+        TError,
+        {params: DeleteIncludedFolderParams},
+        TContext
+      > => {
+      return useMutation(getDeleteIncludedFolderMutationOptions(options));
+    }
+
+export const getMoveIncludedFileUrl = (fileId: string,) => {
+
+
+
+
+  return `/api/owner/included-files/${fileId}`
+}
+
+/**
+ * @summary Move an included video to another shared folder
+ */
+export const moveIncludedFile = async (fileId: string,
+    includedFileMoveInput: IncludedFileMoveInput, options?: Parameters<typeof customFetch>[1]): Promise<IncludedFileMoveResponse> => {
+
+  return customFetch<IncludedFileMoveResponse>(getMoveIncludedFileUrl(fileId),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(includedFileMoveInput)
+  }
+);}
+
+
+
+
+
+export const getMoveIncludedFileMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof moveIncludedFile>>, TError,{fileId: string;data: BodyType<IncludedFileMoveInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof moveIncludedFile>>, TError,{fileId: string;data: BodyType<IncludedFileMoveInput>}, TContext> => {
+
+const mutationKey = ['moveIncludedFile'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof moveIncludedFile>>, {fileId: string;data: BodyType<IncludedFileMoveInput>}> = (props) => {
+          const {fileId,data} = props ?? {};
+
+          return  moveIncludedFile(fileId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type MoveIncludedFileMutationResult = NonNullable<Awaited<ReturnType<typeof moveIncludedFile>>>
+    export type MoveIncludedFileMutationBody = BodyType<IncludedFileMoveInput>
+    export type MoveIncludedFileMutationError = ErrorType<void>
+
+    /**
+ * @summary Move an included video to another shared folder
+ */
+export const useMoveIncludedFile = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof moveIncludedFile>>, TError,{fileId: string;data: BodyType<IncludedFileMoveInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof moveIncludedFile>>,
+        TError,
+        {fileId: string;data: BodyType<IncludedFileMoveInput>},
+        TContext
+      > => {
+      return useMutation(getMoveIncludedFileMutationOptions(options));
+    }
 
 export const getTrimMediaFileUrl = (fileId: string,) => {
 
