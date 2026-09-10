@@ -124,5 +124,47 @@
     "quality": "1080p",
     "createdAt": "2026-09-10T15:16:16.760Z",
     "sizeBytes": 738938
+  },
+  {
+    "fileId": "b0faa7b3-256c-45a6-a9a0-f00943596897",
+    "filename": "videoplayback.mp4",
+    "sourcePath": "/home/runner/workspace/artifacts/api-server/attached_assets/live-media/my-youtube-animation-included-animations/included-animations/b0faa7b3-256c-45a6-a9a0-f00943596897__videoplayback.mp4",
+    "playbackUrl": "/api/media/files/b0faa7b3-256c-45a6-a9a0-f00943596897",
+    "title": "videoplayback",
+    "duration": "00:00",
+    "licenseId": "__included__",
+    "licenseName": "Included Animations",
+    "folderName": "My YouTube Animation/Included Animations",
+    "quality": "included",
+    "createdAt": "2026-09-10T15:42:42.472Z",
+    "sizeBytes": 1085950
+  },
+  {
+    "fileId": "6eb00f4c-6e7e-4c40-9968-3fba78465ef3",
+    "filename": "videoplayback (1).mp4",
+    "sourcePath": "/home/runner/workspace/artifacts/api-server/attached_assets/live-media/my-youtube-animation-included-animations/included-animations/6eb00f4c-6e7e-4c40-9968-3fba78465ef3__videoplayback-1.mp4",
+    "playbackUrl": "/api/media/files/6eb00f4c-6e7e-4c40-9968-3fba78465ef3",
+    "title": "videoplayback (1)",
+    "duration": "00:00",
+    "licenseId": "__included__",
+    "licenseName": "Included Animations",
+    "folderName": "My YouTube Animation/Included Animations",
+    "quality": "included",
+    "createdAt": "2026-09-10T15:42:51.316Z",
+    "sizeBytes": 1650204
+  },
+  {
+    "fileId": "dac133df-47ed-49bc-bb9d-777db883b170",
+    "filename": "videoplayback (2).mp4",
+    "sourcePath": "/home/runner/workspace/artifacts/api-server/attached_assets/live-media/my-youtube-animation-included-animations/included-animations/dac133df-47ed-49bc-bb9d-777db883b170__videoplayback-2.mp4",
+    "playbackUrl": "/api/media/files/dac133df-47ed-49bc-bb9d-777db883b170",
+    "title": "videoplayback (2)",
+    "duration": "00:00",
+    "licenseId": "__included__",
+    "licenseName": "Included Animations",
+    "folderName": "My YouTube Animation/Included Animations",
+    "quality": "included",
+    "createdAt": "2026-09-10T15:42:56.436Z",
+    "sizeBytes": 280615
   }
 ]

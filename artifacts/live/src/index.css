@@ -452,7 +452,7 @@ input:focus, textarea:focus, select:focus { border-color:#5fa49d; box-shadow:0 0
 .editor-focus-head > div > span:last-child { color:#8eb9ac; font-size:10px; }
 .editor-focus-close { display:inline-flex; align-items:center; gap:7px; flex:0 0 auto; padding:8px 10px; border:1px solid rgba(215,243,109,.35); border-radius:7px; color:#e9f7e9; background:rgba(5,24,26,.82); font:10px var(--app-font-mono); cursor:pointer; }
 .editor-focus-close:hover { border-color:#d7f36d; color:#d7f36d; }
-.editor-focus-stage { min-height:0; display:grid; place-items:center; padding:14px 18px 10px; overflow:auto; }
+.editor-focus-stage { min-height:0; display:grid; place-items:center; padding:14px 18px 10px; overflow:hidden; }
 .editor-focus-stage .editor-canvas-expanded { width:min(100%, 1280px); min-height:0; height:auto; aspect-ratio:16 / 9; }
 .editor-focus-stage .editor-canvas-expanded.editor-canvas-shorts { width:auto; height:min(68vh,760px); max-width:100%; aspect-ratio:9 / 16; }
 .editor-focus-stage .editor-canvas-expanded.editor-canvas-square { width:min(78vh,760px); height:auto; max-width:100%; aspect-ratio:1 / 1; }
@@ -1743,6 +1743,41 @@ select { height: 41px; }
 .editor-render-button { min-height: 48px; }
 .editor-head-badge { color: #2c6d69; background: #eaf4dd; border-color: #c8ddb5; }
 
+/* Keep the composition visible while the long control rail scrolls independently. */
+@media (min-width: 981px) {
+  .editor-layout { align-items: start; }
+  .editor-stage {
+    position: sticky;
+    top: 104px;
+    align-self: start;
+    overflow: visible;
+  }
+  .editor-controls {
+    position: sticky;
+    top: 104px;
+    align-self: start;
+    height: calc(100dvh - 124px);
+    max-height: calc(100dvh - 124px);
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+    padding-right: 8px;
+  }
+  .editor-controls::-webkit-scrollbar { width: 8px; }
+  .editor-controls::-webkit-scrollbar-track { background: rgba(215,227,214,.45); border-radius: 99px; }
+  .editor-controls::-webkit-scrollbar-thumb { background: #a8c3ad; border: 2px solid transparent; background-clip: padding-box; border-radius: 99px; }
+  .editor-controls { scrollbar-color: #a8c3ad rgba(215,227,214,.45); scrollbar-width: thin; }
+}
+
+/* The right rail owns the only desktop editor scrollbar; library items flow with it. */
+.editor-clip-list {
+  max-height: none;
+  overflow: visible;
+  padding-right: 0;
+}
+
 /* Settings keeps the controls scannable on a long shift. */
 .settings-grid { gap: 21px; }
 .setting-row { padding: 19px 0; }
@@ -1762,6 +1797,7 @@ select { height: 41px; }
   .topbar { padding: 0 30px; }
   .page { padding-left: 30px; padding-right: 30px; }
   .editor-layout { grid-template-columns: 1fr; }
+  .editor-stage, .editor-controls { position: static; height: auto; max-height: none; overflow: visible; padding-right: 0; }
   .editor-controls { grid-template-columns: repeat(2, minmax(0,1fr)); align-items: start; }
   .editor-render-button, .editor-controls > .form-note { grid-column: 1 / -1; }
 }
