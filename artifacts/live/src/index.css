@@ -187,6 +187,7 @@ input:focus, textarea:focus, select:focus { border-color:#5fa49d; box-shadow:0 0
 .group-card h3 { margin:0 0 6px 8px; }
 .group-card p { margin:0 0 12px 8px; font-size:11px; line-height:1.4; color:#7d8b86; }
 .group-card .group-foot { display:flex; justify-content:space-between; margin-left:8px; color:#397875; font:10px var(--app-font-mono); }
+.group-actions { display:flex; align-items:center; gap:10px; }
 .group-open { display:block; width:100%; padding:0; border:0; background:transparent; text-align:left; cursor:pointer; color:inherit; }
 .group-open:hover h3 { color:#217776; }
 .group-open-label { display:inline-flex; align-items:center; gap:5px; margin:0 0 13px 8px; color:#217776; font:10px var(--app-font-mono); }
