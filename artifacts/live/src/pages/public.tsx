@@ -18,11 +18,11 @@ import heroTwoScreenImage from "@assets/loopstream_reference/hero-two-screen.web
 import connectionLostImage from "@assets/loopstream_reference/comparison-connection-lost.png";
 import loopRunningImage from "@assets/loopstream_reference/comparison-loop-running.png";
 import newsReferenceImage from "@assets/loopstream_reference/news.webp";
-import devotionalReferenceImage from "@assets/loopstream_reference/devotional.webp";
-import musicReferenceImage from "@assets/loopstream_reference/music.webp";
-import cartoonsReferenceImage from "@assets/loopstream_reference/cartoons.webp";
-import educationReferenceImage from "@assets/loopstream_reference/education.webp";
-import affiliateReferenceImage from "@assets/loopstream_reference/affiliate.webp";
+import devotionalReferenceImage from "@assets/generated_images/use-case-devotional-broadcast.jpg";
+import musicReferenceImage from "@assets/generated_images/use-case-music-live.jpg";
+import cartoonsReferenceImage from "@assets/generated_images/use-case-kids-entertainment_2.jpg";
+import educationReferenceImage from "@assets/generated_images/use-case-education_2.jpg";
+import affiliateReferenceImage from "@assets/generated_images/use-case-product-showcase.jpg";
 import youtubeReferenceIcon from "@assets/loopstream_reference/youtube.webp";
 import facebookReferenceIcon from "@assets/loopstream_reference/facebook.webp";
 import twitchReferenceIcon from "@assets/loopstream_reference/twitch.webp";
@@ -40,10 +40,10 @@ const reveal = {
 const useCases = [
   { title: "News & live updates", note: "Keep the daily signal moving", image: newsReferenceImage },
   { title: "Devotional programming", note: "Broadcast a calm daily rhythm", image: devotionalReferenceImage },
-  { title: "Music & radio", note: "A visual stream that never drops", image: musicReferenceImage },
-  { title: "Kids & cartoons", note: "A familiar channel, always ready", image: cartoonsReferenceImage },
-  { title: "Education & classes", note: "Replay lessons as a live channel", image: educationReferenceImage },
-  { title: "Affiliate programming", note: "Keep product stories in motion", image: affiliateReferenceImage },
+  { title: "Music & live sessions", note: "Put every performance on air", image: musicReferenceImage },
+  { title: "Kids & entertainment", note: "Give every show a colorful channel", image: cartoonsReferenceImage },
+  { title: "Education & classes", note: "Turn lessons into a live classroom", image: educationReferenceImage },
+  { title: "Product showcases", note: "Keep product stories in motion", image: affiliateReferenceImage },
 ];
 
 const platformIcons = [
