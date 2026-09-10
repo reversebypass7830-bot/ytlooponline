@@ -753,6 +753,67 @@ input:focus, textarea:focus, select:focus { border-color:#5fa49d; box-shadow:0 0
   filter:brightness(1.08) saturate(1.08);
   transform:scale(1.008);
 }
+.plan-offer-grid {
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:13px;
+  align-items:start;
+}
+.plan-offer-grid .plan-offer-card {
+  display:block;
+  min-width:0;
+  border-color:rgba(159,214,190,.2);
+  background:rgba(8,27,27,.9);
+  box-shadow:0 18px 35px rgba(0,0,0,.18);
+  transition:border-color .25s ease,box-shadow .25s ease;
+}
+.plan-offer-grid .plan-offer-card:hover,
+.plan-offer-grid .plan-offer-card:focus-within {
+  border-color:rgba(215,243,109,.7);
+  box-shadow:0 25px 45px rgba(0,0,0,.3),0 0 24px rgba(215,243,109,.08);
+}
+.plan-offer-grid .plan-offer-card.is-featured {
+  border-color:rgba(215,243,109,.62);
+  box-shadow:inset 0 2px 0 var(--signal),0 21px 42px rgba(0,0,0,.24);
+}
+.plan-offer-grid .plan-offer-poster-link {
+  position:relative;
+  display:block;
+  overflow:hidden;
+  border-radius:10px;
+}
+.plan-offer-grid .plan-offer-poster {
+  aspect-ratio:683 / 1024;
+}
+.plan-offer-shell {
+  width:min(100%,1240px);
+}
+.plan-offer-card-cta {
+  position:absolute;
+  right:10px;
+  bottom:10px;
+  display:inline-flex;
+  align-items:center;
+  gap:5px;
+  padding:7px 9px;
+  border:1px solid rgba(215,243,109,.48);
+  border-radius:999px;
+  color:#17220f;
+  background:var(--signal);
+  font:800 8px var(--app-font-mono);
+  letter-spacing:.02em;
+  opacity:0;
+  transform:translateY(5px);
+  transition:opacity .2s ease,transform .2s ease;
+}
+.plan-offer-grid .plan-offer-poster-link:hover .plan-offer-card-cta,
+.plan-offer-grid .plan-offer-poster-link:focus-visible .plan-offer-card-cta {
+  opacity:1;
+  transform:translateY(0);
+}
+.plan-offer-grid + .plan-offer-hint {
+  margin-top:16px;
+}
 @media (max-width:900px) {
   .power-features-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
   .power-feature-card,
@@ -794,6 +855,29 @@ input:focus, textarea:focus, select:focus { border-color:#5fa49d; box-shadow:0 0
 @media (max-width: 620px) {
   .marketing-nav { height:67px; padding:0 18px; }.marketing-brand { font-size:11px; letter-spacing:.09em; }.marketing-mark { width:25px; height:25px; }.marketing-links,.nav-access { display:none; }.marketing-menu-button { display:grid; place-items:center; color:#b7d0c2; }.mobile-marketing-menu { position:absolute; display:flex; flex-direction:column; gap:5px; top:67px; left:12px; right:12px; padding:12px; border:1px solid rgba(181,225,198,.18); border-radius:12px; background:#102827; box-shadow:0 20px 40px rgba(0,0,0,.23); }.mobile-marketing-menu button,.mobile-marketing-menu a { display:flex; align-items:center; justify-content:space-between; padding:13px 10px; border:0; border-bottom:1px solid rgba(185,223,201,.1); background:none; color:#c6d9cb; font-size:12px; text-align:left; }.mobile-marketing-menu a { color:var(--signal); border:0; }.marketing-hero { min-height:860px; padding:120px 18px 55px; }.hero-copy h1 { font-size:clamp(49px,14vw,72px); }.hero-copy > p { font-size:13px; }.hero-proof { gap:10px 14px; margin-top:30px; }.hero-monitor-wrap { margin-top:15px; }.signal-monitor { padding:7px; }.monitor-head,.monitor-foot { font-size:8px; }.monitor-foot strong { display:none; }.comparison-section { gap:34px; }.comparison-copy h2 { font-size:51px; }.comparison-copy p { font-size:13px; }.comparison-hint { line-height:1.4; }.comparison-frame { min-height:280px; aspect-ratio:.94; }.comparison-label { top:14px; padding:7px 8px; font-size:8px; gap:5px; }.comparison-label strong { display:none; }.comparison-label-offline { left:12px; }.comparison-label-live { right:12px; }.comparison-stat { bottom:14px; max-width:135px; }.comparison-stat-offline { left:12px; }.comparison-stat-live { right:12px; }.comparison-stat strong { font-size:11px; }.comparison-stat span { font-size:8px; }.comparison-handle span { width:40px; height:40px; }.signal-strip { display:grid; grid-template-columns:1fr 1fr; padding:30px 18px; gap:21px; }.strip-label { grid-column:1/-1; max-width:220px; }.strip-stats { min-width:0; }.marketing-section { padding:80px 18px; }.section-intro h2,.use-case-head h2,.workflow-copy h2 { font-size:51px; }.capabilities-section { gap:47px; }.capability-item { grid-template-columns:23px 1fr 14px; gap:10px; }.capability-item h3 { font-size:16px; }.capability-item p { font-size:11px; }.use-case-head { display:block; margin-bottom:30px; }.use-case-head p { margin-top:23px; }.use-case-image { min-height:390px; }.image-caption { left:20px; bottom:21px; }.image-caption strong { font-size:22px; }.use-case-rail { display:flex; }.use-case-tab { padding:17px 4px; }.workflow-art { min-height:270px; }.workflow-card { width:85%; }.workflow-card-back { transform:translate(-5px,-43px) rotate(-7deg); }.workflow-card-front { transform:translate(7px,29px) rotate(4deg); }.final-cta { min-height:450px; }.final-cta h2 { font-size:52px; }.marketing-footer { flex-wrap:wrap; padding:25px 18px; }.marketing-footer > span { width:100%; order:3; margin:0; }.pricing-main { padding:130px 18px 65px; }.pricing-intro h1 { font-size:58px; }.price-card { padding:23px; }.price-line strong { font-size:42px; }
   .plan-offer-heading { display:block; margin-bottom:30px; }.plan-offer-heading h2 { font-size:51px; }.plan-offer-heading p { margin-top:22px; }.plan-offer-shell { padding:9px; }.plan-offer-status { padding:4px 6px 11px; font-size:8px; }.plan-offer-card { display:flex; flex-direction:column; min-height:0; }.plan-offer-art { min-height:245px; aspect-ratio:1.22; }.plan-offer-copy { padding:25px 20px 26px; }.plan-offer-copy h3 { margin-top:23px; font-size:43px; }.plan-offer-copy > p { font-size:12px; }.plan-offer-bonus { margin-bottom:16px; }.plan-offer-cta { width:100%; }.plan-offer-controls { gap:11px; padding-top:14px; }.plan-offer-hint { font-size:8px; }
+}
+@media (max-width: 900px) {
+  .plan-offer-grid {
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+}
+@media (max-width: 620px) {
+  .plan-offer-grid {
+    display:flex;
+    gap:10px;
+    overflow-x:auto;
+    padding:0 2px 9px;
+    scroll-snap-type:x mandatory;
+    scrollbar-width:thin;
+  }
+  .plan-offer-grid .plan-offer-card {
+    flex:0 0 min(78vw,260px);
+    scroll-snap-align:start;
+  }
+  .plan-offer-card-cta {
+    opacity:1;
+    transform:none;
+  }
 }
 @media (prefers-reduced-motion: reduce) {
   .marketing-page *, .marketing-page *:before, .marketing-page *:after { animation-duration:.001ms !important; animation-iteration-count:1 !important; scroll-behavior:auto !important; transition-duration:.001ms !important; }

@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState, type KeyboardEvent, type PointerEvent, type ReactNode } from "react";
 import { AnimatePresence, motion, useInView, useReducedMotion } from "framer-motion";
-import { ArrowDown, ArrowLeftRight, ArrowRight, Check, ChevronDown, ChevronLeft, ChevronRight, Menu, Play, Radio, Signal, X, Zap } from "lucide-react";
+import { ArrowDown, ArrowLeftRight, ArrowRight, Check, Menu, Play, Radio, Signal, X, Zap } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import GetOfferButton from "@/components/GetOfferButton";
 import logoImage from "@assets/image_1788788255512.png";
 import planOneMonthPoster from "@assets/generated_images/rloop-plan-1-month-poster.png";
 import planThreeMonthsPoster from "@assets/generated_images/rloop-plan-3-months-poster.png";
 import planSixMonthsPoster from "@assets/generated_images/rloop-plan-6-months-poster.png";
+import planOneYearPoster from "@assets/generated_images/rloop-plan-1-year-poster.png";
 import loopControlArtwork from "@assets/loopstream_reference/feature-loop-control.jpeg";
 import streamingArtwork from "@assets/loopstream_reference/feature-24x7-streaming.jpeg";
 import playlistArtwork from "@assets/loopstream_reference/feature-playlist-builder.jpeg";
@@ -379,100 +380,31 @@ const accessPlans = [
     totalAccess: "6 months + 2 months",
     image: planSixMonthsPoster,
   },
+  {
+    term: "1 year",
+    bonus: "5 months extra",
+    totalAccess: "1 year + 5 months",
+    image: planOneYearPoster,
+  },
 ];
 
 function PlanOfferSlider() {
-  const [activePlan, setActivePlan] = useState(2);
-  const [isInteracting, setIsInteracting] = useState(false);
-  const [dragStart, setDragStart] = useState<number | null>(null);
-  const [slideDirection, setSlideDirection] = useState(1);
-  const resumeTimerRef = useRef<number | null>(null);
-  const reducedMotion = useReducedMotion();
-
-  const goToPlan = (index: number, direction = 1) => {
-    setSlideDirection(direction);
-    setActivePlan((index + accessPlans.length) % accessPlans.length);
-  };
-
-  useEffect(() => {
-    if (reducedMotion || isInteracting) return;
-    const timer = window.setInterval(() => {
-      setSlideDirection(1);
-      setActivePlan((current) => (current + 1) % accessPlans.length);
-    }, 6500);
-    return () => window.clearInterval(timer);
-  }, [isInteracting, reducedMotion]);
-
-  useEffect(() => () => {
-    if (resumeTimerRef.current !== null) window.clearTimeout(resumeTimerRef.current);
-  }, []);
-
-  const pauseAutoplay = () => {
-    setIsInteracting(true);
-    if (resumeTimerRef.current !== null) window.clearTimeout(resumeTimerRef.current);
-    resumeTimerRef.current = window.setTimeout(() => {
-      setIsInteracting(false);
-      resumeTimerRef.current = null;
-    }, 2800);
-  };
-
-  const handlePointerDown = (event: PointerEvent<HTMLDivElement>) => {
-    setDragStart(event.clientX);
-    pauseAutoplay();
-    event.currentTarget.setPointerCapture(event.pointerId);
-  };
-
-  const handlePointerUp = (event: PointerEvent<HTMLDivElement>) => {
-    if (dragStart !== null) {
-      const distance = event.clientX - dragStart;
-      if (Math.abs(distance) > 42) {
-        const direction = distance < 0 ? 1 : -1;
-        goToPlan(activePlan + direction, direction);
-      }
-    }
-    setDragStart(null);
-    pauseAutoplay();
-    if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
-  };
-
-  const currentPlan = accessPlans[activePlan];
   return <MarketingSection className="plan-offer-section">
     <div className="plan-offer-heading">
       <span className="section-index">05 / PREMIUM ACCESS</span>
-      <p>Swipe through the complete offer posters to choose your access window.</p>
+      <p>Choose the access window that fits your channel. Every plan stays visible so the value is easy to compare.</p>
     </div>
     <div className="plan-offer-shell">
-       <div className="plan-offer-status"><span className="monitor-led" /> ACCESS WINDOW / {String(activePlan + 1).padStart(2, "0")} OF {String(accessPlans.length).padStart(2, "0")} <span className="plan-offer-status-line" /></div>
-      <div
-        className="plan-offer-viewport"
-        onPointerDown={handlePointerDown}
-        onPointerUp={handlePointerUp}
-        onPointerCancel={handlePointerUp}
-        aria-label="Access plan slider. Swipe left or right to change plans."
-      >
-        <AnimatePresence mode="wait" initial={false}>
-          <motion.article
-            key={currentPlan.term}
-            className={`plan-offer-card ${activePlan === accessPlans.length - 1 ? "is-featured" : ""}`}
-             initial={reducedMotion ? { opacity: 0 } : { opacity: 0, x: slideDirection > 0 ? -26 : 26 }}
-            animate={{ opacity: 1, x: 0 }}
-             exit={reducedMotion ? { opacity: 0 } : { opacity: 0, x: slideDirection > 0 ? 26 : -26 }}
-            transition={{ duration: reducedMotion ? 0.01 : 0.42, ease }}
-          >
-             <Link href="/pricing" className="plan-offer-poster-link" data-testid={`link-plan-offer-${activePlan}`} onClick={() => setIsInteracting(true)}>
-               <img className="plan-offer-poster" src={currentPlan.image} alt={`${currentPlan.term} premium access offer poster with ${currentPlan.bonus} and ${currentPlan.totalAccess} total access`} />
-            </Link>
-          </motion.article>
-        </AnimatePresence>
+      <div className="plan-offer-status"><span className="monitor-led" /> ACCESS WINDOWS / 04 PLANS <span className="plan-offer-status-line" /></div>
+      <div className="plan-offer-grid" aria-label="All access plans">
+        {accessPlans.map((plan, index) => <article className={`plan-offer-card ${index === accessPlans.length - 1 ? "is-featured" : ""}`} key={plan.term}>
+          <Link href="/pricing" className="plan-offer-poster-link" data-testid={`link-plan-offer-${index}`}>
+            <img className="plan-offer-poster" src={plan.image} alt={`${plan.term} premium access offer poster with ${plan.bonus} and ${plan.totalAccess} total access`} />
+            <span className="plan-offer-card-cta">Choose {plan.term} <ArrowRight size={13} /></span>
+          </Link>
+        </article>)}
       </div>
-      <div className="plan-offer-controls">
-         <button type="button" className="plan-offer-arrow" onClick={() => { goToPlan(activePlan - 1, -1); pauseAutoplay(); }} aria-label="Previous access plan" data-testid="button-plan-previous"><ChevronLeft size={17} /></button>
-        <div className="plan-offer-dots" role="tablist" aria-label="Choose an access plan">
-           {accessPlans.map((plan, index) => <button key={plan.term} type="button" className={`plan-offer-dot ${index === activePlan ? "active" : ""}`} onClick={() => { goToPlan(index, index >= activePlan ? 1 : -1); pauseAutoplay(); }} role="tab" aria-selected={index === activePlan} aria-label={`Show ${plan.term} plan`} data-testid={`button-plan-${index}`}><span /></button>)}
-        </div>
-         <button type="button" className="plan-offer-arrow" onClick={() => { goToPlan(activePlan + 1, 1); pauseAutoplay(); }} aria-label="Next access plan" data-testid="button-plan-next"><ChevronRight size={17} /></button>
-      </div>
-       <p className="plan-offer-hint"><ArrowLeftRight size={13} /> Auto-advancing · swipe or use the controls</p>
+      <p className="plan-offer-hint"><Check size={13} /> Compare all four access windows together</p>
     </div>
   </MarketingSection>;
 }
