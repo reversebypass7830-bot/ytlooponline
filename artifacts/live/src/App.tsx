@@ -1122,9 +1122,11 @@ function VideoEditorPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [loopCount, setLoopCount] = useState("1");
   const [title, setTitle] = useState("");
+  const [outputAspectRatio, setOutputAspectRatio] = useState<AspectRatio>("full");
   const [logoPosition, setLogoPosition] = useState("bottom-right");
   const [webcamPosition, setWebcamPosition] = useState("top-right");
   const [overlayScale, setOverlayScale] = useState("25");
+  const [webcamScale, setWebcamScale] = useState("25");
   const [webcamId, setWebcamId] = useState("");
   const [logoId, setLogoId] = useState("");
   const [busy, setBusy] = useState(false);
@@ -1212,6 +1214,8 @@ function VideoEditorPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}
           logoPosition,
           webcamPosition,
           overlayScale: Number(overlayScale) / 100,
+          webcamScale: Number(webcamScale) / 100,
+          outputAspectRatio,
         }),
       });
       const output: VideoItem = {
@@ -1243,7 +1247,7 @@ function VideoEditorPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}
   return <AppShell title="Video editor" workspace={workspace}>
     <div className="page editor-page">
       <div className="page-head">
-        <div><p className="eyebrow">Edit & compose</p><h1>Build a long video</h1><p className="subtle">Pick a category, arrange the clips, add a brand layer, and save the final file back into your library.</p></div>
+         <div><p className="eyebrow">Edit & compose</p><h1>Build your video</h1><p className="subtle">Pick a category, choose Short or Long format, add a face cam, and save the final file back into your library.</p></div>
         <div className="editor-head-badge"><Wand2 size={15}/> Server render</div>
       </div>
        <div className="editor-command-bar">
@@ -1253,13 +1257,13 @@ function VideoEditorPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}
       <form className="editor-layout" onSubmit={compose}>
         <section className="editor-stage card">
           <div className="editor-stage-head"><div><span className="metric-kicker">Live composition</span><strong>{selectedVideos.length ? `${selectedVideos.length} clips · loops ${loopCount}` : "Choose videos to preview"}</strong></div><span className="editor-stage-status"><span className="status-dot"/>Preview</span></div>
-          <div className="editor-canvas">
+           <div className={`editor-canvas editor-canvas-${outputAspectRatio}`}>
             {previewUrl ? <video src={previewUrl} controls muted loop playsInline className="editor-preview-video"/> : <div className="editor-empty"><Layers size={27}/><strong>Your composition appears here</strong><span>Choose a category and tick the clips you want to merge.</span></div>}
             {logo && <img src={logo.playbackUrl} alt="Logo overlay preview" className={`editor-overlay logo-${logoPosition}`}/>}
-            {webcam?.sourceUrl && <video src={webcam.sourceUrl} muted loop playsInline className={`editor-overlay webcam-${webcamPosition}`} />}
+             {webcam?.sourceUrl && <video src={webcam.sourceUrl} muted loop playsInline className={`editor-overlay webcam-${webcamPosition}`} style={{ width: `${webcamScale}%` }} />}
             {logo && <span className={`editor-watermark-label logo-${logoPosition}`}>BRANDED</span>}
           </div>
-          <div className="editor-stage-foot"><span><Layers size={13}/> {selectedVideos.length || 0} clips selected</span><span><Sparkles size={13}/> Logo and webcam are rendered into the saved MP4</span></div>
+           <div className="editor-stage-foot"><span><Layers size={13}/> {selectedVideos.length || 0} clips selected · {outputAspectRatio === "shorts" ? "Short 9:16" : outputAspectRatio === "square" ? "Square 1:1" : "Long 16:9"}</span><span><Sparkles size={13}/> Logo and face cam are rendered into the saved MP4</span></div>
         </section>
         <aside className="editor-controls">
           <section className="card editor-panel">
@@ -1268,19 +1272,20 @@ function VideoEditorPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}
             <div className="editor-clip-list">{groupVideos.length ? groupVideos.map((video, index) => <label className={`editor-clip ${selectedIds.includes(video.id) ? "selected" : ""}`} key={video.id}><input type="checkbox" checked={selectedIds.includes(video.id)} onChange={() => toggleVideo(video.id)}/><span className="editor-clip-number">{String(index + 1).padStart(2, "0")}</span><span className="editor-clip-copy"><strong>{video.title}</strong><small>{video.duration} · {video.quality || "ready"}</small></span><GripIcon /></label>) : <div className="editor-mini-empty"><FolderOpen size={17}/> Create a category and add videos first.</div>}</div>
           </section>
           <section className="card editor-panel">
-            <div className="section-head"><div><h2 className="section-title">2. Timing & output</h2><p className="subtle">Build one long file from the selected order.</p></div><Type size={17} color="#6c8b83"/></div>
+             <div className="section-head"><div><h2 className="section-title">2. Timing & output</h2><p className="subtle">Choose whether this edit is a vertical Short or a landscape Long video.</p></div><Type size={17} color="#6c8b83"/></div>
             <div className="field"><label>Output title</label><input value={title} onChange={(event) => setTitle(event.target.value)} placeholder="Night drive · long cut" data-testid="input-editor-title"/></div>
-            <div className="form-grid"><div className="field"><label>Loop playlist</label><input type="number" min="1" max="12" value={loopCount} onChange={(event) => setLoopCount(event.target.value)} data-testid="input-editor-loop-count"/></div><div className="field"><label>Selected total</label><div className="editor-readonly">{selectedVideos.length} clip{selectedVideos.length === 1 ? "" : "s"}</div></div></div>
+             <div className="form-grid"><div className="field"><label>Video format</label><select value={outputAspectRatio} onChange={(event) => setOutputAspectRatio(event.target.value as AspectRatio)} data-testid="select-editor-format"><option value="full">Long video · 16:9 landscape</option><option value="shorts">Short video · 9:16 vertical</option><option value="square">Square video · 1:1</option></select></div><div className="field"><label>Loop playlist</label><input type="number" min="1" max="12" value={loopCount} onChange={(event) => setLoopCount(event.target.value)} data-testid="input-editor-loop-count"/></div></div>
+             <div className="field"><label>Selected total</label><div className="editor-readonly">{selectedVideos.length} clip{selectedVideos.length === 1 ? "" : "s"} · {outputAspectRatio === "shorts" ? "Short format" : outputAspectRatio === "square" ? "Square format" : "Long format"}</div></div>
           </section>
           <section className="card editor-panel">
-            <div className="section-head"><div><h2 className="section-title">3. Brand layers</h2><p className="subtle">Add your own identity without changing the source files.</p></div><Image size={17} color="#6c8b83"/></div>
+             <div className="section-head"><div><h2 className="section-title">3. Face cam & brand layers</h2><p className="subtle">Place a face cam video on top of the main video, then add a logo if needed.</p></div><Image size={17} color="#6c8b83"/></div>
             <div className="field"><label>Logo / watermark</label><div className="input-action-row"><select value={logoId} onChange={(event) => setLogoId(event.target.value)}><option value="">No logo</option>{data.editorAssets.map((asset) => <option key={asset.id} value={asset.id}>{asset.title}</option>)}</select><label className="button secondary small editor-file-button"><Upload size={13}/>{uploadingLogo ? "Uploading…" : "Upload"}<input type="file" accept="image/png,image/jpeg,image/webp" disabled={uploadingLogo} onChange={(event) => { const file = event.target.files?.[0]; if (file) void uploadLogo(file); event.currentTarget.value = ""; }}/></label></div></div>
             {logo && <div className="form-grid"><div className="field"><label>Logo position</label><select value={logoPosition} onChange={(event) => setLogoPosition(event.target.value)}><option value="top-left">Top left</option><option value="top-right">Top right</option><option value="bottom-left">Bottom left</option><option value="bottom-right">Bottom right</option></select></div><div className="field"><label>Logo size · {overlayScale}%</label><input type="range" min="10" max="60" value={overlayScale} onChange={(event) => setOverlayScale(event.target.value)}/></div></div>}
-            <div className="field"><label>Webcam / face video</label><select value={webcamId} onChange={(event) => setWebcamId(event.target.value)}><option value="">No webcam overlay</option>{data.videos.filter((video) => video.serverSource && video.id !== previewVideo?.id).map((video) => <option key={video.id} value={video.id}>{video.title}</option>)}</select></div>
-            {webcam && <div className="field"><label>Webcam position</label><select value={webcamPosition} onChange={(event) => setWebcamPosition(event.target.value)}><option value="top-left">Top left</option><option value="top-right">Top right</option><option value="bottom-left">Bottom left</option><option value="bottom-right">Bottom right</option></select></div>}
+             <div className="field"><label>Face cam video</label><select value={webcamId} onChange={(event) => setWebcamId(event.target.value)} data-testid="select-editor-facecam"><option value="">No face cam</option>{data.videos.filter((video) => video.serverSource && video.id !== previewVideo?.id).map((video) => <option key={video.id} value={video.id}>{video.title}</option>)}</select><span className="field-hint">Choose another uploaded video to place as the face cam layer.</span></div>
+             {webcam && <div className="form-grid"><div className="field"><label>Face cam position</label><select value={webcamPosition} onChange={(event) => setWebcamPosition(event.target.value)} data-testid="select-editor-facecam-position"><option value="top-left">Top left</option><option value="top-right">Top right</option><option value="bottom-left">Bottom left</option><option value="bottom-right">Bottom right</option></select></div><div className="field"><label>Face cam size · {webcamScale}%</label><input type="range" min="10" max="60" value={webcamScale} onChange={(event) => setWebcamScale(event.target.value)} data-testid="input-editor-facecam-size"/></div></div>}
           </section>
           {error && <div className="error-note" style={{whiteSpace:"pre-line"}}>{error}</div>}
-          <button className="button editor-render-button" type="submit" disabled={busy || !selectedVideos.length}>{busy ? "Rendering long video…" : "Render & save to library"} <ArrowRight size={15}/></button>
+           <button className="button editor-render-button" type="submit" disabled={busy || !selectedVideos.length}>{busy ? `Rendering ${outputAspectRatio === "shorts" ? "Short" : outputAspectRatio === "square" ? "Square" : "Long"} video…` : "Render & save to library"} <ArrowRight size={15}/></button>
           <div className="form-note"><Sparkles size={14} style={{verticalAlign:"-3px",marginRight:6}}/>The source clips stay untouched. The rendered result is added as a new video in the selected category.</div>
         </aside>
       </form>

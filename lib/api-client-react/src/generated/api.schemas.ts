@@ -159,6 +159,15 @@ export const ComposeMediaInputWebcamPosition = {
   'bottom-right': 'bottom-right',
 } as const;
 
+export type ComposeMediaInputOutputAspectRatio = typeof ComposeMediaInputOutputAspectRatio[keyof typeof ComposeMediaInputOutputAspectRatio];
+
+
+export const ComposeMediaInputOutputAspectRatio = {
+  'shorts': 'shorts',
+  'full': 'full',
+  'square': 'square',
+} as const;
+
 export interface ComposeMediaInput {
   /** @minItems 1 */
   fileIds: string[];
@@ -177,6 +186,12 @@ export interface ComposeMediaInput {
      * @maximum 0.8
      */
   overlayScale?: number;
+  /**
+     * @minimum 0.1
+     * @maximum 0.6
+     */
+  webcamScale?: number;
+  outputAspectRatio?: ComposeMediaInputOutputAspectRatio;
 }
 
 export type YoutubeDownloadInputQuality = typeof YoutubeDownloadInputQuality[keyof typeof YoutubeDownloadInputQuality];

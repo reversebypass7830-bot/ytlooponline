@@ -120,6 +120,8 @@ type ComposeMediaBody = {
   logoPosition?: unknown;
   webcamPosition?: unknown;
   overlayScale?: unknown;
+  webcamScale?: unknown;
+  outputAspectRatio?: unknown;
 };
 
 type YoutubeDownloadInput = {
@@ -666,6 +668,16 @@ router.post("/media/compose", async (req, res): Promise<void> => {
   const logoPosition = typeof body.logoPosition === "string" ? body.logoPosition : "bottom-right";
   const webcamPosition = typeof body.webcamPosition === "string" ? body.webcamPosition : "top-right";
   const overlayScale = Math.min(0.8, Math.max(0.1, Number(body.overlayScale) || 0.25));
+  const webcamScale = Math.min(0.6, Math.max(0.1, Number(body.webcamScale) || 0.25));
+  const outputAspectRatio = body.outputAspectRatio === "shorts" || body.outputAspectRatio === "square" || body.outputAspectRatio === "full"
+    ? body.outputAspectRatio
+    : "full";
+  const outputDimensions = {
+    shorts: [1080, 1920],
+    full: [1920, 1080],
+    square: [1080, 1080],
+  }[outputAspectRatio];
+  const needsOutputFormat = outputAspectRatio !== "full";
 
   if (!fileIds.length) {
     res.status(400).json({ error: "Select at least one server-ready video." });
@@ -726,17 +738,22 @@ router.post("/media/compose", async (req, res): Promise<void> => {
     ]);
 
     const overlayIds = [logoFileId, webcamFileId].filter(Boolean);
-    if (!overlayIds.length) {
+    if (!overlayIds.length && !needsOutputFormat) {
       await rename(basePath, destination);
     } else {
       const filterParts: string[] = [];
       let current = "[0:v]";
+      if (needsOutputFormat) {
+        const [width, height] = outputDimensions;
+        filterParts.push(`[0:v]scale=${width}:${height}:force_original_aspect_ratio=increase,crop=${width}:${height}[base]`);
+        current = "[base]";
+      }
       overlayIds.forEach((overlayId, index) => {
         const isLogo = overlayId === logoFileId;
         const input = `[${index + 1}:v]`;
         const scaled = `[overlay${index}]`;
         const next = `[composed${index}]`;
-        const scale = isLogo ? `scale=iw*${overlayScale}:ih*${overlayScale}` : `scale=iw*${overlayScale}:-2`;
+        const scale = isLogo ? `scale=iw*${overlayScale}:ih*${overlayScale}` : `scale=iw*${webcamScale}:-2`;
         const position = overlayCoordinates(isLogo ? logoPosition : webcamPosition, "main_w", "main_h");
         filterParts.push(`${input}${scale}${scaled}`, `${current}${scaled}overlay=${position}:eof_action=repeat${next}`);
         current = next;

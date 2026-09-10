@@ -837,6 +837,15 @@ components:
           minimum: 0.1
           maximum: 0.8
           default: 0.25
+        webcamScale:
+          type: number
+          minimum: 0.1
+          maximum: 0.6
+          default: 0.25
+        outputAspectRatio:
+          type: string
+          enum: [shorts, full, square]
+          default: full
       required:
         - fileIds
     YoutubeDownloadInput:
