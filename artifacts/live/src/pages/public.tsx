@@ -406,6 +406,15 @@ const planFeatures = [
   ["Playlist + auto scheduler", "Build loops, schedule broadcasts, and restart automatically."],
 ];
 
+const paywallPlans = [
+  { term: "Free 1 day", price: "FREE", crossed: "", label: "24 hours", offer: "Try the full broadcast room", bonus: "No payment to start", featured: true },
+  { term: "1 month", price: "₹799", crossed: "₹1,000", label: "1 month", offer: "20% offer included", bonus: "10 days extra" },
+  { term: "3 months", price: "Contact us", crossed: "", label: "3 months", offer: "Creator access window", bonus: "1 month extra" },
+  { term: "6 months", price: "Contact us", crossed: "", label: "6 months", offer: "Growth access window", bonus: "2 months extra" },
+  { term: "12 months", price: "₹7,999", crossed: "₹10,000", label: "12 months", offer: "20% annual offer", bonus: "Annual access" },
+  { term: "1 year", price: "Contact us", crossed: "", label: "1 year", offer: "Best value access", bonus: "5 months extra", featured: true },
+];
+
 function PlanOfferSlider() {
   const [selectedPlan, setSelectedPlan] = useState<(typeof accessPlans)[number] | null>(null);
   const [selectedChannel, setSelectedChannel] = useState<string | null>(null);
@@ -549,7 +558,60 @@ export function LandingPage() {
 }
 
 export function PricingPage() {
-  const [annual, setAnnual] = useState(false);
-  const plans = annual ? { price: "₹7,999", crossed: "₹10,000", label: "12 months", offer: "20% annual offer" } : { price: "₹799", crossed: "₹1,000", label: "1 month", offer: "20% offer" };
-  return <div className="marketing-page pricing-page"><PublicNav /><main className="pricing-main"><div className="pricing-intro"><span className="section-index">R LOOP BYPASS / ACCESS</span><h1>A clear signal<br /><em>starts here.</em></h1><p>One focused plan for creators and small media teams building reliable live channels.</p></div><div className="pricing-toggle" role="group" aria-label="Billing period"><button className={!annual ? "active" : ""} onClick={() => setAnnual(false)} data-testid="button-monthly-plan">1 month</button><button className={annual ? "active" : ""} onClick={() => setAnnual(true)} data-testid="button-annual-plan">12 months <span>save 20%</span></button></div><motion.div className="price-card" layout><div className="price-card-glow" /><div className="price-card-top"><span className="signal-tag"><span className="signal-tag-dot" /> FOCUSED ACCESS</span><span className="price-card-badge">Most direct route</span></div><h2>Broadcast plan</h2><p className="price-description">Everything needed to turn a library into a channel that keeps its place on air.</p><div className="price-line"><span className="price-crossed">{plans.crossed}</span><strong>{plans.price}</strong><span className="price-period">/ {plans.label}</span></div><div className="offer-line"><Zap size={14} /> {plans.offer} included</div>{!annual && <MonthlyOfferCountdown />}<Link href="/access" className="signal-button price-button" data-testid="link-pricing-access"><span>Access / activate a key</span><ArrowRight size={16} /></Link><div className="price-features">{["Loop videos into 24-hour channels", "Playlist builder and scheduled broadcasts", "YouTube and Facebook destinations", "4K / 1080p stream output", "Automatic reconnect and restart"].map((feature) => <span key={feature}><Check size={14} /> {feature}</span>)}</div></motion.div><div className="pricing-note"><Radio size={16} /><span>Already have a key? <Link href="/access" data-testid="link-pricing-existing-key">Enter it in the access room.</Link></span></div></main><footer className="marketing-footer"><Link href="/" className="marketing-brand" data-testid="link-pricing-footer-home"><BrandMark /><span>R LOOP <b>BYPASS</b></span></Link><span>Simple access. Serious signal.</span><Link href="/" data-testid="link-pricing-back">Back to overview <ArrowRight size={13} /></Link></footer></div>;
+  const [selectedPlan, setSelectedPlan] = useState<(typeof paywallPlans)[number] | null>(null);
+  const [selectedChannel, setSelectedChannel] = useState<string | null>(null);
+  const closeContact = () => {
+    setSelectedPlan(null);
+    setSelectedChannel(null);
+  };
+
+  return <div className="marketing-page pricing-page">
+    <PublicNav />
+    <main className="pricing-main">
+      <div className="pricing-intro">
+        <span className="section-index">R LOOP BYPASS / PAYWALL</span>
+        <h1>Choose your <em>access.</em></h1>
+        <p>Start free for one day, then choose the access window that fits your live channel. Every plan includes the full broadcast toolkit.</p>
+      </div>
+      <div className="paywall-plan-grid" aria-label="Pricing plans">
+        {paywallPlans.map((plan, index) => <motion.article className={`paywall-plan-card ${plan.featured ? "is-featured" : ""}`} key={plan.term} layout>
+          <div className="paywall-plan-top">
+            <span className="signal-tag"><span className="signal-tag-dot" /> {plan.term === "Free 1 day" ? "TRIAL ACCESS" : "FULL ACCESS"}</span>
+            {plan.featured && <span className="price-card-badge">{plan.term === "Free 1 day" ? "Start here" : "Best value"}</span>}
+          </div>
+          <h2>{plan.term}</h2>
+          <p className="paywall-plan-description">Unlimited storage, live monitor bots, 24-hour streaming, multi-platform delivery, VPS access, and direct downloads.</p>
+          <div className="paywall-plan-price">
+            {plan.crossed && <span className="price-crossed">{plan.crossed}</span>}
+            <strong>{plan.price}</strong>
+            <span className="price-period">/ {plan.label}</span>
+          </div>
+          <div className="offer-line"><Zap size={14} /> {plan.offer}</div>
+          {plan.term === "1 month" && <MonthlyOfferCountdown />}
+          <div className="paywall-plan-bonus"><span>PLAN BENEFIT</span><strong>{plan.bonus}</strong></div>
+          <button type="button" className="signal-button paywall-plan-button" onClick={() => { setSelectedPlan(plan); setSelectedChannel(null); }} data-testid={`button-paywall-plan-${index}`}><span>Choose {plan.term}</span><ArrowRight size={16} /></button>
+          <div className="paywall-plan-features">{["Unlimited storage", "2 live monitor bots", "24-hour live streams", "YouTube + Facebook + RTMP", "VPS + direct downloads"].map((feature) => <span key={feature}><Check size={13} /> {feature}</span>)}</div>
+        </motion.article>)}
+      </div>
+      <div className="pricing-note"><Radio size={16} /><span>Need help first? Choose a plan and contact us on WhatsApp, Facebook, or Telegram.</span></div>
+      <AnimatePresence>
+        {selectedPlan && <motion.div className="plan-contact-backdrop" role="presentation" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={closeContact}>
+          <motion.div className="plan-contact-dialog" role="dialog" aria-modal="true" aria-labelledby="paywall-contact-title" initial={{ opacity: 0, y: 18, scale: .97 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 12, scale: .98 }} onClick={(event) => event.stopPropagation()}>
+            <button type="button" className="plan-contact-close" onClick={closeContact} aria-label="Close contact options"><X size={16} /></button>
+            <span className="section-index">CONTACT TO CONTINUE</span>
+            <h3 id="paywall-contact-title">Activate <em>{selectedPlan.term}</em></h3>
+            <p>First choose a contact option. We will help you with access, payment, and setup for this plan.</p>
+            <div className="plan-contact-options" aria-label="Contact options">
+              {["WhatsApp", "Facebook", "Telegram"].map((channel) => <button type="button" className={`plan-contact-option ${selectedChannel === channel ? "is-selected" : ""}`} key={channel} onClick={() => setSelectedChannel(channel)}>
+                <span className="plan-contact-option-mark">{channel.slice(0, 1)}</span><span><strong>{channel}</strong><small>Contact us about {selectedPlan.term}</small></span><ArrowRight size={14} />
+              </button>)}
+            </div>
+            {selectedChannel && <div className="plan-contact-confirmation"><span className="monitor-led" /><strong>{selectedChannel} selected</strong><span>We’ll connect you about your {selectedPlan.term} access.</span></div>}
+            <button type="button" className="plan-contact-back" onClick={closeContact}>Back to pricing</button>
+          </motion.div>
+        </motion.div>}
+      </AnimatePresence>
+    </main>
+    <footer className="marketing-footer"><Link href="/" className="marketing-brand" data-testid="link-pricing-footer-home"><BrandMark /><span>R LOOP <b>BYPASS</b></span></Link><span>Simple access. Serious signal.</span><Link href="/" data-testid="link-pricing-back">Back to overview <ArrowRight size={13} /></Link></footer>
+  </div>;
 }
