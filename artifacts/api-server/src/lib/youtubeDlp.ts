@@ -47,10 +47,18 @@ const directProxyRequestTimeoutMs = 45 * 1000;
 const maxOutputBytes = 12 * 1024 * 1024;
 const videoExtensions = new Set([".mp4", ".webm", ".mkv", ".mov", ".m4v", ".avi", ".ts"]);
 const proxyFailureCooldownMs = 2 * 60 * 1000;
-const defaultProxyAttempts = 1;
+const proxyListCacheMs = 5 * 60 * 1000;
+const defaultProxyAttempts = 8;
 const directProxyBaseUrl = "https://yt-download-proxy-cqkedn65a-dev-e6b8.vercel.app/api/download";
+const defaultProxySources = [
+  "https://raw.githubusercontent.com/TheSpeedX/PROXY-List/master/http.txt",
+  "https://raw.githubusercontent.com/TheSpeedX/PROXY-List/master/socks5.txt",
+  "https://raw.githubusercontent.com/proxifly/free-proxy-list/main/proxies/all/data.txt",
+];
 let proxyCursor = 0;
 const proxyFailures = new Map<string, number>();
+let proxyListCache: { expiresAt: number; proxies: string[] } | undefined;
+let proxyListRefresh: Promise<string[]> | undefined;
 
 function ytdlpCommand(): string {
   return process.env.YTDLP_PATH?.trim() || process.env.YTDLP_MCP_YTDLP_PATH?.trim() || "yt-dlp";
@@ -130,6 +138,43 @@ const extractorStrategies: Array<string | undefined> = [
   "youtube:player_client=android",
 ];
 
+function normalizeProxyCandidate(candidate: string): string | null {
+  const value = candidate.trim();
+  if (!value || value.startsWith("#")) return null;
+  const withScheme = /^[a-z][a-z\d+.-]*:\/\//i.test(value) ? value : `http://${value}`;
+  try {
+    const parsed = new URL(withScheme);
+    if (!["http:", "https:", "socks4:", "socks5:"].includes(parsed.protocol)) return null;
+    if (!parsed.hostname || !parsed.port) return null;
+    return parsed.toString();
+  } catch {
+    return null;
+  }
+}
+
+function parseProxyList(raw: string): string[] {
+  return Array.from(new Set(raw.split(/\r?\n/).map(normalizeProxyCandidate).filter((value): value is string => Boolean(value))));
+}
+
+function configuredProxySources(): string[] {
+  const configured = process.env.YOUTUBE_PROXY_SOURCES?.trim();
+  return configured
+    ? configured.split(",").map((value) => value.trim()).filter(Boolean)
+    : defaultProxySources;
+}
+
+async function fetchLiveProxyList(): Promise<string[]> {
+  const lists = await Promise.all(configuredProxySources().map(async (source) => {
+    const response = await fetch(source, {
+      headers: { accept: "text/plain", "user-agent": "signal-desk-youtube-proxy/1.0" },
+      signal: AbortSignal.timeout(15_000),
+    }).catch(() => null);
+    if (!response?.ok) return [];
+    return parseProxyList(await response.text().catch(() => ""));
+  }));
+  return Array.from(new Set(lists.flat()));
+}
+
 async function loadYoutubeProxies(): Promise<string[]> {
   const configuredPath = process.env.YOUTUBE_PROXY_FILE?.trim();
   const candidatePaths = configuredPath
@@ -147,25 +192,33 @@ async function loadYoutubeProxies(): Promise<string[]> {
     raw = candidateRaw;
     break;
   }
-  const proxies = new Set<string>();
-
-  for (const line of raw.split(/\r?\n/)) {
-    const candidate = line.trim();
-    if (!candidate || candidate.startsWith("#")) continue;
-    try {
-      const parsed = new URL(candidate);
-      if (!["http:", "https:", "socks4:", "socks5:"].includes(parsed.protocol)) continue;
-      if (!parsed.hostname || !parsed.port) continue;
-      proxies.add(parsed.toString());
-    } catch {
-      // Ignore malformed entries and continue with the rest of the pool.
-    }
-  }
-
-  if (!proxies.size) {
+  const localProxies = parseProxyList(raw);
+  if (!localProxies.length && !configuredPath) {
     throw new Error(`The YouTube proxy list is missing or empty: ${proxyPath}`);
   }
-  return Array.from(proxies);
+
+  const now = Date.now();
+  if (!proxyListCache || proxyListCache.expiresAt <= now) {
+    if (!proxyListRefresh) {
+      proxyListRefresh = fetchLiveProxyList()
+        .then((proxies) => {
+          if (proxies.length) proxyListCache = { expiresAt: Date.now() + proxyListCacheMs, proxies };
+          return proxies;
+        })
+        .finally(() => {
+          proxyListRefresh = undefined;
+        });
+    }
+    const liveProxies = await proxyListRefresh;
+    if (liveProxies.length) return Array.from(new Set([...liveProxies, ...localProxies]));
+  }
+
+  const liveProxies = proxyListCache?.proxies || [];
+  const proxies = Array.from(new Set([...liveProxies, ...localProxies]));
+  if (!proxies.length) {
+    throw new Error(`The YouTube proxy list is missing or empty: ${proxyPath}`);
+  }
+  return proxies;
 }
 
 function proxyAttemptLimit(proxyCount: number): number {
@@ -393,7 +446,7 @@ function selectDirectDownloadProxyCandidates(proxies: string[]): string[] {
 
   const ordered = [...available, ...coolingDown];
   proxyCursor = (proxyCursor + 1) % proxies.length;
-  return ordered.slice(0, Math.min(4, proxies.length));
+  return ordered.slice(0, Math.min(8, proxies.length));
 }
 
 function markProxySuccess(proxy: string): void {
