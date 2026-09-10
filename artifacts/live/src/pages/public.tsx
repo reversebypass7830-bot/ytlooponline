@@ -8,11 +8,12 @@ import planOneMonthPoster from "@assets/generated_images/rloop-plan-1-month-post
 import planThreeMonthsPoster from "@assets/generated_images/rloop-plan-3-months-poster.png";
 import planSixMonthsPoster from "@assets/generated_images/rloop-plan-6-months-poster.png";
 import planOneYearPoster from "@assets/generated_images/rloop-plan-1-year-poster.png";
-import loopControlArtwork from "@assets/generated_images/rloop-feature-loop-control.png";
-import streamingArtwork from "@assets/generated_images/rloop-feature-24x7.png";
-import playlistArtwork from "@assets/generated_images/rloop-feature-playlist.png";
-import qualityArtwork from "@assets/generated_images/rloop-feature-quality.png";
-import schedulerArtwork from "@assets/generated_images/rloop-feature-scheduler.png";
+import loopControlArtwork from "@assets/loopstream_reference/feature-loop-control.jpeg";
+import streamingArtwork from "@assets/loopstream_reference/feature-24x7-streaming.jpeg";
+import playlistArtwork from "@assets/loopstream_reference/feature-playlist-builder.jpeg";
+import qualityArtwork from "@assets/loopstream_reference/feature-1080p-4k.jpeg";
+import schedulerArtwork from "@assets/loopstream_reference/feature-advanced-scheduler.jpeg";
+import scheduleStreamArtwork from "@assets/loopstream_reference/schedule-stream.jpeg";
 import heroTwoScreenImage from "@assets/loopstream_reference/hero-two-screen.webp";
 import compareAfterImage from "@assets/loopstream_reference/after-loop-stream.webp";
 import compareBeforeImage from "@assets/loopstream_reference/before-loop-stream.webp";
@@ -459,18 +460,17 @@ export function LandingPage() {
            </div>
          </div>
          <div className="power-features-grid">
-            {powerfulFeatures.map(({ title, description, artwork }, index) => <article className={`power-feature-card ${index === 2 ? "is-accented" : ""}`} key={title}>
-              <div className="power-feature-art"><img src={artwork} alt="" /></div>
+            {powerfulFeatures.map(({ title, description, artwork }) => <article className="power-feature-card" key={title}>
+              <div className="power-feature-art"><img src={artwork} alt={`${title} feature`} /></div>
              <h3>{title}</h3>
              <p>{description}</p>
-             <span className="power-feature-index">0{index + 1}</span>
            </article>)}
          </div>
        </MarketingSection>
 
       <MarketingSection id="use-cases" className="use-cases-section"><div className="use-case-head"><div><span className="section-index">02 / PROGRAMMING</span><h2>A channel for<br /><em>every rhythm.</em></h2></div><p>From early morning movement to a quiet night sky, build the loop your audience returns to.</p></div><div className="use-case-feature"><div className="use-case-image"><AnimatePresence mode="wait"><motion.img key={useCases[activeCase].title} src={useCases[activeCase].image} alt={useCases[activeCase].title} initial={{ opacity: 0, scale: 1.05 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} transition={{ duration: .6 }} /></AnimatePresence><div className="image-caption"><span>Now programming</span><strong>{useCases[activeCase].title}</strong></div></div><div className="use-case-rail">{useCases.map((item, index) => <button key={item.title} className={`use-case-tab ${activeCase === index ? "active" : ""}`} onClick={() => setActiveCase(index)} data-testid={`button-use-case-${index}`}><span>0{index + 1}</span><strong>{item.title}</strong><small>{item.note}</small><ArrowRight size={15} /></button>)}</div></div></MarketingSection>
 
-       <MarketingSection className="workflow-section"><div className="workflow-art"><img className="workflow-artwork" src={schedulerArtwork} alt="" /><div className="workflow-card workflow-card-back"><span>playlist / night-sky</span><b>18 videos</b></div><div className="workflow-card workflow-card-front"><div className="workflow-card-top"><span className="monitor-led" /> LIVE CHANNEL</div><strong>Sleep / Cloud ambience</strong><div className="workflow-track"><i /><i /><i /><i /><i /><i /><i /></div><small>Now looping · 08:42:19</small></div><div className="workflow-schedule"><div><span className="schedule-dot" /> SCHEDULED NEXT</div><strong>Morning movement</strong><small>Tomorrow · 06:30 · YouTube + Facebook</small></div></div><div className="workflow-copy"><span className="section-index">03 / THE HANDOFF</span><h2>Quiet systems<br /><em>make good TV.</em></h2><p>Set the playlist, choose where it goes, and let the room do the repetitive work. The product stays visible when it matters and disappears when it does not.</p><Link href="/access" className="inline-arrow" data-testid="link-workflow-access">Open the control room <ArrowRight size={15} /></Link></div></MarketingSection>
+       <MarketingSection className="workflow-section"><div className="workflow-art"><img className="workflow-artwork" src={scheduleStreamArtwork} alt="" /><div className="workflow-card workflow-card-back"><span>playlist / night-sky</span><b>18 videos</b></div><div className="workflow-card workflow-card-front"><div className="workflow-card-top"><span className="monitor-led" /> LIVE CHANNEL</div><strong>Sleep / Cloud ambience</strong><div className="workflow-track"><i /><i /><i /><i /><i /><i /><i /></div><small>Now looping · 08:42:19</small></div><div className="workflow-schedule"><div><span className="schedule-dot" /> SCHEDULED NEXT</div><strong>Morning movement</strong><small>Tomorrow · 06:30 · YouTube + Facebook</small></div></div><div className="workflow-copy"><span className="section-index">03 / THE HANDOFF</span><h2>Quiet systems<br /><em>make good TV.</em></h2><p>Set the playlist, choose where it goes, and let the room do the repetitive work. The product stays visible when it matters and disappears when it does not.</p><Link href="/access" className="inline-arrow" data-testid="link-workflow-access">Open the control room <ArrowRight size={15} /></Link></div></MarketingSection>
 
       <MarketingSection className="final-cta"><div className="final-cta-grid" /><span className="section-index">READY WHEN YOU ARE</span><h2>Give your next loop<br /><em>a proper signal.</em></h2><p>Start with one channel. Build the library around it. Keep the room on air.</p><Link href="/pricing" className="signal-button" data-testid="link-final-pricing"><span>View access options</span><ArrowRight size={16} /></Link></MarketingSection>
        <PlanOfferSlider />
