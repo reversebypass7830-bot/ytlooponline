@@ -274,8 +274,15 @@ function groupDepth(groupId: string, groups: VideoGroup[]): number {
 
 function scopedMediaPlaybackUrl(url: string, mediaLicenseId: string | undefined, currentLicenseId: string): string {
   if (!url || !url.includes("/api/media/files/") || mediaLicenseId === includedMediaLicenseId || !currentLicenseId) return url;
-  const separator = url.includes("?") ? "&" : "?";
-  return `${url}${separator}licenseId=${encodeURIComponent(currentLicenseId)}`;
+  const hashIndex = url.indexOf("#");
+  const hash = hashIndex >= 0 ? url.slice(hashIndex) : "";
+  const withoutHash = hashIndex >= 0 ? url.slice(0, hashIndex) : url;
+  const withoutLicense = withoutHash
+    .replace(/([?&])licenseId=[^&]*/gi, "")
+    .replace("?&", "?")
+    .replace(/[?&]$/, "");
+  const separator = withoutLicense.includes("?") ? "&" : "?";
+  return `${withoutLicense}${separator}licenseId=${encodeURIComponent(currentLicenseId)}${hash}`;
 }
 
 function ensureDefaultYoutubeFolders(groups: VideoGroup[]): VideoGroup[] {
@@ -1465,7 +1472,7 @@ function VideoModal({video,groups,defaultGroupId="",licenseId="",licenseName="",
 
 function TrimModal({video,licenseId="",licenseName="",folderName="",onCreate,onClose}:{video:VideoItem;licenseId?:string;licenseName?:string;folderName?:string;onCreate:(clip:VideoItem)=>void;onClose:()=>void}) {
   const fileId = getMediaFileId(video);
-  const previewUrl = video.sourceUrl || (fileId ? `/api/media/files/${fileId}` : "");
+  const previewUrl = videoPlaybackUrl(video, licenseId);
   const initialDuration = parseDurationSeconds(video.duration);
   const [duration,setDuration] = useState(initialDuration);
   const [start,setStart] = useState(formatTimecode(0));

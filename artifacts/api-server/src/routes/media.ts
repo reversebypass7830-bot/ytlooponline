@@ -1302,8 +1302,11 @@ router.post("/media/files/:fileId/trim", async (req, res): Promise<void> => {
 
 router.get("/media/files/:fileId", async (req, res): Promise<void> => {
   const record = (await readMediaIndex()).find((item) => item.fileId === req.params.fileId);
-  const requestedLicenseId = typeof req.query.licenseId === "string"
-    ? req.query.licenseId.trim()
+  const rawLicenseId = req.query.licenseId;
+  const requestedLicenseId = typeof rawLicenseId === "string"
+    ? rawLicenseId.trim()
+    : Array.isArray(rawLicenseId)
+      ? String(rawLicenseId.at(-1) || "").trim()
     : req.header("x-license-id")?.trim() || "";
   if (
     record?.licenseId
