@@ -359,6 +359,14 @@ function MonthlyOfferCountdown() {
 
 const accessPlans = [
   {
+    term: "Free 1 day",
+    label: "Try it free",
+    bonus: "24 hours free",
+    totalAccess: "1 day access",
+    isFeatured: true,
+    isFree: true,
+  },
+  {
     term: "1 month",
     label: "Quick start",
     bonus: "10 days extra",
@@ -381,6 +389,7 @@ const accessPlans = [
     label: "Best value",
     bonus: "5 months extra",
     totalAccess: "1 year + 5 months",
+    isFeatured: true,
   },
 ];
 
@@ -398,21 +407,28 @@ const planFeatures = [
 ];
 
 function PlanOfferSlider() {
+  const [selectedPlan, setSelectedPlan] = useState<(typeof accessPlans)[number] | null>(null);
+  const [selectedChannel, setSelectedChannel] = useState<string | null>(null);
+  const closeContact = () => {
+    setSelectedPlan(null);
+    setSelectedChannel(null);
+  };
+
   return <MarketingSection className="plan-offer-section">
     <div className="plan-offer-heading">
       <div><span className="section-index">05 / PREMIUM ACCESS</span><h2>Choose your <em>access window.</em></h2></div>
       <p>Pick your access window and get the full broadcast toolkit: storage, monitoring bots, unlimited streams, VPS access, and multi-platform delivery.</p>
     </div>
     <div className="plan-offer-shell">
-      <div className="plan-offer-status"><span className="monitor-led" /> ACCESS WINDOWS / 04 PLANS <span className="plan-offer-status-line" /></div>
+      <div className="plan-offer-status"><span className="monitor-led" /> ACCESS WINDOWS / 06 PLANS <span className="plan-offer-status-line" /></div>
       <div className="plan-offer-grid" aria-label="All access plans">
-        {accessPlans.map((plan, index) => <article className={`plan-offer-card ${index === accessPlans.length - 1 ? "is-featured" : ""}`} key={plan.term}>
+        {accessPlans.map((plan, index) => <article className={`plan-offer-card ${plan.isFeatured ? "is-featured" : ""}`} key={plan.term}>
           <div className="plan-offer-card-header">
             <div>
               <span className="plan-offer-card-kicker">R LOOP BYPASS / {plan.label}</span>
               <h3>{plan.term}</h3>
             </div>
-            {index === accessPlans.length - 1 && <span className="plan-offer-best-value">BEST VALUE</span>}
+            {plan.isFree ? <span className="plan-offer-best-value">FREE</span> : plan.isFeatured && <span className="plan-offer-best-value">BEST VALUE</span>}
           </div>
           <div className="plan-offer-bonus">
             <span>OFFER</span>
@@ -425,13 +441,30 @@ function PlanOfferSlider() {
               <div><strong>{title}</strong><span>{detail}</span></div>
             </div>)}
           </div>
-          <Link href="/pricing" className="plan-offer-card-cta" data-testid={`link-plan-offer-${index}`}>
-            Choose {plan.term} <ArrowRight size={13} />
-          </Link>
+          <button type="button" className="plan-offer-card-cta" onClick={() => { setSelectedPlan(plan); setSelectedChannel(null); }} data-testid={`button-plan-offer-${index}`}>
+             Choose {plan.term} <ArrowRight size={13} />
+          </button>
         </article>)}
       </div>
       <p className="plan-offer-hint"><Check size={13} /> Every plan includes the complete feature set shown above</p>
     </div>
+    <AnimatePresence>
+      {selectedPlan && <motion.div className="plan-contact-backdrop" role="presentation" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={closeContact}>
+        <motion.div className="plan-contact-dialog" role="dialog" aria-modal="true" aria-labelledby="plan-contact-title" initial={{ opacity: 0, y: 18, scale: .97 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 12, scale: .98 }} onClick={(event) => event.stopPropagation()}>
+          <button type="button" className="plan-contact-close" onClick={closeContact} aria-label="Close contact options"><X size={16} /></button>
+          <span className="section-index">06 / CONTACT TO CONTINUE</span>
+          <h3 id="plan-contact-title">Choose how to activate <em>{selectedPlan.term}</em></h3>
+          <p>First choose a contact option. We will help you with access, payment, and setup for this plan.</p>
+          <div className="plan-contact-options" aria-label="Contact options">
+            {["WhatsApp", "Facebook", "Telegram"].map((channel) => <button type="button" className={`plan-contact-option ${selectedChannel === channel ? "is-selected" : ""}`} key={channel} onClick={() => setSelectedChannel(channel)}>
+              <span className="plan-contact-option-mark">{channel.slice(0, 1)}</span><span><strong>{channel}</strong><small>Contact us about {selectedPlan.term}</small></span><ArrowRight size={14} />
+            </button>)}
+          </div>
+          {selectedChannel && <div className="plan-contact-confirmation"><span className="monitor-led" /><strong>{selectedChannel} selected</strong><span>We’ll connect you about your {selectedPlan.term} access.</span></div>}
+          <button type="button" className="plan-contact-back" onClick={closeContact}>Back to plans</button>
+        </motion.div>
+      </motion.div>}
+    </AnimatePresence>
   </MarketingSection>;
 }
 
