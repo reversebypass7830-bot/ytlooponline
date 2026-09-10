@@ -23,6 +23,12 @@ type FacePosition = "top-left" | "top-right" | "bottom-left" | "bottom-right" | 
 type EditorLayer = "main" | "webcam";
 type AnimationPreset = "none" | "subscribe" | "like" | "follow";
 type EditorTransform = { x: number; y: number; scale: number };
+type EditorColorAdjustments = {
+  brightness: number;
+  contrast: number;
+  saturation: number;
+  hue: number;
+};
 type LiveChannel = {
   id: string; title: string; platform: string; status: LiveStatus; groupId: string;
   streamUrl: string; streamKey: string; viewers: number; startedAt: string | null;
@@ -1150,6 +1156,12 @@ function videosForGroup(groupId: string | undefined, groups: VideoGroup[], video
   return ordered;
 }
 
+function videosForFolderScope(groupId: string | undefined, groups: VideoGroup[], videos: VideoItem[]): VideoItem[] {
+  if (!groupId) return [];
+  const ids = descendantGroupIds(groupId, groups);
+  return videos.filter((video) => ids.has(video.groupId));
+}
+
 function playlistFor(channel:LiveChannel, groups:VideoGroup[], videos:VideoItem[]) {
   const mainGroup=groups.find(group=>group.id===channel.groupId);
   const faceGroup=channel.faceGroupId?groups.find(group=>group.id===channel.faceGroupId):undefined;
@@ -1401,7 +1413,7 @@ function VideosPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}) {
   const [tab,setTab]=useState<"library"|"groups">("groups"); const [videoModal,setVideoModal]=useState(false); const [youtubeModal,setYoutubeModal]=useState(false); const [folderModal,setFolderModal]=useState(false);
   const [videoGroupId,setVideoGroupId]=useState(""); const [groupModal,setGroupModal]=useState(false); const [newGroupParentId,setNewGroupParentId]=useState("");
    const [editingGroup,setEditingGroup]=useState<VideoGroup|undefined>(); const [editingVideo,setEditingVideo]=useState<VideoItem|undefined>(); const [trimVideo,setTrimVideo]=useState<VideoItem|undefined>(); const [deleting,setDeleting]=useState<{kind:"video"|"group";id:string;name:string}|undefined>(); const [deletingAll,setDeletingAll]=useState(false);
-   const filtered=useMemo(()=>data.videos.filter(v=>(!search||v.title.toLowerCase().includes(search.toLowerCase()))&&(status==="all"||v.status===status)&&(group==="all"||isVideoInFolderScope(v,group,data.groups))),[data.videos,data.groups,search,status,group]);
+    const filtered=useMemo(()=>data.videos.filter(v=>!isIncludedVideo(v)&&(!search||v.title.toLowerCase().includes(search.toLowerCase()))&&(status==="all"||v.status===status)&&(group==="all"||isVideoInFolderScope(v,group,data.groups))),[data.videos,data.groups,search,status,group]);
   const openAddVideo=(groupId="")=>{setVideoGroupId(isVideoDestinationFolder(groupId, data.groups) ? groupId : myAnimationFolderId);setVideoModal(true);};
   const openGroup=(groupId:string)=>{if(isYoutubeAnimationRoot(groupId,data.groups))return;setGroup(groupId);setTab("library");};
     const saveVideos=(items:VideoItem[]|StartYoutubeDownloadsInput)=>{if(!Array.isArray(items)){workspace.startYoutubeDownloads(items);return;}if(!items.length)return;const byId=new Map(data.videos.map(video=>[video.id,video]));for(const item of items)byId.set(item.id,item);const videos=Array.from(byId.values());const groups=rebuildGroupMembership(data.groups,videos);update({videos,groups},{message:items.length===1?`${items[0].title} was added to the library`:`${items.length} videos were added in playlist order`,type:"video"});};
@@ -1410,7 +1422,7 @@ function VideosPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}) {
    const saveGroup=(g:VideoGroup)=>{const exists=data.groups.some(x=>x.id===g.id);update({groups:exists?data.groups.map(x=>x.id===g.id?g:x):[...data.groups,g]},{message:exists?`${g.name} was updated`:`${g.name} was created`,type:"group"});setGroupModal(false);setEditingGroup(undefined);setNewGroupParentId("");};
     const remove=async()=>{if(!deleting)return;try{if(deleting.kind==="video"){const video=data.videos.find(item=>item.id===deleting.id);if(isIncludedVideo(video)){setDeleting(undefined);return;}const fileId=getMediaFileId(video);if(fileId)await apiJson(`/api/media/files/${encodeURIComponent(fileId)}?licenseId=${encodeURIComponent(workspace.licenseId)}`,{method:"DELETE"});update({videos:data.videos.filter(v=>v.id!==deleting.id),groups:data.groups.map(g=>({...g,videoIds:g.videoIds.filter(id=>id!==deleting.id)}))},{message:`${deleting.name} and its stored file were deleted`,type:"video"});}else{const target=data.groups.find((item)=>item.id===deleting.id);if(!target||isBuiltInYoutubeFolder(target)){setDeleting(undefined);return;}const removedGroupIds=new Set<string>([deleting.id]);let changed=true;while(changed){changed=false;for(const item of data.groups){if(item.parentId&&removedGroupIds.has(item.parentId)&&!removedGroupIds.has(item.id)){removedGroupIds.add(item.id);changed=true;}}}const groupVideos=data.videos.filter((video)=>removedGroupIds.has(video.groupId));const fileIds=groupVideos.map(getMediaFileId).filter((id):id is string=>Boolean(id));await Promise.all([...new Set(groupVideos.map((video)=>folderPathForGroup(video.groupId,data.groups)))].map((folderName)=>apiJson(`/api/media/files?licenseId=${encodeURIComponent(workspace.licenseId)}&folderName=${encodeURIComponent(folderName)}`,{method:"DELETE"}).catch(()=>undefined)));await Promise.all(fileIds.map(fileId=>apiJson(`/api/media/files/${encodeURIComponent(fileId)}?licenseId=${encodeURIComponent(workspace.licenseId)}`,{method:"DELETE"}).catch(()=>undefined)));update({groups:data.groups.filter(g=>!removedGroupIds.has(g.id)),videos:data.videos.filter(v=>!removedGroupIds.has(v.groupId))},{message:`${deleting.name} and its nested folders were deleted`,type:"group"});if(removedGroupIds.has(group))setGroup("all");}setDeleting(undefined);}catch(reason){workspace.setToast(reason instanceof Error?reason.message:"The video files could not be deleted.");}};
     const removeAll=async()=>{if(!workspace.licenseId)return;try{await apiJson(`/api/media/files?licenseId=${encodeURIComponent(workspace.licenseId)}`,{method:"DELETE"});const includedVideos=data.videos.filter((video)=>isIncludedVideo(video));update({videos:includedVideos,groups:rebuildGroupMembership(data.groups,includedVideos)},{message:"All personal videos and stored files were deleted from this license workspace",type:"video"});setDeletingAll(false);}catch(reason){workspace.setToast(reason instanceof Error?reason.message:"All workspace videos could not be deleted.");}};
-   const library=<div className="card section-card"><div className="section-head"><div><h2 className="section-title">{filtered.length} video{filtered.length===1?"":"s"}</h2><p className="subtle" style={{margin:"5px 0 0",fontSize:11}}>{search||status!=="all"||group!=="all"?"Filtered library":"Your server media index · shared Included Animations and this license’s files are shown here"}</p></div></div>{filtered.length===0?<EmptyState icon={<Search size={21}/>} title="No videos found" copy="Try a different search, or add a new piece to your library." action="Add video" onClick={()=>openAddVideo(group!=="all"?group:"")}/>:<div className="table-wrap"><table className="data-table"><thead><tr><th>Video</th><th>Status</th><th>Category</th><th>Quality</th><th>Source</th><th/></tr></thead><tbody>{filtered.map(v=><tr key={v.id} data-testid={`row-video-${v.id}`}><td><div style={{display:"flex",alignItems:"center",gap:10}}><div className="thumb" style={{background:v.thumbnailColor,width:52,height:34}}><Video size={14}/><span style={{fontSize:9,marginLeft:-3}}>{v.duration}</span></div><div><div className="table-title">{v.title}</div><div className="table-sub">Added {new Date(v.createdAt).toLocaleDateString()}{isIncludedVideo(v)?" · Included for every license":v.licenseName?` · ${v.licenseName}`:""}</div></div></div></td><td><span className={`status ${v.status==="published"?"live":v.status==="draft"?"scheduled":"stopped"}`}><span className="status-dot"/>{v.status}</span></td><td><span className="table-sub">{folderPathForGroup(v.groupId,data.groups)||v.folderName||"Unassigned"}</span></td><td><span className="table-sub">{v.quality&&v.quality!=="best"?v.quality:v.quality==="best"?"Best":"—"}</span></td><td>{v.sourceUrl?<a href={v.sourceUrl} target="_blank" rel="noreferrer" className="section-link" data-testid={`link-source-${v.id}`}><Link2 size={12} style={{verticalAlign:"-2px"}}/> {v.serverSource?"Server-ready":"Preview only"}</a>:<span className="table-sub">Not attached</span>}</td><td><div className="actions">{!isIncludedVideo(v)&&v.serverSource&&<button className="icon-button" style={{width:30,height:30}} onClick={()=>setTrimVideo(v)} title="Trim clip" data-testid={`button-trim-video-${v.id}`}><Scissors size={13}/></button>}{!isIncludedVideo(v)&&<><button className="icon-button" style={{width:30,height:30}} onClick={()=>openEditVideo(v)} title="Edit video" data-testid={`button-edit-video-${v.id}`}><Pencil size={13}/></button><button className="icon-button" style={{width:30,height:30}} onClick={()=>setDeleting({kind:"video",id:v.id,name:v.title})} title="Delete video" data-testid={`button-delete-video-${v.id}`}><Trash2 size={13}/></button></>}</div></td></tr>)}</tbody></table></div>}</div>;
+    const library=<div className="card section-card"><div className="section-head"><div><h2 className="section-title">{filtered.length} personal video{filtered.length===1?"":"s"}</h2><p className="subtle" style={{margin:"5px 0 0",fontSize:11}}>{search||status!=="all"||group!=="all"?"Filtered personal library":"Your private server media index · shared YouTube animations are available in Video editor"}</p></div></div>{filtered.length===0?<EmptyState icon={<Search size={21}/>} title="No personal videos found" copy="Add a personal video or open Video editor to use shared YouTube animations." action="Add video" onClick={()=>openAddVideo(group!=="all"?group:"")}/>:<div className="table-wrap"><table className="data-table"><thead><tr><th>Video</th><th>Status</th><th>Category</th><th>Quality</th><th>Source</th><th/></tr></thead><tbody>{filtered.map(v=><tr key={v.id} data-testid={`row-video-${v.id}`}><td><div style={{display:"flex",alignItems:"center",gap:10}}><div className="thumb" style={{background:v.thumbnailColor,width:52,height:34}}><Video size={14}/><span style={{fontSize:9,marginLeft:-3}}>{v.duration}</span></div><div><div className="table-title">{v.title}</div><div className="table-sub">Added {new Date(v.createdAt).toLocaleDateString()}{v.licenseName?` · ${v.licenseName}`:""}</div></div></div></td><td><span className={`status ${v.status==="published"?"live":v.status==="draft"?"scheduled":"stopped"}`}><span className="status-dot"/>{v.status}</span></td><td><span className="table-sub">{folderPathForGroup(v.groupId,data.groups)||v.folderName||"Unassigned"}</span></td><td><span className="table-sub">{v.quality&&v.quality!=="best"?v.quality:v.quality==="best"?"Best":"—"}</span></td><td>{v.sourceUrl?<a href={v.sourceUrl} target="_blank" rel="noreferrer" className="section-link" data-testid={`link-source-${v.id}`}><Link2 size={12} style={{verticalAlign:"-2px"}}/> {v.serverSource?"Server-ready":"Preview only"}</a>:<span className="table-sub">Not attached</span>}</td><td><div className="actions">{v.serverSource&&<button className="icon-button" style={{width:30,height:30}} onClick={()=>setTrimVideo(v)} title="Trim clip" data-testid={`button-trim-video-${v.id}`}><Scissors size={13}/></button>}<><button className="icon-button" style={{width:30,height:30}} onClick={()=>openEditVideo(v)} title="Edit video" data-testid={`button-edit-video-${v.id}`}><Pencil size={13}/></button><button className="icon-button" style={{width:30,height:30}} onClick={()=>setDeleting({kind:"video",id:v.id,name:v.title})} title="Delete video" data-testid={`button-delete-video-${v.id}`}><Trash2 size={13}/></button></></div></td></tr>)}</tbody></table></div>}</div>;
     const openNewGroup=(parentId="")=>{setEditingGroup(undefined);setNewGroupParentId(isIncludedFolder(parentId,data.groups)? "":parentId);setGroupModal(true);};
     const renderGroupCard=(g:VideoGroup):ReactNode=>{
       const children=data.groups.filter((child)=>child.parentId===g.id);
@@ -1418,15 +1430,17 @@ function VideosPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}) {
       const canAddChild=!isIncludedFolder(g.id,data.groups);
       const canAddVideo=isVideoDestinationFolder(g.id,data.groups);
       const openLabel=isRoot?"Choose Included Animations or My Animations":g.id===includedAnimationFolderId?"Admin managed · shared with every license":g.id===myAnimationFolderId?"Private to this license":"Open folder";
-      return <div className="folder-tree-node" key={g.id}><div className={`card group-card ${children.length ? "group-card-parent" : ""}`} data-testid={`card-group-${g.id}`}><button className={`group-open ${isRoot ? "group-open-static" : ""}`} disabled={isRoot} onClick={()=>openGroup(g.id)} data-testid={`button-open-group-${g.id}`}><h3>{g.name}</h3><p>{g.description||"No description yet."}</p><span className="group-open-label">{openLabel} {!isRoot&&<ArrowRight size={12}/>}</span></button><div className="group-foot"><span>{g.videoIds.length} video{g.videoIds.length===1?"":"s"}</span><div className="group-actions">{canAddVideo&&<button onClick={()=>openAddVideo(g.id)} className="section-link" data-testid={`button-add-video-${g.id}`}>Add video</button>}{canAddChild&&<button onClick={()=>openNewGroup(g.id)} className="section-link" data-testid={`button-add-subfolder-${g.id}`}>Add folder inside</button>}{!isBuiltInYoutubeFolder(g)&&<button onClick={()=>setDeleting({kind:"group",id:g.id,name:g.name})} className="section-link" style={{color:"#a05b45"}} data-testid={`button-delete-group-${g.id}`}>Delete</button>}</div></div>{children.length>0&&<div className="folder-tree-children"><span className="folder-tree-label">Inside {g.name}</span>{children.map(renderGroupCard)}</div>}</div></div>;
+       return <div className="folder-tree-node" key={g.id}><div className={`card group-card ${children.length ? "group-card-parent" : ""}`} data-testid={`card-group-${g.id}`}><button className={`group-open ${isRoot ? "group-open-static" : ""}`} disabled={isRoot} onClick={()=>openGroup(g.id)} data-testid={`button-open-group-${g.id}`}><h3>{g.name}</h3><p>{g.description||"No description yet."}</p><span className="group-open-label">{openLabel} {!isRoot&&<ArrowRight size={12}/>}</span></button><div className="group-foot"><span>{g.videoIds.length} video{g.videoIds.length===1?"":"s"}</span><div className="group-actions">{canAddVideo&&<button onClick={()=>openAddVideo(g.id)} className="section-link" data-testid={`button-add-video-${g.id}`}>Add video</button>}{canAddChild&&<button onClick={()=>openNewGroup(g.id)} className="section-link" data-testid={`button-add-subfolder-${g.id}`}>Add folder inside</button>}{!isBuiltInYoutubeFolder(g)&&<button onClick={()=>setDeleting({kind:"group",id:g.id,name:g.name})} className="section-link" style={{color:"#a05b45"}} data-testid={`button-delete-group-${g.id}`}>Delete</button>}</div></div>{children.length>0&&<div className="folder-tree-children"><span className="folder-tree-label">Inside {g.name}</span>{children.filter((child)=>!isIncludedFolder(child.id,data.groups)).map(renderGroupCard)}</div>}</div></div>;
     };
-   const groups=<div>{data.groups.length===0?<div className="card"><EmptyState icon={<FolderOpen size={21}/>} title="No categories yet" copy="Create a category to organize videos into a series or collection." action="Create category" onClick={()=>openNewGroup()}/></div>:<div className="group-tree">{data.groups.filter((item)=>!item.parentId).map(renderGroupCard)}</div>}</div>;
-         return <AppShell title="Video library" workspace={workspace}><div className="page"><div className="page-head"><div><p className="eyebrow">Archive & distribution</p><h1>Video library</h1><p className="subtle">My YouTube Animation contains shared Included Animations and private My Animations. Personal folders can go inside one another without a depth limit.</p></div><div style={{display:"flex",gap:8,flexWrap:"wrap",justifyContent:"flex-end"}}><Link className="button secondary" href="/editor" data-testid="link-open-video-editor"><Wand2 size={15}/> Video editor</Link>{tab==="groups"&&<button className="button secondary" onClick={()=>openNewGroup()} data-testid="button-add-group"><Plus size={15}/> New category</button>}{tab==="library"&&<button className="button danger" onClick={()=>setDeletingAll(true)} disabled={!data.videos.some((video)=>!isIncludedVideo(video))} data-testid="button-delete-all-videos"><Trash2 size={15}/> Delete personal videos</button>}<button className="button secondary" onClick={()=>setFolderModal(true)} data-testid="button-folder-upload"><FolderOpen size={15}/> Add folder</button><button className="button secondary" onClick={()=>setYoutubeModal(true)} data-testid="button-youtube-downloader"><Download size={15}/> Bulk YouTube download</button><button className="button" onClick={()=>openAddVideo(group!=="all"?group:myAnimationFolderId)} data-testid="button-add-video"><Plus size={15}/> Add video</button></div></div><div className="toolbar"><div className="filter-row"><button className={`button small ${tab==="library"?"":"ghost"}`} onClick={()=>setTab("library")} data-testid="button-tab-library"><FileVideo size={13}/> Videos</button><button className={`button small ${tab==="groups"?"":"ghost"}`} onClick={()=>setTab("groups")} data-testid="button-tab-groups"><FolderOpen size={13}/> Folders</button></div>{tab==="library"&&<div className="filter-row"><div className="input-wrap"><Search size={14}/><input type="search" value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search videos…" data-testid="input-search-videos"/></div><select value={status} onChange={e=>setStatus(e.target.value)} data-testid="select-filter-status"><option value="all">All statuses</option><option value="published">Published</option><option value="draft">Draft</option><option value="archived">Archived</option></select><select value={group} onChange={e=>setGroup(e.target.value)} data-testid="select-filter-group"><option value="all">All categories</option>{data.groups.map(g=><option value={g.id} key={g.id}>{folderPathForGroup(g.id,data.groups)}</option>)}</select></div>}</div>{tab==="library"?library:groups}</div>{videoModal&&<VideoModal video={editingVideo} groups={data.groups} defaultGroupId={videoGroupId} licenseId={workspace.licenseId} licenseName={workspace.user} onSave={saveVideo} onClose={()=>{setVideoModal(false);setVideoGroupId("");setEditingVideo(undefined)}}/>}{trimVideo&&<TrimModal video={trimVideo} licenseId={workspace.licenseId} licenseName={workspace.user} folderName={folderPathForGroup(trimVideo.groupId,data.groups)||trimVideo.folderName||""} onCreate={clip=>{const videos=data.videos.filter(video=>video.id!==trimVideo.id);update({videos:[...videos,clip],groups:rebuildGroupMembership(data.groups,[...videos,clip])},{message:`${trimVideo.title} was replaced by ${clip.title}`,type:"video"});setTrimVideo(undefined)}} onClose={()=>setTrimVideo(undefined)}/>} {youtubeModal&&<YoutubeDownloadModal groups={data.groups} defaultGroupId={group!=="all"&&isVideoDestinationFolder(group,data.groups)?group:myAnimationFolderId} licenseId={workspace.licenseId} licenseName={workspace.user} onSaveMany={saveVideos} onClose={()=>setYoutubeModal(false)}/>} {folderModal&&<BulkUploadModal groups={data.groups} defaultGroupId={group!=="all"&&isVideoDestinationFolder(group,data.groups)?group:myAnimationFolderId} licenseId={workspace.licenseId} licenseName={workspace.user} onSaveMany={saveVideos} onClose={()=>setFolderModal(false)}/>} {groupModal&&<GroupModal group={editingGroup} groups={data.groups} defaultParentId={newGroupParentId} onSave={saveGroup} onClose={()=>{setGroupModal(false);setEditingGroup(undefined);setNewGroupParentId("")}}/>}{deleting&&<ConfirmModal title={`Delete this ${deleting.kind}?`} copy={`“${deleting.name}” will be removed from the ${deleting.kind==="video"?"library and its stored file":"workspace along with every video inside it"}. This cannot be undone.`} onClose={()=>setDeleting(undefined)} onConfirm={()=>void remove()}/>} {deletingAll&&<ConfirmModal title="Delete personal videos?" copy="Every stored video file for this license will be deleted. Included Animations will stay available to everyone." onClose={()=>setDeletingAll(false)} onConfirm={()=>void removeAll()}/>}</AppShell>;
+     const personalGroups = data.groups.filter((item) => !isYoutubeAnimationRoot(item.id, data.groups) && !isIncludedFolder(item.id, data.groups));
+     const groups=<div>{personalGroups.length===0?<div className="card"><EmptyState icon={<FolderOpen size={21}/>} title="No personal categories yet" copy="Create a category to organize your personal videos. Shared YouTube animations are available inside Video editor." action="Create category" onClick={()=>openNewGroup()}/></div>:<div className="group-tree">{personalGroups.filter((item)=>!item.parentId).map(renderGroupCard)}</div>}</div>;
+          return <AppShell title="Video library" workspace={workspace}><div className="page"><div className="page-head"><div><p className="eyebrow">Archive & distribution</p><h1>Video library</h1><p className="subtle">Personal videos live here. Shared YouTube animations are available only inside Video editor.</p></div><div style={{display:"flex",gap:8,flexWrap:"wrap",justifyContent:"flex-end"}}><Link className="button secondary" href="/editor" data-testid="link-open-video-editor"><Wand2 size={15}/> Video editor</Link>{tab==="groups"&&<button className="button secondary" onClick={()=>openNewGroup()} data-testid="button-add-group"><Plus size={15}/> New category</button>}{tab==="library"&&<button className="button danger" onClick={()=>setDeletingAll(true)} disabled={!data.videos.some((video)=>!isIncludedVideo(video))} data-testid="button-delete-all-videos"><Trash2 size={15}/> Delete personal videos</button>}<button className="button secondary" onClick={()=>setFolderModal(true)} data-testid="button-folder-upload"><FolderOpen size={15}/> Add folder</button><button className="button secondary" onClick={()=>setYoutubeModal(true)} data-testid="button-youtube-downloader"><Download size={15}/> Bulk YouTube download</button><button className="button" onClick={()=>openAddVideo(group!=="all"?group:myAnimationFolderId)} data-testid="button-add-video"><Plus size={15}/> Add video</button></div></div><div className="toolbar"><div className="filter-row"><button className={`button small ${tab==="library"?"":"ghost"}`} onClick={()=>setTab("library")} data-testid="button-tab-library"><FileVideo size={13}/> Videos</button><button className={`button small ${tab==="groups"?"":"ghost"}`} onClick={()=>setTab("groups")} data-testid="button-tab-groups"><FolderOpen size={13}/> Folders</button></div>{tab==="library"&&<div className="filter-row"><div className="input-wrap"><Search size={14}/><input type="search" value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search personal videos…" data-testid="input-search-videos"/></div><select value={status} onChange={e=>setStatus(e.target.value)} data-testid="select-filter-status"><option value="all">All statuses</option><option value="published">Published</option><option value="draft">Draft</option><option value="archived">Archived</option></select><select value={group} onChange={e=>setGroup(e.target.value)} data-testid="select-filter-group"><option value="all">All personal folders</option>{data.groups.filter((item)=>!isIncludedFolder(item.id,data.groups)).map(g=><option value={g.id} key={g.id}>{folderPathForGroup(g.id,data.groups)}</option>)}</select></div>}</div>{tab==="library"?library:groups}</div>{videoModal&&<VideoModal video={editingVideo} groups={data.groups} defaultGroupId={videoGroupId} licenseId={workspace.licenseId} licenseName={workspace.user} onSave={saveVideo} onClose={()=>{setVideoModal(false);setVideoGroupId("");setEditingVideo(undefined)}}/>}{trimVideo&&<TrimModal video={trimVideo} licenseId={workspace.licenseId} licenseName={workspace.user} folderName={folderPathForGroup(trimVideo.groupId,data.groups)||trimVideo.folderName||""} onCreate={clip=>{const videos=data.videos.filter(video=>video.id!==trimVideo.id);update({videos:[...videos,clip],groups:rebuildGroupMembership(data.groups,[...videos,clip])},{message:`${trimVideo.title} was replaced by ${clip.title}`,type:"video"});setTrimVideo(undefined)}} onClose={()=>setTrimVideo(undefined)}/>} {youtubeModal&&<YoutubeDownloadModal groups={data.groups} defaultGroupId={group!=="all"&&isVideoDestinationFolder(group,data.groups)?group:myAnimationFolderId} licenseId={workspace.licenseId} licenseName={workspace.user} onSaveMany={saveVideos} onClose={()=>setYoutubeModal(false)}/>} {folderModal&&<BulkUploadModal groups={data.groups} defaultGroupId={group!=="all"&&isVideoDestinationFolder(group,data.groups)?group:myAnimationFolderId} licenseId={workspace.licenseId} licenseName={workspace.user} onSaveMany={saveVideos} onClose={()=>setFolderModal(false)}/>} {groupModal&&<GroupModal group={editingGroup} groups={data.groups} defaultParentId={newGroupParentId} onSave={saveGroup} onClose={()=>{setGroupModal(false);setEditingGroup(undefined);setNewGroupParentId("")}}/>}{deleting&&<ConfirmModal title={`Delete this ${deleting.kind}?`} copy={`“${deleting.name}” will be removed from the ${deleting.kind==="video"?"library and its stored file":"workspace along with every video inside it"}. This cannot be undone.`} onClose={()=>setDeleting(undefined)} onConfirm={()=>void remove()}/>} {deletingAll&&<ConfirmModal title="Delete personal videos?" copy="Every stored video file for this license will be deleted. Included Animations will stay available to everyone." onClose={()=>setDeletingAll(false)} onConfirm={()=>void removeAll()}/>}</AppShell>;
 }
 
 function VideoEditorPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}) {
   const {data, update, setToast} = workspace;
   const [groupId, setGroupId] = useState("");
+  const [editorLibrary, setEditorLibrary] = useState<"personal" | "youtube">("personal");
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [loopCount, setLoopCount] = useState("1");
   const [title, setTitle] = useState("");
@@ -1439,6 +1453,12 @@ function VideoEditorPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}
   const [webcamTransform, setWebcamTransform] = useState<EditorTransform>({ x: 0, y: 0, scale: 0.25 });
   const [selectedLayer, setSelectedLayer] = useState<EditorLayer>("main");
   const [animationPreset, setAnimationPreset] = useState<AnimationPreset>("none");
+  const [reverseVideo, setReverseVideo] = useState(false);
+  const [colorAdjustments, setColorAdjustments] = useState<EditorColorAdjustments>({ brightness: 0, contrast: 1, saturation: 1, hue: 0 });
+  const [chromaKeyEnabled, setChromaKeyEnabled] = useState(false);
+  const [chromaKeyColor, setChromaKeyColor] = useState("#00ff00");
+  const [chromaSimilarity, setChromaSimilarity] = useState(0.32);
+  const [chromaBlend, setChromaBlend] = useState(0.08);
   const [webcamId, setWebcamId] = useState("");
   const [logoId, setLogoId] = useState("");
   const [previewExpanded, setPreviewExpanded] = useState(false);
@@ -1446,8 +1466,14 @@ function VideoEditorPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}
   const [error, setError] = useState("");
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const selectedGroup = data.groups.find((group) => group.id === groupId);
+  const editorGroups = useMemo(
+    () => data.groups.filter((group) => editorLibrary === "youtube"
+      ? isIncludedFolder(group.id, data.groups)
+      : !isYoutubeAnimationRoot(group.id, data.groups) && !isIncludedFolder(group.id, data.groups)),
+    [data.groups, editorLibrary],
+  );
   const groupVideos = useMemo(
-    () => selectedGroup ? videosForGroup(selectedGroup.id, data.groups, data.videos).filter((video) => video.serverSource) : [],
+    () => selectedGroup ? videosForFolderScope(selectedGroup.id, data.groups, data.videos).filter((video) => video.serverSource) : [],
     [selectedGroup, data.groups, data.videos],
   );
   const selectedVideos = selectedIds.map((id) => groupVideos.find((video) => video.id === id)).filter((video): video is VideoItem => Boolean(video));
@@ -1465,17 +1491,33 @@ function VideoEditorPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}
     webcamTransform,
     selectedLayer,
     animationPreset,
+    reverseVideo,
+    colorAdjustments,
+    chromaKeyEnabled,
+    chromaKeyColor,
+    chromaSimilarity,
+    chromaBlend,
     onSelectLayer: setSelectedLayer,
     onMainTransformChange: setMainTransform,
     onWebcamTransformChange: setWebcamTransform,
   };
   const setGroup = (nextGroupId: string) => {
     setGroupId(nextGroupId);
-    const nextVideos = videosForGroup(nextGroupId, data.groups, data.videos).filter((video) => video.serverSource);
+    const nextVideos = videosForFolderScope(nextGroupId, data.groups, data.videos).filter((video) => video.serverSource);
     setSelectedIds(nextVideos.map((video) => video.id));
     const nextGroup = data.groups.find((group) => group.id === nextGroupId);
     setTitle(nextGroup ? `${nextGroup.name} · edited` : "");
     setWebcamId("");
+  };
+  const chooseEditorLibrary = (nextLibrary: "personal" | "youtube") => {
+    setEditorLibrary(nextLibrary);
+    setGroupId("");
+    setSelectedIds([]);
+    setTitle("");
+    setWebcamId("");
+    setReverseVideo(false);
+    setColorAdjustments({ brightness: 0, contrast: 1, saturation: 1, hue: 0 });
+    setChromaKeyEnabled(false);
   };
   const toggleVideo = (videoId: string) => {
     setSelectedIds((current) => current.includes(videoId) ? current.filter((id) => id !== videoId) : [...current, videoId]);
@@ -1548,6 +1590,15 @@ function VideoEditorPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}
           overlayScale: Number(overlayScale) / 100,
           animationPreset,
           outputAspectRatio,
+           reverseVideo,
+           brightness: colorAdjustments.brightness,
+           contrast: colorAdjustments.contrast,
+           saturation: colorAdjustments.saturation,
+           hue: colorAdjustments.hue,
+           chromaKeyEnabled,
+           chromaKeyColor,
+           chromaSimilarity,
+           chromaBlend,
         }),
       });
       const output: VideoItem = {
@@ -1605,8 +1656,12 @@ function VideoEditorPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}
          </div>}
         <aside className="editor-controls">
           <section className="card editor-panel">
-            <div className="section-head"><div><h2 className="section-title">1. Choose a library</h2><p className="subtle">Only server-ready files can be rendered.</p></div><FileVideo size={17} color="#6c8b83"/></div>
-            <select value={groupId} onChange={(event) => setGroup(event.target.value)} data-testid="select-editor-group"><option value="">Select category</option>{data.groups.map((group) => <option key={group.id} value={group.id}>{group.name}</option>)}</select>
+             <div className="section-head"><div><h2 className="section-title">1. Choose a library</h2><p className="subtle">Personal files stay private. Shared animation clips are available here only.</p></div><FileVideo size={17} color="#6c8b83"/></div>
+             <div className="editor-library-tabs" role="tablist" aria-label="Editor libraries">
+               <button type="button" className={editorLibrary === "personal" ? "active" : ""} onClick={() => chooseEditorLibrary("personal")} role="tab" aria-selected={editorLibrary === "personal"} data-testid="button-editor-personal-library"><FileVideo size={13}/> Personal videos</button>
+               <button type="button" className={editorLibrary === "youtube" ? "active" : ""} onClick={() => chooseEditorLibrary("youtube")} role="tab" aria-selected={editorLibrary === "youtube"} data-testid="button-editor-youtube-animations"><Youtube size={13}/> YouTube Animations</button>
+             </div>
+             <select value={groupId} onChange={(event) => setGroup(event.target.value)} data-testid="select-editor-group"><option value="">{editorLibrary === "youtube" ? "Select animation folder" : "Select category"}</option>{editorGroups.map((group) => <option key={group.id} value={group.id}>{folderPathForGroup(group.id, data.groups)}</option>)}</select>
             <div className="editor-clip-list">{groupVideos.length ? groupVideos.map((video, index) => <label className={`editor-clip ${selectedIds.includes(video.id) ? "selected" : ""}`} key={video.id}><input type="checkbox" checked={selectedIds.includes(video.id)} onChange={() => toggleVideo(video.id)}/><span className="editor-clip-number">{String(index + 1).padStart(2, "0")}</span><span className="editor-clip-copy"><strong>{video.title}</strong><small>{video.duration} · {video.quality || "ready"}</small></span><GripIcon /></label>) : <div className="editor-mini-empty"><FolderOpen size={17}/> Create a category and add videos first.</div>}</div>
           </section>
           <section className="card editor-panel">
@@ -1633,6 +1688,19 @@ function VideoEditorPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}
              />
              {webcam && <div className="form-grid"><div className="field"><label>Face cam position</label><select value={webcamPosition} onChange={(event) => setWebcamPosition(event.target.value)} data-testid="select-editor-facecam-position"><option value="top-left">Top left</option><option value="top-right">Top right</option><option value="bottom-left">Bottom left</option><option value="bottom-right">Bottom right</option></select></div><div className="field"><label>Face cam size · {webcamScale}%</label><input type="range" min="10" max="60" value={webcamScale} onChange={(event) => setWebcamScale(event.target.value)} data-testid="input-editor-facecam-size"/></div></div>}
           </section>
+           <section className="card editor-panel">
+             <div className="section-head"><div><h2 className="section-title">4. Color & effects</h2><p className="subtle">Adjust the main video, reverse it, or key out a green background.</p></div><Sparkles size={17} color="#6c8b83"/></div>
+             <label className="check-control editor-toggle-control"><input type="checkbox" checked={reverseVideo} onChange={(event) => setReverseVideo(event.target.checked)} data-testid="toggle-editor-reverse"/><span><strong>Reverse main video</strong><small>Plays the selected clips from end to start when rendered.</small></span></label>
+             <div className="editor-effect-grid">
+               <div className="field"><label>Brightness · {Math.round(colorAdjustments.brightness * 100)}%</label><input type="range" min="-100" max="100" value={Math.round(colorAdjustments.brightness * 100)} onChange={(event) => setColorAdjustments((current) => ({ ...current, brightness: Number(event.target.value) / 100 }))} data-testid="input-editor-brightness"/></div>
+               <div className="field"><label>Contrast · {Math.round(colorAdjustments.contrast * 100)}%</label><input type="range" min="50" max="180" value={Math.round(colorAdjustments.contrast * 100)} onChange={(event) => setColorAdjustments((current) => ({ ...current, contrast: Number(event.target.value) / 100 }))} data-testid="input-editor-contrast"/></div>
+               <div className="field"><label>Saturation · {Math.round(colorAdjustments.saturation * 100)}%</label><input type="range" min="0" max="200" value={Math.round(colorAdjustments.saturation * 100)} onChange={(event) => setColorAdjustments((current) => ({ ...current, saturation: Number(event.target.value) / 100 }))} data-testid="input-editor-saturation"/></div>
+               <div className="field"><label>Hue · {colorAdjustments.hue}°</label><input type="range" min="-180" max="180" value={colorAdjustments.hue} onChange={(event) => setColorAdjustments((current) => ({ ...current, hue: Number(event.target.value) }))} data-testid="input-editor-hue"/></div>
+             </div>
+             <label className="check-control editor-toggle-control"><input type="checkbox" checked={chromaKeyEnabled} onChange={(event) => setChromaKeyEnabled(event.target.checked)} disabled={!webcam} data-testid="toggle-editor-green-screen"/><span><strong>Remove green screen from face cam</strong><small>{webcam ? "Removes the selected key color from the face cam layer." : "Add a face cam first to enable green-screen removal."}</small></span></label>
+             {chromaKeyEnabled && <div className="editor-effect-grid chroma-key-grid"><div className="field"><label>Key color</label><input type="color" value={chromaKeyColor} onChange={(event) => setChromaKeyColor(event.target.value)} data-testid="input-editor-key-color"/></div><div className="field"><label>Color range · {Math.round(chromaSimilarity * 100)}%</label><input type="range" min="10" max="90" value={Math.round(chromaSimilarity * 100)} onChange={(event) => setChromaSimilarity(Number(event.target.value) / 100)} data-testid="input-editor-key-similarity"/></div><div className="field"><label>Edge blend · {Math.round(chromaBlend * 100)}%</label><input type="range" min="0" max="35" value={Math.round(chromaBlend * 100)} onChange={(event) => setChromaBlend(Number(event.target.value) / 100)} data-testid="input-editor-key-blend"/></div></div>}
+             <div className="form-note"><Sparkles size={14} style={{verticalAlign:"-3px",marginRight:6}}/>These effects are shown in the preview and applied to the saved MP4 during render.</div>
+           </section>
           {error && <div className="error-note" style={{whiteSpace:"pre-line"}}>{error}</div>}
            <button className="button editor-render-button" type="submit" disabled={busy || !selectedVideos.length}>{busy ? `Rendering ${outputAspectRatio === "shorts" ? "Short" : outputAspectRatio === "square" ? "Square" : "Long"} video…` : "Render & save to library"} <ArrowRight size={15}/></button>
           <div className="form-note"><Sparkles size={14} style={{verticalAlign:"-3px",marginRight:6}}/>The source clips stay untouched. The rendered result is added as a new video in the selected category.</div>
@@ -1656,6 +1724,12 @@ type EditorCanvasProps = {
   webcamTransform: EditorTransform;
   selectedLayer: EditorLayer;
   animationPreset: AnimationPreset;
+  reverseVideo: boolean;
+  colorAdjustments: EditorColorAdjustments;
+  chromaKeyEnabled: boolean;
+  chromaKeyColor: string;
+  chromaSimilarity: number;
+  chromaBlend: number;
   onSelectLayer: (layer: EditorLayer) => void;
   onMainTransformChange: (transform: EditorTransform) => void;
   onWebcamTransformChange: (transform: EditorTransform) => void;
@@ -1673,6 +1747,12 @@ function EditorCanvas({
   webcamTransform,
   selectedLayer,
   animationPreset,
+  reverseVideo,
+  colorAdjustments,
+  chromaKeyEnabled,
+  chromaKeyColor,
+  chromaSimilarity,
+  chromaBlend,
   onSelectLayer,
   onMainTransformChange,
   onWebcamTransformChange,
@@ -1680,6 +1760,7 @@ function EditorCanvas({
   onCloseExpanded,
 }: EditorCanvasProps) {
   const canvasRef = useRef<HTMLDivElement>(null);
+  const mainVideoRef = useRef<HTMLVideoElement>(null);
   const pointersRef = useRef(new Map<number, { x: number; y: number }>());
   const gestureRef = useRef<{ layer: EditorLayer; distance: number; scale: number } | undefined>(undefined);
   const dragRef = useRef<{ layer: EditorLayer; x: number; y: number; transform: EditorTransform; resize?: boolean } | undefined>(undefined);
@@ -1690,6 +1771,17 @@ function EditorCanvas({
     document.addEventListener("fullscreenchange", handleFullscreenChange);
     return () => document.removeEventListener("fullscreenchange", handleFullscreenChange);
   }, []);
+
+  useEffect(() => {
+    const video = mainVideoRef.current;
+    if (!video || !reverseVideo) return;
+    video.pause();
+    const rewind = window.setInterval(() => {
+      if (!video.duration || !Number.isFinite(video.duration)) return;
+      video.currentTime = video.currentTime <= 0.05 ? video.duration : video.currentTime - 0.05;
+    }, 50);
+    return () => window.clearInterval(rewind);
+  }, [previewUrl, reverseVideo]);
 
   const getPoint = (event: { clientX: number; clientY: number }) => {
     const rect = canvasRef.current?.getBoundingClientRect();
@@ -1803,14 +1895,18 @@ function EditorCanvas({
     onWheel={onWheel}
   >
     {previewUrl ? <video
-      src={previewUrl}
-      muted
-      autoPlay
-      loop
-      playsInline
-      className={`editor-preview-video editor-layer-main ${selectedLayer === "main" ? "active" : ""}`}
-      data-editor-layer="main"
-      style={{ transform: `translate(${mainTransform.x}%, ${mainTransform.y}%) scale(${mainTransform.scale})` }}
+       ref={mainVideoRef}
+       src={previewUrl}
+       muted
+       autoPlay={!reverseVideo}
+       loop
+       playsInline
+       className={`editor-preview-video editor-layer-main ${selectedLayer === "main" ? "active" : ""}`}
+       data-editor-layer="main"
+       style={{
+         transform: `translate(${mainTransform.x}%, ${mainTransform.y}%) scale(${mainTransform.scale})`,
+         filter: `brightness(${1 + colorAdjustments.brightness}) contrast(${colorAdjustments.contrast}) saturate(${colorAdjustments.saturation}) hue-rotate(${colorAdjustments.hue}deg)`,
+       }}
     /> : <div className="editor-empty"><Layers size={27}/><strong>Your composition appears here</strong><span>Choose a category and tick the clips you want to merge.</span></div>}
     {webcamUrl && <video
       src={webcamUrl}
@@ -1818,8 +1914,11 @@ function EditorCanvas({
       autoPlay
       loop
       playsInline
-      className={`editor-face-layer ${selectedLayer === "webcam" ? "active" : ""}`}
+       className={`editor-face-layer ${selectedLayer === "webcam" ? "active" : ""} ${chromaKeyEnabled ? "editor-face-layer-keyed" : ""}`}
       data-editor-layer="webcam"
+       data-key-color={chromaKeyColor}
+       data-key-similarity={chromaSimilarity}
+       data-key-blend={chromaBlend}
       style={{ left: `${50 + webcamTransform.x}%`, top: `${50 + webcamTransform.y}%`, width: `${webcamTransform.scale * 100}%` }}
     />}
     {logo && <img src={logo.playbackUrl} alt="Logo overlay preview" className={`editor-overlay logo-${logoPosition}`}/>}
@@ -1831,6 +1930,7 @@ function EditorCanvas({
       aria-hidden="true"
       style={{ left: `${50 + webcamTransform.x}%`, top: `${50 + webcamTransform.y}%`, width: `${webcamTransform.scale * 100}%` }}
     ><span className="editor-selection-label">Face cam · {Math.round(webcamTransform.scale * 100)}%</span><button type="button" data-editor-resize="webcam" aria-label="Resize face cam" className="editor-resize-handle" /></div>}
+     {(reverseVideo || chromaKeyEnabled || colorAdjustments.brightness !== 0 || colorAdjustments.contrast !== 1 || colorAdjustments.saturation !== 1 || colorAdjustments.hue !== 0) && <div className="editor-effect-badges"><span>{reverseVideo ? "Reverse" : "Effects"}</span>{chromaKeyEnabled && <span>Green screen removed</span>}{colorAdjustments.brightness !== 0 || colorAdjustments.contrast !== 1 || colorAdjustments.saturation !== 1 || colorAdjustments.hue !== 0 ? <span>Color grade</span> : null}</div>}
     <div className="editor-canvas-toolbar">
       <span className="editor-canvas-hint">{isFullscreen ? "Fullscreen preview" : "Drag to move · wheel or pinch to zoom"}</span>
        {expanded && onCloseExpanded && <button type="button" className="editor-canvas-button" onPointerDown={(event) => event.stopPropagation()} onClick={onCloseExpanded} title="Close large preview">Close editor</button>}

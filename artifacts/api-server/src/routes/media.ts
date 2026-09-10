@@ -135,6 +135,15 @@ type ComposeMediaBody = {
   webcamY?: unknown;
   animationPreset?: unknown;
   outputAspectRatio?: unknown;
+  reverseVideo?: unknown;
+  brightness?: unknown;
+  contrast?: unknown;
+  saturation?: unknown;
+  hue?: unknown;
+  chromaKeyEnabled?: unknown;
+  chromaKeyColor?: unknown;
+  chromaSimilarity?: unknown;
+  chromaBlend?: unknown;
 };
 
 type YoutubeDownloadInput = {
@@ -722,6 +731,18 @@ router.post("/media/compose", async (req, res): Promise<void> => {
   const outputAspectRatio = body.outputAspectRatio === "shorts" || body.outputAspectRatio === "square" || body.outputAspectRatio === "full"
     ? body.outputAspectRatio
     : "full";
+  const reverseVideo = body.reverseVideo === true;
+  const brightness = clampNumber(body.brightness, -1, 1, 0);
+  const contrast = clampNumber(body.contrast, 0.5, 1.8, 1);
+  const saturation = clampNumber(body.saturation, 0, 2, 1);
+  const hue = clampNumber(body.hue, -180, 180, 0);
+  const chromaKeyEnabled = body.chromaKeyEnabled === true && Boolean(webcamFileId);
+  const rawChromaKeyColor = typeof body.chromaKeyColor === "string" ? body.chromaKeyColor.trim() : "#00ff00";
+  const chromaKeyColor = /^#?[0-9a-f]{6}$/i.test(rawChromaKeyColor)
+    ? `0x${rawChromaKeyColor.replace("#", "")}`
+    : "0x00ff00";
+  const chromaSimilarity = clampNumber(body.chromaSimilarity, 0.05, 0.95, 0.32);
+  const chromaBlend = clampNumber(body.chromaBlend, 0, 0.5, 0.08);
   const outputDimensions = {
     shorts: [1080, 1920],
     full: [1920, 1080],
@@ -792,9 +813,15 @@ router.post("/media/compose", async (req, res): Promise<void> => {
 
     const [width, height] = outputDimensions;
     const overlayIds = [logoFileId, webcamFileId].filter(Boolean);
+    const mainFilters = [
+      reverseVideo ? "reverse" : "",
+      `scale=${Math.round(width * mainScale)}:${Math.round(height * mainScale)}:force_original_aspect_ratio=decrease`,
+      `eq=brightness=${brightness}:contrast=${contrast}:saturation=${saturation}`,
+      `hue=h=${hue}`,
+    ].filter(Boolean).join(",");
     const filterParts: string[] = [
       `color=c=#061518:s=${width}x${height}:d=${Math.max(1, estimatedDuration)}[canvas]`,
-      `[0:v]scale=${Math.round(width * mainScale)}:${Math.round(height * mainScale)}:force_original_aspect_ratio=decrease[main]`,
+      `[0:v]${mainFilters}[main]`,
       `[canvas][main]overlay=x='(W-w)/2+${Math.round(width * mainX / 100)}':y='(H-h)/2+${Math.round(height * mainY / 100)}'[base]`,
     ];
     let current = "[base]";
@@ -804,10 +831,13 @@ router.post("/media/compose", async (req, res): Promise<void> => {
       const scaled = `[overlay${index}]`;
       const next = `[composed${index}]`;
       const scale = isLogo ? `scale=iw*${overlayScale}:ih*${overlayScale}` : `scale=${Math.round(width * webcamScale)}:-2`;
+      const chroma = !isLogo && chromaKeyEnabled
+        ? `,chromakey=${chromaKeyColor}:similarity=${chromaSimilarity}:blend=${chromaBlend}`
+        : "";
       const position = isLogo
         ? overlayCoordinates(logoPosition, "main_w", "main_h")
         : `(main_w-overlay_w)/2+${Math.round(width * webcamX / 100)}:(main_h-overlay_h)/2+${Math.round(height * webcamY / 100)}`;
-      filterParts.push(`${input}${scale}${scaled}`, `${current}${scaled}overlay=${position}:eof_action=repeat${next}`);
+      filterParts.push(`${input}${scale}${chroma}${scaled}`, `${current}${scaled}overlay=${position}:eof_action=repeat${next}`);
       current = next;
     });
     const animation = animationFilter(animationPreset, width, height);
@@ -825,6 +855,7 @@ router.post("/media/compose", async (req, res): Promise<void> => {
       "-filter_complex", `${filterParts.join(";")};${current}null[outv]`,
       "-map", "[outv]",
       "-map", "0:a?",
+      ...(reverseVideo ? ["-af", "areverse"] : []),
       "-c:v", "libx264",
       "-preset", "veryfast",
       "-crf", "18",

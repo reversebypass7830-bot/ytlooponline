@@ -1,0 +1,31 @@
+Edit वाले में दिखना चाहिए। ठीक है, बस edit वाले में यह folder दिखना चाहिए। क्या बोलते हैं हम? Included animation, edit वाले में ही दिखना चाहिए। ठीक है। यह normal में नहीं दिखना चाहिए। ठीक है। यह admin पहले से add किया होगा। जैसे edit में YouTube animations करके रहता है। ठीक है। उस पर click करेंगे तो उसके अंदर पहले से दिखना चाहिए। ठीक है। वह बस उधर पर दिखना चाहिए, जहां पर मैं video को small, बड़ा कर सकूं, proper edit कर सकूं। जैसे video के colors, जैसे original में से मैं video को reverse भी कर सकूं। उल्टा, जैसे copyright ना आए। बहुत सी चीजें कर सकते हैं इधर पर। ठीक है। ऐसे ही editor वाले पर आप सारे editing के, color shading सब कुछ add कर दो, proper। ठीक है। हर एक चीज proper। Green paper रहेगा तो उसमें normal green हटा के normal उसी को run कर दो। वह सब कुछ add कर दो। ठीक है। Background में green का रहेगा तो वह सब कुछ fix कर दो। ठीक है, properly। यह folders बस उस पर दिखना चाहिए, video editing के अंदर। यह normal user को नहीं दिखना चाहिए। Only admin को ही। ठीक है। बस उतना ही। Admin add कर सके इसके अंदर animation सब कुछ। बस उतना ही। जो users को जब दिखेंगे, edit के अंदर जाएंगे तो उधर पर सारे options रहते हैं। उधर पर YouTube animations का एक button रहना है। उस पर click करेंगे तो उधर पर सारे animation दिखेंगे। तो अपना कोई भी select करो और उधर से ऐसे करो। ठीक है। अभी admin में जाकर यह videos install कर रहा हूं। उधर पर admin में ही folder बना दो। उधर से मैं install कर सकूं। सबको दिखे वो सारी चीजें। Proper fix कर दो हर एक चीज।
+
+VI
+vixipip457
+vixipip457
+Free
+5 minutes ago
+Planning design changes
+
+Planning design changes
+समझ गया भाई। मैं इसे इस तरह अलग कर रहा हूँ:
+
+Normal video library में Included Animations और उसके videos नहीं दिखेंगे।
+Video editor में अलग YouTube Animations selector/button होगा।
+वहाँ Included Animations → Like and Subscribe folder और उसके अंदर के admin videos दिखेंगे।
+User वहाँ से animation select करके editor में लाएगा।
+Existing admin upload flow से admin shared folder में नए animations जोड़ सकेगा।
+Personal videos normal library और editor में अलग रहेंगे।
+पहले existing editor flow देख रहा हूँ ताकि यह current editing controls के साथ सही जुड़े, बिना बाकी workspace तोड़े।
+
+
+
+15 actions
+मैं पहले visibility और editor entry point जोड़ रहा हूँ, फिर उसी editor में color, reverse और green-screen render options जोड़ूँगा। इससे Included assets normal library में leak नहीं होंगे, लेकिन editor में अलग YouTube Animations control से उपलब्ध रहेंगे।
+
+
+
+3 actions
+
+Worked for 2 minutes
+You've reached your daily free quota limit. It will reset at 12:00 AM UTC.
