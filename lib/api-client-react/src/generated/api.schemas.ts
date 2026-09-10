@@ -159,13 +159,23 @@ export const ComposeMediaInputWebcamPosition = {
   'bottom-right': 'bottom-right',
 } as const;
 
+export type ComposeMediaInputAnimationPreset = typeof ComposeMediaInputAnimationPreset[keyof typeof ComposeMediaInputAnimationPreset];
+
+
+export const ComposeMediaInputAnimationPreset = {
+  none: 'none',
+  subscribe: 'subscribe',
+  like: 'like',
+  follow: 'follow',
+} as const;
+
 export type ComposeMediaInputOutputAspectRatio = typeof ComposeMediaInputOutputAspectRatio[keyof typeof ComposeMediaInputOutputAspectRatio];
 
 
 export const ComposeMediaInputOutputAspectRatio = {
-  'shorts': 'shorts',
-  'full': 'full',
-  'square': 'square',
+  shorts: 'shorts',
+  full: 'full',
+  square: 'square',
 } as const;
 
 export interface ComposeMediaInput {
@@ -188,9 +198,35 @@ export interface ComposeMediaInput {
   overlayScale?: number;
   /**
      * @minimum 0.1
-     * @maximum 0.6
+     * @maximum 0.8
      */
   webcamScale?: number;
+  /**
+     * @minimum -48
+     * @maximum 48
+     */
+  mainX?: number;
+  /**
+     * @minimum -48
+     * @maximum 48
+     */
+  mainY?: number;
+  /**
+     * @minimum 0.5
+     * @maximum 2.5
+     */
+  mainScale?: number;
+  /**
+     * @minimum -48
+     * @maximum 48
+     */
+  webcamX?: number;
+  /**
+     * @minimum -48
+     * @maximum 48
+     */
+  webcamY?: number;
+  animationPreset?: ComposeMediaInputAnimationPreset;
   outputAspectRatio?: ComposeMediaInputOutputAspectRatio;
 }
 

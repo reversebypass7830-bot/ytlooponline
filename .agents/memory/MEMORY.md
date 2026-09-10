@@ -15,3 +15,4 @@
 - [Orval integer schemas](orval-integer-schemas.md) — this workspace's generated Zod runtime may reject zod.int(); prefer compatible numeric OpenAPI schemas when codegen needs an integer.
 - [VidKraken token rotation](vidkraken-token-rotation.md) — owner-managed TOKEN entries must rotate on quota errors and keep cooldown state outside the process.
 - [Async download job recovery](async-download-job-recovery.md) — browser polling must recover once when an in-memory job disappears after an API restart.
+- [Editor composition coordinates](editor-composition-coordinates.md) — keep layer translation normalized so canvas preview and FFmpeg output stay aligned.

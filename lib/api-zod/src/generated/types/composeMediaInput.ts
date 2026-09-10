@@ -5,7 +5,9 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { ComposeMediaInputAnimationPreset } from './composeMediaInputAnimationPreset';
 import type { ComposeMediaInputLogoPosition } from './composeMediaInputLogoPosition';
+import type { ComposeMediaInputOutputAspectRatio } from './composeMediaInputOutputAspectRatio';
 import type { ComposeMediaInputWebcamPosition } from './composeMediaInputWebcamPosition';
 
 export interface ComposeMediaInput {
@@ -26,4 +28,36 @@ export interface ComposeMediaInput {
      * @maximum 0.8
      */
   overlayScale?: number;
+  /**
+     * @minimum 0.1
+     * @maximum 0.8
+     */
+  webcamScale?: number;
+  /**
+     * @minimum -48
+     * @maximum 48
+     */
+  mainX?: number;
+  /**
+     * @minimum -48
+     * @maximum 48
+     */
+  mainY?: number;
+  /**
+     * @minimum 0.5
+     * @maximum 2.5
+     */
+  mainScale?: number;
+  /**
+     * @minimum -48
+     * @maximum 48
+     */
+  webcamX?: number;
+  /**
+     * @minimum -48
+     * @maximum 48
+     */
+  webcamY?: number;
+  animationPreset?: ComposeMediaInputAnimationPreset;
+  outputAspectRatio?: ComposeMediaInputOutputAspectRatio;
 }

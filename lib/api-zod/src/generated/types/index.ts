@@ -8,7 +8,9 @@
 
 export * from './addVidKrakenTokenInput';
 export * from './composeMediaInput';
+export * from './composeMediaInputAnimationPreset';
 export * from './composeMediaInputLogoPosition';
+export * from './composeMediaInputOutputAspectRatio';
 export * from './composeMediaInputWebcamPosition';
 export * from './createLicenseInput';
 export * from './deleteLicenseResult';

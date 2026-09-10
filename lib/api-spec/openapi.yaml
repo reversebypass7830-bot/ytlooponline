@@ -840,8 +840,37 @@ components:
         webcamScale:
           type: number
           minimum: 0.1
-          maximum: 0.6
+          maximum: 0.8
           default: 0.25
+        mainX:
+          type: number
+          minimum: -48
+          maximum: 48
+          default: 0
+        mainY:
+          type: number
+          minimum: -48
+          maximum: 48
+          default: 0
+        mainScale:
+          type: number
+          minimum: 0.5
+          maximum: 2.5
+          default: 1
+        webcamX:
+          type: number
+          minimum: -48
+          maximum: 48
+          default: 0
+        webcamY:
+          type: number
+          minimum: -48
+          maximum: 48
+          default: 0
+        animationPreset:
+          type: string
+          enum: [none, subscribe, like, follow]
+          default: none
         outputAspectRatio:
           type: string
           enum: [shorts, full, square]

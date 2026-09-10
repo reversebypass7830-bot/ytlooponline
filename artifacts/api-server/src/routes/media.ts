@@ -121,6 +121,12 @@ type ComposeMediaBody = {
   webcamPosition?: unknown;
   overlayScale?: unknown;
   webcamScale?: unknown;
+  mainX?: unknown;
+  mainY?: unknown;
+  mainScale?: unknown;
+  webcamX?: unknown;
+  webcamY?: unknown;
+  animationPreset?: unknown;
   outputAspectRatio?: unknown;
 };
 
@@ -257,6 +263,25 @@ function overlayCoordinates(position: string, mainWidth: string, mainHeight: str
     case "bottom-right": return `${mainWidth}-overlay_w-24:${mainHeight}-overlay_h-24`;
     default: return "24:24";
   }
+}
+
+function clampNumber(value: unknown, minimum: number, maximum: number, fallback: number): number {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? Math.min(maximum, Math.max(minimum, parsed)) : fallback;
+}
+
+function animationFilter(preset: string, width: number, height: number): string {
+  const copy = preset === "subscribe" ? "SUBSCRIBE" : preset === "like" ? "LIKE" : preset === "follow" ? "FOLLOW" : "";
+  if (!copy) return "";
+  const subtitle = preset === "subscribe" ? "New drop live" : preset === "like" ? "Show some love" : "Stay with us";
+  const safeCopy = copy.replaceAll(":", "\\:");
+  const safeSubtitle = subtitle.replaceAll(":", "\\:");
+  const fontSize = Math.max(28, Math.round(width / 48));
+  const x = `(w-text_w)/2`;
+  const y = `h-${Math.round(height * 0.16)}-if(lt(t\\,0.6)\\,(0.6-t)*${Math.round(height * 0.12)}\\,0)`;
+  const alpha = `if(lt(t\\,0.35)\\,t/0.35\\,if(lt(t\\,3.2)\\,1\\,if(lt(t\\,4)\\,4-t\\,0)))`;
+  const subtitleSize = Math.max(16, Math.round(width / 100));
+  return `drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:text='${safeCopy}':fontcolor=white:fontsize=${fontSize}:box=1:boxcolor=0xE53935@0.95:boxborderw=${Math.round(fontSize * 0.8)}:x='${x}':y='${y}':alpha='${alpha}',drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf:text='${safeSubtitle}':fontcolor=white:fontsize=${subtitleSize}:x='(w-text_w)/2':y='h-${Math.round(height * 0.095)}':alpha='${alpha}'`;
 }
 
 function decodeHeaderValue(value: string | undefined): string {
@@ -668,7 +693,15 @@ router.post("/media/compose", async (req, res): Promise<void> => {
   const logoPosition = typeof body.logoPosition === "string" ? body.logoPosition : "bottom-right";
   const webcamPosition = typeof body.webcamPosition === "string" ? body.webcamPosition : "top-right";
   const overlayScale = Math.min(0.8, Math.max(0.1, Number(body.overlayScale) || 0.25));
-  const webcamScale = Math.min(0.6, Math.max(0.1, Number(body.webcamScale) || 0.25));
+  const webcamScale = clampNumber(body.webcamScale, 0.1, 0.8, 0.25);
+  const mainScale = clampNumber(body.mainScale, 0.5, 2.5, 1);
+  const mainX = clampNumber(body.mainX, -48, 48, 0);
+  const mainY = clampNumber(body.mainY, -48, 48, 0);
+  const webcamX = clampNumber(body.webcamX, -48, 48, 0);
+  const webcamY = clampNumber(body.webcamY, -48, 48, 0);
+  const animationPreset = body.animationPreset === "subscribe" || body.animationPreset === "like" || body.animationPreset === "follow"
+    ? body.animationPreset
+    : "none";
   const outputAspectRatio = body.outputAspectRatio === "shorts" || body.outputAspectRatio === "square" || body.outputAspectRatio === "full"
     ? body.outputAspectRatio
     : "full";
@@ -677,8 +710,6 @@ router.post("/media/compose", async (req, res): Promise<void> => {
     full: [1920, 1080],
     square: [1080, 1080],
   }[outputAspectRatio];
-  const needsOutputFormat = outputAspectRatio !== "full";
-
   if (!fileIds.length) {
     res.status(400).json({ error: "Select at least one server-ready video." });
     return;
@@ -737,50 +768,53 @@ router.post("/media/compose", async (req, res): Promise<void> => {
       basePath,
     ]);
 
+    const [width, height] = outputDimensions;
     const overlayIds = [logoFileId, webcamFileId].filter(Boolean);
-    if (!overlayIds.length && !needsOutputFormat) {
-      await rename(basePath, destination);
-    } else {
-      const filterParts: string[] = [];
-      let current = "[0:v]";
-      if (needsOutputFormat) {
-        const [width, height] = outputDimensions;
-        filterParts.push(`[0:v]scale=${width}:${height}:force_original_aspect_ratio=increase,crop=${width}:${height}[base]`);
-        current = "[base]";
-      }
-      overlayIds.forEach((overlayId, index) => {
-        const isLogo = overlayId === logoFileId;
-        const input = `[${index + 1}:v]`;
-        const scaled = `[overlay${index}]`;
-        const next = `[composed${index}]`;
-        const scale = isLogo ? `scale=iw*${overlayScale}:ih*${overlayScale}` : `scale=iw*${webcamScale}:-2`;
-        const position = overlayCoordinates(isLogo ? logoPosition : webcamPosition, "main_w", "main_h");
-        filterParts.push(`${input}${scale}${scaled}`, `${current}${scaled}overlay=${position}:eof_action=repeat${next}`);
-        current = next;
-      });
-      const ffmpegArgs = ["-y", "-i", basePath];
-      overlayIds.forEach((overlayId) => {
-        const record = recordById.get(overlayId);
-        if (record?.filename.match(/\.(png|jpe?g|webp)$/i)) ffmpegArgs.push("-loop", "1");
-        ffmpegArgs.push("-i", record?.sourcePath || "");
-      });
-      ffmpegArgs.push(
-        "-filter_complex", `${filterParts.join(";")};${current}null[outv]`,
-        "-map", "[outv]",
-        "-map", "0:a?",
-        "-c:v", "libx264",
-        "-preset", "veryfast",
-        "-crf", "18",
-        "-c:a", "aac",
-        "-b:a", "192k",
-        "-shortest",
-        ...(estimatedDuration > 0 ? ["-t", String(estimatedDuration)] : []),
-        "-movflags", "+faststart",
-        destination,
-      );
-      await runFfmpeg(ffmpegArgs);
-      await unlink(basePath).catch(() => undefined);
+    const filterParts: string[] = [
+      `color=c=#061518:s=${width}x${height}:d=${Math.max(1, estimatedDuration)}[canvas]`,
+      `[0:v]scale=${width}:${height}:force_original_aspect_ratio=increase,crop=${width}:${height},scale=${Math.round(width * mainScale)}:${Math.round(height * mainScale)}[main]`,
+      `[canvas][main]overlay=x='(W-w)/2+${Math.round(width * mainX / 100)}':y='(H-h)/2+${Math.round(height * mainY / 100)}'[base]`,
+    ];
+    let current = "[base]";
+    overlayIds.forEach((overlayId, index) => {
+      const isLogo = overlayId === logoFileId;
+      const input = `[${index + 1}:v]`;
+      const scaled = `[overlay${index}]`;
+      const next = `[composed${index}]`;
+      const scale = isLogo ? `scale=iw*${overlayScale}:ih*${overlayScale}` : `scale=${Math.round(width * webcamScale)}:-2`;
+      const position = isLogo
+        ? overlayCoordinates(logoPosition, "main_w", "main_h")
+        : `(main_w-overlay_w)/2+${Math.round(width * webcamX / 100)}:(main_h-overlay_h)/2+${Math.round(height * webcamY / 100)}`;
+      filterParts.push(`${input}${scale}${scaled}`, `${current}${scaled}overlay=${position}:eof_action=repeat${next}`);
+      current = next;
+    });
+    const animation = animationFilter(animationPreset, width, height);
+    if (animation) {
+      filterParts.push(`${current}${animation}[animated]`);
+      current = "[animated]";
     }
+    const ffmpegArgs = ["-y", "-i", basePath];
+    overlayIds.forEach((overlayId) => {
+      const record = recordById.get(overlayId);
+      if (record?.filename.match(/\.(png|jpe?g|webp)$/i)) ffmpegArgs.push("-loop", "1");
+      ffmpegArgs.push("-i", record?.sourcePath || "");
+    });
+    ffmpegArgs.push(
+      "-filter_complex", `${filterParts.join(";")};${current}null[outv]`,
+      "-map", "[outv]",
+      "-map", "0:a?",
+      "-c:v", "libx264",
+      "-preset", "veryfast",
+      "-crf", "18",
+      "-c:a", "aac",
+      "-b:a", "192k",
+      "-shortest",
+      ...(estimatedDuration > 0 ? ["-t", String(estimatedDuration)] : []),
+      "-movflags", "+faststart",
+      destination,
+    );
+    await runFfmpeg(ffmpegArgs);
+    await unlink(basePath).catch(() => undefined);
 
     const finalPath = await finalizeMediaFile(fileId, destination, `${title}.mp4`, context);
     const fileStats = await stat(finalPath);
