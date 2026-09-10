@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type FormEvent, type PointerEvent as ReactPointerEvent, type ReactNode, type SyntheticEvent, type WheelEvent as ReactWheelEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type FormEvent, type PointerEvent as ReactPointerEvent, type ReactNode, type SyntheticEvent } from "react";
 import { Link, Route, Switch, useLocation, Router as WouterRouter } from "wouter";
 import {
   Activity as ActivityIcon, ArrowRight, BookOpen, Check, CircleHelp, Clipboard,
@@ -2139,12 +2139,20 @@ function EditorCanvas({
     if (pointersRef.current.size < 2) gestureRef.current = undefined;
   };
 
-  const onWheel = (event: ReactWheelEvent<HTMLDivElement>) => {
+  const onWheel = (event: WheelEvent) => {
     const layer = selectedLayer === "webcam" && webcamUrl ? "webcam" : "main";
     event.preventDefault();
+    event.stopPropagation();
     const current = getTransform(layer);
     updateTransform(layer, clampTransform(layer, { ...current, scale: current.scale + (event.deltaY < 0 ? 0.04 : -0.04) }));
   };
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    canvas.addEventListener("wheel", onWheel, { passive: false });
+    return () => canvas.removeEventListener("wheel", onWheel);
+  }, [onWheel]);
 
   const resetLayer = (layer: EditorLayer) => {
     updateTransform(layer, layer === "main" ? { x: 0, y: 0, scale: 1 } : { x: 0, y: 0, scale: 0.25 });
@@ -2167,7 +2175,6 @@ function EditorCanvas({
     onPointerMove={onPointerMove}
     onPointerUp={onPointerUp}
     onPointerCancel={onPointerUp}
-    onWheel={onWheel}
   >
     {previewUrl ? <video
        ref={mainVideoRef}

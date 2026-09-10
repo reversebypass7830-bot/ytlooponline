@@ -426,7 +426,7 @@ input:focus, textarea:focus, select:focus { border-color:#5fa49d; box-shadow:0 0
 .editor-stage .metric-kicker { color:#8eb9ac; }
 .editor-stage-status { display:inline-flex; align-items:center; gap:6px; color:#96c3ad; font:10px var(--app-font-mono); text-transform:uppercase; letter-spacing:.11em; }
 .editor-stage-status .status-dot { background:#77d1a3; }
-.editor-canvas { position:relative; min-height:440px; border-radius:12px; overflow:hidden; display:grid; place-items:center; background:radial-gradient(circle at 50% 30%,#225457,#091d20 75%); border:1px solid rgba(177,219,204,.15); }
+.editor-canvas { position:relative; min-height:440px; border-radius:12px; overflow:hidden; display:grid; place-items:center; background:radial-gradient(circle at 50% 30%,#225457,#091d20 75%); border:1px solid rgba(177,219,204,.15); touch-action:none; overscroll-behavior:contain; }
 .editor-canvas:fullscreen { width:100vw; height:100vh; min-height:100vh; border-radius:0; background:#061518; }
 .editor-preview-video { position:absolute; inset:0; width:100%; height:100%; object-fit:contain; background:#061518; transform-origin:center; touch-action:none; cursor:grab; transition:filter .15s, outline-color .15s; }
 .editor-preview-video:active { cursor:grabbing; }
