@@ -14,10 +14,10 @@ import compareOfflineImage from "@assets/generated_images/rloop-compare-server-l
 import compareLiveImage from "@assets/generated_images/rloop-compare-sleeping-live.jpg";
 import logoImage from "@assets/image_1788788255512.png";
 import offlineStreamImage from "@assets/image_1788983555839.png";
-import planOneMonthImage from "@assets/generated_images/rloop-plan-1-month.png";
-import planThreeMonthsImage from "@assets/generated_images/rloop-plan-3-months.png";
-import planSixMonthsImage from "@assets/generated_images/rloop-plan-6-months.png";
-import planOneYearImage from "@assets/generated_images/rloop-plan-1-year.png";
+import planOneMonthPoster from "@assets/generated_images/rloop-plan-1-month-poster.png";
+import planThreeMonthsPoster from "@assets/generated_images/rloop-plan-3-months-poster.png";
+import planSixMonthsPoster from "@assets/generated_images/rloop-plan-6-months-poster.png";
+import planOneYearPoster from "@assets/generated_images/rloop-plan-1-year-poster.png";
 
 const ease = [0.22, 1, 0.36, 1] as const;
 
@@ -281,39 +281,19 @@ function MonthlyOfferCountdown() {
 const accessPlans = [
   {
     term: "1 month",
-    purchase: "1 month purchase",
-    bonus: "10 days extra",
-    total: "1 month 10 days",
-    message: "A clean first transmission. Test the room, then keep the signal moving.",
-    image: planOneMonthImage,
-    label: "First signal",
+    image: planOneMonthPoster,
   },
   {
     term: "3 months",
-    purchase: "3 month purchase",
-    bonus: "1 month extra",
-    total: "4 months",
-    message: "Enough runway to build a rhythm your audience recognises and returns to.",
-    image: planThreeMonthsImage,
-    label: "Build momentum",
+    image: planThreeMonthsPoster,
   },
   {
     term: "6 months",
-    purchase: "6 month purchase",
-    bonus: "2 months extra",
-    total: "8 months",
-    message: "Let the channel become part of the schedule, not another task on it.",
-    image: planSixMonthsImage,
-    label: "Stay on air",
+    image: planSixMonthsPoster,
   },
   {
     term: "1 year",
-    purchase: "1 year purchase",
-    bonus: "5 months extra",
-    total: "17 months",
-    message: "The strongest value for a serious long signal: one year bought, five months gifted.",
-    image: planOneYearImage,
-    label: "Long signal",
+    image: planOneYearPoster,
   },
 ];
 
@@ -352,11 +332,8 @@ function PlanOfferSlider() {
   const currentPlan = accessPlans[activePlan];
   return <MarketingSection className="plan-offer-section">
     <div className="plan-offer-heading">
-      <div>
-        <span className="section-index">05 / KEEP THE SIGNAL</span>
-        <h2>More time on air.<br /><em>More room to grow.</em></h2>
-      </div>
-      <p>Choose your runway. Every longer plan turns the next broadcast into a little less admin and a lot more continuity.</p>
+      <span className="section-index">05 / PREMIUM ACCESS</span>
+      <p>Swipe through the complete offer posters to choose your access window.</p>
     </div>
     <div className="plan-offer-shell">
       <div className="plan-offer-status"><span className="monitor-led" /> ACCESS WINDOW / {String(activePlan + 1).padStart(2, "0")} OF 04 <span className="plan-offer-status-line" /></div>
@@ -376,19 +353,9 @@ function PlanOfferSlider() {
             exit={reducedMotion ? { opacity: 0 } : { opacity: 0, x: -26 }}
             transition={{ duration: reducedMotion ? 0.01 : 0.42, ease }}
           >
-            <div className="plan-offer-art">
-              <img src={currentPlan.image} alt={`${currentPlan.term} access artwork`} />
-              <div className="plan-offer-art-wash" />
-              <span className="plan-offer-art-label">{currentPlan.label}</span>
-              {activePlan === accessPlans.length - 1 && <span className="plan-offer-value-stamp">BEST VALUE</span>}
-            </div>
-            <div className="plan-offer-copy">
-              <div className="plan-offer-topline"><span>{currentPlan.purchase}</span><span className="plan-offer-signal"><i /> ready to broadcast</span></div>
-              <h3>{currentPlan.term}<em> access</em></h3>
-              <div className="plan-offer-bonus"><span>+ {currentPlan.bonus}</span><strong>{currentPlan.total}</strong><small>total access</small></div>
-              <p>{currentPlan.message}</p>
-              <Link href="/pricing" className="signal-button plan-offer-cta" data-testid={`link-plan-offer-${activePlan}`} onClick={() => setIsInteracting(true)}><span>Choose {currentPlan.term}</span><ArrowRight size={16} /></Link>
-            </div>
+            <Link href="/pricing" className="plan-offer-poster-link" data-testid={`link-plan-offer-${activePlan}`} onClick={() => setIsInteracting(true)}>
+              <img className="plan-offer-poster" src={currentPlan.image} alt={`${currentPlan.term} premium access offer poster with plan bonus, total access, included features, and streaming benefits`} />
+            </Link>
           </motion.article>
         </AnimatePresence>
       </div>

@@ -706,6 +706,25 @@ input:focus, textarea:focus, select:focus { border-color:#5fa49d; box-shadow:0 0
 .plan-offer-dot.active span { background:var(--signal); transform:scale(1.35); box-shadow:0 0 0 4px rgba(215,243,109,.1); }
 .plan-offer-hint { display:flex; align-items:center; justify-content:center; gap:7px; margin:8px 0 1px; color:#64857a; font:9px var(--app-font-mono); letter-spacing:.04em; }
 .plan-offer-hint svg { color:var(--signal); }
+/* The offer artwork is a complete reference-style poster.
+   Keep its copy inside the image instead of splitting the offer across the UI. */
+.plan-offer-shell { width:min(100%,760px); }
+.plan-offer-card { display:block; min-height:0; }
+.plan-offer-poster-link { display:block; line-height:0; }
+.plan-offer-poster {
+  display:block;
+  width:100%;
+  height:auto;
+  aspect-ratio:683 / 1024;
+  object-fit:cover;
+  border-radius:10px;
+  transition:filter .25s ease, transform .25s ease;
+}
+.plan-offer-poster-link:hover .plan-offer-poster,
+.plan-offer-poster-link:focus-visible .plan-offer-poster {
+  filter:brightness(1.08) saturate(1.08);
+  transform:scale(1.008);
+}
 .final-cta { min-height:520px; display:flex; flex-direction:column; align-items:center; justify-content:center; position:relative; overflow:hidden; text-align:center; background:#172f2c; }.final-cta-grid { position:absolute; inset:0; opacity:.15; background-image:linear-gradient(rgba(215,243,109,.22) 1px,transparent 1px),linear-gradient(90deg,rgba(215,243,109,.22) 1px,transparent 1px); background-size:64px 64px; mask-image:radial-gradient(circle,black,transparent 70%); }.final-cta > *:not(.final-cta-grid) { position:relative; z-index:1; }.final-cta h2 { margin:22px 0 17px; color:#f0f7ea; font-size:clamp(42px,6vw,84px); line-height:.92; letter-spacing:-.08em; }.final-cta p { margin:0 0 30px; color:#9cb7a8; font-size:14px; }.marketing-footer { display:flex; align-items:center; justify-content:space-between; gap:24px; padding:29px clamp(22px,8vw,130px); color:#76968a; background:#071315; font-size:10px; }.marketing-footer > span { margin-left:auto; font:10px var(--app-font-mono); }.marketing-footer > a:last-child { display:inline-flex; align-items:center; gap:7px; color:var(--signal); font-weight:700; }.marketing-footer .marketing-brand { font-size:11px; }
 
 .intro-reveal { position:fixed; inset:0; z-index:100; display:grid; place-items:center; overflow:hidden; color:#dff2e8; background:#071315; }.intro-grid { position:absolute; inset:0; opacity:.22; background-image:linear-gradient(rgba(215,243,109,.13) 1px,transparent 1px),linear-gradient(90deg,rgba(215,243,109,.13) 1px,transparent 1px); background-size:70px 70px; }.intro-word { position:relative; color:#eaf5e9; font-size:clamp(45px,8vw,108px); font-weight:800; letter-spacing:-.08em; }.intro-top,.intro-bottom { position:absolute; left:clamp(22px,5vw,76px); right:clamp(22px,5vw,76px); display:flex; justify-content:space-between; color:#759286; font:10px var(--app-font-mono); text-transform:uppercase; letter-spacing:.12em; }.intro-top { top:34px; }.intro-bottom { bottom:35px; }.intro-kicker { color:var(--signal); }.intro-dot { width:7px; height:7px; border-radius:50%; background:var(--signal); box-shadow:0 0 0 5px rgba(215,243,109,.12); }.intro-skip { position:absolute; right:clamp(22px,5vw,76px); top:29px; display:flex; align-items:center; gap:8px; padding:6px 0; border:0; background:none; color:#92ada0; font:10px var(--app-font-mono); }.intro-skip:hover { color:var(--signal); }

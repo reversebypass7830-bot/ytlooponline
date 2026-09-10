@@ -1,0 +1,58 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "-mx6THfYD54boo--5Aqva"
+uri = "file://attached_assets/generated_images/rloop-plan-1-month-poster.png"
+type = "image"
+title = "1 Month Offer Poster"
+description = "Complete reference-style poster with 10 days extra and 1 month 10 days total access."
+logical_id = "a51e7677-19f4-4974-a90b-b4a08ca66e48"
+content_hash = "sha256:546ce3b3da157bac91a06816a2db5468412905b79dcb2784e8c8702ab9cc54e6"
+size = 305372
+mtime_ms = 1789039391372
+storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:2da47273-af59-417a-a43d-b441b179dfe7/a51e7677-19f4-4974-a90b-b4a08ca66e48/b3c89329-3309-4078-93e7-e2dd7df166b5"
+storage_version_token = "1789039490163118"
+content_type = "image/png"
+
+[[outputs]]
+id = "qebTo6RX5EbO1cR6aFtr8"
+uri = "file://attached_assets/generated_images/rloop-plan-3-months-poster.png"
+type = "image"
+title = "3 Months Offer Poster"
+description = "Complete reference-style poster with 1 month extra and 4 months total access."
+logical_id = "6c7ed860-f56f-4b38-a03d-edc170b7bed3"
+content_hash = "sha256:74070f97e526625b7d0dc20215c196cbfb7d0df492c52dde4424c884d6b0a286"
+size = 344932
+mtime_ms = 1789039391756
+storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:2da47273-af59-417a-a43d-b441b179dfe7/6c7ed860-f56f-4b38-a03d-edc170b7bed3/3dac0e3a-fd43-4a80-945f-d5d91ba914f1"
+storage_version_token = "1789039491560238"
+content_type = "image/png"
+
+[[outputs]]
+id = "N5KmOzkR__ff4TZvT123N"
+uri = "file://attached_assets/generated_images/rloop-plan-6-months-poster.png"
+type = "image"
+title = "6 Months Offer Poster"
+description = "Complete reference-style poster with 2 months extra and 8 months total access."
+logical_id = "f7c3bef9-3a47-4d78-9617-a4eb39c0a7fa"
+content_hash = "sha256:1b63cb392249d9acae6061cc3a4fd558e2347e6be887621e12836835dd87984c"
+size = 321325
+mtime_ms = 1789039392040
+storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:2da47273-af59-417a-a43d-b441b179dfe7/f7c3bef9-3a47-4d78-9617-a4eb39c0a7fa/d31aec81-b2c1-4385-9362-d1fca93e79fb"
+storage_version_token = "1789039492912362"
+content_type = "image/png"
+
+[[outputs]]
+id = "5w0PDQkFVsQzuJDF4ReeI"
+uri = "file://attached_assets/generated_images/rloop-plan-1-year-poster.png"
+type = "image"
+title = "1 Year Offer Poster"
+description = "Complete flagship poster with 5 months extra and 17 months total access."
+logical_id = "4e2ab4e2-1d1e-42ef-ad9e-232269b446e0"
+content_hash = "sha256:43f0f112bd2d638623c3bc13cdcbfd6c4aefc700b7dd47a0ffd51cd61e00a436"
+size = 318300
+mtime_ms = 1789039392352
+storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:2da47273-af59-417a-a43d-b441b179dfe7/4e2ab4e2-1d1e-42ef-ad9e-232269b446e0/437221ff-94af-44ea-9822-c83669398e4d"
+storage_version_token = "1789039494278876"
+content_type = "image/png"
