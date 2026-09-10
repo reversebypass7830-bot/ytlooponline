@@ -772,7 +772,7 @@ router.post("/media/compose", async (req, res): Promise<void> => {
     const overlayIds = [logoFileId, webcamFileId].filter(Boolean);
     const filterParts: string[] = [
       `color=c=#061518:s=${width}x${height}:d=${Math.max(1, estimatedDuration)}[canvas]`,
-      `[0:v]scale=${width}:${height}:force_original_aspect_ratio=increase,crop=${width}:${height},scale=${Math.round(width * mainScale)}:${Math.round(height * mainScale)}[main]`,
+      `[0:v]scale=${Math.round(width * mainScale)}:${Math.round(height * mainScale)}:force_original_aspect_ratio=decrease[main]`,
       `[canvas][main]overlay=x='(W-w)/2+${Math.round(width * mainX / 100)}':y='(H-h)/2+${Math.round(height * mainY / 100)}'[base]`,
     ];
     let current = "[base]";

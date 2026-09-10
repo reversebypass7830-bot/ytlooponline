@@ -1136,6 +1136,7 @@ function VideoEditorPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}
   const [animationPreset, setAnimationPreset] = useState<AnimationPreset>("none");
   const [webcamId, setWebcamId] = useState("");
   const [logoId, setLogoId] = useState("");
+  const [previewExpanded, setPreviewExpanded] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [uploadingLogo, setUploadingLogo] = useState(false);
@@ -1149,6 +1150,20 @@ function VideoEditorPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}
   const webcam = data.videos.find((video) => video.id === webcamId);
   const previewVideo = selectedVideos[0];
   const previewUrl = previewVideo?.sourceUrl || (previewVideo ? `/api/media/files/${getMediaFileId(previewVideo)}` : "");
+  const editorCanvasProps = {
+    previewUrl,
+    webcamUrl: webcam?.sourceUrl || (webcam ? `/api/media/files/${getMediaFileId(webcam)}` : ""),
+    logo,
+    logoPosition,
+    outputAspectRatio,
+    mainTransform,
+    webcamTransform,
+    selectedLayer,
+    animationPreset,
+    onSelectLayer: setSelectedLayer,
+    onMainTransformChange: setMainTransform,
+    onWebcamTransformChange: setWebcamTransform,
+  };
   const setGroup = (nextGroupId: string) => {
     setGroupId(nextGroupId);
     const nextVideos = videosForGroup(nextGroupId, data.groups, data.videos).filter((video) => video.serverSource);
@@ -1269,22 +1284,20 @@ function VideoEditorPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}
       <form className="editor-layout" onSubmit={compose}>
         <section className="editor-stage card">
           <div className="editor-stage-head"><div><span className="metric-kicker">Live composition</span><strong>{selectedVideos.length ? `${selectedVideos.length} clips · loops ${loopCount}` : "Choose videos to preview"}</strong></div><span className="editor-stage-status"><span className="status-dot"/>Preview</span></div>
-           <EditorCanvas
-             previewUrl={previewUrl}
-             webcamUrl={webcam?.sourceUrl || (webcam ? `/api/media/files/${getMediaFileId(webcam)}` : "")}
-             logo={logo}
-             logoPosition={logoPosition}
-             outputAspectRatio={outputAspectRatio}
-             mainTransform={mainTransform}
-             webcamTransform={webcamTransform}
-             selectedLayer={selectedLayer}
-             animationPreset={animationPreset}
-             onSelectLayer={setSelectedLayer}
-             onMainTransformChange={setMainTransform}
-             onWebcamTransformChange={setWebcamTransform}
-           />
+            <EditorCanvas {...editorCanvasProps} />
+            <div className="editor-preview-actions">
+              <div><strong>{previewUrl ? "Preview is ready to edit" : "Select a video first"}</strong><span>{previewUrl ? "Open the large canvas to position, zoom, and fit every layer precisely." : "Choose a category and at least one server-ready video from the panel."}</span></div>
+              <button type="button" className="button editor-expand-button" onClick={() => setPreviewExpanded(true)} disabled={!previewUrl}><MonitorPlay size={15}/> Open large preview & edit <ArrowRight size={14}/></button>
+            </div>
            <div className="editor-stage-foot"><span><Layers size={13}/> {selectedVideos.length || 0} clips selected · {outputAspectRatio === "shorts" ? "Short 9:16" : outputAspectRatio === "square" ? "Square 1:1" : "Long 16:9"}</span><span><Sparkles size={13}/> Logo and face cam are rendered into the saved MP4</span></div>
         </section>
+         {previewExpanded && <div className="editor-focus-backdrop" role="dialog" aria-modal="true" aria-label="Large video editor" onMouseDown={(event) => { if (event.target === event.currentTarget) setPreviewExpanded(false); }}>
+           <div className="editor-focus-window">
+             <div className="editor-focus-head"><div><span className="metric-kicker">Focused editor</span><strong>{previewVideo?.title || "Selected video"}</strong><span>Drag to move · scroll or pinch to zoom · use the handle to resize face cam</span></div><button type="button" className="editor-focus-close" onClick={() => setPreviewExpanded(false)} aria-label="Close large preview"><X size={17}/><span>Close</span></button></div>
+             <div className="editor-focus-stage"><EditorCanvas {...editorCanvasProps} expanded onCloseExpanded={() => setPreviewExpanded(false)} /></div>
+             <div className="editor-focus-controls"><EditorTransformControls {...editorCanvasProps} hasWebcam={Boolean(webcam)} /></div>
+           </div>
+         </div>}
         <aside className="editor-controls">
           <section className="card editor-panel">
             <div className="section-head"><div><h2 className="section-title">1. Choose a library</h2><p className="subtle">Only server-ready files can be rendered.</p></div><FileVideo size={17} color="#6c8b83"/></div>
@@ -1341,6 +1354,8 @@ type EditorCanvasProps = {
   onSelectLayer: (layer: EditorLayer) => void;
   onMainTransformChange: (transform: EditorTransform) => void;
   onWebcamTransformChange: (transform: EditorTransform) => void;
+  expanded?: boolean;
+  onCloseExpanded?: () => void;
 };
 
 function EditorCanvas({
@@ -1356,6 +1371,8 @@ function EditorCanvas({
   onSelectLayer,
   onMainTransformChange,
   onWebcamTransformChange,
+  expanded = false,
+  onCloseExpanded,
 }: EditorCanvasProps) {
   const canvasRef = useRef<HTMLDivElement>(null);
   const pointersRef = useRef(new Map<number, { x: number; y: number }>());
@@ -1473,7 +1490,7 @@ function EditorCanvas({
 
   return <div
     ref={canvasRef}
-    className={`editor-canvas editor-canvas-${outputAspectRatio}`}
+    className={`editor-canvas editor-canvas-${outputAspectRatio}${expanded ? " editor-canvas-expanded" : ""}`}
     onPointerDown={onPointerDown}
     onPointerMove={onPointerMove}
     onPointerUp={onPointerUp}
@@ -1511,7 +1528,8 @@ function EditorCanvas({
     ><span className="editor-selection-label">Face cam · {Math.round(webcamTransform.scale * 100)}%</span><button type="button" data-editor-resize="webcam" aria-label="Resize face cam" className="editor-resize-handle" /></div>}
     <div className="editor-canvas-toolbar">
       <span className="editor-canvas-hint">{isFullscreen ? "Fullscreen preview" : "Drag to move · wheel or pinch to zoom"}</span>
-      <button type="button" className="editor-canvas-button" onPointerDown={(event) => event.stopPropagation()} onClick={toggleFullscreen} title={isFullscreen ? "Exit fullscreen" : "Open fullscreen"}>{isFullscreen ? "Exit" : "Fullscreen"}</button>
+       {expanded && onCloseExpanded && <button type="button" className="editor-canvas-button" onPointerDown={(event) => event.stopPropagation()} onClick={onCloseExpanded} title="Close large preview">Close editor</button>}
+       {!expanded && <button type="button" className="editor-canvas-button" onPointerDown={(event) => event.stopPropagation()} onClick={toggleFullscreen} title={isFullscreen ? "Exit fullscreen" : "Open fullscreen"}>{isFullscreen ? "Exit" : "Fullscreen"}</button>}
     </div>
   </div>;
 }
