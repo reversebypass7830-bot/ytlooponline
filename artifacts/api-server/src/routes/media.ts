@@ -216,12 +216,14 @@ type ComposeMediaBody = {
   animationY?: unknown;
   animationPreset?: unknown;
   outputAspectRatio?: unknown;
+  cropMode?: unknown;
   reverseVideo?: unknown;
   brightness?: unknown;
   contrast?: unknown;
   saturation?: unknown;
   hue?: unknown;
   chromaKeyEnabled?: unknown;
+  chromaKeyTarget?: unknown;
   chromaKeyColor?: unknown;
   chromaSimilarity?: unknown;
   chromaBlend?: unknown;
@@ -1029,12 +1031,15 @@ router.post("/media/compose", async (req, res): Promise<void> => {
   const outputAspectRatio = body.outputAspectRatio === "shorts" || body.outputAspectRatio === "square" || body.outputAspectRatio === "full"
     ? body.outputAspectRatio
     : "full";
+  const cropMode = body.cropMode === "crop" ? "crop" : "fit";
   const reverseVideo = body.reverseVideo === true;
   const brightness = clampNumber(body.brightness, -1, 1, 0);
   const contrast = clampNumber(body.contrast, 0.5, 1.8, 1);
   const saturation = clampNumber(body.saturation, 0, 2, 1);
   const hue = clampNumber(body.hue, -180, 180, 0);
-  const chromaKeyEnabled = body.chromaKeyEnabled === true && Boolean(webcamFileId);
+  const chromaKeyTarget = body.chromaKeyTarget === "animation" ? "animation" : "webcam";
+  const chromaKeyEnabled = body.chromaKeyEnabled === true
+    && Boolean(chromaKeyTarget === "animation" ? animationFileId : webcamFileId);
   const rawChromaKeyColor = typeof body.chromaKeyColor === "string" ? body.chromaKeyColor.trim() : "#00ff00";
   const chromaKeyColor = /^#?[0-9a-f]{6}$/i.test(rawChromaKeyColor)
     ? `0x${rawChromaKeyColor.replace("#", "")}`
@@ -1117,7 +1122,8 @@ router.post("/media/compose", async (req, res): Promise<void> => {
     ].filter((overlay): overlay is { id: string; kind: "logo" | "webcam" | "animation" } => Boolean(overlay.id));
     const mainFilters = [
       reverseVideo ? "reverse" : "",
-      `scale=${Math.round(width * mainScale)}:${Math.round(height * mainScale)}:force_original_aspect_ratio=decrease`,
+      `scale=${Math.round(width * mainScale)}:${Math.round(height * mainScale)}:force_original_aspect_ratio=${cropMode === "crop" ? "increase" : "decrease"}`,
+      ...(cropMode === "crop" ? [`crop=${Math.round(width * mainScale)}:${Math.round(height * mainScale)}`] : []),
       `eq=brightness=${brightness}:contrast=${contrast}:saturation=${saturation}`,
       `hue=h=${hue}`,
     ].filter(Boolean).join(",");
@@ -1135,7 +1141,7 @@ router.post("/media/compose", async (req, res): Promise<void> => {
       const scale = isLogo
         ? `scale=iw*${overlayScale}:ih*${overlayScale}`
         : `scale=${Math.round(width * (kind === "animation" ? animationScale : webcamScale))}:-2`;
-      const chroma = kind === "webcam" && chromaKeyEnabled
+      const chroma = ((kind === "webcam" && chromaKeyTarget === "webcam") || (kind === "animation" && chromaKeyTarget === "animation")) && chromaKeyEnabled
         ? `,chromakey=${chromaKeyColor}:similarity=${chromaSimilarity}:blend=${chromaBlend}`
         : "";
       const position = isLogo

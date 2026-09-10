@@ -477,6 +477,37 @@ export const composeMediaBodyAnimationYMax = 48;
 
 export const composeMediaBodyAnimationPresetDefault = `none`;
 export const composeMediaBodyOutputAspectRatioDefault = `full`;
+export const composeMediaBodyCropModeDefault = `fit`;
+export const composeMediaBodyReverseVideoDefault = false;
+export const composeMediaBodyBrightnessDefault = 0;
+export const composeMediaBodyBrightnessMin = -1;
+export const composeMediaBodyBrightnessMax = 1;
+
+export const composeMediaBodyContrastDefault = 1;
+export const composeMediaBodyContrastMin = 0.5;
+export const composeMediaBodyContrastMax = 1.8;
+
+export const composeMediaBodySaturationDefault = 1;
+export const composeMediaBodySaturationMin = 0;
+export const composeMediaBodySaturationMax = 2;
+
+export const composeMediaBodyHueDefault = 0;
+export const composeMediaBodyHueMin = -180;
+export const composeMediaBodyHueMax = 180;
+
+export const composeMediaBodyChromaKeyEnabledDefault = false;
+export const composeMediaBodyChromaKeyTargetDefault = `webcam`;
+export const composeMediaBodyChromaKeyColorDefault = `#00ff00`;
+export const composeMediaBodyChromaKeyColorRegExp = new RegExp('^#?[0-9a-fA-F]{6}$');
+export const composeMediaBodyChromaSimilarityDefault = 0.32;
+export const composeMediaBodyChromaSimilarityMin = 0.05;
+export const composeMediaBodyChromaSimilarityMax = 0.95;
+
+export const composeMediaBodyChromaBlendDefault = 0.08;
+export const composeMediaBodyChromaBlendMin = 0;
+export const composeMediaBodyChromaBlendMax = 0.5;
+
+
 
 export const ComposeMediaBody = zod.object({
   "fileIds": zod.array(zod.string()).min(1),
@@ -498,7 +529,18 @@ export const ComposeMediaBody = zod.object({
   "animationX": zod.number().min(composeMediaBodyAnimationXMin).max(composeMediaBodyAnimationXMax).default(composeMediaBodyAnimationXDefault),
   "animationY": zod.number().min(composeMediaBodyAnimationYMin).max(composeMediaBodyAnimationYMax).default(composeMediaBodyAnimationYDefault),
   "animationPreset": zod.enum(['none', 'subscribe', 'like', 'follow']).default(composeMediaBodyAnimationPresetDefault),
-  "outputAspectRatio": zod.enum(['shorts', 'full', 'square']).default(composeMediaBodyOutputAspectRatioDefault)
+  "outputAspectRatio": zod.enum(['shorts', 'full', 'square']).default(composeMediaBodyOutputAspectRatioDefault),
+  "cropMode": zod.enum(['fit', 'crop']).default(composeMediaBodyCropModeDefault),
+  "reverseVideo": zod.boolean().default(composeMediaBodyReverseVideoDefault),
+  "brightness": zod.number().min(composeMediaBodyBrightnessMin).max(composeMediaBodyBrightnessMax).default(composeMediaBodyBrightnessDefault),
+  "contrast": zod.number().min(composeMediaBodyContrastMin).max(composeMediaBodyContrastMax).default(composeMediaBodyContrastDefault),
+  "saturation": zod.number().min(composeMediaBodySaturationMin).max(composeMediaBodySaturationMax).default(composeMediaBodySaturationDefault),
+  "hue": zod.number().min(composeMediaBodyHueMin).max(composeMediaBodyHueMax).default(composeMediaBodyHueDefault),
+  "chromaKeyEnabled": zod.boolean().default(composeMediaBodyChromaKeyEnabledDefault),
+  "chromaKeyTarget": zod.enum(['webcam', 'animation']).default(composeMediaBodyChromaKeyTargetDefault),
+  "chromaKeyColor": zod.string().regex(composeMediaBodyChromaKeyColorRegExp).default(composeMediaBodyChromaKeyColorDefault),
+  "chromaSimilarity": zod.number().min(composeMediaBodyChromaSimilarityMin).max(composeMediaBodyChromaSimilarityMax).default(composeMediaBodyChromaSimilarityDefault),
+  "chromaBlend": zod.number().min(composeMediaBodyChromaBlendMin).max(composeMediaBodyChromaBlendMax).default(composeMediaBodyChromaBlendDefault)
 })
 
 export const ComposeMediaResponse = zod.object({

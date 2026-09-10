@@ -6,6 +6,8 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { ComposeMediaInputAnimationPreset } from './composeMediaInputAnimationPreset';
+import type { ComposeMediaInputChromaKeyTarget } from './composeMediaInputChromaKeyTarget';
+import type { ComposeMediaInputCropMode } from './composeMediaInputCropMode';
 import type { ComposeMediaInputLogoPosition } from './composeMediaInputLogoPosition';
 import type { ComposeMediaInputOutputAspectRatio } from './composeMediaInputOutputAspectRatio';
 import type { ComposeMediaInputWebcamPosition } from './composeMediaInputWebcamPosition';
@@ -76,4 +78,40 @@ export interface ComposeMediaInput {
   animationY?: number;
   animationPreset?: ComposeMediaInputAnimationPreset;
   outputAspectRatio?: ComposeMediaInputOutputAspectRatio;
+  cropMode?: ComposeMediaInputCropMode;
+  reverseVideo?: boolean;
+  /**
+     * @minimum -1
+     * @maximum 1
+     */
+  brightness?: number;
+  /**
+     * @minimum 0.5
+     * @maximum 1.8
+     */
+  contrast?: number;
+  /**
+     * @minimum 0
+     * @maximum 2
+     */
+  saturation?: number;
+  /**
+     * @minimum -180
+     * @maximum 180
+     */
+  hue?: number;
+  chromaKeyEnabled?: boolean;
+  chromaKeyTarget?: ComposeMediaInputChromaKeyTarget;
+  /** @pattern ^#?[0-9a-fA-F]{6}$ */
+  chromaKeyColor?: string;
+  /**
+     * @minimum 0.05
+     * @maximum 0.95
+     */
+  chromaSimilarity?: number;
+  /**
+     * @minimum 0
+     * @maximum 0.5
+     */
+  chromaBlend?: number;
 }

@@ -242,6 +242,22 @@ export const ComposeMediaInputOutputAspectRatio = {
   square: 'square',
 } as const;
 
+export type ComposeMediaInputCropMode = typeof ComposeMediaInputCropMode[keyof typeof ComposeMediaInputCropMode];
+
+
+export const ComposeMediaInputCropMode = {
+  fit: 'fit',
+  crop: 'crop',
+} as const;
+
+export type ComposeMediaInputChromaKeyTarget = typeof ComposeMediaInputChromaKeyTarget[keyof typeof ComposeMediaInputChromaKeyTarget];
+
+
+export const ComposeMediaInputChromaKeyTarget = {
+  webcam: 'webcam',
+  animation: 'animation',
+} as const;
+
 export interface ComposeMediaInput {
   /** @minItems 1 */
   fileIds: string[];
@@ -308,6 +324,42 @@ export interface ComposeMediaInput {
   animationY?: number;
   animationPreset?: ComposeMediaInputAnimationPreset;
   outputAspectRatio?: ComposeMediaInputOutputAspectRatio;
+  cropMode?: ComposeMediaInputCropMode;
+  reverseVideo?: boolean;
+  /**
+     * @minimum -1
+     * @maximum 1
+     */
+  brightness?: number;
+  /**
+     * @minimum 0.5
+     * @maximum 1.8
+     */
+  contrast?: number;
+  /**
+     * @minimum 0
+     * @maximum 2
+     */
+  saturation?: number;
+  /**
+     * @minimum -180
+     * @maximum 180
+     */
+  hue?: number;
+  chromaKeyEnabled?: boolean;
+  chromaKeyTarget?: ComposeMediaInputChromaKeyTarget;
+  /** @pattern ^#?[0-9a-fA-F]{6}$ */
+  chromaKeyColor?: string;
+  /**
+     * @minimum 0.05
+     * @maximum 0.95
+     */
+  chromaSimilarity?: number;
+  /**
+     * @minimum 0
+     * @maximum 0.5
+     */
+  chromaBlend?: number;
 }
 
 export type YoutubeDownloadInputQuality = typeof YoutubeDownloadInputQuality[keyof typeof YoutubeDownloadInputQuality];

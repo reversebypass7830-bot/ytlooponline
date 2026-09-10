@@ -166,5 +166,19 @@
     "quality": "included",
     "createdAt": "2026-09-10T15:42:56.436Z",
     "sizeBytes": 280615
+  },
+  {
+    "fileId": "7dd752cd-02c3-4087-9e88-bf0418111d88",
+    "filename": "vecteezy_subscribe-green-screen-video_7538947.mp4",
+    "sourcePath": "/home/runner/workspace/artifacts/api-server/attached_assets/live-media/maq/m/7dd752cd-02c3-4087-9e88-bf0418111d88__vecteezy-subscribe-green-screen-video-7538947.mp4",
+    "playbackUrl": "/api/media/files/7dd752cd-02c3-4087-9e88-bf0418111d88",
+    "title": "vecteezy_subscribe-green-screen-video_7538947",
+    "duration": "00:00",
+    "licenseId": "lic-e72cd238-ce4a-4f65-8975-fa76c7bab72f",
+    "licenseName": "m",
+    "folderName": "maq",
+    "quality": "uploaded",
+    "createdAt": "2026-09-10T20:20:37.553Z",
+    "sizeBytes": 1196547
   }
 ]

@@ -29,6 +29,38 @@ type EditorColorAdjustments = {
   saturation: number;
   hue: number;
 };
+type EditorCropMode = "fit" | "crop";
+type EditorChromaTarget = "webcam" | "animation";
+type EditorDraft = {
+  groupId: string;
+  animationGroupId: string;
+  editorLibrary: "personal" | "youtube";
+  selectedIds: string[];
+  loopEnabled: boolean;
+  loopCount: string;
+  title: string;
+  outputAspectRatio: AspectRatio;
+  cropMode: EditorCropMode;
+  logoPosition: string;
+  overlayScale: string;
+  webcamPosition: string;
+  webcamScale: string;
+  mainTransform: EditorTransform;
+  webcamTransform: EditorTransform;
+  selectedLayer: EditorLayer;
+  animationPreset: AnimationPreset;
+  reverseVideo: boolean;
+  colorAdjustments: EditorColorAdjustments;
+  chromaKeyEnabled: boolean;
+  chromaKeyTarget: EditorChromaTarget;
+  chromaKeyColor: string;
+  chromaSimilarity: number;
+  chromaBlend: number;
+  webcamId: string;
+  animationId: string;
+  animationTransform: EditorTransform;
+  logoId: string;
+};
 type LiveChannel = {
   id: string; title: string; platform: string; status: LiveStatus; groupId: string;
   streamUrl: string; streamKey: string; viewers: number; startedAt: string | null;
@@ -45,7 +77,7 @@ type VideoItem = {
 type VideoGroup = { id: string; name: string; description: string; videoIds: string[]; createdAt: string; parentId?: string };
 type EditorAsset = { id: string; fileId: string; title: string; playbackUrl: string; sourcePath: string; kind: "logo"; createdAt: string };
 type Activity = { id: string; type: string; message: string; time: string };
-type DataState = { channels: LiveChannel[]; videos: VideoItem[]; groups: VideoGroup[]; editorAssets: EditorAsset[]; activities: Activity[] };
+type DataState = { channels: LiveChannel[]; videos: VideoItem[]; groups: VideoGroup[]; editorAssets: EditorAsset[]; activities: Activity[]; editorDraft?: EditorDraft };
 type LicenseSession = { licenseId: string; key: string; name: string; expiresAt: string; active: boolean; clientId?: string };
 type VidKrakenTokenStatus = { key: string; status: "ready" | "cooldown"; cooldownUntil: string | null };
 const accessSocialLinks = [
@@ -433,6 +465,62 @@ function rebuildGroupMembership(groups: VideoGroup[], videos: VideoItem[]): Vide
   });
 }
 
+function normalizeEditorDraft(value: unknown): EditorDraft | undefined {
+  if (!value || typeof value !== "object") return undefined;
+  const draft = value as Partial<EditorDraft>;
+  const transform = (candidate: unknown, fallback: EditorTransform): EditorTransform => {
+    if (!candidate || typeof candidate !== "object") return fallback;
+    const item = candidate as Partial<EditorTransform>;
+    return {
+      x: typeof item.x === "number" && Number.isFinite(item.x) ? Math.max(-48, Math.min(48, item.x)) : fallback.x,
+      y: typeof item.y === "number" && Number.isFinite(item.y) ? Math.max(-48, Math.min(48, item.y)) : fallback.y,
+      scale: typeof item.scale === "number" && Number.isFinite(item.scale) ? Math.max(0.1, Math.min(2.5, item.scale)) : fallback.scale,
+    };
+  };
+  const adjustments = draft.colorAdjustments && typeof draft.colorAdjustments === "object"
+    ? draft.colorAdjustments as Partial<EditorColorAdjustments>
+    : {};
+  const editorLibrary = draft.editorLibrary === "youtube" ? "youtube" : "personal";
+  const selectedLayer = draft.selectedLayer === "webcam" || draft.selectedLayer === "animation" ? draft.selectedLayer : "main";
+  const chromaKeyTarget = draft.chromaKeyTarget === "animation" ? "animation" : "webcam";
+  const cropMode = draft.cropMode === "crop" ? "crop" : "fit";
+  return {
+    groupId: typeof draft.groupId === "string" ? draft.groupId : "",
+    animationGroupId: typeof draft.animationGroupId === "string" ? draft.animationGroupId : "",
+    editorLibrary,
+    selectedIds: Array.isArray(draft.selectedIds) ? draft.selectedIds.filter((id): id is string => typeof id === "string") : [],
+    loopEnabled: draft.loopEnabled !== false,
+    loopCount: typeof draft.loopCount === "string" ? draft.loopCount : "1",
+    title: typeof draft.title === "string" ? draft.title : "",
+    outputAspectRatio: draft.outputAspectRatio === "shorts" || draft.outputAspectRatio === "square" ? draft.outputAspectRatio : "full",
+    cropMode,
+    logoPosition: typeof draft.logoPosition === "string" ? draft.logoPosition : "bottom-right",
+    overlayScale: typeof draft.overlayScale === "string" ? draft.overlayScale : "25",
+    webcamPosition: typeof draft.webcamPosition === "string" ? draft.webcamPosition : "top-right",
+    webcamScale: typeof draft.webcamScale === "string" ? draft.webcamScale : "25",
+    mainTransform: transform(draft.mainTransform, { x: 0, y: 0, scale: 1 }),
+    webcamTransform: transform(draft.webcamTransform, { x: 0, y: 0, scale: 0.25 }),
+    selectedLayer,
+    animationPreset: draft.animationPreset === "subscribe" || draft.animationPreset === "like" || draft.animationPreset === "follow" ? draft.animationPreset : "none",
+    reverseVideo: draft.reverseVideo === true,
+    colorAdjustments: {
+      brightness: typeof adjustments.brightness === "number" ? Math.max(-1, Math.min(1, adjustments.brightness)) : 0,
+      contrast: typeof adjustments.contrast === "number" ? Math.max(0.5, Math.min(1.8, adjustments.contrast)) : 1,
+      saturation: typeof adjustments.saturation === "number" ? Math.max(0, Math.min(2, adjustments.saturation)) : 1,
+      hue: typeof adjustments.hue === "number" ? Math.max(-180, Math.min(180, adjustments.hue)) : 0,
+    },
+    chromaKeyEnabled: draft.chromaKeyEnabled === true,
+    chromaKeyTarget,
+    chromaKeyColor: typeof draft.chromaKeyColor === "string" && /^#[0-9a-f]{6}$/i.test(draft.chromaKeyColor) ? draft.chromaKeyColor : "#00ff00",
+    chromaSimilarity: typeof draft.chromaSimilarity === "number" ? Math.max(0.05, Math.min(0.95, draft.chromaSimilarity)) : 0.32,
+    chromaBlend: typeof draft.chromaBlend === "number" ? Math.max(0, Math.min(0.5, draft.chromaBlend)) : 0.08,
+    webcamId: typeof draft.webcamId === "string" ? draft.webcamId : "",
+    animationId: typeof draft.animationId === "string" ? draft.animationId : "",
+    animationTransform: transform(draft.animationTransform, { x: 0, y: 0, scale: 0.25 }),
+    logoId: typeof draft.logoId === "string" ? draft.logoId : "",
+  };
+}
+
 function normalizeWorkspace(value: unknown): DataState {
   if (!value || typeof value !== "object") return { ...seed, groups: ensureDefaultYoutubeFolders([]) };
   const candidate = value as Partial<DataState>;
@@ -498,6 +586,7 @@ function normalizeWorkspace(value: unknown): DataState {
     groups: rebuildGroupMembership(youtubeFolders, migratedVideos),
     editorAssets,
     activities,
+    editorDraft: normalizeEditorDraft(candidate.editorDraft),
   });
 }
 
@@ -2111,9 +2200,11 @@ function VideoEditorPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}
   const [animationGroupId, setAnimationGroupId] = useState("");
   const [editorLibrary, setEditorLibrary] = useState<"personal" | "youtube">("personal");
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [loopEnabled, setLoopEnabled] = useState(true);
   const [loopCount, setLoopCount] = useState("1");
   const [title, setTitle] = useState("");
   const [outputAspectRatio, setOutputAspectRatio] = useState<AspectRatio>("full");
+  const [cropMode, setCropMode] = useState<EditorCropMode>("fit");
   const [logoPosition, setLogoPosition] = useState("bottom-right");
   const [overlayScale, setOverlayScale] = useState("25");
   const [webcamPosition, setWebcamPosition] = useState("top-right");
@@ -2125,6 +2216,7 @@ function VideoEditorPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}
   const [reverseVideo, setReverseVideo] = useState(false);
   const [colorAdjustments, setColorAdjustments] = useState<EditorColorAdjustments>({ brightness: 0, contrast: 1, saturation: 1, hue: 0 });
   const [chromaKeyEnabled, setChromaKeyEnabled] = useState(false);
+  const [chromaKeyTarget, setChromaKeyTarget] = useState<EditorChromaTarget>("webcam");
   const [chromaKeyColor, setChromaKeyColor] = useState("#00ff00");
   const [chromaSimilarity, setChromaSimilarity] = useState(0.32);
   const [chromaBlend, setChromaBlend] = useState(0.08);
@@ -2138,6 +2230,8 @@ function VideoEditorPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}
   const renderTimerRef = useRef<number | undefined>(undefined);
   const [error, setError] = useState("");
   const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [draftHydrated, setDraftHydrated] = useState(false);
+  const editorDraft = data.editorDraft;
   const selectedGroup = data.groups.find((group) => group.id === groupId);
   const editedGroup = data.groups.find((group) => isEditedVideosFolder(group.id, data.groups));
   const editorGroups = useMemo(
@@ -2191,6 +2285,81 @@ function VideoEditorPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}
   const includedAnimationVideos = animationVideos.filter((video) => isIncludedVideo(video));
   const myAnimationVideos = animationVideos.filter((video) => !isIncludedVideo(video));
   useEffect(() => {
+    if (draftHydrated) return;
+    const draft = editorDraft;
+    if (draft) {
+      setGroupId(draft.groupId);
+      setAnimationGroupId(draft.animationGroupId);
+      setEditorLibrary(draft.editorLibrary);
+      setSelectedIds(draft.selectedIds);
+      setLoopEnabled(draft.loopEnabled);
+      setLoopCount(draft.loopCount);
+      setTitle(draft.title);
+      setOutputAspectRatio(draft.outputAspectRatio);
+      setCropMode(draft.cropMode);
+      setLogoPosition(draft.logoPosition);
+      setOverlayScale(draft.overlayScale);
+      setWebcamPosition(draft.webcamPosition);
+      setWebcamScale(draft.webcamScale);
+      setMainTransform(draft.mainTransform);
+      setWebcamTransform(draft.webcamTransform);
+      setSelectedLayer(draft.selectedLayer);
+      setAnimationPreset(draft.animationPreset);
+      setReverseVideo(draft.reverseVideo);
+      setColorAdjustments(draft.colorAdjustments);
+      setChromaKeyEnabled(draft.chromaKeyEnabled);
+      setChromaKeyTarget(draft.chromaKeyTarget);
+      setChromaKeyColor(draft.chromaKeyColor);
+      setChromaSimilarity(draft.chromaSimilarity);
+      setChromaBlend(draft.chromaBlend);
+      setWebcamId(draft.webcamId);
+      setAnimationId(draft.animationId);
+      setAnimationTransform(draft.animationTransform);
+      setLogoId(draft.logoId);
+    }
+    setDraftHydrated(true);
+  }, [draftHydrated, editorDraft]);
+  useEffect(() => {
+    if (!draftHydrated) return;
+    update({
+      editorDraft: {
+        groupId,
+        animationGroupId,
+        editorLibrary,
+        selectedIds,
+        loopEnabled,
+        loopCount,
+        title,
+        outputAspectRatio,
+        cropMode,
+        logoPosition,
+        overlayScale,
+        webcamPosition,
+        webcamScale,
+        mainTransform,
+        webcamTransform,
+        selectedLayer,
+        animationPreset,
+        reverseVideo,
+        colorAdjustments,
+        chromaKeyEnabled,
+        chromaKeyTarget,
+        chromaKeyColor,
+        chromaSimilarity,
+        chromaBlend,
+        webcamId,
+        animationId,
+        animationTransform,
+        logoId,
+      },
+    });
+  }, [
+    draftHydrated, groupId, animationGroupId, editorLibrary, selectedIds, loopEnabled, loopCount, title,
+    outputAspectRatio, cropMode, logoPosition, overlayScale, webcamPosition, webcamScale, mainTransform,
+    webcamTransform, selectedLayer, animationPreset, reverseVideo, colorAdjustments, chromaKeyEnabled,
+    chromaKeyTarget, chromaKeyColor, chromaSimilarity, chromaBlend, webcamId, animationId, animationTransform, logoId,
+  ]);
+  useEffect(() => {
     if (webcamId && !webcam) {
       setWebcamId("");
       setSelectedLayer("main");
@@ -2202,14 +2371,20 @@ function VideoEditorPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}
       if (selectedLayer === "animation") setSelectedLayer("main");
     }
   }, [animationId, animation, selectedLayer]);
+  useEffect(() => {
+    if (chromaKeyTarget === "animation" && !animation && webcam) setChromaKeyTarget("webcam");
+    if (chromaKeyTarget === "webcam" && !webcam && animation) setChromaKeyTarget("animation");
+  }, [animation, chromaKeyTarget, webcam]);
   const previewUrl = videoPlaybackUrl(previewVideo, workspace.licenseId);
   const editorCanvasProps = {
     previewUrl,
+     loopEnabled,
     webcamUrl: videoPlaybackUrl(webcam, workspace.licenseId),
     animationUrl: videoPlaybackUrl(animation, workspace.licenseId),
     logo,
     logoPosition,
     outputAspectRatio,
+    cropMode,
     mainTransform,
     webcamTransform,
     animationTransform,
@@ -2218,6 +2393,7 @@ function VideoEditorPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}
     reverseVideo,
     colorAdjustments,
     chromaKeyEnabled,
+    chromaKeyTarget,
     chromaKeyColor,
     chromaSimilarity,
     chromaBlend,
@@ -2313,7 +2489,7 @@ function VideoEditorPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}
         body: JSON.stringify({
           fileIds: selectedVideos.map((video) => getMediaFileId(video)).filter((id): id is string => Boolean(id)),
           title: title.trim() || `${selectedGroup?.name || "Library"} · edited`,
-          loopCount: Number(loopCount),
+           loopCount: loopEnabled ? Number(loopCount) : 1,
           logoFileId: logo?.fileId,
           webcamFileId: webcam ? getMediaFileId(webcam) : undefined,
           animationFileId: animation ? getMediaFileId(animation) : undefined,
@@ -2330,12 +2506,14 @@ function VideoEditorPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}
           overlayScale: Number(overlayScale) / 100,
           animationPreset,
           outputAspectRatio,
+           cropMode,
            reverseVideo,
            brightness: colorAdjustments.brightness,
            contrast: colorAdjustments.contrast,
            saturation: colorAdjustments.saturation,
            hue: colorAdjustments.hue,
            chromaKeyEnabled,
+           chromaKeyTarget,
            chromaKeyColor,
            chromaSimilarity,
            chromaBlend,
@@ -2360,7 +2538,6 @@ function VideoEditorPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}
       const videos = [...data.videos, output];
       setRenderProgress(96);
       update({ videos, groups: rebuildGroupMembership(data.groups, videos) }, { message: `${output.title} was saved to Edited Videos`, type: "video" });
-      setSelectedIds([]);
       setToast("Edited video is ready in the protected Edited Videos folder.");
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "The edited video could not be created.");
@@ -2384,7 +2561,7 @@ function VideoEditorPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}
        </div>
       <form className="editor-layout" onSubmit={compose}>
         <section className="editor-stage card">
-          <div className="editor-stage-head"><div><span className="metric-kicker">Live composition</span><strong>{selectedVideos.length ? `${selectedVideos.length} clips · loops ${loopCount}` : "Choose videos to preview"}</strong></div><span className="editor-stage-status"><span className="status-dot"/>Preview</span></div>
+           <div className="editor-stage-head"><div><span className="metric-kicker">Live composition</span><strong>{selectedVideos.length ? `${selectedVideos.length} clips · ${loopEnabled ? `loops ${loopCount}` : "single pass"}` : "Choose videos to preview"}</strong></div><span className="editor-stage-status"><span className="status-dot"/>Preview</span></div>
             <EditorCanvas {...editorCanvasProps} />
             <div className="editor-preview-actions">
               <div><strong>{previewUrl ? "Preview is ready to edit" : "Select a video first"}</strong><span>{previewUrl ? "Open the large canvas to position, zoom, and fit every layer precisely." : "Choose a category and at least one server-ready video from the panel."}</span></div>
@@ -2413,7 +2590,8 @@ function VideoEditorPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}
           <section className="card editor-panel">
              <div className="section-head"><div><h2 className="section-title">2. Timing & output</h2><p className="subtle">Choose whether this edit is a vertical Short or a landscape Long video.</p></div><Type size={17} color="#6c8b83"/></div>
             <div className="field"><label>Output title</label><input value={title} onChange={(event) => setTitle(event.target.value)} placeholder="Night drive · long cut" data-testid="input-editor-title"/></div>
-             <div className="form-grid"><div className="field"><label>Video format</label><select value={outputAspectRatio} onChange={(event) => setOutputAspectRatio(event.target.value as AspectRatio)} data-testid="select-editor-format"><option value="full">Long video · 16:9 landscape</option><option value="shorts">Short video · 9:16 vertical</option><option value="square">Square video · 1:1</option></select></div><div className="field"><label>Loop playlist</label><input type="number" min="1" max="12" value={loopCount} onChange={(event) => setLoopCount(event.target.value)} data-testid="input-editor-loop-count"/></div></div>
+              <div className="form-grid"><div className="field"><label>Video format</label><select value={outputAspectRatio} onChange={(event) => setOutputAspectRatio(event.target.value as AspectRatio)} data-testid="select-editor-format"><option value="full">Long video · 16:9 landscape</option><option value="shorts">Short video · 9:16 vertical</option><option value="square">Square video · 1:1</option></select></div><div className="field"><label>Frame behavior</label><select value={cropMode} onChange={(event) => setCropMode(event.target.value as EditorCropMode)} data-testid="select-editor-crop-mode"><option value="fit">Fit entire video</option><option value="crop">Fill frame & crop edges</option></select></div></div>
+              <div className="form-grid"><label className="check-control editor-toggle-control"><input type="checkbox" checked={loopEnabled} onChange={(event) => setLoopEnabled(event.target.checked)} data-testid="toggle-editor-loop"/><span><strong>Loop selected video</strong><small>Repeat the selected playlist when enabled.</small></span></label><div className="field"><label>Loop count</label><input type="number" min="1" max="12" value={loopCount} disabled={!loopEnabled} onChange={(event) => setLoopCount(event.target.value)} data-testid="input-editor-loop-count"/></div></div>
              <div className="field"><label>Selected total</label><div className="editor-readonly">{selectedVideos.length} clip{selectedVideos.length === 1 ? "" : "s"} · {outputAspectRatio === "shorts" ? "Short format" : outputAspectRatio === "square" ? "Square format" : "Long format"}</div></div>
           </section>
           <section className="card editor-panel">
@@ -2448,8 +2626,10 @@ function VideoEditorPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}
                <div className="field"><label>Saturation · {Math.round(colorAdjustments.saturation * 100)}%</label><input type="range" min="0" max="200" value={Math.round(colorAdjustments.saturation * 100)} onChange={(event) => setColorAdjustments((current) => ({ ...current, saturation: Number(event.target.value) / 100 }))} data-testid="input-editor-saturation"/></div>
                <div className="field"><label>Hue · {colorAdjustments.hue}°</label><input type="range" min="-180" max="180" value={colorAdjustments.hue} onChange={(event) => setColorAdjustments((current) => ({ ...current, hue: Number(event.target.value) }))} data-testid="input-editor-hue"/></div>
              </div>
-             <label className="check-control editor-toggle-control"><input type="checkbox" checked={chromaKeyEnabled} onChange={(event) => setChromaKeyEnabled(event.target.checked)} disabled={!webcam} data-testid="toggle-editor-green-screen"/><span><strong>Remove green screen from face cam</strong><small>{webcam ? "Removes the selected key color from the face cam layer." : "Add a face cam first to enable green-screen removal."}</small></span></label>
+              <label className="check-control editor-toggle-control"><input type="checkbox" checked={chromaKeyEnabled} onChange={(event) => setChromaKeyEnabled(event.target.checked)} disabled={!webcam && !animation} data-testid="toggle-editor-green-screen"/><span><strong>Remove background with Chroma key</strong><small>{webcam || animation ? "Removes the selected key color from the face cam or animation layer during preview and render." : "Add a face cam or animation overlay first to enable background removal."}</small></span></label>
+              {(webcam || animation) && <div className="field"><label>Chroma key layer</label><select value={chromaKeyTarget} onChange={(event) => setChromaKeyTarget(event.target.value as EditorChromaTarget)} data-testid="select-editor-chroma-target"><option value="webcam" disabled={!webcam}>Face cam</option><option value="animation" disabled={!animation}>Animation overlay</option></select></div>}
              {chromaKeyEnabled && <div className="editor-effect-grid chroma-key-grid"><div className="field"><label>Key color</label><input type="color" value={chromaKeyColor} onChange={(event) => setChromaKeyColor(event.target.value)} data-testid="input-editor-key-color"/></div><div className="field"><label>Color range · {Math.round(chromaSimilarity * 100)}%</label><input type="range" min="10" max="90" value={Math.round(chromaSimilarity * 100)} onChange={(event) => setChromaSimilarity(Number(event.target.value) / 100)} data-testid="input-editor-key-similarity"/></div><div className="field"><label>Edge blend · {Math.round(chromaBlend * 100)}%</label><input type="range" min="0" max="35" value={Math.round(chromaBlend * 100)} onChange={(event) => setChromaBlend(Number(event.target.value) / 100)} data-testid="input-editor-key-blend"/></div></div>}
+              <div className="editor-reset-row"><span>Reset all crop, layer, loop and effect changes.</span><button type="button" className="button ghost small" onClick={() => { setLoopEnabled(true); setLoopCount("1"); setOutputAspectRatio("full"); setCropMode("fit"); setLogoPosition("bottom-right"); setOverlayScale("25"); setWebcamPosition("top-right"); setWebcamScale("25"); setMainTransform({ x: 0, y: 0, scale: 1 }); setWebcamTransform({ x: 0, y: 0, scale: 0.25 }); setAnimationTransform({ x: 0, y: 0, scale: 0.25 }); setSelectedLayer("main"); setAnimationPreset("none"); setReverseVideo(false); setColorAdjustments({ brightness: 0, contrast: 1, saturation: 1, hue: 0 }); setChromaKeyEnabled(false); setChromaKeyTarget("webcam"); setChromaKeyColor("#00ff00"); setChromaSimilarity(0.32); setChromaBlend(0.08); setWebcamId(""); setAnimationId(""); setLogoId(""); setToast("All editor changes were reset"); }} data-testid="button-reset-editor">Reset edits</button></div>
              <div className="form-note"><Sparkles size={14} style={{verticalAlign:"-3px",marginRight:6}}/>These effects are shown in the preview and applied to the saved MP4 during render.</div>
            </section>
            {error && <div className="error-note" style={{whiteSpace:"pre-line"}}>{error}</div>}
@@ -2468,11 +2648,13 @@ function GripIcon() {
 
 type EditorCanvasProps = {
   previewUrl: string;
+  loopEnabled: boolean;
   webcamUrl: string;
   animationUrl: string;
   logo?: EditorAsset;
   logoPosition: string;
   outputAspectRatio: AspectRatio;
+  cropMode: EditorCropMode;
   mainTransform: EditorTransform;
   webcamTransform: EditorTransform;
   animationTransform: EditorTransform;
@@ -2481,6 +2663,7 @@ type EditorCanvasProps = {
   reverseVideo: boolean;
   colorAdjustments: EditorColorAdjustments;
   chromaKeyEnabled: boolean;
+  chromaKeyTarget: EditorChromaTarget;
   chromaKeyColor: string;
   chromaSimilarity: number;
   chromaBlend: number;
@@ -2494,11 +2677,13 @@ type EditorCanvasProps = {
 
 function EditorCanvas({
   previewUrl,
+  loopEnabled,
   webcamUrl,
   animationUrl,
   logo,
   logoPosition,
   outputAspectRatio,
+  cropMode,
   mainTransform,
   webcamTransform,
   animationTransform,
@@ -2507,6 +2692,7 @@ function EditorCanvas({
   reverseVideo,
   colorAdjustments,
   chromaKeyEnabled,
+  chromaKeyTarget,
   chromaKeyColor,
   chromaSimilarity,
   chromaBlend,
@@ -2673,42 +2859,46 @@ function EditorCanvas({
        src={previewUrl}
        muted
        autoPlay={!reverseVideo}
-       loop
+       loop={loopEnabled}
        playsInline
        className={`editor-preview-video editor-layer-main ${selectedLayer === "main" ? "active" : ""}`}
        data-editor-layer="main"
        style={{
          transform: `translate(${mainTransform.x}%, ${mainTransform.y}%) scale(${mainTransform.scale})`,
+          objectFit: cropMode === "crop" ? "cover" : "contain",
          filter: `brightness(${1 + colorAdjustments.brightness}) contrast(${colorAdjustments.contrast}) saturate(${colorAdjustments.saturation}) hue-rotate(${colorAdjustments.hue}deg)`,
        }}
     /> : <div className="editor-empty"><Layers size={27}/><strong>Your composition appears here</strong><span>Choose a category and tick the clips you want to merge.</span></div>}
-     {webcamUrl && <video
-      src={webcamUrl}
-      muted
-      autoPlay
-      loop
-      playsInline
-       className={`editor-face-layer ${selectedLayer === "webcam" ? "active" : ""} ${chromaKeyEnabled ? "editor-face-layer-keyed" : ""}`}
-      data-editor-layer="webcam"
-       data-key-color={chromaKeyColor}
-       data-key-similarity={chromaSimilarity}
-       data-key-blend={chromaBlend}
-      style={{ left: `${50 + webcamTransform.x}%`, top: `${50 + webcamTransform.y}%`, width: `${webcamTransform.scale * 100}%` }}
-    />}
+      {webcamUrl && <video
+       src={webcamUrl}
+       muted
+       autoPlay
+       loop
+       playsInline
+        className={`editor-face-layer ${selectedLayer === "webcam" ? "active" : ""} ${chromaKeyEnabled && chromaKeyTarget === "webcam" ? "editor-face-layer-keyed" : ""}`}
+       data-editor-layer="webcam"
+        data-key-color={chromaKeyColor}
+        data-key-similarity={chromaSimilarity}
+        data-key-blend={chromaBlend}
+       style={{ left: `${50 + webcamTransform.x}%`, top: `${50 + webcamTransform.y}%`, width: `${webcamTransform.scale * 100}%` }}
+     />}
      {animationUrl && <video
        src={animationUrl}
        muted
        autoPlay
        loop
        playsInline
-       className={`editor-face-layer editor-animation-layer ${selectedLayer === "animation" ? "active" : ""}`}
+        className={`editor-face-layer editor-animation-layer ${selectedLayer === "animation" ? "active" : ""} ${chromaKeyEnabled && chromaKeyTarget === "animation" ? "editor-face-layer-keyed" : ""}`}
        data-editor-layer="animation"
+        data-key-color={chromaKeyColor}
+        data-key-similarity={chromaSimilarity}
+        data-key-blend={chromaBlend}
        style={{ left: `${50 + animationTransform.x}%`, top: `${50 + animationTransform.y}%`, width: `${animationTransform.scale * 100}%` }}
      />}
     {logo && <img src={logo.playbackUrl} alt="Logo overlay preview" className={`editor-overlay logo-${logoPosition}`}/>}
     {logo && <span className={`editor-watermark-label logo-${logoPosition}`}>BRANDED</span>}
     {animationCopy && <div className={`editor-animation-preview editor-animation-${animationPreset}`}><strong>{animationCopy}</strong><span>{animationPreset === "subscribe" ? "New drop live" : animationPreset === "like" ? "Show some love" : "Stay with us"}</span></div>}
-    {selectedLayer === "main" && previewUrl && <div className="editor-selection editor-selection-main" aria-hidden="true"><span className="editor-selection-label">Main video · {Math.round(mainTransform.scale * 100)}%</span></div>}
+     {selectedLayer === "main" && previewUrl && <div className="editor-selection editor-selection-main" aria-hidden="true"><span className="editor-selection-label">Main video · {cropMode === "crop" ? "Crop" : "Fit"} · {Math.round(mainTransform.scale * 100)}%</span></div>}
     {selectedLayer === "webcam" && webcamUrl && <div
       className="editor-selection editor-selection-webcam"
       aria-hidden="true"

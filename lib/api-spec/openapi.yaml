@@ -1150,6 +1150,54 @@ components:
           type: string
           enum: [shorts, full, square]
           default: full
+        cropMode:
+          type: string
+          enum: [fit, crop]
+          default: fit
+        reverseVideo:
+          type: boolean
+          default: false
+        brightness:
+          type: number
+          minimum: -1
+          maximum: 1
+          default: 0
+        contrast:
+          type: number
+          minimum: 0.5
+          maximum: 1.8
+          default: 1
+        saturation:
+          type: number
+          minimum: 0
+          maximum: 2
+          default: 1
+        hue:
+          type: number
+          minimum: -180
+          maximum: 180
+          default: 0
+        chromaKeyEnabled:
+          type: boolean
+          default: false
+        chromaKeyTarget:
+          type: string
+          enum: [webcam, animation]
+          default: webcam
+        chromaKeyColor:
+          type: string
+          pattern: "^#?[0-9a-fA-F]{6}$"
+          default: "#00ff00"
+        chromaSimilarity:
+          type: number
+          minimum: 0.05
+          maximum: 0.95
+          default: 0.32
+        chromaBlend:
+          type: number
+          minimum: 0
+          maximum: 0.5
+          default: 0.08
       required:
         - fileIds
     YoutubeDownloadInput:
