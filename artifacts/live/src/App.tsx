@@ -35,7 +35,7 @@ type VideoItem = {
   sourceUrl: string; serverSource?: string; thumbnailColor: string; views: number; createdAt: string;
   licenseId?: string; licenseName?: string; folderName?: string; quality?: string;
 };
-type VideoGroup = { id: string; name: string; description: string; videoIds: string[]; createdAt: string };
+type VideoGroup = { id: string; name: string; description: string; videoIds: string[]; createdAt: string; parentId?: string };
 type EditorAsset = { id: string; fileId: string; title: string; playbackUrl: string; sourcePath: string; kind: "logo"; createdAt: string };
 type Activity = { id: string; type: string; message: string; time: string };
 type DataState = { channels: LiveChannel[]; videos: VideoItem[]; groups: VideoGroup[]; editorAssets: EditorAsset[]; activities: Activity[] };
@@ -157,6 +157,35 @@ const seed: DataState = {
   activities: [],
 };
 
+const defaultYoutubeFolders = [
+  { id: "folder-youtube-animations", name: "YouTube Animations", description: "Reusable YouTube intro, outro, subscribe, like, and follow clips.", parentId: undefined },
+  { id: "folder-youtube-starting-ending", name: "Starting & Ending Videos", description: "YouTube starting and ending clips.", parentId: "folder-youtube-animations" },
+  { id: "folder-youtube-subscribe", name: "Subscribe Animations", description: "Subscribe Now and subscribe call-to-action clips.", parentId: "folder-youtube-animations" },
+  { id: "folder-youtube-like", name: "Like Animations", description: "Like and engagement call-to-action clips.", parentId: "folder-youtube-animations" },
+  { id: "folder-youtube-follow", name: "Follow Animations", description: "Follow and channel call-to-action clips.", parentId: "folder-youtube-animations" },
+] as const;
+
+function ensureDefaultYoutubeFolders(groups: VideoGroup[]): VideoGroup[] {
+  const next = [...groups];
+  for (const folder of defaultYoutubeFolders) {
+    const existing = next.find((group) =>
+      group.id === folder.id
+      || (
+        group.name.trim().toLowerCase() === folder.name.toLowerCase()
+        && (group.parentId || undefined) === folder.parentId
+      ),
+    );
+    if (existing) {
+      if (existing.id === folder.id && existing.parentId !== folder.parentId) {
+        existing.parentId = folder.parentId;
+      }
+      continue;
+    }
+    next.push({ ...folder, videoIds: [], createdAt: now() });
+  }
+  return next;
+}
+
 function ensureBundledFaceVideo(value: DataState): DataState {
   const normalizedValue = {
     ...value,
@@ -215,7 +244,7 @@ function rebuildGroupMembership(groups: VideoGroup[], videos: VideoItem[]): Vide
 }
 
 function normalizeWorkspace(value: unknown): DataState {
-  if (!value || typeof value !== "object") return seed;
+  if (!value || typeof value !== "object") return { ...seed, groups: ensureDefaultYoutubeFolders([]) };
   const candidate = value as Partial<DataState>;
   const groups: VideoGroup[] = (Array.isArray(candidate.groups) ? candidate.groups : [])
     .filter((group): group is VideoGroup => Boolean(group && typeof group === "object"))
@@ -225,6 +254,7 @@ function normalizeWorkspace(value: unknown): DataState {
       description: typeof group.description === "string" ? group.description : "",
       videoIds: Array.isArray(group.videoIds) ? group.videoIds.filter((id): id is string => typeof id === "string") : [],
       createdAt: typeof group.createdAt === "string" ? group.createdAt : now(),
+      parentId: typeof group.parentId === "string" && group.parentId ? group.parentId : undefined,
     }));
   const activities: Activity[] = (Array.isArray(candidate.activities) ? candidate.activities : [])
     .filter((activity): activity is Activity => Boolean(activity && typeof activity === "object"))
@@ -268,7 +298,7 @@ function normalizeWorkspace(value: unknown): DataState {
   return removeBundledGtaVideo({
     channels: Array.isArray(candidate.channels) ? candidate.channels : [],
     videos,
-    groups: legacyGroups,
+    groups: ensureDefaultYoutubeFolders(legacyGroups),
     editorAssets,
     activities,
   });
