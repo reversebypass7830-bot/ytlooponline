@@ -1748,8 +1748,23 @@ function VideoEditorPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}
   );
   const selectedVideos = selectedIds.map((id) => groupVideos.find((video) => video.id === id)).filter((video): video is VideoItem => Boolean(video));
   const logo = data.editorAssets.find((asset) => asset.id === logoId);
-  const webcam = data.videos.find((video) => video.id === webcamId);
   const previewVideo = selectedVideos[0];
+  const webcamVideos = useMemo(
+    () => data.videos.filter((video) =>
+      video.serverSource
+      && video.id !== previewVideo?.id
+      && video.licenseId === workspace.licenseId
+      && !isIncludedVideo(video),
+    ),
+    [data.videos, previewVideo?.id, workspace.licenseId],
+  );
+  const webcam = webcamVideos.find((video) => video.id === webcamId);
+  useEffect(() => {
+    if (webcamId && !webcam) {
+      setWebcamId("");
+      setSelectedLayer("main");
+    }
+  }, [webcamId, webcam]);
   const previewUrl = videoPlaybackUrl(previewVideo, workspace.licenseId);
   const editorCanvasProps = {
     previewUrl,
@@ -1949,7 +1964,7 @@ function VideoEditorPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}
              <div className="section-head"><div><h2 className="section-title">3. Face cam & brand layers</h2><p className="subtle">Place a face cam video on top of the main video, then add a logo if needed.</p></div><Image size={17} color="#6c8b83"/></div>
             <div className="field"><label>Logo / watermark</label><div className="input-action-row"><select value={logoId} onChange={(event) => setLogoId(event.target.value)}><option value="">No logo</option>{data.editorAssets.map((asset) => <option key={asset.id} value={asset.id}>{asset.title}</option>)}</select><label className="button secondary small editor-file-button"><Upload size={13}/>{uploadingLogo ? "Uploading…" : "Upload"}<input type="file" accept="image/png,image/jpeg,image/webp" disabled={uploadingLogo} onChange={(event) => { const file = event.target.files?.[0]; if (file) void uploadLogo(file); event.currentTarget.value = ""; }}/></label></div></div>
             {logo && <div className="form-grid"><div className="field"><label>Logo position</label><select value={logoPosition} onChange={(event) => setLogoPosition(event.target.value)}><option value="top-left">Top left</option><option value="top-right">Top right</option><option value="bottom-left">Bottom left</option><option value="bottom-right">Bottom right</option></select></div><div className="field"><label>Logo size · {overlayScale}%</label><input type="range" min="10" max="60" value={overlayScale} onChange={(event) => setOverlayScale(event.target.value)}/></div></div>}
-             <div className="field"><label>Face cam video</label><select value={webcamId} onChange={(event) => { setWebcamId(event.target.value); setSelectedLayer(event.target.value ? "webcam" : "main"); }} data-testid="select-editor-facecam"><option value="">No face cam</option>{data.videos.filter((video) => video.serverSource && video.id !== previewVideo?.id).map((video) => <option key={video.id} value={video.id}>{video.title}</option>)}</select><span className="field-hint">Choose another uploaded video to place as the face cam layer.</span></div>
+              <div className="field"><label>Face cam video</label><select value={webcamId} onChange={(event) => { setWebcamId(event.target.value); setSelectedLayer(event.target.value ? "webcam" : "main"); }} data-testid="select-editor-facecam"><option value="">No face cam</option>{webcamVideos.map((video) => <option key={video.id} value={video.id}>{video.title}</option>)}</select><span className="field-hint">Only videos from this license workspace are available here. Included Animations stay separate.</span></div>
              {webcam && <div className="editor-layer-note"><span>Canvas face cam: {Math.round(webcamTransform.scale * 100)}%</span><button type="button" className="section-link" onClick={() => setSelectedLayer("webcam")}>Edit on canvas <ArrowRight size={12}/></button></div>}
              <div className="field"><label>Animated callout</label><select value={animationPreset} onChange={(event) => setAnimationPreset(event.target.value as AnimationPreset)} data-testid="select-editor-animation"><option value="none">No animation</option><option value="subscribe">Subscribe pop-in</option><option value="like">Like burst</option><option value="follow">Follow pulse</option></select><span className="field-hint">The animation is previewed on the canvas and burned into the final MP4.</span></div>
              <EditorTransformControls
