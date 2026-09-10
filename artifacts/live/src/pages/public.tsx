@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type KeyboardEvent, type PointerEvent, type ReactNode } from "react";
 import { AnimatePresence, motion, useInView, useReducedMotion } from "framer-motion";
-import { ArrowDown, ArrowLeftRight, ArrowRight, Check, ChevronDown, Menu, Play, Radio, Signal, X, Zap } from "lucide-react";
+import { ArrowDown, ArrowLeftRight, ArrowRight, Check, ChevronDown, ChevronLeft, ChevronRight, Menu, Play, Radio, Signal, X, Zap } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import GetOfferButton from "@/components/GetOfferButton";
 import heroImage from "@assets/generated_images/rloop-hero.jpg";
@@ -14,6 +14,10 @@ import compareOfflineImage from "@assets/generated_images/rloop-compare-server-l
 import compareLiveImage from "@assets/generated_images/rloop-compare-sleeping-live.jpg";
 import logoImage from "@assets/image_1788788255512.png";
 import offlineStreamImage from "@assets/image_1788983555839.png";
+import planOneMonthImage from "@assets/generated_images/rloop-plan-1-month.png";
+import planThreeMonthsImage from "@assets/generated_images/rloop-plan-3-months.png";
+import planSixMonthsImage from "@assets/generated_images/rloop-plan-6-months.png";
+import planOneYearImage from "@assets/generated_images/rloop-plan-1-year.png";
 
 const ease = [0.22, 1, 0.36, 1] as const;
 
@@ -274,6 +278,132 @@ function MonthlyOfferCountdown() {
   </div>;
 }
 
+const accessPlans = [
+  {
+    term: "1 month",
+    purchase: "1 month purchase",
+    bonus: "10 days extra",
+    total: "1 month 10 days",
+    message: "A clean first transmission. Test the room, then keep the signal moving.",
+    image: planOneMonthImage,
+    label: "First signal",
+  },
+  {
+    term: "3 months",
+    purchase: "3 month purchase",
+    bonus: "1 month extra",
+    total: "4 months",
+    message: "Enough runway to build a rhythm your audience recognises and returns to.",
+    image: planThreeMonthsImage,
+    label: "Build momentum",
+  },
+  {
+    term: "6 months",
+    purchase: "6 month purchase",
+    bonus: "2 months extra",
+    total: "8 months",
+    message: "Let the channel become part of the schedule, not another task on it.",
+    image: planSixMonthsImage,
+    label: "Stay on air",
+  },
+  {
+    term: "1 year",
+    purchase: "1 year purchase",
+    bonus: "5 months extra",
+    total: "17 months",
+    message: "The strongest value for a serious long signal: one year bought, five months gifted.",
+    image: planOneYearImage,
+    label: "Long signal",
+  },
+];
+
+function PlanOfferSlider() {
+  const [activePlan, setActivePlan] = useState(3);
+  const [isInteracting, setIsInteracting] = useState(false);
+  const [dragStart, setDragStart] = useState<number | null>(null);
+  const reducedMotion = useReducedMotion();
+
+  const goToPlan = (index: number) => {
+    setActivePlan((index + accessPlans.length) % accessPlans.length);
+  };
+
+  useEffect(() => {
+    if (reducedMotion || isInteracting) return;
+    const timer = window.setInterval(() => setActivePlan((current) => (current + 1) % accessPlans.length), 6500);
+    return () => window.clearInterval(timer);
+  }, [isInteracting, reducedMotion]);
+
+  const handlePointerDown = (event: PointerEvent<HTMLDivElement>) => {
+    setDragStart(event.clientX);
+    setIsInteracting(true);
+    event.currentTarget.setPointerCapture(event.pointerId);
+  };
+
+  const handlePointerUp = (event: PointerEvent<HTMLDivElement>) => {
+    if (dragStart !== null) {
+      const distance = event.clientX - dragStart;
+      if (Math.abs(distance) > 42) goToPlan(activePlan + (distance < 0 ? 1 : -1));
+    }
+    setDragStart(null);
+    setIsInteracting(false);
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
+  };
+
+  const currentPlan = accessPlans[activePlan];
+  return <MarketingSection className="plan-offer-section">
+    <div className="plan-offer-heading">
+      <div>
+        <span className="section-index">05 / KEEP THE SIGNAL</span>
+        <h2>More time on air.<br /><em>More room to grow.</em></h2>
+      </div>
+      <p>Choose your runway. Every longer plan turns the next broadcast into a little less admin and a lot more continuity.</p>
+    </div>
+    <div className="plan-offer-shell">
+      <div className="plan-offer-status"><span className="monitor-led" /> ACCESS WINDOW / {String(activePlan + 1).padStart(2, "0")} OF 04 <span className="plan-offer-status-line" /></div>
+      <div
+        className="plan-offer-viewport"
+        onPointerDown={handlePointerDown}
+        onPointerUp={handlePointerUp}
+        onPointerCancel={handlePointerUp}
+        aria-label="Access plan slider. Swipe left or right to change plans."
+      >
+        <AnimatePresence mode="wait" initial={false}>
+          <motion.article
+            key={currentPlan.term}
+            className={`plan-offer-card ${activePlan === accessPlans.length - 1 ? "is-featured" : ""}`}
+            initial={reducedMotion ? { opacity: 0 } : { opacity: 0, x: 26 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={reducedMotion ? { opacity: 0 } : { opacity: 0, x: -26 }}
+            transition={{ duration: reducedMotion ? 0.01 : 0.42, ease }}
+          >
+            <div className="plan-offer-art">
+              <img src={currentPlan.image} alt={`${currentPlan.term} access artwork`} />
+              <div className="plan-offer-art-wash" />
+              <span className="plan-offer-art-label">{currentPlan.label}</span>
+              {activePlan === accessPlans.length - 1 && <span className="plan-offer-value-stamp">BEST VALUE</span>}
+            </div>
+            <div className="plan-offer-copy">
+              <div className="plan-offer-topline"><span>{currentPlan.purchase}</span><span className="plan-offer-signal"><i /> ready to broadcast</span></div>
+              <h3>{currentPlan.term}<em> access</em></h3>
+              <div className="plan-offer-bonus"><span>+ {currentPlan.bonus}</span><strong>{currentPlan.total}</strong><small>total access</small></div>
+              <p>{currentPlan.message}</p>
+              <Link href="/pricing" className="signal-button plan-offer-cta" data-testid={`link-plan-offer-${activePlan}`} onClick={() => setIsInteracting(true)}><span>Choose {currentPlan.term}</span><ArrowRight size={16} /></Link>
+            </div>
+          </motion.article>
+        </AnimatePresence>
+      </div>
+      <div className="plan-offer-controls">
+        <button type="button" className="plan-offer-arrow" onClick={() => { goToPlan(activePlan - 1); setIsInteracting(true); }} aria-label="Previous access plan" data-testid="button-plan-previous"><ChevronLeft size={17} /></button>
+        <div className="plan-offer-dots" role="tablist" aria-label="Choose an access plan">
+          {accessPlans.map((plan, index) => <button key={plan.term} type="button" className={`plan-offer-dot ${index === activePlan ? "active" : ""}`} onClick={() => { goToPlan(index); setIsInteracting(true); }} role="tab" aria-selected={index === activePlan} aria-label={`Show ${plan.term} plan`} data-testid={`button-plan-${index}`}><span /></button>)}
+        </div>
+        <button type="button" className="plan-offer-arrow" onClick={() => { goToPlan(activePlan + 1); setIsInteracting(true); }} aria-label="Next access plan" data-testid="button-plan-next"><ChevronRight size={17} /></button>
+      </div>
+      <p className="plan-offer-hint"><ArrowLeftRight size={13} /> Swipe or use the controls to tune the runway</p>
+    </div>
+  </MarketingSection>;
+}
+
 export function LandingPage() {
   const [intro, setIntro] = useState(true);
   const [activeCase, setActiveCase] = useState(0);
@@ -320,6 +450,7 @@ export function LandingPage() {
       <MarketingSection className="workflow-section"><div className="workflow-art"><div className="workflow-card workflow-card-back"><span>playlist / night-sky</span><b>18 videos</b></div><div className="workflow-card workflow-card-front"><div className="workflow-card-top"><span className="monitor-led" /> LIVE CHANNEL</div><strong>Sleep / Cloud ambience</strong><div className="workflow-track"><i /><i /><i /><i /><i /><i /><i /></div><small>Now looping · 08:42:19</small></div></div><div className="workflow-copy"><span className="section-index">03 / THE HANDOFF</span><h2>Quiet systems<br /><em>make good TV.</em></h2><p>Set the playlist, choose where it goes, and let the room do the repetitive work. The product stays visible when it matters and disappears when it does not.</p><Link href="/access" className="inline-arrow" data-testid="link-workflow-access">Open the control room <ArrowRight size={15} /></Link></div></MarketingSection>
 
       <MarketingSection className="final-cta"><div className="final-cta-grid" /><span className="section-index">READY WHEN YOU ARE</span><h2>Give your next loop<br /><em>a proper signal.</em></h2><p>Start with one channel. Build the library around it. Keep the room on air.</p><Link href="/pricing" className="signal-button" data-testid="link-final-pricing"><span>View access options</span><ArrowRight size={16} /></Link></MarketingSection>
+       <PlanOfferSlider />
     </main>
     <footer className="marketing-footer"><Link href="/" className="marketing-brand" data-testid="link-footer-home"><BrandMark /><span>R LOOP <b>BYPASS</b></span></Link><span>Broadcast automation for the long signal.</span><Link href="/access" data-testid="link-footer-access">Access workspace <ArrowRight size={13} /></Link></footer>
   </div>;
