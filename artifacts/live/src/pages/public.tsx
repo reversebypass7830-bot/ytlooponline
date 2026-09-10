@@ -7,7 +7,6 @@ import logoImage from "@assets/image_1788788255512.png";
 import planOneMonthPoster from "@assets/generated_images/rloop-plan-1-month-poster.png";
 import planThreeMonthsPoster from "@assets/generated_images/rloop-plan-3-months-poster.png";
 import planSixMonthsPoster from "@assets/generated_images/rloop-plan-6-months-poster.png";
-import planOneYearPoster from "@assets/generated_images/rloop-plan-1-year-poster.png";
 import loopControlArtwork from "@assets/loopstream_reference/feature-loop-control.jpeg";
 import streamingArtwork from "@assets/loopstream_reference/feature-24x7-streaming.jpeg";
 import playlistArtwork from "@assets/loopstream_reference/feature-playlist-builder.jpeg";
@@ -364,24 +363,26 @@ function MonthlyOfferCountdown() {
 const accessPlans = [
   {
     term: "1 month",
+    bonus: "10 days extra",
+    totalAccess: "1 month + 10 days",
     image: planOneMonthPoster,
   },
   {
     term: "3 months",
+    bonus: "1 month extra",
+    totalAccess: "3 months + 1 month",
     image: planThreeMonthsPoster,
   },
   {
     term: "6 months",
+    bonus: "2 months extra",
+    totalAccess: "6 months + 2 months",
     image: planSixMonthsPoster,
-  },
-  {
-    term: "1 year",
-    image: planOneYearPoster,
   },
 ];
 
 function PlanOfferSlider() {
-  const [activePlan, setActivePlan] = useState(3);
+  const [activePlan, setActivePlan] = useState(2);
   const [isInteracting, setIsInteracting] = useState(false);
   const [dragStart, setDragStart] = useState<number | null>(null);
   const [slideDirection, setSlideDirection] = useState(1);
@@ -441,7 +442,7 @@ function PlanOfferSlider() {
       <p>Swipe through the complete offer posters to choose your access window.</p>
     </div>
     <div className="plan-offer-shell">
-      <div className="plan-offer-status"><span className="monitor-led" /> ACCESS WINDOW / {String(activePlan + 1).padStart(2, "0")} OF 04 <span className="plan-offer-status-line" /></div>
+       <div className="plan-offer-status"><span className="monitor-led" /> ACCESS WINDOW / {String(activePlan + 1).padStart(2, "0")} OF {String(accessPlans.length).padStart(2, "0")} <span className="plan-offer-status-line" /></div>
       <div
         className="plan-offer-viewport"
         onPointerDown={handlePointerDown}
@@ -458,8 +459,8 @@ function PlanOfferSlider() {
              exit={reducedMotion ? { opacity: 0 } : { opacity: 0, x: slideDirection > 0 ? 26 : -26 }}
             transition={{ duration: reducedMotion ? 0.01 : 0.42, ease }}
           >
-            <Link href="/pricing" className="plan-offer-poster-link" data-testid={`link-plan-offer-${activePlan}`} onClick={() => setIsInteracting(true)}>
-              <img className="plan-offer-poster" src={currentPlan.image} alt={`${currentPlan.term} premium access offer poster with plan bonus, total access, included features, and streaming benefits`} />
+             <Link href="/pricing" className="plan-offer-poster-link" data-testid={`link-plan-offer-${activePlan}`} onClick={() => setIsInteracting(true)}>
+               <img className="plan-offer-poster" src={currentPlan.image} alt={`${currentPlan.term} premium access offer poster with ${currentPlan.bonus} and ${currentPlan.totalAccess} total access`} />
             </Link>
           </motion.article>
         </AnimatePresence>
