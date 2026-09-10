@@ -816,6 +816,24 @@ components:
         autoRestart:
           type: boolean
           default: false
+        liveAnimationSource:
+          type: string
+          description: Optional server-ready animation video to layer above the live playlist.
+        liveAnimationX:
+          type: number
+          minimum: -48
+          maximum: 48
+          default: 0
+        liveAnimationY:
+          type: number
+          minimum: -48
+          maximum: 48
+          default: 0
+        liveAnimationScale:
+          type: number
+          minimum: 0.1
+          maximum: 0.8
+          default: 0.25
       required:
         - streamId
         - ingestUrl

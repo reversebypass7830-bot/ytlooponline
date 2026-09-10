@@ -22,6 +22,10 @@ export type StreamRunnerInput = {
   faceScale?: number;
   durationMinutes?: number;
   autoRestart?: boolean;
+  liveAnimationSource?: string;
+  liveAnimationX?: number;
+  liveAnimationY?: number;
+  liveAnimationScale?: number;
 };
 
 export type StreamRunnerResult = {
@@ -127,6 +131,7 @@ function buildFfmpegArgs(
   input: StreamRunnerInput,
   videoInput: { path: string; playlistPath?: string },
   faceInput?: { path: string; playlistPath?: string },
+  animationInput?: { path: string; playlistPath?: string },
 ): string[] {
   const ingestUrl = validateIngestUrl(input.ingestUrl);
   const aspectRatio = input.aspectRatio ?? "full";
@@ -138,8 +143,9 @@ function buildFfmpegArgs(
   }[aspectRatio];
   const [width, height] = dimensions;
   const facePath = faceInput?.path;
+  const animationPath = animationInput?.path;
   const playbackSpeed = Math.min(2, Math.max(0.5, input.playbackSpeed ?? 1));
-  const needsVideoFilter = aspectRatio !== "full" || Boolean(facePath) || playbackSpeed !== 1 || quality === "1080p";
+  const needsVideoFilter = aspectRatio !== "full" || Boolean(facePath) || Boolean(animationPath) || playbackSpeed !== 1 || quality === "1080p";
   const videoBitrate = quality === "4k" && aspectRatio === "full" ? "28M" : "8M";
   const videoBuffer = quality === "4k" && aspectRatio === "full" ? "56M" : "16M";
   const videoLevel = quality === "4k" && aspectRatio === "full" ? "5.2" : "4.2";
@@ -167,6 +173,17 @@ function buildFfmpegArgs(
     );
   }
 
+  if (animationInput) {
+    inputArgs.push(
+      "-re",
+      "-stream_loop",
+      "-1",
+      ...(animationInput.playlistPath ? ["-f", "concat", "-safe", "0"] : []),
+      "-i",
+      animationInput.path,
+    );
+  }
+
   const videoArgs = needsVideoFilter
     ? [
         "-filter_complex",
@@ -190,9 +207,15 @@ function buildFfmpegArgs(
                 }[out]`,
               ]
             : []),
+          ...(animationPath
+            ? [
+                `[${facePath ? 2 : 1}:v]scale=${Math.round(width * Math.min(0.8, Math.max(0.1, input.liveAnimationScale ?? 0.25)))}:-2[animation]`,
+                `[${facePath ? "[out]" : "[base]"}][animation]overlay=(main_w-overlay_w)/2+${Math.round(width * Math.max(-48, Math.min(48, input.liveAnimationX ?? 0)) / 100)}:(main_h-overlay_h)/2+${Math.round(height * Math.max(-48, Math.min(48, input.liveAnimationY ?? 0)) / 100)}[composed]`,
+              ]
+            : []),
         ].join(";"),
         "-map",
-        facePath ? "[out]" : "[base]",
+        animationPath ? "[composed]" : facePath ? "[out]" : "[base]",
         "-c:v",
         "libx264",
         "-preset",
@@ -285,10 +308,14 @@ function launchProcess(process: StreamProcess): void {
   const facePaths = process.input.faceCategory
     ? getVideoPaths(process.input.faceCategory, process.input.faceSources, process.input.faceSource)
     : [];
+  const animationInput = process.input.liveAnimationSource
+    ? { path: getVideoPaths("live animation", undefined, process.input.liveAnimationSource)[0] }
+    : undefined;
   const videoInput = prepareInput(videoPaths);
   const faceInput = facePaths.length ? prepareInput(facePaths) : undefined;
-  process.playlistPaths = [videoInput.playlistPath, faceInput?.playlistPath].filter((playlistPath): playlistPath is string => Boolean(playlistPath));
-  const child = spawn("ffmpeg", buildFfmpegArgs(process.input, videoInput, faceInput), {
+  const preparedAnimationInput = animationInput ? prepareInput([animationInput.path]) : undefined;
+  process.playlistPaths = [videoInput.playlistPath, faceInput?.playlistPath, preparedAnimationInput?.playlistPath].filter((playlistPath): playlistPath is string => Boolean(playlistPath));
+  const child = spawn("ffmpeg", buildFfmpegArgs(process.input, videoInput, faceInput, preparedAnimationInput), {
     stdio: ["ignore", "ignore", "pipe"],
   });
 
@@ -362,6 +389,7 @@ export function startStream(input: StreamRunnerInput): StreamRunnerResult {
 
   getVideoPaths(input.category, input.videoSources, input.videoSource);
   if (input.faceCategory) getVideoPaths(input.faceCategory, input.faceSources, input.faceSource);
+  if (input.liveAnimationSource) getVideoPaths("live animation", undefined, input.liveAnimationSource);
 
   const streamProcess: StreamProcess = {
     child: null,
@@ -383,6 +411,7 @@ export function updateStream(input: StreamRunnerInput): StreamRunnerResult {
 
   getVideoPaths(input.category, input.videoSources, input.videoSource);
   if (input.faceCategory) getVideoPaths(input.faceCategory, input.faceSources, input.faceSource);
+  if (input.liveAnimationSource) getVideoPaths("live animation", undefined, input.liveAnimationSource);
 
   if (current.durationTimer) {
     clearTimeout(current.durationTimer);

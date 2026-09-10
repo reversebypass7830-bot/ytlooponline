@@ -1,0 +1,32 @@
+देखो भाई video editing कर लिया और उसके बाद अपन नीचे जाकर video का work कर रहे हैं। Render to Save to Library. ठीक है। तो उस पर click कर रहे हैं तो वह save हो जाना। एक नया folder बनाना चाहिए हमारे उस पर। उधर पर जो अपने video edit किया है, उधर पर रहना चाहिए। वह पहले से ही folder में बनकर रहता है। ठीक है। उसको delete भी नहीं कर सकते। ठीक है। उधर से बनकर रहता है, जिस पर video save हो जाएगा। ठीक है। अभी मैं एक blender कर रहा हूं। वह भी fast होना चाहिए। ठीक है। वो भी high quality पर। नहीं तो यह होना चाहिए real time पर इधर live चलता रहेगा। ठीक है। वह दिखता रहना चाहिए इधर पर। और जो मतलब अपन इधर से ही animations बीच live में add कर सकें, ऐसे कर दो। तो अपन उसको save करने की जरूरत नहीं है। इधर से ही यही video को live कर दे directly इधर से ही। ऐसे भी कर सकते हैं। इधर save करने का भी एक option दे दो video को और इधर से live video के बीच में animations add करना है तो live video में animations भी direct इधर से ही control कर सकें पूरा। Animations कौन सा run करना है बीच में ऐसे properly वह भी कर सकें। नहीं तो इधर blender हो रहा है वह direct इधर library में proper एक पहले से folder रहेगा, उस पर save होना चाहिए और live के बीच में animations करना है तो वह भी कर सकते हैं। ठीक है। इधर play होता रहेगा। जब कोई live करता रहेगा, video edit नहीं होना चाहिए। इधर play होता रहेगा तो अपन बीच में से animations add directly इधर से draw and drag करके animations भी run कर सकें बीच में। ठीक है। ऐसे कर दो। अपन जो भी live करेंगे तब इधर दिखना चाहिए। अपन पहले save कर लिया। उसके बाद गए library में, अपन ने video select कर दिया live channel पर और live करने लगे, start हो गया। तो video इधर live में चलता है, इधर भी play होना चाहिए, वह दिखता रहना चाहिए। जब मैं कुछ भी animation add करूंगा तो live के अंदर भी animation add हो जाना चाहिए। ऐसे करो, ठीक है। यह logic से चलो।
+
+TE
+tesahef445
+tesahef445
+Free
+5 minutes ago
+Planning feature implementation
+
+Planning feature implementation
+मैं पहले मौजूदा render, library, live playlist और live-control flows को जोड़कर देख रहा हूँ। फिर इसे ऐसे बनाऊँगा कि edited video अपने protected folder में save हो, render के दौरान live progress दिखे, और चल रहे live stream पर animation सीधे overlay के रूप में add/remove हो सके।
+
+
+
+19 actions
+अब backend contract और stream runner की सीमाएँ स्पष्ट हैं। मैं पहले persistent media/folder नियम और API contract देख रहा हूँ, ताकि नया “Edited Videos” folder reload और दूसरे browser में भी सुरक्षित रहे, और live overlays stream runner के real input contract में जाएँ।
+
+
+
+15 actions
+मैं इसे दो हिस्सों में लागू कर रहा हूँ:
+
+हर workspace में protected Edited Videos folder और render output वहीं,
+Live channel पर अलग live-animation state, जिसका preview/control live page पर रहेगा और editor render से स्वतंत्र होगा।
+पहले API और FFmpeg overlay input जोड़ता हूँ, फिर UI wiring करूँगा।
+
+
+
+5 actions
+
+Worked for 1 minute
+You've reached your daily free quota limit. It will reset at 12:00 AM UTC.

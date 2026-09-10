@@ -41,4 +41,21 @@ export interface StreamStartInput {
      */
   durationMinutes?: number;
   autoRestart?: boolean;
+  /** Optional server-ready animation video to layer above the live playlist. */
+  liveAnimationSource?: string;
+  /**
+     * @minimum -48
+     * @maximum 48
+     */
+  liveAnimationX?: number;
+  /**
+     * @minimum -48
+     * @maximum 48
+     */
+  liveAnimationY?: number;
+  /**
+     * @minimum 0.1
+     * @maximum 0.8
+     */
+  liveAnimationScale?: number;
 }

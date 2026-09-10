@@ -1005,7 +1005,9 @@ router.post("/media/compose", async (req, res): Promise<void> => {
   const loopCount = Math.min(12, Math.max(1, Number.isInteger(Number(body.loopCount)) ? Number(body.loopCount) : 1));
   const licenseId = req.header("x-license-id") || "";
   const licenseName = req.header("x-license-name") || "";
-  const folderName = req.header("x-folder-name") || "";
+  // Editor renders always belong to this protected library destination. Do not
+  // trust a client-selected folder for composed output.
+  const folderName = "Edited Videos";
   const logoFileId = typeof body.logoFileId === "string" ? body.logoFileId : "";
   const webcamFileId = typeof body.webcamFileId === "string" ? body.webcamFileId : "";
   const animationFileId = typeof body.animationFileId === "string" ? body.animationFileId : "";

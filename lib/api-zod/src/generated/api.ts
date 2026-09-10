@@ -39,6 +39,19 @@ export const startStreamBodyFaceScaleMax = 0.6;
 export const startStreamBodyDurationMinutesMax = 1440;
 
 export const startStreamBodyAutoRestartDefault = false;
+export const startStreamBodyLiveAnimationXDefault = 0;
+export const startStreamBodyLiveAnimationXMin = -48;
+export const startStreamBodyLiveAnimationXMax = 48;
+
+export const startStreamBodyLiveAnimationYDefault = 0;
+export const startStreamBodyLiveAnimationYMin = -48;
+export const startStreamBodyLiveAnimationYMax = 48;
+
+export const startStreamBodyLiveAnimationScaleDefault = 0.25;
+export const startStreamBodyLiveAnimationScaleMin = 0.1;
+export const startStreamBodyLiveAnimationScaleMax = 0.8;
+
+
 
 export const StartStreamBody = zod.object({
   "streamId": zod.string().min(1),
@@ -55,7 +68,11 @@ export const StartStreamBody = zod.object({
   "facePosition": zod.enum(['top-left', 'top-right', 'bottom-left', 'bottom-right', 'center']).default(startStreamBodyFacePositionDefault),
   "faceScale": zod.number().min(startStreamBodyFaceScaleMin).max(startStreamBodyFaceScaleMax).default(startStreamBodyFaceScaleDefault),
   "durationMinutes": zod.number().min(1).max(startStreamBodyDurationMinutesMax).optional(),
-  "autoRestart": zod.boolean().default(startStreamBodyAutoRestartDefault)
+  "autoRestart": zod.boolean().default(startStreamBodyAutoRestartDefault),
+  "liveAnimationSource": zod.string().optional().describe('Optional server-ready animation video to layer above the live playlist.'),
+  "liveAnimationX": zod.number().min(startStreamBodyLiveAnimationXMin).max(startStreamBodyLiveAnimationXMax).default(startStreamBodyLiveAnimationXDefault),
+  "liveAnimationY": zod.number().min(startStreamBodyLiveAnimationYMin).max(startStreamBodyLiveAnimationYMax).default(startStreamBodyLiveAnimationYDefault),
+  "liveAnimationScale": zod.number().min(startStreamBodyLiveAnimationScaleMin).max(startStreamBodyLiveAnimationScaleMax).default(startStreamBodyLiveAnimationScaleDefault)
 })
 
 export const StartStreamResponse = zod.object({
@@ -106,6 +123,19 @@ export const updateStreamBodyFaceScaleMax = 0.6;
 export const updateStreamBodyDurationMinutesMax = 1440;
 
 export const updateStreamBodyAutoRestartDefault = false;
+export const updateStreamBodyLiveAnimationXDefault = 0;
+export const updateStreamBodyLiveAnimationXMin = -48;
+export const updateStreamBodyLiveAnimationXMax = 48;
+
+export const updateStreamBodyLiveAnimationYDefault = 0;
+export const updateStreamBodyLiveAnimationYMin = -48;
+export const updateStreamBodyLiveAnimationYMax = 48;
+
+export const updateStreamBodyLiveAnimationScaleDefault = 0.25;
+export const updateStreamBodyLiveAnimationScaleMin = 0.1;
+export const updateStreamBodyLiveAnimationScaleMax = 0.8;
+
+
 
 export const UpdateStreamBody = zod.object({
   "streamId": zod.string().min(1),
@@ -122,7 +152,11 @@ export const UpdateStreamBody = zod.object({
   "facePosition": zod.enum(['top-left', 'top-right', 'bottom-left', 'bottom-right', 'center']).default(updateStreamBodyFacePositionDefault),
   "faceScale": zod.number().min(updateStreamBodyFaceScaleMin).max(updateStreamBodyFaceScaleMax).default(updateStreamBodyFaceScaleDefault),
   "durationMinutes": zod.number().min(1).max(updateStreamBodyDurationMinutesMax).optional(),
-  "autoRestart": zod.boolean().default(updateStreamBodyAutoRestartDefault)
+  "autoRestart": zod.boolean().default(updateStreamBodyAutoRestartDefault),
+  "liveAnimationSource": zod.string().optional().describe('Optional server-ready animation video to layer above the live playlist.'),
+  "liveAnimationX": zod.number().min(updateStreamBodyLiveAnimationXMin).max(updateStreamBodyLiveAnimationXMax).default(updateStreamBodyLiveAnimationXDefault),
+  "liveAnimationY": zod.number().min(updateStreamBodyLiveAnimationYMin).max(updateStreamBodyLiveAnimationYMax).default(updateStreamBodyLiveAnimationYDefault),
+  "liveAnimationScale": zod.number().min(updateStreamBodyLiveAnimationScaleMin).max(updateStreamBodyLiveAnimationScaleMax).default(updateStreamBodyLiveAnimationScaleDefault)
 })
 
 export const UpdateStreamResponse = zod.object({

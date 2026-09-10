@@ -41,6 +41,10 @@ router.post("/stream/start", (req, res): void => {
       faceScale: parsed.data.faceScale,
       durationMinutes: parsed.data.durationMinutes,
       autoRestart: parsed.data.autoRestart,
+      liveAnimationSource: parsed.data.liveAnimationSource,
+      liveAnimationX: parsed.data.liveAnimationX,
+      liveAnimationY: parsed.data.liveAnimationY,
+      liveAnimationScale: parsed.data.liveAnimationScale,
     });
     res.status(202).json(StartStreamResponse.parse(result));
   } catch (error) {
@@ -92,6 +96,10 @@ router.post("/stream/update", (req, res): void => {
       faceScale: parsed.data.faceScale,
       durationMinutes: parsed.data.durationMinutes,
       autoRestart: parsed.data.autoRestart,
+      liveAnimationSource: parsed.data.liveAnimationSource,
+      liveAnimationX: parsed.data.liveAnimationX,
+      liveAnimationY: parsed.data.liveAnimationY,
+      liveAnimationScale: parsed.data.liveAnimationScale,
     });
     res.status(202).json(StartStreamResponse.parse(result));
   } catch (error) {

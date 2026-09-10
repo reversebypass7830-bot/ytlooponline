@@ -1,0 +1,23 @@
+Live stream preview अलग करो और editing video अलग करो। ठीक है? Separate से। मैंने गलती से पुराने prompt में यह दे दिया कि live stream में edit, मतलब उधर से ही live stream का preview दिखे। ठीक है? Edit वाले में ऐसे होना चाहिए, normal edit करके save कर लिया library में, वह हो जाए। और दूसरी बात, live stream edit करने वाला logic इसमें लगाया है, वह separately अब एक navigation bar में add कर दो "live stream edit"。 उधर live stream के अंदर live stream का preview दिखेगा। Live stream edit नहीं, live stream preview. ठीक है? Live stream preview के अंदर जाएंगे तो उधर तेरा live stream चल रहा होगा। उधर directly अपना webcam, webcam रहता है ना? तो webcam directly on भी कर सकते हैं। Directly अपना camera use करके live stream में दिख सके। वह video के background के साथ adjust कर सके। उधर live stream preview मतलब preview के अंदर live stream में भी दिखेगा हमारा preview properly, हर एक चीज। Live stream में direct उधर से भी animations भी भेज सकते हैं, like and subscribe हर एक चीज। live stream preview के अंदर। और अपना voice over भी दे सकते हैं। जैसे कि "इसने comment किया, इसने comment किया", बोलते-बोलते live stream webcam के साथ कर सकते हैं। webcam on करके और voice का screen on करके permission दे के। ठीक है? Live stream के अंदर properly वह भी कर सके preview। Live stream preview का एक navigation bar बनाकर वह add कर देना, proper fix कर दो हर एक चीज।
+
+MO
+mopale7039
+mopale7039
+Free
+5 minutes ago
+Updating live stream features
+
+Updating live stream features
+मैं live editing और normal video editing को अलग कर रहा हूँ। पहले existing navigation, live controls, और stream API को देखूँगा ताकि नया Live Stream Preview page सही जगह जुड़े—जहाँ live preview, webcam, animations, voice permissions और stream controls रहेंगे, जबकि /editor केवल render करके library में save करेगा।
+
+
+
+6 actions
+समझ गया: /editor अब सिर्फ normal video edit करके library में save करेगा। Live channel management अलग रहेगा, और animation/webcam/mic वाला surface नए Live Stream Preview navigation page में जाएगा। मैं अभी उसी separation के साथ browser camera/microphone permission और live preview canvas जोड़ रहा हूँ।
+
+
+
+15 actions
+
+Worked for 2 minutes
+You've reached your daily free quota limit. It will reset at 12:00 AM UTC.
