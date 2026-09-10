@@ -79,7 +79,11 @@ const getClientId = () => {
 async function apiJson<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(path, { ...init, headers: { "Content-Type": "application/json", ...(init?.headers || {}) } });
   const payload = await response.json().catch(() => ({})) as { error?: string } & T;
-  if (!response.ok) throw new Error(payload.error || "The request could not be completed.");
+  if (!response.ok) {
+    const error = new Error(payload.error || "The request could not be completed.") as Error & { status?: number };
+    error.status = response.status;
+    throw error;
+  }
   return payload;
 }
 type YoutubeDownloadResult = {
@@ -97,14 +101,28 @@ type YoutubeDownloadJobStatus = {
   error?: string;
 };
 async function downloadYoutubeVideoAsync(input: { url: string; quality: DownloadQuality; licenseId?: string; licenseName?: string; folderName?: string }): Promise<YoutubeDownloadResult> {
-  const queued = await apiJson<{ jobId: string }>("/api/media/youtube-download/jobs", {
+  const queueJob = () => apiJson<{ jobId: string }>("/api/media/youtube-download/jobs", {
     method: "POST",
     body: JSON.stringify(input),
   });
+  let queued = await queueJob();
+  let recoveredMissingJob = false;
   let waitMs = 0;
   while (true) {
     if (waitMs) await new Promise((resolve) => setTimeout(resolve, waitMs));
-    const job = await apiJson<YoutubeDownloadJobStatus>(`/api/media/youtube-download/jobs/${encodeURIComponent(queued.jobId)}`);
+    let job: YoutubeDownloadJobStatus;
+    try {
+      job = await apiJson<YoutubeDownloadJobStatus>(`/api/media/youtube-download/jobs/${encodeURIComponent(queued.jobId)}`);
+    } catch (error) {
+      const status = error instanceof Error ? (error as Error & { status?: number }).status : undefined;
+      if (status !== 404 || recoveredMissingJob) throw error;
+      // Jobs are kept in API memory. If the API restarted while this tab was
+      // polling, start the download again instead of surfacing a stale job ID.
+      recoveredMissingJob = true;
+      queued = await queueJob();
+      waitMs = 0;
+      continue;
+    }
     if (job.status === "completed" && job.result) return job.result;
     if (job.status === "failed") throw new Error(job.error || "The YouTube video could not be downloaded.");
     waitMs = 2000;
