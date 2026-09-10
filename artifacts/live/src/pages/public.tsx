@@ -1,18 +1,9 @@
 import { useEffect, useRef, useState, type KeyboardEvent, type PointerEvent, type ReactNode } from "react";
 import { AnimatePresence, motion, useInView, useReducedMotion } from "framer-motion";
-import { ArrowDown, ArrowLeftRight, ArrowRight, Check, ChevronDown, ChevronLeft, ChevronRight, Menu, Play, Radio, Signal, X, Youtube, Zap } from "lucide-react";
+import { ArrowDown, ArrowLeftRight, ArrowRight, Check, ChevronDown, ChevronLeft, ChevronRight, Menu, Play, Radio, Signal, X, Zap } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import GetOfferButton from "@/components/GetOfferButton";
-import kidsImage from "@assets/generated_images/rloop-kids.jpg";
-import yogaImage from "@assets/generated_images/rloop-yoga.jpg";
-import sleepImage from "@assets/generated_images/rloop-sleep.jpg";
-import musicImage from "@assets/generated_images/rloop-music.jpg";
-import newsImage from "@assets/generated_images/rloop-news.jpg";
-import dramaImage from "@assets/generated_images/rloop-drama.jpg";
-import compareOfflineImage from "@assets/generated_images/rloop-compare-server-loss.jpg";
-import compareLiveImage from "@assets/generated_images/rloop-compare-sleeping-live.jpg";
 import logoImage from "@assets/image_1788788255512.png";
-import offlineStreamImage from "@assets/image_1788983555839.png";
 import planOneMonthPoster from "@assets/generated_images/rloop-plan-1-month-poster.png";
 import planThreeMonthsPoster from "@assets/generated_images/rloop-plan-3-months-poster.png";
 import planSixMonthsPoster from "@assets/generated_images/rloop-plan-6-months-poster.png";
@@ -22,7 +13,21 @@ import streamingArtwork from "@assets/generated_images/rloop-feature-24x7.png";
 import playlistArtwork from "@assets/generated_images/rloop-feature-playlist.png";
 import qualityArtwork from "@assets/generated_images/rloop-feature-quality.png";
 import schedulerArtwork from "@assets/generated_images/rloop-feature-scheduler.png";
-import loopstreamHeroImage from "@assets/generated_images/rloop-loopstream-hero.png";
+import heroTwoScreenImage from "@assets/loopstream_reference/hero-two-screen.webp";
+import compareAfterImage from "@assets/loopstream_reference/after-loop-stream.webp";
+import compareBeforeImage from "@assets/loopstream_reference/before-loop-stream.webp";
+import newsReferenceImage from "@assets/loopstream_reference/news.webp";
+import devotionalReferenceImage from "@assets/loopstream_reference/devotional.webp";
+import musicReferenceImage from "@assets/loopstream_reference/music.webp";
+import cartoonsReferenceImage from "@assets/loopstream_reference/cartoons.webp";
+import educationReferenceImage from "@assets/loopstream_reference/education.webp";
+import affiliateReferenceImage from "@assets/loopstream_reference/affiliate.webp";
+import youtubeReferenceIcon from "@assets/loopstream_reference/youtube.webp";
+import facebookReferenceIcon from "@assets/loopstream_reference/facebook.webp";
+import twitchReferenceIcon from "@assets/loopstream_reference/twitch.webp";
+import kickReferenceIcon from "@assets/loopstream_reference/kick.webp";
+import instagramReferenceIcon from "@assets/loopstream_reference/instagram.webp";
+import xReferenceIcon from "@assets/loopstream_reference/x.webp";
 
 const ease = [0.22, 1, 0.36, 1] as const;
 
@@ -32,12 +37,21 @@ const reveal = {
 };
 
 const useCases = [
-  { title: "Kids & cartoons", note: "A familiar channel, always ready", image: kidsImage },
-  { title: "Yoga & movement", note: "A calm class on a reliable loop", image: yogaImage },
-  { title: "Sleep & ambience", note: "Clouds, night skies, quiet rooms", image: sleepImage },
-  { title: "Music & radio", note: "A visual stream that never drops", image: musicImage },
-  { title: "News & live updates", note: "Keep the daily signal moving", image: newsImage },
-  { title: "Drama & traditions", note: "Stories with a steady stage", image: dramaImage },
+  { title: "News & live updates", note: "Keep the daily signal moving", image: newsReferenceImage },
+  { title: "Devotional programming", note: "Broadcast a calm daily rhythm", image: devotionalReferenceImage },
+  { title: "Music & radio", note: "A visual stream that never drops", image: musicReferenceImage },
+  { title: "Kids & cartoons", note: "A familiar channel, always ready", image: cartoonsReferenceImage },
+  { title: "Education & classes", note: "Replay lessons as a live channel", image: educationReferenceImage },
+  { title: "Affiliate programming", note: "Keep product stories in motion", image: affiliateReferenceImage },
+];
+
+const platformIcons = [
+  { label: "YouTube", image: youtubeReferenceIcon },
+  { label: "Facebook", image: facebookReferenceIcon },
+  { label: "Twitch", image: twitchReferenceIcon },
+  { label: "Kick", image: kickReferenceIcon },
+  { label: "Instagram", image: instagramReferenceIcon, comingSoon: true },
+  { label: "X", image: xReferenceIcon, comingSoon: true },
 ];
 
 const powerfulFeatures = [
@@ -115,9 +129,9 @@ function IntroReveal({ onComplete }: { onComplete: () => void }) {
 function SignalMonitor() {
   const [state, setState] = useState(0);
   const statuses = [
-    { label: "Signal locked", sub: "Broadcasting continuously", color: "lime", image: loopstreamHeroImage, alt: "Creator directing a colorful live stream from a glowing control room" },
-    { label: "Offline / connection lost", sub: "Automatic recovery is standing by", color: "amber", image: offlineStreamImage, alt: "Stream offline connection lost status screen" },
-    { label: "Reconnecting", sub: "Automatic recovery engaged", color: "coral", image: offlineStreamImage, alt: "Stream reconnecting after a connection loss" },
+    { label: "Signal locked", sub: "Broadcasting continuously", color: "lime", image: heroTwoScreenImage, alt: "Loop Stream dashboard and YouTube live screen" },
+    { label: "Offline / connection lost", sub: "Automatic recovery is standing by", color: "amber", image: compareBeforeImage, alt: "Stream before Loop Stream recovery" },
+    { label: "Reconnecting", sub: "Automatic recovery engaged", color: "coral", image: compareAfterImage, alt: "Loop Stream recovery and continuous broadcast" },
   ];
   useEffect(() => {
     const timer = window.setInterval(() => setState((value) => (value + 1) % statuses.length), 4200);
@@ -201,9 +215,9 @@ function ComparisonSlider() {
       onPointerDown={(event) => updatePosition(event.clientX)}
       data-testid="comparison-slider"
     >
-      <img className="comparison-image comparison-image-live" src={compareLiveImage} alt="Creator sleeping peacefully while a 24-hour live broadcast earns money" />
+       <img className="comparison-image comparison-image-live" src={compareAfterImage} alt="Loop Stream 24-hour always-on live broadcast" />
       <div className="comparison-offline" style={{ clipPath: `inset(0 ${100 - position}% 0 0)` }}>
-        <img className="comparison-image comparison-image-offline" src={compareOfflineImage} alt="Creator facing a server-loss error on a computer with no stream earnings" />
+         <img className="comparison-image comparison-image-offline" src={compareBeforeImage} alt="Regular stream ending before Loop Stream recovery" />
       </div>
       <div className="comparison-tint comparison-tint-offline" style={{ clipPath: `inset(0 ${100 - position}% 0 0)` }} />
       <div className="comparison-label comparison-label-offline"><span className="comparison-label-dot" /> STREAM OFFLINE <strong>₹0 earned</strong></div>
@@ -387,9 +401,18 @@ function PlanOfferSlider() {
 export function LandingPage() {
   const [intro, setIntro] = useState(true);
   const [activeCase, setActiveCase] = useState(0);
+  const [heroTransform, setHeroTransform] = useState("perspective(1200px) rotateX(0deg) rotateY(0deg) translate3d(0, 0, 0)");
   const [, setLocation] = useLocation();
   const reducedMotion = useReducedMotion();
   const completeIntro = () => setIntro(false);
+  const moveHero = (event: PointerEvent<HTMLDivElement>) => {
+    if (reducedMotion || event.pointerType === "touch") return;
+    const bounds = event.currentTarget.getBoundingClientRect();
+    const x = (event.clientX - bounds.left) / bounds.width - 0.5;
+    const y = (event.clientY - bounds.top) / bounds.height - 0.5;
+    setHeroTransform(`perspective(1200px) rotateX(${(-y * 7).toFixed(2)}deg) rotateY(${(x * 9).toFixed(2)}deg) translate3d(${(x * 8).toFixed(2)}px, ${(y * 8).toFixed(2)}px, 0)`);
+  };
+  const resetHero = () => setHeroTransform("perspective(1200px) rotateX(0deg) rotateY(0deg) translate3d(0, 0, 0)");
   return <div className="marketing-page">
     {intro && !reducedMotion && <IntroReveal onComplete={completeIntro} />}
     <PublicNav />
@@ -415,7 +438,7 @@ export function LandingPage() {
           </motion.div>
           <motion.div className="hero-proof" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: .8, duration: .6 }}><span><Check size={13} /> 4K / 1080p output</span><span><Check size={13} /> YouTube + Facebook</span><span><Check size={13} /> Automatic recovery</span></motion.div>
         </div>
-        <motion.div className="hero-monitor-wrap" initial={{ opacity: 0, x: 25 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: .35, duration: .9, ease }}><SignalMonitor /></motion.div>
+        <motion.div className="hero-monitor-wrap" initial={{ opacity: 0, x: 25 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: .35, duration: .9, ease }}><div className="hero-tilt-surface" style={{ transform: heroTransform }} onPointerMove={moveHero} onPointerLeave={resetHero}><SignalMonitor /></div></motion.div>
         <button className="hero-scroll" onClick={() => document.querySelector("#capabilities")?.scrollIntoView({ behavior: "smooth" })} data-testid="button-scroll-capabilities"><span>Scroll to tune in</span><ArrowDown size={15} /></button>
       </section>
 
@@ -432,8 +455,7 @@ export function LandingPage() {
              <h2>Minimal <em>effort.</em></h2>
            </div>
            <div className="power-features-platforms" aria-label="Supported streaming platforms">
-             <div className="power-features-youtube"><Youtube size={18} fill="currentColor" /><span>YouTube ready</span></div>
-             <span>Facebook</span><span>Kick</span><span>More platforms</span>
+             {platformIcons.map((platform) => <div className={`power-platform-icon ${platform.comingSoon ? "is-coming-soon" : ""}`} key={platform.label}><img src={platform.image} alt="" /><span>{platform.label}</span>{platform.comingSoon && <small>soon</small>}</div>)}
            </div>
          </div>
          <div className="power-features-grid">

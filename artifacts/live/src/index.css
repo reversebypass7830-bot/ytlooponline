@@ -598,7 +598,8 @@ input:focus, textarea:focus, select:focus { border-color:#5fa49d; box-shadow:0 0
 .hero-proof { display:flex; flex-wrap:wrap; gap:17px; margin-top:42px; color:#739188; font:10px var(--app-font-mono); }
 .hero-proof span { display:inline-flex; align-items:center; gap:5px; }
 .hero-proof svg { color:var(--signal); }
-.hero-monitor-wrap { width:100%; max-width:680px; position:relative; z-index:2; }
+.hero-monitor-wrap { width:100%; max-width:680px; position:relative; z-index:2; perspective:1200px; }
+.hero-tilt-surface { width:100%; transform-style:preserve-3d; transition:transform .22s cubic-bezier(.22,1,.36,1); will-change:transform; }
 .signal-monitor { padding:11px; border:1px solid rgba(250,133,219,.34); border-radius:15px; background:linear-gradient(145deg,rgba(25,18,38,.84),rgba(8,24,24,.76)); box-shadow:0 30px 100px rgba(0,0,0,.34),0 0 70px rgba(215,44,177,.13), inset 0 0 0 1px rgba(255,255,255,.025); transform:rotate(1.1deg); }
 .monitor-head, .monitor-foot { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:3px 6px 10px; color:#8da99f; font:9px var(--app-font-mono); letter-spacing:.09em; text-transform:uppercase; }
 .monitor-title { display:flex; align-items:center; gap:7px; }
@@ -668,6 +669,11 @@ input:focus, textarea:focus, select:focus { border-color:#5fa49d; box-shadow:0 0
 .power-features-head h2 em { color:var(--signal); font-style:normal; }
 .power-features-platforms { display:flex; align-items:center; justify-content:flex-end; gap:9px; flex-wrap:wrap; max-width:430px; color:#91b6a5; font:9px var(--app-font-mono); letter-spacing:.1em; text-transform:uppercase; }
 .power-features-platforms > span { padding:8px 10px; border:1px solid rgba(186,232,198,.18); border-radius:999px; background:rgba(13,49,42,.52); }
+.power-platform-icon { position:relative; display:flex; align-items:center; gap:6px; min-height:31px; padding:5px 8px 5px 5px; border:1px solid rgba(186,232,198,.18); border-radius:999px; background:rgba(13,49,42,.52); }
+.power-platform-icon img { width:21px; height:21px; flex:0 0 21px; border-radius:50%; object-fit:cover; }
+.power-platform-icon span { color:#c0d8c5; }
+.power-platform-icon small { position:absolute; right:5px; top:-8px; padding:2px 4px; border-radius:999px; color:#1c301d; background:var(--signal); font-size:6px; font-weight:800; letter-spacing:.02em; }
+.power-platform-icon.is-coming-soon { opacity:.7; }
 .power-features-youtube { display:flex; align-items:center; gap:7px; padding:8px 11px; border:1px solid rgba(255,106,78,.65); border-radius:999px; color:#fff3ee; background:rgba(180,45,35,.22); }
 .power-features-youtube svg { color:#ff8065; }
 .power-features-grid { display:grid; grid-template-columns:repeat(6,minmax(0,1fr)); gap:16px; }
