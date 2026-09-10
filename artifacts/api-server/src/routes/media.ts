@@ -18,7 +18,7 @@ import {
   TrimMediaFileResponse,
 } from "@workspace/api-zod";
 import ffmpegPath from "ffmpeg-static";
-import { cleanupYoutubeDlpDownload, downloadYoutubeDlp, getYoutubeDlpInfo } from "../lib/youtubeDlp";
+import { cleanupVidKrakenDownload, downloadVidKraken, getVidKrakenInfo } from "../lib/vidkraken";
 
 const router: IRouter = Router();
 const mediaDir = path.resolve(process.cwd(), "attached_assets", "live-media");
@@ -372,7 +372,7 @@ async function downloadYoutubeVideo(
   fileId: string,
   context: MediaContext,
 ): Promise<{ path: string; title: string; duration: string; quality: string }> {
-  const download = await downloadYoutubeDlp(url, context.quality || "best");
+  const download = await downloadVidKraken(url, context.quality || "best");
   try {
     const extension = path.extname(download.path).toLowerCase() || ".mp4";
     const finalPath = await finalizeMediaFile(fileId, download.path, `${download.info.title}${extension}`, context);
@@ -383,13 +383,13 @@ async function downloadYoutubeVideo(
       quality: download.quality,
     };
   } finally {
-    await cleanupYoutubeDlpDownload(download.tempDir);
+    await cleanupVidKrakenDownload(download.tempDir);
   }
 }
 
 async function inspectYoutubeFormats(url: string): Promise<{ qualities: string[]; title: string }> {
   validateYoutubeUrl(url);
-  const video = await getYoutubeDlpInfo(url);
+  const video = await getVidKrakenInfo(url);
   const qualities = video.formats
     .map((format) => typeof format.height === "number" ? format.height : 0)
     .filter((height) => height > 0)
@@ -401,14 +401,11 @@ async function inspectYoutubeFormats(url: string): Promise<{ qualities: string[]
 
 function youtubeDownloadError(error: unknown): string {
   const rawMessage = error instanceof Error ? error.message : "The YouTube video could not be downloaded.";
-  if (/all youtube (?:media )?proxy attempts failed/i.test(rawMessage)) {
-    return "YouTube could not be reached through the configured proxies. Refresh proxy.txt or try again in a few minutes.";
+  if (/VidKraken TOKEN is missing/i.test(rawMessage)) {
+    return "VidKraken is not configured yet. Add TOKEN to the project's .env file.";
   }
-  if (/YOUTUBE_COOKIES secret/i.test(rawMessage)) {
-    return "The YouTube proxy could not complete this download, and the authenticated fallback is not available in the API process.";
-  }
-  if (/sign in|not a bot|bot check|cookies.*authentication|rejected the configured cookies/i.test(rawMessage)) {
-    return "yt-dlp could not access this YouTube video with the configured cookies. Refresh the YouTube cookies secret and try again.";
+  if (/401|missing api key|invalid api key|unauthorized/i.test(rawMessage)) {
+    return "VidKraken rejected the TOKEN. Check the API key in the project's .env file.";
   }
   return rawMessage;
 }

@@ -16,7 +16,7 @@ import logoImage from "@assets/image_1788788255512.png";
 
 type LiveStatus = "live" | "scheduled" | "stopped";
 type VideoStatus = "published" | "draft" | "archived";
-type DownloadQuality = "best" | "2160p" | "1440p" | "1080p" | "720p" | "480p" | "360p" | "240p" | "144p";
+type DownloadQuality = "best" | "1080p" | "720p" | "480p" | "360p";
 type AspectRatio = "shorts" | "full" | "square";
 type StreamQuality = "4k" | "1080p";
 type FacePosition = "top-left" | "top-right" | "bottom-left" | "bottom-right" | "center";
@@ -970,7 +970,7 @@ function TrimModal({video,licenseId="",licenseName="",folderName="",onCreate,onC
 }
 
 function YoutubeDownloadModal({groups,defaultGroupId="",licenseId="",licenseName="",onSaveMany,onClose}:{groups:VideoGroup[];defaultGroupId?:string;licenseId?:string;licenseName?:string;onSaveMany:(input:VideoItem[] | StartYoutubeDownloadsInput)=>void;onClose:()=>void}) {
-  const [urls,setUrls]=useState(""); const [groupId,setGroupId]=useState(defaultGroupId); const [quality,setQuality]=useState<DownloadQuality>("best"); const [availableQualities,setAvailableQualities]=useState<string[]>(["best","2160p","1440p","1080p","720p","480p"]); const [checkingQuality,setCheckingQuality]=useState(false);
+  const [urls,setUrls]=useState(""); const [groupId,setGroupId]=useState(defaultGroupId); const [quality,setQuality]=useState<DownloadQuality>("best"); const [availableQualities,setAvailableQualities]=useState<string[]>(["best","1080p","720p","480p","360p"]); const [checkingQuality,setCheckingQuality]=useState(false);
   const [channelUrl,setChannelUrl]=useState(""); const [linkLimit,setLinkLimit]=useState<"all"|"5"|"10">("all"); const [extracting,setExtracting]=useState(false); const [downloading,setDownloading]=useState(false); const [progress,setProgress]=useState(0); const [error,setError]=useState(""); const [extractedCount,setExtractedCount]=useState(0);
   const entries=urls.split(/\r?\n|,/).map(value=>value.trim()).filter(Boolean);
   const folderName=groups.find(group=>group.id===groupId)?.name||"";
