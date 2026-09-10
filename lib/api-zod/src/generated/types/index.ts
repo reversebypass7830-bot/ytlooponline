@@ -25,6 +25,7 @@ export * from './includedFolderMoveInput';
 export * from './includedFolderMoveResponse';
 export * from './includedFolderRecord';
 export * from './includedFoldersResponse';
+export * from './includedFolderTreeResponse';
 export * from './licenseAccess';
 export * from './licenseClientInput';
 export * from './licenseListResponse';

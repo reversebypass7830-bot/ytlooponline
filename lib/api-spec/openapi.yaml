@@ -208,6 +208,18 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/MediaFileListResponse"
+  /media/included-folders:
+    get:
+      operationId: listIncludedAnimationFolders
+      tags: [media]
+      summary: List the shared Included Animations folder tree
+      responses:
+        "200":
+          description: Shared folder tree
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IncludedFolderTreeResponse"
   /owner/included-folders:
     get:
       operationId: listIncludedFolders
@@ -937,6 +949,18 @@ components:
         - root
         - folders
         - files
+    IncludedFolderTreeResponse:
+      type: object
+      properties:
+        root:
+          type: string
+        folders:
+          type: array
+          items:
+            $ref: "#/components/schemas/IncludedFolderRecord"
+      required:
+        - root
+        - folders
     IncludedFolderInput:
       type: object
       properties:

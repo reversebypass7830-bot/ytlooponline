@@ -59,6 +59,7 @@ type MediaFileRecord = {
 };
 type IncludedFolderRecord = { path: string; createdAt: string };
 type IncludedFoldersResponse = { root: string; folders: IncludedFolderRecord[]; files: MediaFileRecord[] };
+type IncludedFolderTreeResponse = { root: string; folders: IncludedFolderRecord[] };
 type YoutubeDownloadTask = {
   id: string;
   total: number;
@@ -491,6 +492,14 @@ function reconcileMediaFolders(value: DataState, files: MediaFileRecord[]): Data
   return normalizeWorkspace({ ...value, groups, videos });
 }
 
+function reconcileIncludedFolders(value: DataState, folders: IncludedFolderRecord[]): DataState {
+  let groups = [...value.groups];
+  for (const folder of folders) {
+    groups = ensureFolderPath(groups, folder.path, folder.createdAt).groups;
+  }
+  return normalizeWorkspace({ ...value, groups });
+}
+
 function getMediaFileId(video: VideoItem | undefined): string | undefined {
   if (!video) return undefined;
   for (const source of [video.sourceUrl, video.serverSource]) {
@@ -501,6 +510,18 @@ function getMediaFileId(video: VideoItem | undefined): string | undefined {
     if (fileMatch?.[1]) return fileMatch[1];
   }
   return undefined;
+}
+
+function videoPlaybackUrl(video: VideoItem | undefined, currentLicenseId: string): string {
+  if (!video) return "";
+  const directUrl = scopedMediaPlaybackUrl(video.sourceUrl, video.licenseId, currentLicenseId);
+  if (directUrl) return directUrl;
+  const fileId = getMediaFileId(video);
+  if (!fileId) return "";
+  const query = video.licenseId === includedMediaLicenseId || !currentLicenseId
+    ? ""
+    : `?licenseId=${encodeURIComponent(currentLicenseId)}`;
+  return `/api/media/files/${encodeURIComponent(fileId)}${query}`;
 }
 
 function parseDurationSeconds(value: string): number {
@@ -578,10 +599,14 @@ function useWorkspace(license: LicenseSession | null, clearLicense: () => void) 
         body: JSON.stringify({ key: license.key, clientId: license.clientId }),
       }),
       apiJson<{ files: MediaFileRecord[] }>(`/api/media/files?licenseId=${encodeURIComponent(license.licenseId)}`).catch(() => ({ files: [] as MediaFileRecord[] })),
-    ]).then(([workspaceResult, mediaResult]) => {
+      apiJson<IncludedFolderTreeResponse>("/api/media/included-folders").catch(() => ({ root: includedFolderRoot, folders: [] })),
+    ]).then(([workspaceResult, mediaResult, includedFolderResult]) => {
       if (cancelled) return;
-       const base = reconcileMediaFolders(
-          normalizeWorkspace(workspaceResult.data),
+        const base = reconcileMediaFolders(
+          reconcileIncludedFolders(
+            normalizeWorkspace(workspaceResult.data),
+            includedFolderResult.folders,
+          ),
          mediaResult.files,
        );
        const scopedBase = {
@@ -1598,6 +1623,37 @@ function GroupModal({group,groups,defaultParentId="",onSave,onClose}:{group?:Vid
   return <Modal title={group?"Edit folder":"New folder"} onClose={onClose} footer={<><button className="button ghost" onClick={onClose} data-testid="button-cancel-group">Cancel</button><button className="button" onClick={submit} data-testid="button-save-group">Save folder <Check size={14}/></button></>}><div className="form-grid"><div className="field full"><label>Folder name</label><input autoFocus value={name} onChange={e=>setName(e.target.value)} placeholder="My new folder" data-testid="input-group-name"/></div><div className="field full"><label>Inside folder <span className="label-optional">optional</span></label><select value={parentId} onChange={e=>setParentId(e.target.value)} data-testid="select-group-parent"><option value="">Top level folder</option>{parentOptions.map((item)=><option key={item.id} value={item.id}>{folderPathForGroup(item.id, groups)}</option>)}</select><span className="field-hint">You can nest folders at any depth. Included Animations is managed by the owner.</span></div><div className="field full"><label>Description</label><textarea value={description} onChange={e=>setDescription(e.target.value)} placeholder="What belongs in this folder?" data-testid="input-group-description"/></div></div></Modal>;
 }
 
+function EditorClipCard({ video, index, selected, onToggle, licenseId }: { video: VideoItem; index: number; selected: boolean; onToggle: () => void; licenseId: string }) {
+  const previewRef = useRef<HTMLVideoElement>(null);
+  const [hovering, setHovering] = useState(false);
+  const previewUrl = videoPlaybackUrl(video, licenseId);
+  const startPreview = () => {
+    setHovering(true);
+    void previewRef.current?.play().catch(() => undefined);
+  };
+  const stopPreview = () => {
+    setHovering(false);
+    const preview = previewRef.current;
+    if (!preview) return;
+    preview.pause();
+    preview.currentTime = 0;
+  };
+  return <label
+    className={`editor-clip ${selected ? "selected" : ""} ${hovering ? "previewing" : ""}`}
+    onMouseEnter={startPreview}
+    onMouseLeave={stopPreview}
+    onFocus={startPreview}
+    onBlur={stopPreview}
+  >
+    <div className="editor-clip-preview">
+      {previewUrl ? <video ref={previewRef} src={previewUrl} muted loop playsInline preload="metadata" /> : <Video size={19} />}
+      <span className="editor-clip-preview-badge">{hovering ? "Previewing" : "Hover to play"}</span>
+      <span className="editor-clip-check"><input type="checkbox" checked={selected} onChange={onToggle} /></span>
+    </div>
+    <div className="editor-clip-copy"><strong title={video.title}>{video.title}</strong><small>{String(index + 1).padStart(2, "0")} · {video.duration} · {video.quality || "ready"}</small></div>
+  </label>;
+}
+
 function VideosPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}) {
   const {data,update}=workspace;
   const [search,setSearch]=useState(""); const [status,setStatus]=useState("all"); const [group,setGroup]=useState("all");
@@ -1663,18 +1719,34 @@ function VideoEditorPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}
       : !isYoutubeAnimationRoot(group.id, data.groups) && !isIncludedFolder(group.id, data.groups)),
     [data.groups, editorLibrary],
   );
+  const animationRoot = useMemo(
+    () => editorGroups.find((group) => group.id === includedAnimationFolderId)
+      || editorGroups.find((group) => group.name.trim().toLowerCase() === "included animations" && group.parentId === youtubeAnimationFolderId)
+      || editorGroups.find((group) => group.name.trim().toLowerCase() === "included animations"),
+    [editorGroups],
+  );
+  const animationFolders = useMemo(() => {
+    if (!animationRoot) return [];
+    const childFolders = editorGroups.filter((group) => group.id !== animationRoot.id);
+    const rootHasVideos = data.videos.some((video) => video.groupId === animationRoot.id && video.serverSource);
+    return childFolders.length ? (rootHasVideos ? [animationRoot, ...childFolders] : childFolders) : [animationRoot];
+  }, [animationRoot, editorGroups, data.videos]);
   const groupVideos = useMemo(
-    () => selectedGroup ? videosForFolderScope(selectedGroup.id, data.groups, data.videos).filter((video) => video.serverSource) : [],
-    [selectedGroup, data.groups, data.videos],
+    () => selectedGroup
+      ? (editorLibrary === "youtube"
+        ? data.videos.filter((video) => video.groupId === selectedGroup.id && video.serverSource)
+        : videosForFolderScope(selectedGroup.id, data.groups, data.videos).filter((video) => video.serverSource))
+      : [],
+    [selectedGroup, editorLibrary, data.groups, data.videos],
   );
   const selectedVideos = selectedIds.map((id) => groupVideos.find((video) => video.id === id)).filter((video): video is VideoItem => Boolean(video));
   const logo = data.editorAssets.find((asset) => asset.id === logoId);
   const webcam = data.videos.find((video) => video.id === webcamId);
   const previewVideo = selectedVideos[0];
-  const previewUrl = previewVideo?.sourceUrl || (previewVideo ? `/api/media/files/${getMediaFileId(previewVideo)}` : "");
+  const previewUrl = videoPlaybackUrl(previewVideo, workspace.licenseId);
   const editorCanvasProps = {
     previewUrl,
-    webcamUrl: webcam?.sourceUrl || (webcam ? `/api/media/files/${getMediaFileId(webcam)}` : ""),
+    webcamUrl: videoPlaybackUrl(webcam, workspace.licenseId),
     logo,
     logoPosition,
     outputAspectRatio,
@@ -1694,7 +1766,10 @@ function VideoEditorPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}
   };
   const setGroup = (nextGroupId: string) => {
     setGroupId(nextGroupId);
-    const nextVideos = videosForFolderScope(nextGroupId, data.groups, data.videos).filter((video) => video.serverSource);
+    const nextVideos = (editorLibrary === "youtube"
+      ? data.videos.filter((video) => video.groupId === nextGroupId)
+      : videosForFolderScope(nextGroupId, data.groups, data.videos)
+    ).filter((video) => video.serverSource);
     setSelectedIds(nextVideos.map((video) => video.id));
     const nextGroup = data.groups.find((group) => group.id === nextGroupId);
     setTitle(nextGroup ? `${nextGroup.name} · edited` : "");
@@ -1850,10 +1925,12 @@ function VideoEditorPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}
              <div className="section-head"><div><h2 className="section-title">1. Choose a library</h2><p className="subtle">Personal files stay private. Shared animation clips are available here only.</p></div><FileVideo size={17} color="#6c8b83"/></div>
              <div className="editor-library-tabs" role="tablist" aria-label="Editor libraries">
                <button type="button" className={editorLibrary === "personal" ? "active" : ""} onClick={() => chooseEditorLibrary("personal")} role="tab" aria-selected={editorLibrary === "personal"} data-testid="button-editor-personal-library"><FileVideo size={13}/> Personal videos</button>
-               <button type="button" className={editorLibrary === "youtube" ? "active" : ""} onClick={() => chooseEditorLibrary("youtube")} role="tab" aria-selected={editorLibrary === "youtube"} data-testid="button-editor-youtube-animations"><Youtube size={13}/> YouTube Animations</button>
+                <button type="button" className={editorLibrary === "youtube" ? "active" : ""} onClick={() => chooseEditorLibrary("youtube")} role="tab" aria-selected={editorLibrary === "youtube"} data-testid="button-editor-youtube-animations"><Youtube size={13}/> Video animations</button>
              </div>
-             <select value={groupId} onChange={(event) => setGroup(event.target.value)} data-testid="select-editor-group"><option value="">{editorLibrary === "youtube" ? "Select animation folder" : "Select category"}</option>{editorGroups.map((group) => <option key={group.id} value={group.id}>{folderPathForGroup(group.id, data.groups)}</option>)}</select>
-            <div className="editor-clip-list">{groupVideos.length ? groupVideos.map((video, index) => <label className={`editor-clip ${selectedIds.includes(video.id) ? "selected" : ""}`} key={video.id}><input type="checkbox" checked={selectedIds.includes(video.id)} onChange={() => toggleVideo(video.id)}/><span className="editor-clip-number">{String(index + 1).padStart(2, "0")}</span><span className="editor-clip-copy"><strong>{video.title}</strong><small>{video.duration} · {video.quality || "ready"}</small></span><GripIcon /></label>) : <div className="editor-mini-empty"><FolderOpen size={17}/> Create a category and add videos first.</div>}</div>
+              {editorLibrary === "youtube" ? <><div className="editor-category-lock"><FolderOpen size={15}/><div><strong>Included Animations</strong><span>Admin-managed shared category</span></div><ShieldCheck size={14}/></div><div className="editor-animation-folders">{animationFolders.map((folder) => { const count = data.videos.filter((video) => video.groupId === folder.id && video.serverSource).length; const label = folderPathForGroup(folder.id, data.groups).replace(`${youtubeAnimationRootName}/`, ""); return <button type="button" key={folder.id} className={`editor-animation-folder ${groupId === folder.id ? "selected" : ""}`} onClick={() => setGroup(folder.id)} aria-label={`Open ${label}`}><FolderOpen size={17}/><span><strong>{folder.name}</strong><small>{label} · {count} video{count === 1 ? "" : "s"}</small></span><ArrowRight size={13}/></button>; })}</div></> : <select value={groupId} onChange={(event) => setGroup(event.target.value)} data-testid="select-editor-group"><option value="">Select category</option>{editorGroups.map((group) => <option key={group.id} value={group.id}>{folderPathForGroup(group.id, data.groups)}</option>)}</select>}
+           <div className="editor-clip-list">{groupVideos.length ? groupVideos.map((video, index) => <EditorClipCard key={video.id} video={video} index={index} licenseId={workspace.licenseId} selected={selectedIds.includes(video.id)} onToggle={() => toggleVideo(video.id)} />) : <div className="editor-mini-empty"><FolderOpen size={17}/>{editorLibrary === "youtube" ? "Choose an Admin folder to see videos." : "Choose a category and add videos first."}</div>}</div>
+             <div className="editor-selected-folder">{selectedGroup && editorLibrary === "youtube" ? <><FolderOpen size={13}/><span>Folder: <strong>{folderPathForGroup(selectedGroup.id, data.groups).replace(`${youtubeAnimationRootName}/Included Animations/`, "") || selectedGroup.name}</strong></span></> : <span>{editorLibrary === "youtube" ? "Choose an Admin folder to see its videos." : "Choose a category to see its videos."}</span>}</div>
+           <div className="editor-clip-list">{groupVideos.length ? groupVideos.map((video, index) => <EditorClipCard key={video.id} video={video} index={index} licenseId={workspace.licenseId} selected={selectedIds.includes(video.id)} onToggle={() => toggleVideo(video.id)} />) : <div className="editor-mini-empty"><FolderOpen size={17}/>{editorLibrary === "youtube" ? "Choose an Admin folder to see videos." : "Choose a category and add videos first."}</div>}</div>
           </section>
           <section className="card editor-panel">
              <div className="section-head"><div><h2 className="section-title">2. Timing & output</h2><p className="subtle">Choose whether this edit is a vertical Short or a landscape Long video.</p></div><Type size={17} color="#6c8b83"/></div>

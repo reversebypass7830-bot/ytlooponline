@@ -34,6 +34,7 @@ import type {
   IncludedFolderMoveInput,
   IncludedFolderMoveResponse,
   IncludedFolderRecord,
+  IncludedFolderTreeResponse,
   IncludedFoldersResponse,
   LicenseAccess,
   LicenseClientInput,
@@ -751,6 +752,83 @@ export function useListMediaFiles<TData = Awaited<ReturnType<typeof listMediaFil
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
   const queryOptions = getListMediaFilesQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getListIncludedAnimationFoldersUrl = () => {
+
+
+
+
+  return `/api/media/included-folders`
+}
+
+/**
+ * @summary List the shared Included Animations folder tree
+ */
+export const listIncludedAnimationFolders = async ( options?: Parameters<typeof customFetch>[1]): Promise<IncludedFolderTreeResponse> => {
+
+  return customFetch<IncludedFolderTreeResponse>(getListIncludedAnimationFoldersUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListIncludedAnimationFoldersQueryKey = () => {
+    return [
+    `/api/media/included-folders`
+    ] as const;
+    }
+
+
+export const getListIncludedAnimationFoldersQueryOptions = <TData = Awaited<ReturnType<typeof listIncludedAnimationFolders>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listIncludedAnimationFolders>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListIncludedAnimationFoldersQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listIncludedAnimationFolders>>> = ({ signal }) => listIncludedAnimationFolders({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listIncludedAnimationFolders>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListIncludedAnimationFoldersQueryResult = NonNullable<Awaited<ReturnType<typeof listIncludedAnimationFolders>>>
+export type ListIncludedAnimationFoldersQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List the shared Included Animations folder tree
+ */
+
+export function useListIncludedAnimationFolders<TData = Awaited<ReturnType<typeof listIncludedAnimationFolders>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listIncludedAnimationFolders>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListIncludedAnimationFoldersQueryOptions(options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

@@ -135,6 +135,11 @@ export interface IncludedFoldersResponse {
   files: MediaFileRecord[];
 }
 
+export interface IncludedFolderTreeResponse {
+  root: string;
+  folders: IncludedFolderRecord[];
+}
+
 export interface IncludedFolderInput {
   /** @minLength 1 */
   folderName: string;

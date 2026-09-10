@@ -1,0 +1,36 @@
+देखो भाई बहुत सारे update कराना है जैसे कि video editing वाले पे, जहां पर folder दिख रहा है मतलब उधर पर दिखना चाहिए पहले। ठीक है, बता रहा हूँ सुन। जैसे personal videos, video animations है। ठीक है? video animations पर click करेंगे तो उधर पर दिखेंगे select category है ना, उधर पर बस एक ही category रहना चाहिए। वह category जो admin ने animations add करके रखा है वही रहना चाहिए। proper, बस उतना ही। और जैसे उस पर click करेंगे तो उधर पर one, two, three, four video क्या आ रहा है। उधर पर ऐसे नहीं आए। एक जगह दो-दो video रहना चाहिए। एक video right side, एक video left side. उस पर मैं cursor ले जाऊंगा तो video play होना चाहिए। ठीक है? मतलब cursor दूसरे video पर ले जाऊंगा तो वह play होना चाहिए। ऐसे दूसरा video play होना चाहिए। ऐसे proper। कौन सा video है, अच्छे से समझ आए। अपन अच्छे से add कर सकें उधर पर। ठीक है? ऐसे रहना चाहिए properly। और folder के अंदर जैसे कि like animations ऐसे admin ने अपन कौन से folder में add किया है। जैसे like animations होगा और subscribe animations, like subscribe animation, starting animations, ending animations ऐसे admin कुछ भी folder बनाया है तो उधर पर दिखना चाहिए folder. तो अभी यह सारे folder एक-एक animation normals है। ठीक है?
+
+HA
+haxego5616
+haxego5616
+Free
+5 minutes ago
+Considering UI redesign
+
+Considering UI redesign
+समझ गया। मैं video editor के media picker को ऐसे बदलूँगा:
+
+पहले Personal Videos और Video Animations के folders दिखेंगे।
+Video Animations के अंदर सिर्फ Admin की बनाई हुई folders/categories दिखेंगी।
+Admin के folders जैसे Like Animations, Subscribe Animations, Starting, Ending आदि उसी नाम से दिखेंगे।
+Videos को single vertical list की जगह 2-column grid में दिखाऊँगा।
+Cursor किसी video card पर ले जाने पर उसका preview autoplay होगा; cursor हटाने पर pause होगा।
+Video title/filename साफ दिखेगा ताकि सही animation चुनना आसान हो।
+पहले existing picker और folder-data flow locate करके उसी structure में बदलाव कर रहा हूँ।
+
+
+
+12 actions
+Existing flow मिल गया। अभी YouTube Animations tab सभी included folders को एक category selector में मिला रहा है, इसलिए मैं उसे दो स्तरों में बदल रहा हूँ: ऊपर केवल Included Animations category, उसके नीचे Admin के वास्तविक folders; फिर selected folder के videos 2-column hover-preview cards में।
+
+
+
+13 actions
+UI structure और hover preview जोड़ दिया है। अब typecheck, browser HMR logs और editor screenshot से verify कर रहा हूँ कि 2-column cards, Admin folders और existing editor controls साथ में सही render हो रहे हैं।
+
+
+
+3 actions
+
+Worked for 2 minutes
+You've reached your daily free quota limit. It will reset at 12:00 AM UTC.

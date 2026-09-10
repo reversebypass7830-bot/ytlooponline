@@ -221,6 +221,18 @@ export const ListMediaFilesResponse = zod.object({
 
 
 /**
+ * @summary List the shared Included Animations folder tree
+ */
+export const ListIncludedAnimationFoldersResponse = zod.object({
+  "root": zod.string(),
+  "folders": zod.array(zod.object({
+  "path": zod.string(),
+  "createdAt": zod.coerce.date()
+}))
+})
+
+
+/**
  * @summary List the owner's shared Included Animations folders
  */
 export const ListIncludedFoldersHeader = zod.object({

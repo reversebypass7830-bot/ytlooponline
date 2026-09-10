@@ -628,6 +628,25 @@ router.get("/media/files", async (req, res): Promise<void> => {
   res.json(ListMediaFilesResponse.parse({ files: filtered.sort((a, b) => b.createdAt.localeCompare(a.createdAt)) }));
 });
 
+router.get("/media/included-folders", async (req, res): Promise<void> => {
+  await mediaIndexWrite;
+  const [records, savedFolders] = await Promise.all([readMediaIndex(), readIncludedFolders()]);
+  const folderMap = new Map<string, IncludedFolderRecord>();
+  const addFolder = (folderName: string, createdAt = new Date().toISOString()) => {
+    for (const folder of folderAncestors(folderName)) {
+      if (!isIncludedFolderPath(folder)) continue;
+      const key = folder.toLowerCase();
+      if (!folderMap.has(key)) folderMap.set(key, { path: folder, createdAt });
+    }
+  };
+  addFolder(includedFolderRoot);
+  for (const folder of savedFolders) addFolder(folder.path, folder.createdAt);
+  for (const record of records) {
+    if (record.licenseId === includedMediaLicenseId) addFolder(record.folderName || includedFolderRoot, record.createdAt);
+  }
+  res.json({ root: includedFolderRoot, folders: [...folderMap.values()].sort((a, b) => a.path.localeCompare(b.path)) });
+});
+
 router.get("/owner/included-folders", async (req, res): Promise<void> => {
   if (!ownerAuthorized(req)) {
     res.status(401).json({ error: "Owner access is required." });
