@@ -183,6 +183,9 @@ input:focus, textarea:focus, select:focus { border-color:#5fa49d; box-shadow:0 0
 .folder-tree-children { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; margin-left:28px; padding-left:16px; border-left:1px solid rgba(87,132,123,.25); }
 .folder-tree-label { grid-column:1/-1; color:#6f8580; font:10px var(--app-font-mono); text-transform:uppercase; letter-spacing:.08em; }
 .group-card { padding:16px; position:relative; }
+.group-card-parent { padding-bottom:14px; }
+.group-card-parent > .folder-tree-children { margin:14px 0 0 8px; padding:14px 0 0 16px; border-top:1px solid rgba(87,132,123,.18); border-left:1px solid rgba(87,132,123,.25); }
+.group-card-parent > .folder-tree-children > .folder-tree-node > .group-card { background:#fbfcf7; box-shadow:0 6px 16px rgba(49,75,64,.045); }
 .group-card:before { content:''; position:absolute; left:0; top:15px; bottom:15px; width:3px; background:#e6a058; border-radius:0 4px 4px 0; }
 .group-card h3 { margin:0 0 6px 8px; }
 .group-card p { margin:0 0 12px 8px; font-size:11px; line-height:1.4; color:#7d8b86; }
