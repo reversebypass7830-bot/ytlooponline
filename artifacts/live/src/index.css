@@ -192,7 +192,10 @@ input:focus, textarea:focus, select:focus { border-color:#5fa49d; box-shadow:0 0
 .group-card .group-foot { display:flex; justify-content:space-between; margin-left:8px; color:#397875; font:10px var(--app-font-mono); }
 .group-actions { display:flex; align-items:center; gap:10px; }
 .group-open { display:block; width:100%; padding:0; border:0; background:transparent; text-align:left; cursor:pointer; color:inherit; }
+.group-open-static { cursor:default; }
+.group-open-static:disabled { color:inherit; opacity:1; }
 .group-open:hover h3 { color:#217776; }
+.group-open-static:hover h3 { color:inherit; }
 .group-open-label { display:inline-flex; align-items:center; gap:5px; margin:0 0 13px 8px; color:#217776; font:10px var(--app-font-mono); }
 .group-open-label:hover { text-decoration:underline; }
 .group-delete { display:block; margin:14px 0 0 8px; padding:0; border:0; background:transparent; cursor:pointer; }
