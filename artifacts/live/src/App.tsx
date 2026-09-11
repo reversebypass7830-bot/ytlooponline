@@ -7,6 +7,9 @@ import {
   Mic, ShieldCheck, Sparkles, Square, Trash2, Type, Upload, Video, Wand2, X, Youtube,
 } from "lucide-react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { ClerkProvider, SignIn, SignUp, useClerk, useUser } from "@clerk/react";
+import { publishableKeyFromHost } from "@clerk/react/internal";
+import { shadcn } from "@clerk/themes";
 import Hls from "hls.js";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/toaster";
@@ -112,6 +115,16 @@ type EditorAsset = { id: string; fileId: string; title: string; playbackUrl: str
 type Activity = { id: string; type: string; message: string; time: string };
 type DataState = { channels: LiveChannel[]; videos: VideoItem[]; groups: VideoGroup[]; editorAssets: EditorAsset[]; activities: Activity[]; editorDraft?: EditorDraft };
 type LicenseSession = { licenseId: string; key: string; name: string; expiresAt: string; active: boolean; clientId?: string };
+type AccountPlan = { id: string; name: string; description: string; durationDays: number; price: string; isTrial?: boolean; active: boolean; createdAt: string; updatedAt: string };
+type AccountHistoryItem = { id: string; type: "trial_started" | "purchase" | "grant" | "login"; message: string; at: string; planId?: string; days?: number };
+type AccountSummary = {
+  id: string; displayName: string; email: string; phone?: string; role: "owner" | "user";
+  licenseId: string; licenseKey: string; trialStartedAt: string; trialEndsAt: string;
+  activePlanId: string; activePlan: AccountPlan | null; accessEndsAt: string; active: boolean;
+  history: AccountHistoryItem[];
+};
+type AccountResponse = { account: AccountSummary; plans: AccountPlan[] };
+type OwnerUser = AccountSummary;
 type VidKrakenTokenStatus = { key: string; status: "ready" | "cooldown"; cooldownUntil: string | null };
 const accessSocialLinks = [
   { label: "Instagram", detail: "Updates & behind the scenes", href: "https://www.instagram.com/", icon: Instagram },
@@ -144,6 +157,10 @@ type StartYoutubeDownloadsInput = {
 };
 
 const queryClient = new QueryClient();
+const clerkPubKey = publishableKeyFromHost(window.location.hostname, import.meta.env.VITE_CLERK_PUBLISHABLE_KEY);
+const clerkProxyUrl = import.meta.env.VITE_CLERK_PROXY_URL;
+const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
+const purchasePath = "/pricing";
 const now = () => new Date().toISOString();
 const uid = (prefix: string) => `${prefix}-${Math.random().toString(36).slice(2, 9)}`;
 const isLicenseActive = (license: LicenseSession | null) => Boolean(license && license.active && new Date(license.expiresAt).getTime() > Date.now());
@@ -809,6 +826,60 @@ function useLicense() {
   return { clientId, license, busy, error, activate, renew, clear, setError };
 }
 
+function useAccountSession(isSignedIn: boolean, userId?: string) {
+  const [account, setAccount] = useState<AccountSummary | null>(null);
+  const [plans, setPlans] = useState<AccountPlan[]>([]);
+  const [loading, setLoading] = useState(isSignedIn);
+  const [error, setError] = useState("");
+
+  const load = async () => {
+    if (!isSignedIn || !userId) {
+      setAccount(null);
+      setPlans([]);
+      setLoading(false);
+      return;
+    }
+    try {
+      const result = await apiJson<AccountResponse>("/api/account");
+      setAccount(result.account);
+      setPlans(result.plans || []);
+      setError("");
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "Could not load your account.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    setLoading(isSignedIn);
+    void load();
+    if (!isSignedIn || !userId) return;
+    const timer = window.setInterval(() => void load(), 60_000);
+    return () => window.clearInterval(timer);
+  }, [isSignedIn, userId]);
+
+  const savePhone = async (phone: string) => {
+    const result = await apiJson<AccountResponse>("/api/account/profile", {
+      method: "PUT",
+      body: JSON.stringify({ phone }),
+    });
+    setAccount(result.account);
+    setPlans(result.plans || []);
+  };
+
+  const claimOwner = async (password: string) => {
+    const result = await apiJson<AccountResponse>("/api/account/claim-owner", {
+      method: "POST",
+      headers: { "X-Owner-Password": password },
+    });
+    setAccount(result.account);
+    setPlans(result.plans || []);
+  };
+
+  return { account, plans, loading, error, reload: load, savePhone, claimOwner };
+}
+
 function useWorkspace(license: LicenseSession | null, clearLicense: () => void) {
   const [data, setData] = useState<DataState>(seed);
   const [ready, setReady] = useState(false);
@@ -1075,7 +1146,7 @@ function AppShell({ children, title, workspace }: { children:ReactNode; title:st
   </div>;
 }
 
-function LicenseGate({ license, busy, error, onActivate, onRenew }: { license:LicenseSession|null; busy:boolean; error:string; onActivate:(key:string)=>Promise<void>; onRenew:()=>Promise<void> }) {
+function LicenseGate({ license, busy, error, signedIn, onActivate, onRenew, onGoogleLogin }: { license:LicenseSession|null; busy:boolean; error:string; signedIn:boolean; onActivate:(key:string)=>Promise<void>; onRenew:()=>Promise<void>; onGoogleLogin:()=>void }) {
   const [key, setKey] = useState(license?.key || "");
   useEffect(() => { setKey(license?.key || ""); }, [license?.key]);
   const expired = Boolean(license && !isLicenseActive(license));
@@ -1117,19 +1188,122 @@ function LicenseGate({ license, busy, error, onActivate, onRenew }: { license:Li
           <div className="access-card-icon"><Radio size={20} /></div>
           <p className="access-eyebrow">{expired ? "License expired" : "Enter your license"}</p>
           <h2>{expired ? "Renew your key." : "Unlock the room."}</h2>
-          <p className="access-card-copy">{expired ? "Your workspace is waiting. Renew this same key for 30 more days, or enter a different active key." : "Use the license key provided by the owner to continue."}</p>
+          <p className="access-card-copy">{expired ? "Your workspace is waiting. Renew this same key for 30 more days, or choose a plan below." : "Sign in to create your account, or use an existing license key to open the room."}</p>
           {error && <div className="access-error" data-testid="status-license-error">{error}</div>}
+          {!signedIn && <button type="button" className="access-google-button" onClick={onGoogleLogin} data-testid="button-login-google"><span className="google-mark">G</span><strong>Login with Google</strong><ArrowRight size={16}/></button>}
+          {!signedIn && <div className="access-divider"><span>or use a license key</span></div>}
           <form className="access-form" onSubmit={submit}>
             <div className="access-field"><label htmlFor="license-key">License key</label><input id="license-key" value={key} onChange={e=>setKey(e.target.value)} placeholder="SD-XXXXXXXXXXXX" autoComplete="off" data-testid="input-license-key"/></div>
             <button className="access-submit" type="submit" disabled={busy || !key.trim()} data-testid="button-activate-license"><strong>{busy ? "Checking…" : "Open workspace"}</strong><ArrowRight size={16}/></button>
           </form>
           {expired && <button className="access-renew" onClick={()=>void onRenew()} disabled={busy} data-testid="button-renew-license">{busy ? "Renewing…" : "Renew your key · 30 days"} <Check size={14}/></button>}
           {license && <div className="access-license-status"><strong>{license.name}</strong><span>Key: <span className="mono">{license.key}</span></span><span>Expired {new Date(license.expiresAt).toLocaleDateString()}</span></div>}
-          <div className="access-card-foot"><ShieldCheck size={14} /><span>Workspace data stays private to this license.</span></div>
+          <div className="access-card-foot"><ShieldCheck size={14} /><span>Google accounts get a trial automatically. Mobile number support can be added to the same account.</span></div>
         </div>
       </section>
     </main>
     <footer className="access-footer"><span>Broadcast automation for the long signal.</span><Link href="/pricing" data-testid="link-access-pricing">View access options <ArrowRight size={13} /></Link></footer>
+  </div>;
+}
+
+function ClerkAuthPage({ mode }: { mode: "sign-in" | "sign-up" }) {
+  const fullPath = `${basePath}/${mode}`;
+  return <div className="auth-page">
+    <div className="auth-page-backdrop" />
+    <div className="auth-page-intro">
+      <Link href="/" className="access-brand"><span className="access-brand-mark"><img src={logoImage} alt="R Loop Bypass logo" /></span><span>R LOOP <b>BYPASS</b></span></Link>
+      <p className="eyebrow">R LOOP BYPASS / ACCOUNT ACCESS</p>
+      <h1>{mode === "sign-in" ? <>Keep your<br /><em>signal moving.</em></> : <>Create your<br /><em>signal room.</em></>}</h1>
+      <p>{mode === "sign-in" ? "Login with Google to return to your workspace, trial, and active plan." : "Create an account and your trial workspace will be ready immediately."}</p>
+    </div>
+    <div className="auth-card">
+      {mode === "sign-in"
+        ? <SignIn routing="path" path={fullPath} signUpUrl={`${basePath}/sign-up`} />
+        : <SignUp routing="path" path={fullPath} signInUrl={`${basePath}/sign-in`} />}
+    </div>
+  </div>;
+}
+
+function OwnerAccountPage({ account, onSwitchToUser }: { account: AccountSummary; onSwitchToUser: () => void }) {
+  const [view, setView] = useState<"users" | "plans">("users");
+  const [users, setUsers] = useState<OwnerUser[]>([]);
+  const [plans, setPlans] = useState<AccountPlan[]>([]);
+  const [selectedUser, setSelectedUser] = useState("");
+  const [grantDays, setGrantDays] = useState("7");
+  const [grantPlanId, setGrantPlanId] = useState("");
+  const [planDraft, setPlanDraft] = useState({ name: "", description: "", durationDays: "30", price: "Contact us" });
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const [message, setMessage] = useState("");
+
+  const load = async () => {
+    try {
+      const [userResult, planResult] = await Promise.all([
+        apiJson<{ users: OwnerUser[] }>("/api/owner/users"),
+        apiJson<{ plans: AccountPlan[] }>("/api/owner/plans"),
+      ]);
+      setUsers(userResult.users || []);
+      setPlans(planResult.plans || []);
+      setError("");
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "Could not load owner data.");
+    }
+  };
+
+  useEffect(() => { void load(); }, []);
+
+  const grant = async (user: OwnerUser) => {
+    setBusy(true); setError(""); setMessage("");
+    try {
+      await apiJson(`/api/owner/users/${encodeURIComponent(user.id)}/grant`, {
+        method: "POST",
+        body: JSON.stringify({ days: Number(grantDays), planId: grantPlanId || user.activePlanId }),
+      });
+      await load();
+      setSelectedUser("");
+      setMessage(`Access extended for ${user.displayName || user.email || "this user"}.`);
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "Could not grant access.");
+    } finally { setBusy(false); }
+  };
+
+  const createPlan = async (event: FormEvent) => {
+    event.preventDefault();
+    if (!planDraft.name.trim()) return;
+    setBusy(true); setError(""); setMessage("");
+    try {
+      await apiJson("/api/owner/plans", { method: "POST", body: JSON.stringify({
+        name: planDraft.name.trim(), description: planDraft.description.trim(),
+        durationDays: Number(planDraft.durationDays), price: planDraft.price.trim(),
+      }) });
+      setPlanDraft({ name: "", description: "", durationDays: "30", price: "Contact us" });
+      await load();
+      setMessage("Plan created.");
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "Could not create plan.");
+    } finally { setBusy(false); }
+  };
+
+  const updatePlan = async (plan: AccountPlan, patch: Partial<AccountPlan>) => {
+    setBusy(true); setError(""); setMessage("");
+    try {
+      await apiJson(`/api/owner/plans/${encodeURIComponent(plan.id)}`, { method: "PUT", body: JSON.stringify(patch) });
+      await load();
+      setMessage("Plan updated.");
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "Could not update plan.");
+    } finally { setBusy(false); }
+  };
+
+  return <div className="owner-page">
+    <header className="owner-topbar"><Brand/><div className="actions"><span className="owner-user-label">{account.email || account.displayName}</span><button className="button secondary" onClick={onSwitchToUser} data-testid="button-switch-user-view"><LayoutDashboard size={14}/> Normal user view</button></div></header>
+    <main className="owner-content">
+      <div className="page-head"><div><p className="eyebrow">Owner control room</p><h1>Accounts & access</h1><p className="subtle">Review user history, extend access, and control the plans that drive trials and purchases.</p></div><div className="status live"><span className="status-dot"/>Google account owner</div></div>
+      {error && <div className="error-note">{error}</div>}{message && <div className="owner-success">{message}</div>}
+      <div className="owner-tabs"><button className={`owner-tab ${view === "users" ? "active" : ""}`} onClick={() => setView("users")}><ShieldCheck size={15}/> Users <span>{users.length}</span></button><button className={`owner-tab ${view === "plans" ? "active" : ""}`} onClick={() => setView("plans")}><Gauge size={15}/> Plans <span>{plans.length}</span></button></div>
+      {view === "users" ? <section className="card section-card owner-list"><div className="section-head"><div><h2 className="section-title">Users</h2><p className="subtle" style={{ margin: "5px 0 0", fontSize: 11 }}>Trial starts, purchases, owner grants, and current access are kept together.</p></div><Clipboard size={17} color="#6c8b83"/></div>{users.length === 0 ? <EmptyState icon={<ShieldCheck size={21}/>} title="No Google accounts yet" copy="New accounts appear here after their first sign-in."/> : <div className="account-user-list">{users.map((user) => { const expanded = selectedUser === user.id; const active = user.active && new Date(user.accessEndsAt).getTime() > Date.now(); return <article className={`account-user-row ${expanded ? "expanded" : ""}`} key={user.id}><div className="account-user-main"><div className="account-avatar">{(user.displayName || user.email || "U").slice(0, 1).toUpperCase()}</div><div><strong>{user.displayName || "Unnamed account"}</strong><span>{user.email || user.id}</span><small>{user.activePlan?.name || user.activePlanId} · access until {new Date(user.accessEndsAt).toLocaleString()}</small></div></div><div className={`status ${active ? "live" : "stopped"}`}><span className="status-dot"/>{active ? "Active" : "Expired"}</div><button className="button secondary small" onClick={() => setSelectedUser(expanded ? "" : user.id)}>{expanded ? "Close" : "Manage"}</button>{expanded && <div className="account-user-details"><div className="grant-grid"><div className="field"><label>Extend by days</label><input type="number" min="1" max="3650" value={grantDays} onChange={(event) => setGrantDays(event.target.value)} /></div><div className="field"><label>Plan</label><select value={grantPlanId || user.activePlanId} onChange={(event) => setGrantPlanId(event.target.value)}>{plans.map((plan) => <option value={plan.id} key={plan.id}>{plan.name} · {plan.durationDays} days</option>)}</select></div><button className="button" onClick={() => void grant(user)} disabled={busy}>Grant access <Plus size={14}/></button></div><div className="account-history"><strong>History</strong>{(user.history || []).length === 0 ? <span className="subtle">No history yet.</span> : user.history.map((item) => <div key={item.id}><span>{item.message}</span><small>{new Date(item.at).toLocaleString()}</small></div>)}</div></div>}</article>; })}</div>}</section>
+        : <div className="owner-plans-layout"><section className="card section-card"><div className="section-head"><div><h2 className="section-title">Create a plan</h2><p className="subtle" style={{ margin: "5px 0 0", fontSize: 11 }}>Set trial or paid duration in days. Every plan receives a stable ID.</p></div><Plus size={17} color="#6c8b83"/></div><form className="plan-create-form" onSubmit={createPlan}><div className="field"><label>Name</label><input value={planDraft.name} onChange={(event) => setPlanDraft({ ...planDraft, name: event.target.value })} placeholder="7 day launch offer"/></div><div className="field"><label>Duration in days</label><input type="number" min="1" max="3650" value={planDraft.durationDays} onChange={(event) => setPlanDraft({ ...planDraft, durationDays: event.target.value })}/></div><div className="field"><label>Price label</label><input value={planDraft.price} onChange={(event) => setPlanDraft({ ...planDraft, price: event.target.value })} placeholder="₹799"/></div><div className="field"><label>Description</label><input value={planDraft.description} onChange={(event) => setPlanDraft({ ...planDraft, description: event.target.value })} placeholder="What this plan includes"/></div><button className="button" type="submit" disabled={busy || !planDraft.name.trim()}><Plus size={14}/> Add plan</button></form></section><section className="card section-card"><div className="section-head"><div><h2 className="section-title">Plan settings</h2><p className="subtle" style={{ margin: "5px 0 0", fontSize: 11 }}>Update duration, pricing text, or availability without changing the plan ID.</p></div><Settings size={17} color="#6c8b83"/></div><div className="plan-list">{plans.map((plan) => <div className="plan-row" key={plan.id}><div><strong>{plan.name}{plan.isTrial ? " · trial" : ""}</strong><span className="mono">{plan.id}</span><small>{plan.description || "No description"}</small></div><div className="plan-edit-fields"><input type="number" min="1" max="3650" defaultValue={plan.durationDays} aria-label={`${plan.name} duration`} onBlur={(event) => { const value = Number(event.target.value); if (value !== plan.durationDays) void updatePlan(plan, { durationDays: value }); }}/><input defaultValue={plan.price} aria-label={`${plan.name} price`} onBlur={(event) => { if (event.target.value !== plan.price) void updatePlan(plan, { price: event.target.value }); }}/><button className={`toggle ${plan.active ? "on" : ""}`} onClick={() => void updatePlan(plan, { active: !plan.active })} aria-label={`${plan.active ? "Disable" : "Enable"} ${plan.name}`}><span/></button></div></div>)}</div></section></div>}
+    </main>
   </div>;
 }
 
@@ -1475,10 +1649,59 @@ function ActivityList({ activities }: { activities:Activity[] }) {
   return <div className="activity">{activities.map(a=><div className="activity-item" key={a.id} data-testid={`activity-${a.id}`}><div className="activity-icon"><Icon type={a.type}/></div><div><p className="activity-message">{a.message}</p><div className="activity-time">{a.time}</div></div></div>)}</div>;
 }
 
-function Dashboard({ workspace }: { workspace:ReturnType<typeof useWorkspace> }) {
+function AccountAccessTimer({ account }: { account?: AccountSummary | null }) {
+  const [remaining, setRemaining] = useState("");
+  useEffect(() => {
+    const update = () => {
+      if (!account) return setRemaining("");
+      const ms = Math.max(0, new Date(account.accessEndsAt).getTime() - Date.now());
+      const hours = Math.floor(ms / 3_600_000);
+      const minutes = Math.floor((ms % 3_600_000) / 60_000);
+      const seconds = Math.floor((ms % 60_000) / 1000);
+      setRemaining(ms > 0 ? `${hours}h ${String(minutes).padStart(2, "0")}m ${String(seconds).padStart(2, "0")}s` : "Expired");
+    };
+    update();
+    const timer = window.setInterval(update, 1000);
+    return () => window.clearInterval(timer);
+  }, [account?.accessEndsAt]);
+  if (!account || !remaining) return null;
+  return <div className={`account-access-timer ${remaining === "Expired" ? "expired" : ""}`}><span className="status-dot"/><span>{account.activePlan?.name || "Access"} · {remaining}</span></div>;
+}
+
+function PhoneProfileCard({ onSave }: { onSave: (phone: string) => Promise<void> }) {
+  const [phone, setPhone] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState("");
+  const save = async (event: FormEvent) => {
+    event.preventDefault();
+    if (!phone.trim()) return;
+    setBusy(true); setMessage("");
+    try { await onSave(phone.trim()); setMessage("Mobile number saved to this account."); }
+    catch (reason) { setMessage(reason instanceof Error ? reason.message : "Could not save the number."); }
+    finally { setBusy(false); }
+  };
+  return <section className="account-profile-card"><div><p className="eyebrow">Account profile</p><h2>Add a mobile number</h2><p className="subtle">Keep it linked to this Google account. OTP login can use this same account when mobile sign-in is enabled.</p></div><form onSubmit={save}><input type="tel" value={phone} onChange={(event) => setPhone(event.target.value)} placeholder="+91 98765 43210" aria-label="Mobile number"/><button className="button" type="submit" disabled={busy || !phone.trim()}>{busy ? "Saving…" : "Save number"} <Check size={14}/></button></form>{message && <span className="form-hint">{message}</span>}</section>;
+}
+
+function OwnerClaimCard({ onClaimOwner }: { onClaimOwner: (password: string) => Promise<void> }) {
+  const [password, setPassword] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState("");
+  const claim = async (event: FormEvent) => {
+    event.preventDefault();
+    if (!password) return;
+    setBusy(true); setMessage("");
+    try { await onClaimOwner(password); setMessage("Owner access linked. Your owner console will open next."); }
+    catch (reason) { setMessage(reason instanceof Error ? reason.message : "Owner access could not be linked."); }
+    finally { setBusy(false); }
+  };
+  return <section className="account-profile-card owner-claim-card"><div><p className="eyebrow">Owner controls</p><h2>Link owner access</h2><p className="subtle">If this Google account owns the service, link it once with the existing owner password. Future sign-ins will open the owner panel automatically.</p></div><form onSubmit={claim}><input type="password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Existing owner password" aria-label="Existing owner password"/><button className="button secondary" type="submit" disabled={busy || !password}>{busy ? "Linking…" : "Link owner account"} <ArrowRight size={14}/></button></form>{message && <span className="form-hint">{message}</span>}</section>;
+}
+
+function Dashboard({ workspace, account, onSavePhone, onClaimOwner }: { workspace:ReturnType<typeof useWorkspace>; account?: AccountSummary | null; onSavePhone?: (phone: string) => Promise<void>; onClaimOwner?: (password: string) => Promise<void> }) {
   const {data, update} = workspace;
   const live = data.channels.filter(c=>c.status==="live");
-  return <AppShell title="Overview" workspace={workspace}><div className="page"><div className="page-head"><div><p className="eyebrow">Tuesday · 21 May 2024</p><h1>Good morning, {workspace.user.split("@")[0]}.</h1><p className="subtle">The room is quiet. One channel is currently on air.</p></div><Link href="/live" className="button" data-testid="link-go-live"><Radio size={15}/> Manage live room</Link></div>
+  return <AppShell title="Overview" workspace={workspace}><div className="page"><div className="page-head"><div><p className="eyebrow">Account workspace</p><h1>Good morning, {workspace.user.split("@")[0]}.</h1><p className="subtle">The room is quiet. One channel is currently on air.</p></div><div className="dashboard-head-actions"><AccountAccessTimer account={account}/><Link href="/live" className="button" data-testid="link-go-live"><Radio size={15}/> Manage live room</Link></div></div>{account && !account.phone && onSavePhone && <PhoneProfileCard onSave={onSavePhone} />}{account?.role !== "owner" && onClaimOwner && <OwnerClaimCard onClaimOwner={onClaimOwner}/>}
     <div className="metric-grid"><Metric label="On air now" value={live.length} detail={live.length ? "Signal is healthy" : "Nothing is live"} /><Metric label="Library videos" value={data.videos.length} detail={`${data.videos.filter(v=>v.status==="published").length} published`} /><Metric label="Categories" value={data.groups.length} detail="Playlist folders" /> </div>
     <div className="split-grid"><section className="card section-card"><div className="section-head"><div><h2 className="section-title">Live channels</h2><p className="subtle" style={{margin: "5px 0 0", fontSize:11}}>Your broadcast surface, at a glance.</p></div><Link href="/live" className="section-link" data-testid="link-view-all-live">View all <ArrowRight size={12} style={{verticalAlign:"-2px"}}/></Link></div>{live.length ? <div className="live-list">{live.map(c=><div className="live-row" key={c.id} data-testid={`live-row-${c.id}`}><div className="thumb" style={{background:c.thumbnailColor}}><Radio size={16}/></div><div><div className="row-title">{c.title}</div><div className="row-meta">{c.platform} · live for {fmtTime(c.startedAt)}</div></div><div className="status live"><span className="status-dot"/>Live</div></div>)}</div> : <EmptyState icon={<Radio size={21}/>} title="Nothing is live" copy="Start a channel when the room is ready." action="Open live room" href="/live"/>}<div className="quick-actions"><Link href="/live" className="quick" data-testid="quick-new-channel"><Plus size={15}/> New channel</Link><Link href="/videos" className="quick" data-testid="quick-add-video"><Upload size={15}/> Add to library</Link></div></section>
       <section className="card section-card"><div className="section-head"><div><h2 className="section-title">Recent activity</h2><p className="subtle" style={{margin:"5px 0 0",fontSize:11}}>A small paper trail for the room.</p></div><ActivityIcon size={17} color="#6c8b83"/></div><ActivityList activities={data.activities}/></section></div>
@@ -3534,28 +3757,81 @@ function SettingsPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}) {
    </AppShell>;
 }
 
-function Routed({workspace}:{workspace:ReturnType<typeof useWorkspace>}) {
-  return <Switch><Route path="/dashboard"><Dashboard workspace={workspace}/></Route><Route path="/live"><LivePage workspace={workspace}/></Route><Route path="/live-preview"><LivePreviewPage workspace={workspace}/></Route><Route path="/videos"><VideosPage workspace={workspace}/></Route><Route path="/editor"><VideoEditorPage workspace={workspace}/></Route><Route path="/settings"><SettingsPage workspace={workspace}/></Route><Route><NotFound/></Route></Switch>;
+function Routed({workspace, account, onSavePhone, onClaimOwner}:{workspace:ReturnType<typeof useWorkspace>; account:AccountSummary|null; onSavePhone:(phone:string)=>Promise<void>; onClaimOwner:(password:string)=>Promise<void>}) {
+  return <Switch><Route path="/dashboard"><Dashboard workspace={workspace} account={account} onSavePhone={onSavePhone} onClaimOwner={onClaimOwner}/></Route><Route path="/live"><LivePage workspace={workspace}/></Route><Route path="/live-preview"><LivePreviewPage workspace={workspace}/></Route><Route path="/videos"><VideosPage workspace={workspace}/></Route><Route path="/editor"><VideoEditorPage workspace={workspace}/></Route><Route path="/settings"><SettingsPage workspace={workspace}/></Route><Route><NotFound/></Route></Switch>;
 }
 
 function App() {
+  const { isLoaded: clerkLoaded, isSignedIn, user } = useUser();
+  const { signOut } = useClerk();
   const license = useLicense();
-  const workspace=useWorkspace(license.license, license.clear); const [location,setLocation]=useLocation();
+  const accountSession = useAccountSession(Boolean(isSignedIn), user?.id);
+  const accountLicense = accountSession.account ? {
+    licenseId: accountSession.account.licenseId,
+    key: accountSession.account.licenseKey,
+    name: accountSession.account.displayName || user?.primaryEmailAddress?.emailAddress || "Workspace",
+    expiresAt: accountSession.account.accessEndsAt,
+    active: accountSession.account.active,
+  } satisfies LicenseSession : null;
+  const activeLicense = isSignedIn ? accountLicense : license.license;
+  const workspace = useWorkspace(activeLicense, () => {
+    license.clear();
+    void signOut({ redirectUrl: basePath || "/" });
+  });
+  const [location, setLocation] = useLocation();
   useEffect(() => {
-    if (isLicenseActive(license.license) && (location === "/" || location === "/access")) {
+    if (!clerkLoaded || accountSession.loading) return;
+    if (isSignedIn && accountSession.account && !accountSession.account.active && ![purchasePath, "/gateway", "/sign-in", "/sign-up"].some((path) => location.startsWith(path))) {
+      setLocation(purchasePath);
+      return;
+    }
+    if (isSignedIn && accountSession.account?.active && (location === "/" || location === "/access" || location.startsWith("/sign-in") || location.startsWith("/sign-up"))) {
+      setLocation(accountSession.account.role === "owner" ? "/owner" : "/dashboard");
+      return;
+    }
+    if (!isSignedIn && isLicenseActive(license.license) && (location === "/" || location === "/access")) {
       setLocation("/dashboard");
     }
-  }, [license.license, location, setLocation]);
-  if (location === "/owner") return <OwnerPage/>;
+  }, [accountSession.account, accountSession.loading, clerkLoaded, isSignedIn, license.license, location, setLocation]);
+  if (!clerkLoaded) return <div className="workspace-loading"><Radio size={20}/><span>Connecting secure sign-in…</span></div>;
+  if (location.startsWith("/sign-in")) return <ClerkAuthPage mode="sign-in"/>;
+  if (location.startsWith("/sign-up")) return <ClerkAuthPage mode="sign-up"/>;
   if (location === "/pricing") return <PricingPage />;
   if (location === "/gateway") return <GatewayPage />;
-  if (location === "/" && !isLicenseActive(license.license)) return <LandingPage />;
-  if (location === "/access") return <LicenseGate license={license.license} busy={license.busy} error={license.error} onActivate={license.activate} onRenew={license.renew}/>;
-  if (!license.license || !isLicenseActive(license.license)) return <LicenseGate license={license.license} busy={license.busy} error={license.error} onActivate={license.activate} onRenew={license.renew}/>;
+  if (isSignedIn && accountSession.loading) return <div className="workspace-loading"><Radio size={20}/><span>Preparing your account…</span></div>;
+  if (isSignedIn && accountSession.error && !accountSession.account) return <div className="workspace-loading"><span>{accountSession.error}</span></div>;
+  if (location === "/owner") {
+    if (accountSession.account?.role === "owner") return <OwnerAccountPage account={accountSession.account} onSwitchToUser={() => setLocation("/dashboard")}/>;
+    return <OwnerPage/>;
+  }
+  if (location === "/" && !isLicenseActive(activeLicense)) return <LandingPage />;
+  if (location === "/access") return <LicenseGate license={activeLicense} busy={license.busy} error={license.error} signedIn={Boolean(isSignedIn)} onActivate={license.activate} onRenew={license.renew} onGoogleLogin={() => setLocation("/sign-in")}/>;
+  if (!activeLicense || !isLicenseActive(activeLicense)) return <LicenseGate license={activeLicense} busy={license.busy} error={license.error} signedIn={Boolean(isSignedIn)} onActivate={license.activate} onRenew={license.renew} onGoogleLogin={() => setLocation("/sign-in")}/>;
   if (!workspace.ready) return <div className="workspace-loading"><Radio size={20}/><span>Loading your private workspace…</span></div>;
-  return <Routed workspace={workspace}/>;
+  return <Routed workspace={workspace} account={accountSession.account} onSavePhone={accountSession.savePhone} onClaimOwner={async (password) => { await accountSession.claimOwner(password); setLocation("/owner"); }}/>;
+}
+
+function ClerkProviderWithRoutes() {
+  const [, setLocation] = useLocation();
+  const stripBase = (path: string) => basePath && path.startsWith(basePath) ? path.slice(basePath.length) || "/" : path;
+  if (!clerkPubKey) throw new Error("Missing VITE_CLERK_PUBLISHABLE_KEY.");
+  return <ClerkProvider
+    publishableKey={clerkPubKey}
+    proxyUrl={clerkProxyUrl}
+    appearance={{ theme: shadcn, variables: { colorPrimary: "#d5f365", colorForeground: "#173737", colorBackground: "#f5f7f0", colorInput: "#ffffff", colorInputForeground: "#173737", colorNeutral: "#bdd3c7", borderRadius: "0.7rem", fontFamily: "Inter, sans-serif" } }}
+    signInUrl={`${basePath}/sign-in`}
+    signUpUrl={`${basePath}/sign-up`}
+    localization={{
+      signIn: { start: { title: "Login with Google", subtitle: "Return to your R Loop Bypass workspace" } },
+      signUp: { start: { title: "Create your workspace", subtitle: "Start your account trial today" } },
+    }}
+    routerPush={(to) => setLocation(stripBase(to))}
+    routerReplace={(to) => setLocation(stripBase(to), { replace: true })}
+  >
+    <QueryClientProvider client={queryClient}><App/></QueryClientProvider>
+  </ClerkProvider>;
 }
 
 export default function RootApp() {
-  return <QueryClientProvider client={queryClient}><TooltipProvider><WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/,"")}><App/></WouterRouter><Toaster/></TooltipProvider></QueryClientProvider>;
+  return <TooltipProvider><WouterRouter base={basePath}><ClerkProviderWithRoutes/></WouterRouter><Toaster/></TooltipProvider>;
 }

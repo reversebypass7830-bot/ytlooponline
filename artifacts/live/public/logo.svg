@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" role="img" aria-label="R Loop Bypass">
+  <rect width="96" height="96" rx="22" fill="#071719"/>
+  <path d="M24 20h27c15 0 24 8 24 20 0 9-5 16-14 19l16 17H60L46 62H37v14H24V20Zm13 12v18h12c8 0 12-3 12-9s-4-9-12-9H37Z" fill="#d5f365"/>
+  <path d="M24 82h48" stroke="#ff8759" stroke-width="4" stroke-linecap="round"/>
+</svg>

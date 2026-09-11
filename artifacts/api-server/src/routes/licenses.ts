@@ -3,6 +3,7 @@ import { Router, type IRouter, type Request, type Response } from "express";
 import { firebaseDelete, firebaseGet, firebasePut } from "../lib/firebase-rest";
 import { deleteMediaFilesForLicense, ensureLicenseMediaFolder } from "./media";
 import { addVidKrakenToken, deleteVidKrakenToken, listVidKrakenTokens } from "../lib/vidkraken";
+import { clerkUserId } from "../middlewares/requireClerkAuth";
 
 const router: IRouter = Router();
 const dayMs = 24 * 60 * 60 * 1000;
@@ -23,9 +24,23 @@ function configuredOwnerPassword(): string {
   return process.env.OWNER_PASSWORD?.trim() || defaultOwnerPassword;
 }
 
-function ownerAuthorized(req: Request): boolean {
+function configuredOwnerIds(): Set<string> {
+  return new Set(
+    (process.env.OWNER_CLERK_USER_IDS || "")
+      .split(",")
+      .map((value) => value.trim())
+      .filter(Boolean),
+  );
+}
+
+export function ownerAuthorized(req: Request): boolean {
   const expected = configuredOwnerPassword();
   return Boolean(expected && req.header("x-owner-password") === expected);
+}
+
+export function clerkOwnerAuthorized(req: Request): boolean {
+  const userId = clerkUserId(req);
+  return Boolean(userId && configuredOwnerIds().has(userId));
 }
 
 function validClientId(value: unknown): value is string {
@@ -94,8 +109,8 @@ function licenseIsActive(record: LicenseRecord): boolean {
   return record.active && new Date(record.expiresAt).getTime() > Date.now();
 }
 
-function requireOwner(req: Request, res: Response): boolean {
-  if (ownerAuthorized(req)) return true;
+export function requireOwner(req: Request, res: Response): boolean {
+  if (ownerAuthorized(req) || clerkOwnerAuthorized(req)) return true;
   res.status(401).json({ error: "Owner password is incorrect." });
   return false;
 }
