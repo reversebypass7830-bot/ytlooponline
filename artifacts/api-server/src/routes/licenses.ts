@@ -36,6 +36,38 @@ function validKey(value: unknown): value is string {
   return typeof value === "string" && /^[a-zA-Z0-9_-]{8,160}$/.test(value.trim());
 }
 
+const firebaseKeyPrefix = "__signal_desk_key__";
+
+function encodeFirebaseKey(key: string): string {
+  if (!/[.$#[\]/]/.test(key)) return key;
+  return `${firebaseKeyPrefix}${Buffer.from(key, "utf8").toString("base64url")}`;
+}
+
+function decodeFirebaseKey(key: string): string {
+  if (!key.startsWith(firebaseKeyPrefix)) return key;
+  try {
+    return Buffer.from(key.slice(firebaseKeyPrefix.length), "base64url").toString("utf8");
+  } catch {
+    return key;
+  }
+}
+
+function encodeFirebaseValue(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(encodeFirebaseValue);
+  if (!value || typeof value !== "object") return value;
+  return Object.fromEntries(
+    Object.entries(value).map(([key, nested]) => [encodeFirebaseKey(key), encodeFirebaseValue(nested)]),
+  );
+}
+
+function decodeFirebaseValue(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(decodeFirebaseValue);
+  if (!value || typeof value !== "object") return value;
+  return Object.fromEntries(
+    Object.entries(value).map(([key, nested]) => [decodeFirebaseKey(key), decodeFirebaseValue(nested)]),
+  );
+}
+
 function daysValue(value: unknown, fallback = 30): number {
   const days = typeof value === "number" ? value : Number(value);
   return Number.isInteger(days) && days >= 1 && days <= 3650 ? days : fallback;
@@ -214,7 +246,7 @@ router.post("/licenses/workspace/get", async (req, res): Promise<void> => {
       return;
     }
     const data = await firebaseGet<unknown>(`workspaces/${encodeURIComponent(record.id)}/${encodeURIComponent(clientId)}`);
-    res.json({ license: publicLicense(record, clientId), data: data ?? null });
+    res.json({ license: publicLicense(record, clientId), data: decodeFirebaseValue(data ?? null) });
   } catch (error) {
     req.log.error({ error: error instanceof Error ? error.message : "unknown" }, "Workspace load failed");
     res.status(502).json({ error: "Could not load this license workspace." });
@@ -234,7 +266,10 @@ router.put("/licenses/workspace", async (req, res): Promise<void> => {
       res.status(403).json({ error: "This license is invalid or expired." });
       return;
     }
-    await firebasePut(`workspaces/${encodeURIComponent(record.id)}/${encodeURIComponent(clientId)}`, req.body.data);
+    await firebasePut(
+      `workspaces/${encodeURIComponent(record.id)}/${encodeURIComponent(clientId)}`,
+      encodeFirebaseValue(req.body.data),
+    );
     res.json({ saved: true });
   } catch (error) {
     req.log.error({ error: error instanceof Error ? error.message : "unknown" }, "Workspace save failed");

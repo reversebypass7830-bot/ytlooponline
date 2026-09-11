@@ -2086,7 +2086,24 @@ function LiveOutputPreview({ src }: { src: string }) {
       player.attachMedia(video);
       player.on(Hls.Events.MANIFEST_PARSED, play);
       player.on(Hls.Events.ERROR, (_event, data) => {
-        if (data.fatal) setError("Live output reconnecting…");
+        if (!data.fatal) return;
+        setError("Live output reconnecting…");
+        if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
+          player?.recoverMediaError();
+        } else if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
+          player?.startLoad(-1);
+        } else {
+          player?.destroy();
+          player = new Hls({
+            enableWorker: true,
+            lowLatencyMode: true,
+            liveSyncDurationCount: 2,
+            backBufferLength: 30,
+          });
+          player.loadSource(src);
+          player.attachMedia(video);
+          player.on(Hls.Events.MANIFEST_PARSED, play);
+        }
       });
     } else {
       setError("This browser cannot play the live preview stream.");
@@ -2276,10 +2293,10 @@ function LivePreviewPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}
       </div>
 
       {!selectedChannel ? <div className="card live-preview-empty"><Radio size={26}/><h2>No live channel configured</h2><p>Create a channel and select a playlist before opening the live preview.</p><Link className="button" href="/live">Open live channels <ArrowRight size={14}/></Link></div> : <div className="live-preview-stack">
-         <section className="card live-output-card">
+       <section className="card live-output-card">
            <div className="section-head"><div><h2 className="section-title">Actual live output</h2><p className="subtle">This is the same encoded composition sent to the live destination, including playlist, camera, animation, and voice.</p></div><Radio size={17} color="#b0d84a"/></div>
            <LiveOutputPreview src={livePreviewUrl}/>
-           <p className="live-output-note">The preview follows the broadcast buffer, so it is intentionally a few seconds behind the source.</p>
+           <p className="live-output-note">The preview follows the broadcast buffer, so it is intentionally a few seconds behind the source. Applying a composition keeps the publisher on air while the next encoded renderer warms up.</p>
          </section>
         <LiveAnimationControl
           channel={selectedChannel}

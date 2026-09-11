@@ -237,10 +237,10 @@ export function getStreamPreviewFile(streamId: string, filename: string): string
   return candidate;
 }
 
-function startPreview(process: StreamProcess, renderer: ChildProcess): void {
-  stopPreview(process);
+function startPreview(process: StreamProcess, renderer: ChildProcess, preserveFiles = false): void {
+  stopPreview(process, !preserveFiles);
   const directory = previewDirectory(process.input.streamId);
-  rmSync(directory, { recursive: true, force: true });
+  if (!preserveFiles) rmSync(directory, { recursive: true, force: true });
   mkdirSync(directory, { recursive: true });
   const preview = spawn("ffmpeg", [
     "-hide_banner",
@@ -978,7 +978,7 @@ function abortRendererHandoff(process: StreamProcess, renderer: ChildProcess, re
   process.renderer = handoff.oldRenderer;
   process.renderStartedAtMs = handoff.oldRenderStartedAtMs;
   process.input = handoff.oldInput;
-  startPreview(process, handoff.oldRenderer);
+  startPreview(process, handoff.oldRenderer, true);
   startVoicePipe(process, handoff.oldRenderer);
   logger.warn({ streamId: process.input.streamId, reason }, "FFmpeg renderer handoff rolled back");
   applyQueuedUpdate(process);
@@ -1075,7 +1075,7 @@ function launchProcess(process: StreamProcess): void {
   process.playlistPaths = nextPlaylistPaths;
   process.startedAt = new Date().toISOString();
   process.renderStartedAtMs = Date.now();
-  startPreview(process, renderer);
+  startPreview(process, renderer, Boolean(previousRenderer));
   const publisherInput = process.publisherInput;
   if (!publisherInput) {
     renderer.kill("SIGTERM");
