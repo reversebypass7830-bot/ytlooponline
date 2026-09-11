@@ -20,3 +20,9 @@ Live webcam and microphone renderer inputs must be primed before the browser's f
 **Why:** Browser media uploads can arrive after FFmpeg initialization; without priming or a first-output gate, the publisher can starve during a camera/microphone update.
 
 **How to apply:** Use transparent PNG and silent PCM fallback data, keep pipe errors handled, and roll back a replacement that produces no output.
+
+Rapid control-room updates should coalesce behind an active renderer handoff instead of returning a client-visible conflict; only the latest pending composition needs to run.
+
+**Why:** Composition, playlist, and camera state can change several times while a 4K FFmpeg renderer warms up, and rejecting those normal edits surfaces misleading HTTP 400 errors.
+
+**How to apply:** Keep the publisher protected, retain one pending latest update, and apply it after the current renderer emits its first output or rolls back.

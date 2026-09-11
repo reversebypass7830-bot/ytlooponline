@@ -129,7 +129,9 @@ bus.
 6. The old renderer is terminated only after the new renderer emits its first
    MPEG-TS chunk. If it produces no output for 15 seconds, the handoff is
    rolled back and the old renderer remains active.
-7. Publisher input is never ended by a renderer exit; EPIPE/closed input
+7. Rapid control-room updates are coalesced while a handoff is warming up; the
+   newest composition is applied after the current safe handoff completes.
+8. Publisher input is never ended by a renderer exit; EPIPE/closed input
    streams are logged and handled without crashing the API.
 
 The ingest URL cannot be changed while a channel is live. Stop and start the
