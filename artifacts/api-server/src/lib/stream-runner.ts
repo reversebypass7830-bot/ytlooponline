@@ -311,6 +311,10 @@ function stopRenderer(process: StreamProcess, renderer: ChildProcess): void {
   renderer.kill("SIGTERM");
 }
 
+function redactIngestUrl(message: string, ingestUrl: string): string {
+  return message.replaceAll(ingestUrl, "[redacted ingest url]");
+}
+
 const voiceFrameBytes = 1920;
 const voiceJitterFrames = 8;
 const maxVoiceBufferBytes = voiceFrameBytes * 50;
@@ -448,8 +452,9 @@ function startPublisher(process: StreamProcess): ChildProcess {
     // stdin error itself must be consumed so an EPIPE cannot crash Node.
     logger.warn({ streamId: process.input.streamId, error: error.message }, "Publisher input pipe closed");
   });
-  publisher.stderr?.on("data", () => {
-    // FFmpeg output can contain the private ingest URL. Keep it out of logs.
+  let publisherStderr = "";
+  publisher.stderr?.on("data", (chunk: Buffer) => {
+    publisherStderr = `${publisherStderr}${chunk.toString("utf8")}`.slice(-4000);
   });
   publisher.once("error", (error) => {
     process.status = "failed";
@@ -465,6 +470,17 @@ function startPublisher(process: StreamProcess): ChildProcess {
     if (process.status === "running") {
       process.status = "failed";
       process.renderer?.kill("SIGTERM");
+      if (publisherStderr.trim()) {
+        logger.error(
+          {
+            streamId: process.input.streamId,
+            code,
+            signal,
+            stderr: redactIngestUrl(publisherStderr.trim(), process.input.ingestUrl),
+          },
+          "Live publisher exited with diagnostics",
+        );
+      }
       logger.error({ streamId: process.input.streamId, code, signal }, "Live publisher exited");
     }
   });
@@ -569,8 +585,10 @@ function validateIngestUrl(rawUrl: string): URL {
 
 function setFile(url: URL, filename: string): string {
   const copy = new URL(url.toString());
-  copy.searchParams.set("file", filename);
-  return copy.toString();
+  const marker = "__signal_desk_file__";
+  copy.searchParams.set("file", marker);
+  const encodedFilename = encodeURIComponent(filename).replace(/%25(?=\d+d)/g, "%");
+  return copy.toString().replace(`file=${marker}`, `file=${encodedFilename}`);
 }
 
 function buildFfmpegArgs(
@@ -1032,7 +1050,6 @@ function launchProcess(process: StreamProcess): void {
   const rendererInput = {
     ...process.input,
     baseAudioAvailable: hasAudioStream(videoInput),
-    liveWebcam: process.input.liveWebcam ?? { position: "bottom-right" as const, scale: 0.25 },
     renderOffsetSeconds: process.playbackOffsetSeconds,
   };
   let renderer: ChildProcess;
@@ -1084,8 +1101,9 @@ function launchProcess(process: StreamProcess): void {
     }, process.input.durationMinutes * 60 * 1000);
   }
 
-  renderer.stderr?.on("data", () => {
-    // Renderer output is intentionally not logged.
+  let rendererStderr = "";
+  renderer.stderr?.on("data", (chunk: Buffer) => {
+    rendererStderr = `${rendererStderr}${chunk.toString("utf8")}`.slice(-4000);
   });
   renderer.once("error", (error) => {
     if (process.rendererHandoff?.newRenderer === renderer) {
@@ -1132,6 +1150,12 @@ function launchProcess(process: StreamProcess): void {
 
     stopPreview(process);
     process.status = code === 0 ? "stopped" : "failed";
+    if (code !== 0 && rendererStderr.trim()) {
+      logger.error(
+        { streamId: process.input.streamId, code, signal, stderr: rendererStderr.trim() },
+        "FFmpeg renderer exited with diagnostics",
+      );
+    }
     logger.info(
       { streamId: process.input.streamId, code, signal, status: process.status },
       "FFmpeg process exited",
