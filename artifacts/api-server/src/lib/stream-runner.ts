@@ -87,6 +87,8 @@ export type StreamRunnerResult = {
 
 type StreamProcess = {
   child: ChildProcess | null;
+  publisherInput?: PassThrough;
+  publisherIngestUrl?: string;
   renderer?: ChildProcess;
   preview?: ChildProcess;
   previewDir?: string;
@@ -321,6 +323,56 @@ function stopWebcamPipe(process: StreamProcess): void {
   process.webcamOutput = undefined;
   process.webcamQueue.length = 0;
   process.webcamPacketBuffer = Buffer.alloc(0);
+}
+
+function isRunningChild(child: ChildProcess | null | undefined): child is ChildProcess {
+  return Boolean(child && child.exitCode === null && child.signalCode === null && !child.stdin?.destroyed);
+}
+
+function startPublisher(process: StreamProcess): ChildProcess {
+  if (isRunningChild(process.child) && process.publisherInput) {
+    return process.child;
+  }
+
+  const publisher = spawn("ffmpeg", buildPublisherArgs(process.input), {
+    stdio: ["pipe", "ignore", "pipe"],
+  });
+  const publisherInput = new PassThrough({ highWaterMark: 2 * 1024 * 1024 });
+  process.child = publisher;
+  process.publisherInput = publisherInput;
+  process.publisherIngestUrl = process.input.ingestUrl;
+
+  publisherInput.pipe(publisher.stdin!, { end: false });
+  publisherInput.on("error", (error) => {
+    logger.warn({ streamId: process.input.streamId, error: error.message }, "Publisher input bridge closed");
+  });
+  publisher.stdin?.on("error", (error) => {
+    // An ingest failure is reported by the publisher exit handler below. The
+    // stdin error itself must be consumed so an EPIPE cannot crash Node.
+    logger.warn({ streamId: process.input.streamId, error: error.message }, "Publisher input pipe closed");
+  });
+  publisher.stderr?.on("data", () => {
+    // FFmpeg output can contain the private ingest URL. Keep it out of logs.
+  });
+  publisher.once("error", (error) => {
+    process.status = "failed";
+    logger.error({ streamId: process.input.streamId, error: error.message }, "FFmpeg process error");
+  });
+  publisher.once("exit", (code, signal) => {
+    if (process.publisherInput === publisherInput) {
+      publisherInput.unpipe(publisher.stdin!);
+      publisherInput.destroy();
+      process.publisherInput = undefined;
+    }
+    if (process.child === publisher) process.child = null;
+    if (process.status === "running") {
+      process.status = "failed";
+      process.renderer?.kill("SIGTERM");
+      logger.error({ streamId: process.input.streamId, code, signal }, "Live publisher exited");
+    }
+  });
+
+  return publisher;
 }
 
 function startWebcamPipe(process: StreamProcess): PassThrough {
@@ -786,9 +838,7 @@ function launchProcess(process: StreamProcess): void {
   const faceInput = facePaths.length ? prepareInput(facePaths) : undefined;
   const preparedAnimationInput = animationInput ? prepareInput([animationInput.path]) : undefined;
   process.playlistPaths = [videoInput.playlistPath, faceInput?.playlistPath, preparedAnimationInput?.playlistPath].filter((playlistPath): playlistPath is string => Boolean(playlistPath));
-  const publisher = spawn("ffmpeg", buildPublisherArgs(process.input), {
-    stdio: ["pipe", "ignore", "pipe"],
-  });
+  const publisher = startPublisher(process);
   const rendererInput = {
     ...process.input,
     baseAudioAvailable: hasAudioStream(videoInput),
@@ -804,17 +854,25 @@ function launchProcess(process: StreamProcess): void {
   process.startedAt = new Date().toISOString();
   process.renderStartedAtMs = Date.now();
   startPreview(process, renderer);
-  const outputTee = new PassThrough({ highWaterMark: 2 * 1024 * 1024 });
-  renderer.stdout?.pipe(outputTee);
-  outputTee.pipe(publisher.stdin!, { end: false });
+  const publisherInput = process.publisherInput;
+  if (!publisherInput) {
+    renderer.kill("SIGTERM");
+    throw new Error("The live publisher input bridge could not be created.");
+  }
+  // The publisher input bridge survives renderer handoffs. A renderer may end
+  // or be killed, but it must never end the publisher's stdin.
+  renderer.stdout?.pipe(publisherInput, { end: false });
+  const detachRendererOutput = () => renderer.stdout?.unpipe(publisherInput);
+  renderer.stdout?.once("close", detachRendererOutput);
+  renderer.stdout?.once("end", detachRendererOutput);
   renderer.stdout?.on("error", (error) => {
     logger.warn({ streamId: process.input.streamId, error: error.message }, "Renderer output pipe closed");
   });
-  publisher.stdin?.on("error", (error) => {
-    logger.warn({ streamId: process.input.streamId, error: error.message }, "Publisher input pipe closed");
-  });
   if (process.webcamOutput) {
-    process.webcamOutput.pipe(renderer.stdio[4] as Writable, { end: false });
+    const webcamOutput = renderer.stdio[4] as Writable | null;
+    if (webcamOutput && typeof webcamOutput.write === "function") {
+      process.webcamOutput.pipe(webcamOutput, { end: false });
+    }
     renderer.stdio[4]?.on("error", (error) => {
       logger.warn({ streamId: process.input.streamId, error: error.message }, "Webcam input pipe closed");
     });
@@ -826,22 +884,8 @@ function launchProcess(process: StreamProcess): void {
     }, process.input.durationMinutes * 60 * 1000);
   }
 
-  publisher.stderr?.on("data", () => {
-    // FFmpeg output can contain the private ingest URL. Keep it out of logs.
-  });
   renderer.stderr?.on("data", () => {
     // Renderer output is intentionally not logged.
-  });
-  publisher.once("error", (error) => {
-    process.status = "failed";
-    logger.error({ streamId: process.input.streamId, error: error.message }, "FFmpeg process error");
-  });
-  publisher.once("exit", (code, signal) => {
-    if (process.status === "running") {
-      process.status = "failed";
-      process.renderer?.kill("SIGTERM");
-      logger.error({ streamId: process.input.streamId, code, signal }, "Live publisher exited");
-    }
   });
   renderer.once("error", (error) => {
     process.status = "failed";
@@ -932,6 +976,9 @@ export function updateStream(input: StreamRunnerInput): StreamRunnerResult {
   if (!current || current.status !== "running") {
     throw new Error("This channel is not currently streaming.");
   }
+  if (current.publisherIngestUrl && current.publisherIngestUrl !== input.ingestUrl) {
+    throw new Error("The live destination cannot be changed while on air. Stop the channel and start it again.");
+  }
 
   getVideoPaths(input.category, input.videoSources, input.videoSource);
   if (input.faceCategory) getVideoPaths(input.faceCategory, input.faceSources, input.faceSource);
@@ -977,6 +1024,11 @@ export function stopStream(streamId: string): StreamRunnerResult | null {
   stopPreview(streamProcess);
   stopVoicePipe(streamProcess);
   stopWebcamPipe(streamProcess);
+  if (streamProcess.publisherInput) {
+    streamProcess.publisherInput.unpipe(streamProcess.child?.stdin!);
+    streamProcess.publisherInput.destroy();
+    streamProcess.publisherInput = undefined;
+  }
   if (streamProcess.durationTimer) clearTimeout(streamProcess.durationTimer);
   if (streamProcess.restartTimer) clearTimeout(streamProcess.restartTimer);
   streamProcess.renderer?.kill("SIGTERM");

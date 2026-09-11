@@ -125,18 +125,23 @@ router.post("/stream/voice/:streamId", (req, res): void => {
     res.status(400).json({ error: "A stream id is required." });
     return;
   }
+  let finished = false;
+  const finish = (status: number) => {
+    if (finished || res.headersSent || res.writableEnded) return;
+    finished = true;
+    res.status(status).end();
+  };
   // A browser MediaStream upload can end abruptly when the user toggles the
   // microphone or navigates away. Consume socket errors so that a normal
   // client disconnect cannot crash the API process.
   req.socket?.on("error", () => undefined);
   req.on("data", (chunk: Buffer) => appendVoiceAudio(streamId, chunk));
-  req.on("end", () => res.status(204).end());
-  req.on("aborted", () => {
-    if (!res.headersSent && !res.writableEnded && !req.destroyed) res.status(499).end();
+  req.on("end", () => finish(204));
+  req.on("aborted", () => finish(499));
+  req.on("close", () => {
+    if (!req.complete) finish(499);
   });
-  req.on("error", () => {
-    if (!res.headersSent && !res.writableEnded && !req.destroyed) res.status(499).end();
-  });
+  req.on("error", () => finish(499));
 });
 
 router.post("/stream/webcam/:streamId", (req, res): void => {
@@ -157,12 +162,16 @@ router.post("/stream/webcam/:streamId", (req, res): void => {
   const detach = () => {
     if (detached) return;
     detached = true;
+    req.unpipe(webcamInput);
     detachLiveWebcam(streamId, webcamInput);
     if (!res.headersSent && !res.writableEnded && !req.destroyed) res.status(204).end();
   };
   webcamInput.on("error", () => undefined);
   req.socket?.on("error", detach);
   req.on("aborted", detach);
+  req.on("close", () => {
+    if (!req.complete) detach();
+  });
   req.on("error", detach);
   req.on("end", detach);
   try {
