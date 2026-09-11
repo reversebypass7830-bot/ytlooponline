@@ -29,7 +29,7 @@ export const startStreamBodyPlaybackSpeedDefault = 1;
 export const startStreamBodyPlaybackSpeedMin = 0.5;
 export const startStreamBodyPlaybackSpeedMax = 2;
 
-export const startStreamBodyQualityDefault = `4k`;
+export const startStreamBodyQualityDefault = `1080p`;
 export const startStreamBodyAspectRatioDefault = `full`;
 export const startStreamBodyFacePositionDefault = `bottom-right`;
 export const startStreamBodyFaceScaleDefault = 0.25;
@@ -241,7 +241,7 @@ export const updateStreamBodyPlaybackSpeedDefault = 1;
 export const updateStreamBodyPlaybackSpeedMin = 0.5;
 export const updateStreamBodyPlaybackSpeedMax = 2;
 
-export const updateStreamBodyQualityDefault = `4k`;
+export const updateStreamBodyQualityDefault = `1080p`;
 export const updateStreamBodyAspectRatioDefault = `full`;
 export const updateStreamBodyFacePositionDefault = `bottom-right`;
 export const updateStreamBodyFaceScaleDefault = 0.25;

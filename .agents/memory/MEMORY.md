@@ -20,3 +20,4 @@
 - [Media render progress](media-render-progress.md) — stream actual FFmpeg progress and bound looping overlays to the main composition duration.
 - [Browser live media bridge](browser-live-media-bridge.md) — browser camera/mic preview needs a real-time bridge before it can enter the server FFmpeg broadcast.
 - [VPS stream lifecycle](vps-stream-lifecycle.md) — PM2 keeps the API alive, but in-memory stream sessions need a credential-safe durable store for restart recovery.
+- [FFmpeg live input indices](ffmpeg-live-input-indices.md) — dynamic silence, webcam, and microphone inputs must be mapped from the complete FFmpeg input order.

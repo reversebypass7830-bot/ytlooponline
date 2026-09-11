@@ -599,7 +599,7 @@ function buildFfmpegArgs(
   logoInput?: { path: string; image: boolean },
 ): string[] {
   const aspectRatio = input.aspectRatio ?? "full";
-  const quality = input.quality ?? "4k";
+  const quality = input.quality ?? "1080p";
   const dimensions = {
     shorts: [1080, 1920],
     full: quality === "4k" ? [3840, 2160] : [1920, 1080],
@@ -687,9 +687,10 @@ function buildFfmpegArgs(
   const faceInputIndex = 1;
   const animationInputIndex = faceInputIndex + Number(Boolean(facePath));
   const logoInputIndex = animationInputIndex + Number(Boolean(animationPath));
-  const voiceInputIndex = logoInputIndex + Number(Boolean(logoPath));
+  const firstAuxInputIndex = logoInputIndex + Number(Boolean(logoPath));
   const silenceInput = voiceAudio && input.baseAudioAvailable === false;
-  const liveWebcamInputIndex = voiceInputIndex + Number(silenceInput);
+  const silenceInputIndex = firstAuxInputIndex;
+  const liveWebcamInputIndex = firstAuxInputIndex + Number(silenceInput);
   const voicePipeInputIndex = liveWebcamInputIndex + Number(liveWebcamInput);
 
   const inputArgs = [
@@ -748,7 +749,7 @@ function buildFfmpegArgs(
   if (liveWebcamInput) {
     inputArgs.push(
       "-thread_queue_size",
-      "16",
+      "1024",
       "-framerate",
       "10",
       "-f",
@@ -762,7 +763,7 @@ function buildFfmpegArgs(
   if (voiceAudio) {
     inputArgs.push(
       "-thread_queue_size",
-      "32",
+      "1024",
       "-f",
       "s16le",
       "-ar",
@@ -774,7 +775,7 @@ function buildFfmpegArgs(
     );
   }
   const audioFilter = voiceAudio
-    ? `[${silenceInput ? voiceInputIndex : 0}:a:0]aresample=48000[base_audio];[${voicePipeInputIndex}:a:0]aresample=48000[voice_audio];[base_audio][voice_audio]amix=inputs=2:duration=first:dropout_transition=0:weights=1 1[mixed_audio]`
+    ? `[${silenceInput ? silenceInputIndex : 0}:a:0]aresample=48000[base_audio];[${voicePipeInputIndex}:a:0]aresample=48000[voice_audio];[base_audio][voice_audio]amix=inputs=2:duration=first:dropout_transition=0:weights=1 1[mixed_audio]`
     : "";
 
   const videoArgs = needsVideoFilter
@@ -810,7 +811,7 @@ function buildFfmpegArgs(
             : []),
           ...(liveWebcamInput
             ? [
-                `[${liveWebcamInputIndex}:v]format=rgba,scale=iw*${liveWebcamScale}:-2:flags=lanczos[live_webcam]`,
+                `[${liveWebcamInputIndex}:v]format=rgba,scale=trunc(max(2\\,iw*${liveWebcamScale})/2)*2:trunc(max(2\\,ih*${liveWebcamScale})/2)*2:flags=lanczos[live_webcam]`,
                 `[${facePath ? "with_face" : "base"}][live_webcam]overlay=${
                   input.liveWebcam?.position === "top-left" || input.liveWebcam?.position === "bottom-left"
                     ? "24"
@@ -926,8 +927,11 @@ function buildPublisherArgs(input: StreamRunnerInput): string[] {
       "event",
       "-hls_segment_filename",
       segmentUrl,
+      // YouTube's HLS endpoint accepts each playlist and segment as an
+      // independent PUT. Reusing a connection can leave FFmpeg retrying a
+      // segment after the ingest side closes the previous upload.
       "-http_persistent",
-      "1",
+      "0",
       playlistUrl,
     ];
   }
@@ -1059,6 +1063,7 @@ function launchProcess(process: StreamProcess): void {
     });
   } catch (error) {
     cleanupPlaylistPaths(nextPlaylistPaths);
+    publisher.kill("SIGTERM");
     throw error;
   }
 
@@ -1116,6 +1121,12 @@ function launchProcess(process: StreamProcess): void {
   });
   renderer.once("exit", (code, signal) => {
     if (process.rendererHandoff?.newRenderer === renderer) {
+      if (rendererStderr.trim()) {
+        logger.warn(
+          { streamId: process.input.streamId, code, signal, stderr: rendererStderr.trim() },
+          "Warming FFmpeg renderer exited with diagnostics",
+        );
+      }
       abortRendererHandoff(process, renderer, `new renderer exited (${code ?? signal ?? "unknown"})`);
       return;
     }
@@ -1321,6 +1332,18 @@ export function detachLiveWebcam(streamId: string, webcamInput: PassThrough): vo
   process.input = { ...process.input, liveWebcam: undefined };
   if (process.rendererHandoff) {
     process.queuedUpdate = process.input;
+    return;
+  }
+  try {
+    // Removing the camera is a renderer change too. Rebuild the renderer so
+    // FFmpeg no longer waits on the camera pipe while the publisher stays on air.
+    launchProcess(process);
+  } catch (error) {
+    process.status = "failed";
+    logger.error(
+      { streamId, error: error instanceof Error ? error.message : "unknown error" },
+      "Live webcam detach could not rebuild the renderer",
+    );
   }
 }
 
