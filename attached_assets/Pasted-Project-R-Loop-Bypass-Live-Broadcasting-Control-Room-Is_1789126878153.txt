@@ -1,0 +1,38 @@
+Project: R Loop Bypass (Live Broadcasting Control Room)
+Issue: Live Stream crashes/glitches when dynamically adding a webcam, microphone voice-over, or live animations (like "Like & Subscribe" overlays) while the stream is running.
+
+Context & Expected Behavior (OBS-Style Live Composition):
+The application is designed to allow dynamic layer updates during a live stream without dropping the connection. When a user enables their webcam, mic, or adds an animation, the frontend calls POST /api/stream/update.
+
+According to the strict project architecture, an update must trigger a Renderer Handoff:
+
+Keep the current Publisher process (and its connection to YouTube/RTMP) ALIVE.
+
+Start a NEW Renderer FFmpeg process with the updated inputs (webcam pipe, voice pipe, new animation filters).
+
+Pipe the new Renderer's MPEG-TS output to the existing Publisher.
+
+Safely terminate the old Renderer.
+
+What you need to fix:
+Currently, the stream is dropping. You must investigate and fix the following areas:
+
+1. Handoff Logic (artifacts/api-server/src/lib/stream-runner.ts):
+
+Ensure the Publisher process does not die when update is called.
+
+Fix any broken pipe errors between the new Renderer and the existing Publisher during the transition.
+
+2. Media Pipes (artifacts/api-server/src/routes/streaming.ts & stream-runner.ts):
+
+Webcam (PNG frames) and Mic (PCM chunks) are sent via streaming requests to /api/stream/webcam/:streamId and /api/stream/voice/:streamId.
+
+Make sure FFmpeg's image and audio pipes do not crash the Node API process if the browser chunks are irregular or if the browser disconnects abruptly. It must detach cleanly or supply silence/transparent frames.
+
+3. Frontend State (artifacts/live/src/App.tsx):
+
+Verify that adding an overlay or toggling the mic/webcam does not accidentally trigger a "stop" command.
+
+Ensure the frontend sends the correctly normalized coordinates (translation, scale) for the new layers to the API so preview and server render match perfectly.
+
+Task: Provide the exact code changes required in stream-runner.ts and streaming.ts to make dynamic layer additions (webcam/mic/overlays) completely stable without dropping the live broadcast.
