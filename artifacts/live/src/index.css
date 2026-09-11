@@ -2130,7 +2130,7 @@ select { height: 41px; }
 .mobile-nav-access { display: none; }
 
 @media (max-width: 700px) {
-  html, body { overflow-x: hidden; }
+  html, body { overflow-x: clip; }
 
   .marketing-nav {
     gap: 8px;
@@ -2350,7 +2350,7 @@ select { height: 41px; }
   .marketing-footer > a:last-child { width: 100%; justify-content: space-between; padding-top: 4px; }
 
   /* Workspace shell and editor */
-  .shell { overflow-x: hidden; }
+  .shell { overflow-x: clip; }
   .topbar { height: 68px; padding-inline: 12px; }
   .crumb { min-width: 0; gap: 8px; align-items: center; }
   .crumb-title { max-width: min(56vw, 220px); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -2371,12 +2371,18 @@ select { height: 41px; }
   .editor-command-intro { min-width: 0; }
   .editor-steps { overflow-x: auto; justify-content: flex-start; padding-bottom: 2px; }
   .editor-step { flex: 0 0 74px; }
-  .editor-layout { gap: 13px; }
+  .editor-layout {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 13px;
+  }
   .editor-stage {
     position: sticky;
     top: 68px;
     z-index: 9;
-    align-self: start;
+    align-self: stretch;
+    width: 100%;
     padding: 11px;
     border-radius: 13px;
     background: #103638;
@@ -2418,9 +2424,15 @@ select { height: 41px; }
     backdrop-filter: blur(12px);
   }
   .editor-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 13px;
     position: relative;
     min-width: 0;
+    height: auto;
+    max-height: none;
     overflow: visible;
+    padding-right: 0;
   }
   .mobile-editor-tabs button {
     display:flex;
