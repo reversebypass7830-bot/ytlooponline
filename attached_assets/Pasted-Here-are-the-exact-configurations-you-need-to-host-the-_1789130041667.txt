@@ -1,0 +1,137 @@
+Here are the exact configurations you need to host the **R Loop Bypass** project on an Ubuntu VPS.
+
+Since this project relies heavily on real-time WebSockets/SSE and continuous data streaming (webcam PNG chunks, mic PCM chunks, FFmpeg processes), the configuration includes specific rules to prevent timeouts and disable proxy buffering.
+
+### 1. PM2 Ecosystem File (`ecosystem.config.js`)
+
+Create this file in the root directory of your project on the VPS. This tells PM2 how to run your Node.js API server as a background daemon.
+
+*Note: The API server must run as a single instance (`instances: 1`) because FFmpeg stream processes and WebSocket states are managed in the server's memory.*
+
+```javascript
+module.exports = {
+  apps: [
+    {
+      name: "r-loop-api",
+      // Point this to your compiled backend entry file
+      script: "./dist/index.js", 
+      cwd: "/var/www/r-loop-bypass/artifacts/api-server",
+      instances: 1, 
+      autorestart: true,
+      watch: false,
+      max_memory_restart: "2G", // Increased limit for media handling
+      env: {
+        NODE_ENV: "development",
+      },
+      env_production: {
+        NODE_ENV: "production",
+        PORT: 3000,
+        // Add your custom environment variables below
+        // FFMPEG_PATH: "/usr/bin/ffmpeg",
+      }
+    }
+  ]
+};
+
+```
+
+### 2. Nginx Configuration
+
+This configuration serves the compiled React frontend directly (for fast loading) and safely proxies API requests to your PM2 backend.
+
+Create a new file in `/etc/nginx/sites-available/r-loop-bypass` and symlink it to `/etc/nginx/sites-enabled/`.
+
+```nginx
+server {
+    listen 80;
+    server_name your_domain.com or_your_vps_ip;
+
+    # 1. Frontend: Serve React static files
+    # Make sure to run 'npm run build' inside artifacts/live first
+    root /var/www/r-loop-bypass/artifacts/live/dist; 
+    index index.html;
+
+    # React Router fallback - routes all frontend paths to index.html
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+
+    # 2. Backend API Reverse Proxy
+    location /api/ {
+        proxy_pass http://127.0.0.1:3000/api/;
+        
+        # --- WEBSOCKET & SSE SUPPORT ---
+        # Required for real-time status updates and comments
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        
+        # Standard headers
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        # --- STREAMING OPTIMIZATIONS ---
+        # Disable buffering so webcam chunks and SSE reach the Node server instantly
+        proxy_buffering off;
+        
+        # Keep long-running connections alive (1 hour timeout)
+        proxy_read_timeout 3600s;
+        proxy_send_timeout 3600s;
+    }
+
+    # 3. Allow large video uploads to the Media Library (e.g., up to 1GB)
+    client_max_body_size 1000M;
+}
+
+```
+
+---
+
+### Deployment Checklist for the VPS
+
+**1. Install Prerequisites:**
+Ensure FFmpeg, Node.js, PM2, and Nginx are installed on the Ubuntu server.
+
+```bash
+sudo apt update
+sudo apt install nginx ffmpeg -y
+npm install -g pm2
+
+```
+
+**2. Build the Frontend:**
+Navigate to the frontend directory and create the static production build.
+
+```bash
+cd /var/www/r-loop-bypass/artifacts/live
+npm install
+npm run build
+
+```
+
+**3. Build and Start the Backend:**
+Navigate to the API server directory, build the TypeScript code, and start PM2.
+
+```bash
+cd /var/www/r-loop-bypass/artifacts/api-server
+npm install
+npm run build
+
+# Start PM2 from the project root using the ecosystem file
+cd /var/www/r-loop-bypass
+pm2 start ecosystem.config.js --env production
+pm2 save
+pm2 startup # Follow the command this generates to make PM2 auto-start on server reboot
+
+```
+
+**4. Enable Nginx Config:**
+
+```bash
+sudo ln -s /etc/nginx/sites-available/r-loop-bypass /etc/nginx/sites-enabled/
+sudo nginx -t     # Test to make sure there are no syntax errors
+sudo systemctl reload nginx
+
+```

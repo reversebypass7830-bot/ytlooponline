@@ -55,8 +55,9 @@ Create `/var/www/r-loop-bypass/.env` with the runtime values required by the
 API. Keep this file owned by the service user and mode `600`; never commit
 stream keys or database credentials.
 
-The PM2 config sets `FRONTEND_DIST` to the built Vite output, so the API serves
-the control room and `/api/*` from one local port.
+The PM2 config sets `FRONTEND_DIST` to the built Vite output as a fallback for
+direct API access. Nginx serves the compiled control room directly from
+`artifacts/live/dist/public` and forwards `/api/*` to the API process.
 
 ## 3. Run with PM2
 
@@ -65,7 +66,7 @@ Install PM2 once on the VPS and start the checked-in ecosystem file:
 ```bash
 sudo npm install --global pm2
 cd /var/www/r-loop-bypass
-pm2 start ecosystem.config.js
+pm2 start ecosystem.config.js --env production
 pm2 save
 pm2 startup
 ```
@@ -102,8 +103,10 @@ sudo systemctl reload nginx
 ```
 
 The `/api/` route deliberately disables request and response buffering. This
-is required for the long-lived webcam PNG and microphone PCM uploads. The
-upgrade headers are included for a future WebSocket/SSE endpoint.
+is required for the long-lived webcam PNG and microphone PCM uploads. Nginx
+allows media uploads up to 1 GB, while the API applies its own upload
+validation. The upgrade headers are included for a future WebSocket/SSE
+endpoint.
 
 The current repository does **not** expose a WebSocket or SSE route. Frontend
 updates currently use the HTTP `POST /api/stream/update` endpoint, so the Nginx
