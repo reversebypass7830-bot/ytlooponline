@@ -1,0 +1,128 @@
+.profile-completion-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(22, 53, 42, .28);
+  backdrop-filter: blur(8px);
+}
+
+.profile-completion-dialog {
+  width: min(100%, 430px);
+  padding: 30px 28px 26px;
+  border: 1px solid #d1e5d6;
+  border-radius: 24px;
+  background: #fff;
+  box-shadow: 0 24px 70px rgba(24, 74, 46, .2);
+  animation: rise .22s ease-out;
+}
+
+.profile-completion-icon {
+  display: grid;
+  width: 50px;
+  height: 50px;
+  margin-bottom: 18px;
+  place-items: center;
+  border-radius: 15px;
+  color: #3e7d4a;
+  background: #e5f2bd;
+}
+
+.profile-completion-dialog h2 {
+  margin: 0 0 10px;
+  color: #16352a;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 32px;
+  font-weight: 400;
+  letter-spacing: -.06em;
+}
+
+.profile-completion-copy {
+  margin: 0 0 20px;
+  color: #587166;
+  font-size: 12px;
+  line-height: 1.7;
+}
+
+.profile-completion-form {
+  display: grid;
+  gap: 13px;
+}
+
+.profile-completion-form .field {
+  display: grid;
+  gap: 7px;
+}
+
+.profile-completion-form .field span {
+  color: #526e60;
+  font: 9px var(--app-font-mono);
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+
+.profile-completion-form input {
+  width: 100%;
+  min-height: 48px;
+  padding: 0 13px;
+  border: 1px solid #cfe1d3;
+  border-radius: 12px;
+  outline: none;
+  color: #16352a;
+  background: #fcfefc;
+  font-size: 13px;
+}
+
+.profile-completion-form input:focus {
+  border-color: #4a9b6b;
+  box-shadow: 0 0 0 3px #e2f1e5;
+}
+
+.profile-completion-gift {
+  display: grid;
+  justify-items: center;
+  gap: 9px;
+  width: 100%;
+  min-height: 138px;
+  padding: 20px;
+  border: 1px dashed #bcd7c1;
+  border-radius: 18px;
+  color: #47794f;
+  background: #f5fbf5;
+  cursor: pointer;
+  transition: transform .2s, background .2s, border-color .2s;
+}
+
+.profile-completion-gift:hover {
+  transform: translateY(-3px);
+  border-color: #6eae78;
+  background: #edf8ef;
+}
+
+.profile-completion-gift span {
+  color: #16352a;
+  font: 700 12px var(--app-font-mono);
+  letter-spacing: .04em;
+}
+
+.profile-completion-gift.revealed span {
+  font-size: 14px;
+}
+
+.profile-completion-footnote {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 6px;
+  margin: 16px 0 0;
+  color: #82998a;
+  font-size: 10px;
+}
+
+@media (max-width: 480px) {
+  .profile-completion-backdrop { align-items: end; padding: 12px; }
+  .profile-completion-dialog { padding: 25px 20px 21px; border-radius: 22px; }
+  .profile-completion-dialog h2 { font-size: 29px; }
+}

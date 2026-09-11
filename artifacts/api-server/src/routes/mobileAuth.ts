@@ -2,6 +2,7 @@ import { randomBytes, randomUUID } from "node:crypto";
 import { Router, type IRouter, type Request, type Response } from "express";
 import { firebaseGet } from "../lib/firebase-rest";
 import { clearMobileSession, setMobileSession } from "../middlewares/requireClerkAuth";
+import { createMobileAccount } from "./accounts";
 
 const router: IRouter = Router();
 const providerBaseUrl = (process.env.MOBILE_OTP_API_BASE_URL || "https://rozgarapinew.teachx.in").replace(/\/+$/, "");
@@ -14,9 +15,11 @@ const maxAttempts = 5;
 type AccountRecord = { id: string; phone?: string; displayName: string; email: string; role: "owner" | "user"; licenseId: string; licenseKey: string; trialStartedAt: string; trialEndsAt: string; activePlanId: string; accessEndsAt: string; createdAt: string; lastLoginAt: string; history: Array<{ id: string; type: string; message: string; at: string; planId?: string; days?: number }> };
 type AccountMap = Record<string, AccountRecord>;
 type Challenge = { phone: string; deviceId: string; expiresAt: number; attempts: number };
+type VerifiedMobileChallenge = { phone: string; expiresAt: number };
 type ProviderResponse = { status?: number; message?: string; user?: { phone?: string } };
 
 const challenges = new Map<string, Challenge>();
+const verifiedChallenges = new Map<string, VerifiedMobileChallenge>();
 
 function normalizePhone(value: string): string {
   const digits = value.replace(/\D/g, "");
@@ -120,7 +123,9 @@ router.post("/mobile-auth/verify-otp", async (req: Request, res: Response): Prom
     const account = await findAccountByPhone(challenge.phone);
     challenges.delete(requestId);
     if (!account) {
-      res.status(404).json({ code: "PHONE_NOT_LINKED", error: "OTP verified, but this number is not linked to an account. Sign in with Google first and add this number to your profile." });
+      const onboardingToken = randomUUID();
+      verifiedChallenges.set(onboardingToken, { phone: challenge.phone, expiresAt: Date.now() + challengeTtlMs });
+      res.json({ code: "PROFILE_REQUIRED", onboardingToken, phone: challenge.phone, message: "Mobile number verified. Complete your profile to create your workspace." });
       return;
     }
     setMobileSession(res, account.id);
@@ -128,6 +133,45 @@ router.post("/mobile-auth/verify-otp", async (req: Request, res: Response): Prom
   } catch (error) {
     req.log.error({ error: error instanceof Error ? error.message : "unknown" }, "Mobile OTP verification failed");
     res.status(502).json({ error: "Could not verify the OTP. Please try again." });
+  }
+});
+
+router.post("/mobile-auth/complete-profile", async (req: Request, res: Response): Promise<void> => {
+  const onboardingToken = typeof req.body?.onboardingToken === "string" ? req.body.onboardingToken : "";
+  const email = typeof req.body?.email === "string" ? req.body.email.trim() : "";
+  const displayName = typeof req.body?.displayName === "string" ? req.body.displayName.trim() : "";
+  const verified = verifiedChallenges.get(onboardingToken);
+  if (!verified || verified.expiresAt < Date.now()) {
+    verifiedChallenges.delete(onboardingToken);
+    res.status(400).json({ error: "Your mobile verification has expired. Request a new OTP." });
+    return;
+  }
+  if (!displayName || displayName.length < 2) {
+    res.status(400).json({ error: "Enter your name to continue." });
+    return;
+  }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    res.status(400).json({ error: "Enter a valid email address." });
+    return;
+  }
+  try {
+    const { account } = await createMobileAccount({ phone: verified.phone, email, displayName });
+    verifiedChallenges.delete(onboardingToken);
+    setMobileSession(res, account.id);
+    res.status(201).json({
+      message: "Your workspace is ready.",
+      account: {
+        id: account.id,
+        displayName: account.displayName,
+        email: account.email,
+        phone: account.phone,
+        licenseKey: account.licenseKey,
+        accessEndsAt: account.accessEndsAt,
+      },
+    });
+  } catch (error) {
+    req.log.error({ error: error instanceof Error ? error.message : "unknown" }, "Mobile profile completion failed");
+    res.status(502).json({ error: "Could not create your workspace. Please try again." });
   }
 });
 

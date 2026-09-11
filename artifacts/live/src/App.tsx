@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState, type CSSProperties, type FormEven
 import { Link, Route, Switch, useLocation, Router as WouterRouter } from "wouter";
 import {
   Activity as ActivityIcon, ArrowRight, BookOpen, Camera, Check, CircleHelp, Clipboard,
-  Download, FileVideo, FolderOpen, Gauge, Instagram, LayoutDashboard,
+  Download, FileVideo, FolderOpen, Gauge, Gift, Instagram, LayoutDashboard,
   Image, Layers, Link2, Menu, MessageCircle, MonitorPlay, Pencil, Play, Plus, Radio, Scissors, Search, Send, Settings,
   Mic, ShieldCheck, Smartphone, Sparkles, Square, Trash2, Type, Upload, Video, Wand2, X, Youtube,
 } from "lucide-react";
@@ -17,6 +17,8 @@ import NotFound from "@/pages/not-found";
 import { GatewayPage, LandingPage, PricingPage } from "@/pages/public";
 import { extractYoutubeChannelLinks, getStreamStatus, startStream, stopStream, trimMediaFile, updateStream } from "@workspace/api-client-react";
 import logoImage from "@assets/image_1788788255512.png";
+import AccessGate, { type AccessGateProfile } from "./components/AccessGate";
+import "./profile-completion.css";
 
 type LiveStatus = "live" | "scheduled" | "stopped";
 type VideoStatus = "published" | "draft" | "archived";
@@ -118,7 +120,7 @@ type LicenseSession = { licenseId: string; key: string; name: string; expiresAt:
 type AccountPlan = { id: string; name: string; description: string; durationDays: number; price: string; isTrial?: boolean; active: boolean; createdAt: string; updatedAt: string };
 type AccountHistoryItem = { id: string; type: "trial_started" | "purchase" | "grant" | "login"; message: string; at: string; planId?: string; days?: number };
 type AccountSummary = {
-  id: string; displayName: string; email: string; phone?: string; role: "owner" | "user";
+  id: string; displayName: string; email: string; phone?: string; profileCompleted?: boolean; role: "owner" | "user";
   licenseId: string; licenseKey: string; trialStartedAt: string; trialEndsAt: string;
   activePlanId: string; activePlan: AccountPlan | null; accessEndsAt: string; active: boolean;
   history: AccountHistoryItem[];
@@ -860,13 +862,21 @@ function useAccountSession(isSignedIn: boolean, userId?: string) {
     return () => window.clearInterval(timer);
   }, [isSignedIn, userId, Boolean(account)]);
 
-  const savePhone = async (phone: string) => {
+  const saveProfile = async (profile: { displayName: string; email: string; phone?: string }) => {
     const result = await apiJson<AccountResponse>("/api/account/profile", {
       method: "PUT",
-      body: JSON.stringify({ phone }),
+      body: JSON.stringify(profile),
     });
     setAccount(result.account);
     setPlans(result.plans || []);
+  };
+
+  const savePhone = async (phone: string) => {
+    await saveProfile({
+      displayName: account?.displayName || "",
+      email: account?.email || "",
+      phone,
+    });
   };
 
   const claimOwner = async (password: string) => {
@@ -884,7 +894,7 @@ function useAccountSession(isSignedIn: boolean, userId?: string) {
     setError("");
   };
 
-  return { account, plans, loading, error, reload: load, savePhone, claimOwner, clear };
+  return { account, plans, loading, error, reload: load, saveProfile, savePhone, claimOwner, clear };
 }
 
 function useWorkspace(license: LicenseSession | null, clearLicense: () => void) {
@@ -1153,110 +1163,101 @@ function AppShell({ children, title, workspace }: { children:ReactNode; title:st
   </div>;
 }
 
-function LicenseGate({ license, busy, error, signedIn, onActivate, onRenew, onGoogleLogin }: { license:LicenseSession|null; busy:boolean; error:string; signedIn:boolean; onActivate:(key:string)=>Promise<void>; onRenew:()=>Promise<void>; onGoogleLogin:()=>void }) {
-  const [key, setKey] = useState(license?.key || "");
-  const [mobilePhone, setMobilePhone] = useState("");
-  const [mobileOtp, setMobileOtp] = useState("");
+function LicenseGate({ license, busy, error, signedIn, onActivate, onRenew, onGoogleLogin, onGiftReady, onOpenRoom }: {
+  license: LicenseSession | null;
+  busy: boolean;
+  error: string;
+  signedIn: boolean;
+  onActivate: (key: string) => Promise<void>;
+  onRenew: () => Promise<void>;
+  onGoogleLogin: () => void;
+  onGiftReady: (key: string) => void;
+  onOpenRoom: () => void;
+}) {
+  const [, setLocation] = useLocation();
   const [mobileRequestId, setMobileRequestId] = useState("");
-  const [mobileStep, setMobileStep] = useState<"phone" | "otp">("phone");
+  const [mobileOnboardingToken, setMobileOnboardingToken] = useState("");
+  const [giftKey, setGiftKey] = useState("");
   const [mobileBusy, setMobileBusy] = useState(false);
   const [mobileError, setMobileError] = useState("");
-  const [mobileOpen, setMobileOpen] = useState(false);
-  useEffect(() => { setKey(license?.key || ""); }, [license?.key]);
   const expired = Boolean(license && !isLicenseActive(license));
-  const submit = (event:FormEvent) => {
-    event.preventDefault();
-    if (key.trim()) void onActivate(key).catch(() => undefined);
-  };
-  const sendMobileOtp = async (event: FormEvent) => {
-    event.preventDefault();
+
+  const sendMobileOtp = async (phone: string) => {
     setMobileBusy(true);
     setMobileError("");
     try {
-      const result = await apiJson<{ requestId: string; message: string }>("/api/mobile-auth/send-otp", {
+      const result = await apiJson<{ requestId: string }>("/api/mobile-auth/send-otp", {
         method: "POST",
-        body: JSON.stringify({ phone: mobilePhone }),
+        body: JSON.stringify({ phone }),
       });
       setMobileRequestId(result.requestId);
-      setMobileStep("otp");
     } catch (reason) {
-      setMobileError(reason instanceof Error ? reason.message : "Could not send the OTP.");
+      const message = reason instanceof Error ? reason.message : "Could not send the OTP.";
+      setMobileError(message);
+      throw new Error(message);
     } finally {
       setMobileBusy(false);
     }
   };
-  const verifyMobileOtp = async (event: FormEvent) => {
-    event.preventDefault();
+
+  const verifyMobileOtp = async (phone: string, otp: string): Promise<boolean> => {
     setMobileBusy(true);
     setMobileError("");
     try {
-      await apiJson("/api/mobile-auth/verify-otp", {
+      const result = await apiJson<{ code?: string; onboardingToken?: string }>("/api/mobile-auth/verify-otp", {
         method: "POST",
-        body: JSON.stringify({ requestId: mobileRequestId, otp: mobileOtp }),
+        body: JSON.stringify({ requestId: mobileRequestId, otp }),
       });
-      window.location.assign(`${basePath || ""}/dashboard`);
+      if (result.code === "PROFILE_REQUIRED" && result.onboardingToken) {
+        setMobileOnboardingToken(result.onboardingToken);
+        return true;
+      }
+      setLocation("/dashboard");
+      return false;
     } catch (reason) {
-      setMobileError(reason instanceof Error ? reason.message : "Could not verify the OTP.");
+      const message = reason instanceof Error ? reason.message : "Could not verify the OTP.";
+      setMobileError(message);
+      throw new Error(message);
     } finally {
       setMobileBusy(false);
     }
   };
-  return <div className="access-page">
-    <header className="access-nav">
-      <Link href="/" className="access-brand" data-testid="link-access-home">
-        <span className="access-brand-mark"><img src={logoImage} alt="R Loop Bypass logo" /></span>
-        <span>R LOOP <b>BYPASS</b></span>
-      </Link>
-      <div className="access-nav-status"><span /> PRIVATE ACCESS</div>
-    </header>
-    <main className="access-main">
-      <section className="access-intro">
-        <div>
-          <span className="access-kicker"><i /> R LOOP BYPASS / PRIVATE ROOM</span>
-          <h1>Bring your<br /><em>room on air.</em></h1>
-          <p>Enter your license key to open your private workspace. Your channels, videos, and settings stay separate from every other license.</p>
-          <div className="access-proof"><span><i /> ONE KEY · ONE ROOM</span><span><i /> READY WHEN YOU ARE</span></div>
-        </div>
-        <div className="access-social-block">
-          <div className="access-social-heading"><span>Stay close to the signal</span><small>Follow, ask, and keep up.</small></div>
-          <div className="access-social-grid">
-            {accessSocialLinks.map(({ label, detail, href, icon: Icon }) => <a key={label} href={href} target="_blank" rel="noreferrer" className="access-social-link" data-testid={`link-access-${label.toLowerCase()}`} aria-label={`${label}: ${detail}`}>
-              <span className={`access-social-icon access-social-${label.toLowerCase()}`}><Icon size={18} strokeWidth={2} /></span>
-              <span className="access-social-copy"><strong>{label}</strong><small>{detail}</small></span>
-              <ArrowRight size={15} className="access-social-arrow" />
-            </a>)}
-          </div>
-        </div>
-      </section>
-      <section className="access-panel">
-        <div className="access-panel-grid" />
-        <div className="access-card">
-          <div className="access-card-top"><span className="access-card-led" /> <span>PRIVATE ACCESS GATE</span><span className="access-card-code">01 / 01</span></div>
-          <div className="access-card-icon"><Radio size={20} /></div>
-          <p className="access-eyebrow">{expired ? "License expired" : "Enter your license"}</p>
-          <h2>{expired ? "Renew your key." : "Unlock the room."}</h2>
-          <p className="access-card-copy">{expired ? "Your workspace is waiting. Renew this same key for 30 more days, or choose a plan below." : "Sign in to create your account, or use an existing license key to open the room."}</p>
-          {error && <div className="access-error" data-testid="status-license-error">{error}</div>}
-          {!signedIn && <button type="button" className="access-google-button" onClick={onGoogleLogin} data-testid="button-login-google"><span className="google-mark">G</span><strong>Login with Google</strong><ArrowRight size={16}/></button>}
-          {!signedIn && <button type="button" className="access-mobile-toggle" onClick={() => { setMobileOpen((value) => !value); setMobileError(""); }} data-testid="button-login-mobile">{mobileOpen ? "Hide mobile login" : "Login with mobile number"} <Smartphone size={14}/></button>}
-          {!signedIn && mobileOpen && <div className="mobile-login-box">
-            <div className="access-divider"><span>{mobileStep === "phone" ? "send OTP" : "enter 4-digit OTP"}</span></div>
-            {mobileError && <div className="access-error mobile-error">{mobileError}</div>}
-            {mobileStep === "phone" ? <form className="access-form" onSubmit={sendMobileOtp}><div className="access-field"><label htmlFor="mobile-phone">Mobile number</label><input id="mobile-phone" type="tel" value={mobilePhone} onChange={(event) => setMobilePhone(event.target.value)} placeholder="9876543210" autoComplete="tel" inputMode="numeric" maxLength={16} data-testid="input-mobile-phone"/></div><button className="access-submit" type="submit" disabled={mobileBusy || !mobilePhone.trim()}><strong>{mobileBusy ? "Sending…" : "Send OTP"}</strong><ArrowRight size={16}/></button></form> : <form className="access-form" onSubmit={verifyMobileOtp}><div className="access-field"><label htmlFor="mobile-otp">4-digit OTP</label><input id="mobile-otp" type="text" value={mobileOtp} onChange={(event) => setMobileOtp(event.target.value.replace(/\D/g, "").slice(0, 4))} placeholder="••••" autoComplete="one-time-code" inputMode="numeric" maxLength={4} data-testid="input-mobile-otp"/></div><button className="access-submit" type="submit" disabled={mobileBusy || mobileOtp.length !== 4}><strong>{mobileBusy ? "Verifying…" : "Verify & open workspace"}</strong><Check size={16}/></button><button type="button" className="access-mobile-back" onClick={() => { setMobileStep("phone"); setMobileOtp(""); setMobileError(""); }}>Use a different number</button></form>}
-          </div>}
-          {!signedIn && <div className="access-divider"><span>or use a license key</span></div>}
-          <form className="access-form" onSubmit={submit}>
-            <div className="access-field"><label htmlFor="license-key">License key</label><input id="license-key" value={key} onChange={e=>setKey(e.target.value)} placeholder="SD-XXXXXXXXXXXX" autoComplete="off" data-testid="input-license-key"/></div>
-            <button className="access-submit" type="submit" disabled={busy || !key.trim()} data-testid="button-activate-license"><strong>{busy ? "Checking…" : "Open workspace"}</strong><ArrowRight size={16}/></button>
-          </form>
-          {expired && <button className="access-renew" onClick={()=>void onRenew()} disabled={busy} data-testid="button-renew-license">{busy ? "Renewing…" : "Renew your key · 30 days"} <Check size={14}/></button>}
-          {license && <div className="access-license-status"><strong>{license.name}</strong><span>Key: <span className="mono">{license.key}</span></span><span>Expired {new Date(license.expiresAt).toLocaleDateString()}</span></div>}
-          <div className="access-card-foot"><ShieldCheck size={14} /><span>Google accounts get a trial automatically. Mobile login verifies the number before opening its linked account.</span></div>
-        </div>
-      </section>
-    </main>
-    <footer className="access-footer"><span>Broadcast automation for the long signal.</span><Link href="/pricing" data-testid="link-access-pricing">View access options <ArrowRight size={13} /></Link></footer>
-  </div>;
+
+  const completeMobileProfile = async (profile: AccessGateProfile) => {
+    if (!mobileOnboardingToken) throw new Error("This verification has expired. Request a new OTP.");
+    setMobileBusy(true);
+    setMobileError("");
+    try {
+      const result = await apiJson<{ account: { licenseKey: string } }>("/api/mobile-auth/complete-profile", {
+        method: "POST",
+        body: JSON.stringify({ onboardingToken: mobileOnboardingToken, ...profile }),
+      });
+      setGiftKey(result.account.licenseKey);
+      onGiftReady(result.account.licenseKey);
+    } catch (reason) {
+      const message = reason instanceof Error ? reason.message : "Could not create your workspace.";
+      setMobileError(message);
+      throw new Error(message);
+    } finally {
+      setMobileBusy(false);
+    }
+  };
+
+  return <AccessGate
+    expired={expired}
+    error={error || mobileError}
+    busy={busy || mobileBusy}
+    signedIn={signedIn}
+    onActivate={onActivate}
+    onRenew={onRenew}
+    onGoogleLogin={onGoogleLogin}
+    onSendMobileOtp={sendMobileOtp}
+    onVerifyMobileOtp={verifyMobileOtp}
+    onCompleteProfile={completeMobileProfile}
+    onGiftClaim={async () => undefined}
+    giftKey={giftKey}
+    onOpenRoom={onOpenRoom}
+  />;
 }
 
 function ClerkAuthPage({ mode }: { mode: "sign-in" | "sign-up" }) {
@@ -1274,6 +1275,62 @@ function ClerkAuthPage({ mode }: { mode: "sign-in" | "sign-up" }) {
         ? <SignIn routing="path" path={fullPath} signUpUrl={`${basePath}/sign-up`} />
         : <SignUp routing="path" path={fullPath} signInUrl={`${basePath}/sign-in`} />}
     </div>
+  </div>;
+}
+
+function AccountCompletionDialog({ account, onSave, onClose }: {
+  account: AccountSummary;
+  onSave: (profile: { displayName: string; email: string; phone?: string }) => Promise<void>;
+  onClose: () => void;
+}) {
+  const [displayName, setDisplayName] = useState(account.displayName.startsWith("Workspace ") ? "" : account.displayName);
+  const [email, setEmail] = useState(account.email);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const [saved, setSaved] = useState(false);
+  const [revealed, setRevealed] = useState(false);
+
+  const save = async (event: FormEvent) => {
+    event.preventDefault();
+    if (!displayName.trim() || !email.trim()) return;
+    setBusy(true);
+    setError("");
+    try {
+      await onSave({ displayName: displayName.trim(), email: email.trim(), phone: account.phone });
+      setSaved(true);
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "Could not save your profile.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return <div className="profile-completion-backdrop" role="presentation">
+    <section className="profile-completion-dialog" role="dialog" aria-modal="true" aria-labelledby="profile-completion-title">
+      <div className="profile-completion-icon"><Gift size={25}/></div>
+      {!saved ? <>
+        <p className="eyebrow">One last detail</p>
+        <h2 id="profile-completion-title">Make the room yours.</h2>
+        <p className="profile-completion-copy">Your Google account is connected. Add your name and email so your private workspace and license are easy to recover.</p>
+        {error && <div className="error-note" role="alert">{error}</div>}
+        <form className="profile-completion-form" onSubmit={save}>
+          <label className="field"><span>Your name</span><input value={displayName} onChange={(event) => setDisplayName(event.target.value)} autoComplete="name" placeholder="Your name" /></label>
+          <label className="field"><span>Email address</span><input type="email" value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="email" placeholder="you@example.com" /></label>
+          <button className="button login-submit" type="submit" disabled={busy || !displayName.trim() || !email.trim()}>{busy ? "Saving profile…" : "Save and continue"} <ArrowRight size={15}/></button>
+        </form>
+      </> : <>
+        <p className="eyebrow">Your room is ready</p>
+        <h2 id="profile-completion-title">A license, made for you.</h2>
+        <p className="profile-completion-copy">Your trial workspace and its license have been created. Tap the gift to reveal the key, then open your room.</p>
+        <button className={`profile-completion-gift ${revealed ? "revealed" : ""}`} type="button" onClick={() => setRevealed(true)} aria-label={revealed ? "License revealed" : "Reveal license"}>
+          <Gift size={30}/>
+          <span>{revealed ? account.licenseKey : "Tap to reveal your license"}</span>
+          <Sparkles size={17}/>
+        </button>
+        {revealed && <button className="button login-submit" type="button" onClick={onClose}>Open my room <ArrowRight size={15}/></button>}
+        {!revealed && <p className="profile-completion-footnote"><ShieldCheck size={14}/> Generated securely for this account.</p>}
+      </>}
+    </section>
   </div>;
 }
 
@@ -3820,6 +3877,8 @@ function App() {
   const license = useLicense();
   const accountSession = useAccountSession(Boolean(isSignedIn), user?.id);
   const hasAccountSession = Boolean(accountSession.account);
+  const [mobileGiftKey, setMobileGiftKey] = useState("");
+  const [profileGateId, setProfileGateId] = useState<string | null>(null);
   const accountLicense = accountSession.account ? {
     licenseId: accountSession.account.licenseId,
     key: accountSession.account.licenseKey,
@@ -3836,19 +3895,24 @@ function App() {
   });
   const [location, setLocation] = useLocation();
   useEffect(() => {
+    if (accountSession.account?.profileCompleted === false && !profileGateId) {
+      setProfileGateId(accountSession.account.id);
+    }
+  }, [accountSession.account, profileGateId]);
+  useEffect(() => {
     if (!clerkLoaded || (isSignedIn && accountSession.loading)) return;
     if (hasAccountSession && accountSession.account && !accountSession.account.active && ![purchasePath, "/gateway", "/sign-in", "/sign-up"].some((path) => location.startsWith(path))) {
       setLocation(purchasePath);
       return;
     }
-    if (hasAccountSession && accountSession.account?.active && (location === "/" || location === "/access" || location.startsWith("/sign-in") || location.startsWith("/sign-up"))) {
+    if (!mobileGiftKey && hasAccountSession && accountSession.account?.active && (location === "/" || location === "/access" || location.startsWith("/sign-in") || location.startsWith("/sign-up"))) {
       setLocation(accountSession.account.role === "owner" ? "/owner" : "/dashboard");
       return;
     }
     if (!isSignedIn && isLicenseActive(license.license) && (location === "/" || location === "/access")) {
       setLocation("/dashboard");
     }
-  }, [accountSession.account, accountSession.loading, clerkLoaded, hasAccountSession, isSignedIn, license.license, location, setLocation]);
+  }, [accountSession.account, accountSession.loading, clerkLoaded, hasAccountSession, isSignedIn, license.license, location, mobileGiftKey, setLocation]);
   if (!clerkLoaded) return <div className="workspace-loading"><Radio size={20}/><span>Connecting secure sign-in…</span></div>;
   if (location.startsWith("/sign-in")) return <ClerkAuthPage mode="sign-in"/>;
   if (location.startsWith("/sign-up")) return <ClerkAuthPage mode="sign-up"/>;
@@ -3861,10 +3925,11 @@ function App() {
     return <OwnerPage/>;
   }
   if (location === "/" && !isLicenseActive(activeLicense)) return <LandingPage />;
-  if (location === "/access") return <LicenseGate license={activeLicense} busy={license.busy} error={license.error} signedIn={Boolean(isSignedIn || hasAccountSession)} onActivate={license.activate} onRenew={license.renew} onGoogleLogin={() => setLocation("/sign-in")}/>;
-  if (!activeLicense || !isLicenseActive(activeLicense)) return <LicenseGate license={activeLicense} busy={license.busy} error={license.error} signedIn={Boolean(isSignedIn || hasAccountSession)} onActivate={license.activate} onRenew={license.renew} onGoogleLogin={() => setLocation("/sign-in")}/>;
+  const openMobileRoom = () => { setMobileGiftKey(""); setLocation("/dashboard"); };
+  if (location === "/access") return <LicenseGate license={activeLicense} busy={license.busy} error={license.error} signedIn={Boolean(isSignedIn || hasAccountSession)} onActivate={license.activate} onRenew={license.renew} onGoogleLogin={() => setLocation("/sign-in")} onGiftReady={setMobileGiftKey} onOpenRoom={openMobileRoom}/>;
+  if (!activeLicense || !isLicenseActive(activeLicense)) return <LicenseGate license={activeLicense} busy={license.busy} error={license.error} signedIn={Boolean(isSignedIn || hasAccountSession)} onActivate={license.activate} onRenew={license.renew} onGoogleLogin={() => setLocation("/sign-in")} onGiftReady={setMobileGiftKey} onOpenRoom={openMobileRoom}/>;
   if (!workspace.ready) return <div className="workspace-loading"><Radio size={20}/><span>Loading your private workspace…</span></div>;
-  return <Routed workspace={workspace} account={accountSession.account} onSavePhone={accountSession.savePhone} onClaimOwner={async (password) => { await accountSession.claimOwner(password); setLocation("/owner"); }}/>;
+  return <><Routed workspace={workspace} account={accountSession.account} onSavePhone={accountSession.savePhone} onClaimOwner={async (password) => { await accountSession.claimOwner(password); setLocation("/owner"); }}/>{accountSession.account && profileGateId === accountSession.account.id && <AccountCompletionDialog account={accountSession.account} onSave={accountSession.saveProfile} onClose={() => setProfileGateId(null)} />}</>;
 }
 
 function ClerkProviderWithRoutes() {

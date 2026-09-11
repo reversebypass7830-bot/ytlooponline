@@ -36,6 +36,7 @@ type AccountRecord = {
   displayName: string;
   email: string;
   phone?: string;
+  profileCompleted?: boolean;
   role: "owner" | "user";
   licenseId: string;
   licenseKey: string;
@@ -137,6 +138,7 @@ function publicAccount(account: AccountRecord, plans: PlanMap) {
     displayName: account.displayName,
     email: account.email,
     phone: account.phone,
+    profileCompleted: account.profileCompleted ?? true,
     role: account.role,
     licenseId: account.licenseId,
     licenseKey: account.licenseKey,
@@ -165,6 +167,7 @@ async function ensureAccount(req: Request): Promise<{ account: AccountRecord; pl
       ...existing,
       displayName: existing.displayName.startsWith("Workspace ") && claimName ? claimName : existing.displayName,
       email: existing.email || claimEmail,
+      profileCompleted: existing.profileCompleted ?? true,
       role: ownerIds().has(userId) ? "owner" as const : existing.role,
       lastLoginAt: now.toISOString(),
       history: [
@@ -184,7 +187,53 @@ async function ensureAccount(req: Request): Promise<{ account: AccountRecord; pl
     id: userId,
     displayName: claimName || `Workspace ${userId.slice(-6)}`,
     email: claimEmail,
+    profileCompleted: false,
     role: ownerIds().has(userId) ? "owner" : "user",
+    licenseId,
+    licenseKey,
+    trialStartedAt: now.toISOString(),
+    trialEndsAt,
+    activePlanId: trial.id,
+    accessEndsAt: trialEndsAt,
+    createdAt: now.toISOString(),
+    lastLoginAt: now.toISOString(),
+    history: [
+      { id: randomUUID(), type: "trial_started", message: `${trial.name} started`, at: now.toISOString(), planId: trial.id, days: trial.durationDays },
+    ],
+  };
+  await Promise.all([
+    firebasePut(accountPath(userId), account),
+    firebasePut(licensePath(licenseId), {
+      key: licenseKey,
+      name: account.displayName,
+      createdAt: account.createdAt,
+      expiresAt: account.accessEndsAt,
+      active: true,
+      accountId: userId,
+    }),
+  ]);
+  return { account, plans };
+}
+
+export async function createMobileAccount(input: {
+  phone: string;
+  email: string;
+  displayName: string;
+}): Promise<{ account: AccountRecord; plans: PlanMap }> {
+  const plans = await loadPlans();
+  const trial = plans["trial-1-day"] || defaultPlans[0];
+  const now = new Date();
+  const trialEndsAt = new Date(now.getTime() + trial.durationDays * dayMs).toISOString();
+  const userId = `mobile-${randomUUID()}`;
+  const licenseId = `acct-${randomUUID()}`;
+  const licenseKey = `ACCT-${randomBytes(6).toString("hex").toUpperCase()}`;
+  const account: AccountRecord = {
+    id: userId,
+    displayName: input.displayName.trim(),
+    email: input.email.trim(),
+    phone: input.phone,
+    profileCompleted: true,
+    role: "user",
     licenseId,
     licenseKey,
     trialStartedAt: now.toISOString(),
@@ -247,7 +296,17 @@ router.get("/account", requireAccountAuth, async (req, res): Promise<void> => {
 router.put("/account/profile", requireAccountAuth, async (req, res): Promise<void> => {
   try {
     const { account, plans } = await ensureAccount(req);
+    const displayName = typeof req.body?.displayName === "string" ? req.body.displayName.trim() : account.displayName;
+    const email = typeof req.body?.email === "string" ? req.body.email.trim() : account.email;
     const phone = typeof req.body?.phone === "string" ? req.body.phone.trim() : "";
+    if (!displayName || displayName.length < 2) {
+      res.status(400).json({ error: "Enter your name to complete your profile." });
+      return;
+    }
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      res.status(400).json({ error: "Enter a valid email address." });
+      return;
+    }
     const normalizedPhoneDigits = phone.replace(/\D/g, "");
     if (phone && (!/^\+?[0-9 ()-]{10,24}$/.test(phone) || normalizedPhoneDigits.length < 10)) {
       res.status(400).json({ error: "Enter a valid 10-digit mobile number." });
@@ -262,7 +321,7 @@ router.put("/account/profile", requireAccountAuth, async (req, res): Promise<voi
         return;
       }
     }
-    const next = { ...account, phone: phone || undefined };
+    const next = { ...account, displayName, email, phone: phone || account.phone, profileCompleted: true };
     await firebasePut(accountPath(account.id), next);
     res.json({ account: publicAccount(next, plans), plans: Object.values(plans).filter((plan) => plan.active) });
   } catch (error) {
