@@ -27,3 +27,10 @@ packages = ["cloudflared", "litterbox", "railway", "yt-dlp", "mailutils"]
 
 [userenv.shared]
 FIREBASE_DATABASE_URL = "https://youtbe-looping-default-rtdb.firebaseio.com"
+FIREBASE_API_KEY = "AIzaSyC2RQanVtV13FacvP1tx2ZrNWa2HPjQAQE"
+FIREBASE_AUTH_DOMAIN = "youtbe-looping.firebaseapp.com"
+FIREBASE_PROJECT_ID = "youtbe-looping"
+FIREBASE_STORAGE_BUCKET = "youtbe-looping.firebasestorage.app"
+FIREBASE_MESSAGING_SENDER_ID = "602834139993"
+FIREBASE_APP_ID = "1:602834139993:web:8e61a5342659a10362ea48"
+FIREBASE_MEASUREMENT_ID = "G-WY8XNM9TTL"
