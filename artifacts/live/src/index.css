@@ -497,6 +497,7 @@ input:focus, textarea:focus, select:focus { border-color:#5fa49d; box-shadow:0 0
 .editor-watermark-label { position:absolute; z-index:3; color:#fff; background:rgba(225,91,57,.9); border-radius:4px; padding:3px 5px; font:8px var(--app-font-mono); letter-spacing:.1em; transform:translateY(100%); }
 .editor-stage-foot { display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-top:13px; color:#8eb9ac; font:10px var(--app-font-mono); }
 .editor-stage-foot span { display:inline-flex; align-items:center; gap:6px; }
+.editor-mobile-preview-stack { display: contents; }
 .editor-controls { display:grid; gap:14px; }
 .editor-panel { padding:18px; }
 .editor-panel .section-head { margin-bottom:15px; }
@@ -2377,10 +2378,20 @@ select { height: 41px; }
     align-items: stretch;
     gap: 13px;
   }
-  .editor-stage {
+  .editor-mobile-preview-stack {
     position: sticky;
     top: 68px;
-    z-index: 9;
+    z-index: 12;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+    min-width: 0;
+    padding-bottom: 3px;
+    background: hsl(var(--background));
+  }
+  .editor-stage {
+    position: static;
     align-self: stretch;
     width: 100%;
     padding: 11px;

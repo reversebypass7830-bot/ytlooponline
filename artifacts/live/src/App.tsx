@@ -3043,7 +3043,8 @@ function VideoEditorPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}
          <div className="editor-steps"><div className="editor-step active"><b>01</b><span>Choose clips</span></div><div className="editor-step"><b>02</b><span>Compose layers</span></div><div className="editor-step"><b>03</b><span>Send to live channel</span></div></div>
        </div>
       <form className="editor-layout" onSubmit={(event)=>event.preventDefault()}>
-        <section className="editor-stage card">
+        <div className="editor-mobile-preview-stack">
+          <section className="editor-stage card">
            <div className="editor-stage-head"><div><span className="metric-kicker">Live composition</span><strong>{selectedVideos.length ? `${selectedVideos.length} clips · ${loopEnabled ? `loops ${loopCount}` : "single pass"}` : "Choose videos to preview"}</strong></div><span className="editor-stage-status"><span className="status-dot"/>Preview</span></div>
             <EditorCanvas {...editorCanvasProps} />
             <div className="editor-preview-actions">
@@ -3051,7 +3052,24 @@ function VideoEditorPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}
               <button type="button" className="button editor-expand-button" onClick={() => setPreviewExpanded(true)} disabled={!previewUrl}><MonitorPlay size={15}/> Open large preview & edit <ArrowRight size={14}/></button>
             </div>
             <div className="editor-stage-foot"><span><Layers size={13}/> {selectedVideos.length || 0} clips selected · {outputAspectRatio === "shorts" ? "Short 9:16" : outputAspectRatio === "square" ? "Square 1:1" : "Long 16:9"}</span><span><Sparkles size={13}/> Logo, face cam, and effects follow the live signal</span></div>
-        </section>
+          </section>
+          <div className="mobile-editor-tabs" role="tablist" aria-label="Mobile editor controls">
+            {([
+              ["files", <FileVideo size={14}/>, "Files"],
+              ["timing", <Type size={14}/>, "Timing"],
+              ["layers", <Image size={14}/>, "Layers"],
+              ["effects", <Sparkles size={14}/>, "Effects"],
+            ] as const).map(([panel, icon, label]) => <button
+              key={panel}
+              type="button"
+              className={mobileEditorPanel === panel ? "active" : ""}
+              onClick={() => setMobileEditorPanel(panel)}
+              role="tab"
+              aria-selected={mobileEditorPanel === panel}
+              data-testid={`button-mobile-editor-${panel}`}
+            >{icon}<span>{label}</span></button>)}
+          </div>
+        </div>
          {previewExpanded && <div className="editor-focus-backdrop" role="dialog" aria-modal="true" aria-label="Large video editor" onMouseDown={(event) => { if (event.target === event.currentTarget) setPreviewExpanded(false); }}>
            <div className="editor-focus-window">
              <div className="editor-focus-head"><div><span className="metric-kicker">Focused editor</span><strong>{previewVideo?.title || "Selected video"}</strong><span>Drag to move · scroll or pinch to zoom · use the handle to resize face cam</span></div><button type="button" className="editor-focus-close" onClick={() => setPreviewExpanded(false)} aria-label="Close large preview"><X size={17}/><span>Close</span></button></div>
@@ -3059,22 +3077,6 @@ function VideoEditorPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}
               <div className="editor-focus-controls"><EditorTransformControls {...editorCanvasProps} hasWebcam={Boolean(webcam)} hasAnimation={Boolean(animation)} /></div>
            </div>
          </div>}
-         <div className="mobile-editor-tabs" role="tablist" aria-label="Mobile editor controls">
-           {([
-             ["files", <FileVideo size={14}/>, "Files"],
-             ["timing", <Type size={14}/>, "Timing"],
-             ["layers", <Image size={14}/>, "Layers"],
-             ["effects", <Sparkles size={14}/>, "Effects"],
-           ] as const).map(([panel, icon, label]) => <button
-             key={panel}
-             type="button"
-             className={mobileEditorPanel === panel ? "active" : ""}
-             onClick={() => setMobileEditorPanel(panel)}
-             role="tab"
-             aria-selected={mobileEditorPanel === panel}
-             data-testid={`button-mobile-editor-${panel}`}
-           >{icon}<span>{label}</span></button>)}
-         </div>
          <aside className="editor-controls">
            <section className={mobilePanelClass("files")} data-mobile-editor-panel="files">
               <div className="section-head"><div><h2 className="section-title">1. Choose files & source layers</h2><p className="subtle">Choose your files first. Personal videos and Admin + My animations stay in separate tabs.</p></div><FileVideo size={17} color="#6c8b83"/></div>
