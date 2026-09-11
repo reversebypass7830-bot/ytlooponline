@@ -2356,7 +2356,13 @@ select { height: 41px; }
   .page-head { gap: 13px; }
   .page-head > div { max-width: 100%; }
   .subtle { font-size: 12px; }
-  .editor-page { padding-top: 18px; }
+  .editor-page {
+    padding-top: 10px;
+  }
+  .editor-page > .page-head,
+  .editor-page > .editor-command-bar {
+    display: none;
+  }
   .editor-command-bar { gap: 12px; }
   .editor-command-intro { min-width: 0; }
   .editor-steps { overflow-x: auto; justify-content: flex-start; padding-bottom: 2px; }
