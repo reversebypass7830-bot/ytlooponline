@@ -916,6 +916,10 @@ components:
           type: string
           enum: [none, subscribe, like, follow]
           default: none
+        comingSoon:
+          type: boolean
+          default: false
+          description: Show a COMING SOON lower-third in the live composition.
         brightness:
           type: number
           minimum: -1

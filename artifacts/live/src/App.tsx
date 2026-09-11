@@ -52,6 +52,7 @@ type EditorStreamComposition = {
   logoPosition: "top-left" | "top-right" | "bottom-left" | "bottom-right";
   logoScale: number;
   animationPreset: AnimationPreset;
+  comingSoon?: boolean;
   brightness: number;
   contrast: number;
   saturation: number;
@@ -1647,7 +1648,7 @@ function playlistFor(channel:LiveChannel, groups:VideoGroup[], videos:VideoItem[
   };
 }
 
-type LiveAnimationSettings = { id: string; x: number; y: number; scale: number };
+type LiveAnimationSettings = { id: string; x: number; y: number; scale: number; comingSoon: boolean };
 
 function LiveAnimationControl({
   channel,
@@ -1683,6 +1684,7 @@ function LiveAnimationControl({
     y: channel.liveAnimationY || 0,
     scale: channel.liveAnimationScale || 0.25,
   });
+  const [comingSoon, setComingSoon] = useState(Boolean(channel.editorComposition?.comingSoon));
   const previewRef = useRef<HTMLDivElement>(null);
   const webcamRef = useRef<HTMLVideoElement>(null);
   const dragRef = useRef<{ x: number; y: number; position: typeof position } | null>(null);
@@ -1703,7 +1705,8 @@ function LiveAnimationControl({
       y: channel.liveAnimationY || 0,
       scale: channel.liveAnimationScale || 0.25,
     });
-  }, [channel.id, channel.liveAnimationId, channel.liveAnimationX, channel.liveAnimationY, channel.liveAnimationScale]);
+    setComingSoon(Boolean(channel.editorComposition?.comingSoon));
+  }, [channel.id, channel.liveAnimationId, channel.liveAnimationX, channel.liveAnimationY, channel.liveAnimationScale, channel.editorComposition?.comingSoon]);
 
   const clampPosition = (next: typeof position) => ({
     x: Math.max(-48, Math.min(48, next.x)),
@@ -1799,6 +1802,7 @@ function LiveAnimationControl({
           className="live-animation-layer"
            style={previewAnimationStyle || { left: `${50 + position.x}%`, top: `${50 + position.y}%`, width: `${position.scale * 100}%` }}
         />}
+         {comingSoon && <div className="live-coming-soon-overlay">COMING SOON</div>}
         <span className="live-animation-live-badge"><span className="status-dot"/>LIVE PREVIEW</span>
         {animation && <span className="live-animation-drag-hint">Drag overlay</span>}
       </div>
@@ -1806,7 +1810,8 @@ function LiveAnimationControl({
         <div className="field"><label>Animation to run</label><select value={animationId} onChange={(event) => setAnimationId(event.target.value)} data-testid={`select-live-animation-${channel.id}`}><option value="">No animation overlay</option>{animations.map((video) => <option key={video.id} value={video.id}>{isIncludedVideo(video) ? "Included · " : "My Animations · "}{video.title}</option>)}</select></div>
         <div className="field"><label>Overlay size · {Math.round(position.scale * 100)}%</label><input type="range" min="10" max="80" value={Math.round(position.scale * 100)} onChange={(event) => setPosition((current) => ({ ...current, scale: Number(event.target.value) / 100 }))} disabled={!animation}/></div>
         <div className="live-animation-position"><span>Position {Math.round(position.x)} / {Math.round(position.y)}</span><button type="button" className="section-link" onClick={() => setPosition({ x: 0, y: 0, scale: 0.25 })} disabled={!animation}>Center overlay</button></div>
-        <div className="live-animation-actions"><button type="button" className="button" onClick={() => void onApply({ id: animationId, x: position.x, y: position.y, scale: position.scale })} disabled={busy || !livePlaylist.videoSources.length}>{busy ? "Updating live…" : "Apply to live"} <Radio size={14}/></button><button type="button" className="button ghost" onClick={() => void onApply({ id: "", x: 0, y: 0, scale: 0.25 })} disabled={busy || !channel.liveAnimationId}>Remove overlay</button></div>
+        <label className="live-coming-soon-toggle"><input type="checkbox" checked={comingSoon} onChange={(event) => setComingSoon(event.target.checked)} /> <span>Show <strong>COMING SOON</strong> at the bottom of the preview</span></label>
+        <div className="live-animation-actions"><button type="button" className="button" onClick={() => void onApply({ id: animationId, x: position.x, y: position.y, scale: position.scale, comingSoon })} disabled={busy || !livePlaylist.videoSources.length}>{busy ? "Updating live…" : "Apply now"} <Radio size={14}/></button><button type="button" className="button ghost" onClick={() => void onApply({ id: "", x: 0, y: 0, scale: 0.25, comingSoon: false })} disabled={busy || (!channel.liveAnimationId && !channel.editorComposition?.comingSoon && !comingSoon)}>Remove overlay</button></div>
          <span className="field-hint">The configured playlist, edited layers, face camera, and animation are previewed together. Applying a new overlay briefly rebuilds the live FFmpeg composition without creating a rendered copy.</span>
       </div>
     </div>
@@ -2222,14 +2227,36 @@ function LivePreviewPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}
     setOverlayBusy(true);
     try {
       const streamId = streamIdFor(workspace.clientId, selectedChannel.id);
-      const composition = selectedChannel.editorComposition
+      const composition: EditorStreamComposition | undefined = selectedChannel.editorComposition
         ? {
             ...selectedChannel.editorComposition,
             animationSource: animation?.serverSource,
             animationX: settings.x,
             animationY: settings.y,
             animationScale: settings.scale,
+            comingSoon: settings.comingSoon,
           }
+        : settings.comingSoon
+          ? {
+              mainX: 0,
+              mainY: 0,
+              mainScale: 1,
+              cropMode: "fit",
+              webcamX: 0,
+              webcamY: 0,
+              webcamScale: selectedChannel.faceSize ? selectedChannel.faceSize / 100 : 0.25,
+              animationX: settings.x,
+              animationY: settings.y,
+              animationScale: settings.scale,
+              logoPosition: "bottom-right",
+              logoScale: 0.25,
+              animationPreset: "none",
+              comingSoon: true,
+              brightness: 0,
+              contrast: 1,
+              saturation: 1,
+              hue: 0,
+            }
         : undefined;
       await updateStream({
         streamId,

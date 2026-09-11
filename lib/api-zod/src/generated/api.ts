@@ -178,6 +178,7 @@ export const StartStreamBody = zod.object({
   "logoPosition": zod.enum(['top-left', 'top-right', 'bottom-left', 'bottom-right']).default(startStreamBodyCompositionLogoPositionDefault),
   "logoScale": zod.number().min(startStreamBodyCompositionLogoScaleMin).max(startStreamBodyCompositionLogoScaleMax).default(startStreamBodyCompositionLogoScaleDefault),
   "animationPreset": zod.enum(['none', 'subscribe', 'like', 'follow']).default(startStreamBodyCompositionAnimationPresetDefault),
+  "comingSoon": zod.boolean().optional().describe('Show a COMING SOON lower-third in the live composition.'),
   "brightness": zod.number().min(startStreamBodyCompositionBrightnessMin).max(startStreamBodyCompositionBrightnessMax).default(startStreamBodyCompositionBrightnessDefault),
   "contrast": zod.number().min(startStreamBodyCompositionContrastMin).max(startStreamBodyCompositionContrastMax).default(startStreamBodyCompositionContrastDefault),
   "saturation": zod.number().min(startStreamBodyCompositionSaturationMin).max(startStreamBodyCompositionSaturationMax).default(startStreamBodyCompositionSaturationDefault),

@@ -73,6 +73,7 @@ export interface StreamCompositionInput {
      */
   logoScale?: number;
   animationPreset?: StreamCompositionInputAnimationPreset;
+  comingSoon?: boolean;
   /**
      * @minimum -1
      * @maximum 1

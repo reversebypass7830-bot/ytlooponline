@@ -168,6 +168,8 @@ export interface StreamCompositionInput {
      */
   logoScale?: number;
   animationPreset?: StreamCompositionInputAnimationPreset;
+  /** Show a COMING SOON lower-third in the live composition. */
+  comingSoon?: boolean;
   /**
      * @minimum -1
      * @maximum 1

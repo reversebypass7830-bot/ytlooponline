@@ -24,6 +24,7 @@ export type StreamCompositionInput = {
   logoPosition?: "top-left" | "top-right" | "bottom-left" | "bottom-right";
   logoScale?: number;
   animationPreset?: "none" | "subscribe" | "like" | "follow";
+  comingSoon?: boolean;
   brightness?: number;
   contrast?: number;
   saturation?: number;
@@ -839,10 +840,15 @@ function buildFfmpegArgs(
                 `[${animationPath ? "with_animation" : liveWebcamInput ? "with_live_webcam" : facePath ? "with_face" : "base"}][logo]overlay=${logoPosition(composition?.logoPosition, "main_w", "main_h")}:eof_action=repeat[with_logo]`,
               ]
             : []),
+          ...(composition?.comingSoon
+            ? [
+                `[${logoPath ? "with_logo" : animationPath ? "with_animation" : liveWebcamInput ? "with_live_webcam" : facePath ? "with_face" : "base"}]drawtext=fontfile='/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf':text='COMING SOON':fontcolor=white:fontsize=${Math.round(width * 0.045)}:x=(w-text_w)/2:y=h-text_h-${Math.round(height * 0.08)}:box=1:boxcolor=black@0.62:boxborderw=${Math.round(width * 0.012)}[with_coming_soon]`,
+              ]
+            : []),
           ...(audioFilter ? [audioFilter] : []),
         ].join(";"),
         "-map",
-        logoPath ? "[with_logo]" : animationPath ? "[with_animation]" : liveWebcamInput ? "[with_live_webcam]" : facePath ? "[with_face]" : "[base]",
+         composition?.comingSoon ? "[with_coming_soon]" : logoPath ? "[with_logo]" : animationPath ? "[with_animation]" : liveWebcamInput ? "[with_live_webcam]" : facePath ? "[with_face]" : "[base]",
         "-c:v",
         "libx264",
         "-preset",
