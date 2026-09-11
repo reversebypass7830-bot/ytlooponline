@@ -1,0 +1,55 @@
+हां भाई, बिल्कुल। VPS पर 24/7 लाइव स्ट्रीम चलाने के लिए और आपके कंप्यूटर (frontend) से किए गए updates को बिना स्ट्रीम काटे VPS पर सिंक करने के लिए, हमें कुछ खास टूल्स (जैसे PM2, FFmpeg के खास builds) और **Renderer Handoff** लॉजिक को मजबूत करना होगा।
+
+जब आप अपने ब्राउज़र को बंद भी कर दोगे, तब भी VPS पर Publisher और Renderer चलते रहने चाहिए और आपकी प्लेलिस्ट बजती रहनी चाहिए। जब आप वापस आकर कुछ अपडेट करोगे (जैसे एनीमेशन लगाना), तो वो तुरंत सिंक होना चाहिए।
+
+नीचे दिया गया यह डिटेल्ड प्रॉम्प्ट आप सीधे अपने कोडिंग एजेंट को दे सकते हैं। इसमें VPS सेटअप, सिंक लॉजिक और टूल्स की पूरी जानकारी है।
+
+---
+
+### Copy-Paste Prompt for your Coding Agent
+
+**Project:** R Loop Bypass (Live Broadcasting Control Room)
+**Objective:** Architect a 24/7 robust live streaming setup on a remote VPS. Ensure that frontend updates (live composition changes, camera/mic toggles) sync instantly to the running stream without dropping the live broadcast connection.
+
+**Context:**
+The system runs on a remote VPS. The user operates the frontend locally. We need to ensure that the backend API, the FFmpeg Stream Runner, and the Publisher keep running continuously, even if the frontend disconnects. Furthermore, any updates made from the frontend must instantly sync to the VPS-rendered broadcast.
+
+Please provide the implementation code and setup instructions for the following architecture:
+
+**1. VPS Infrastructure & Tooling Requirements**
+
+* **Process Manager (PM2):** Write the ecosystem configuration (`ecosystem.config.js`) to run the Node.js API server (`artifacts/api-server`) as a background daemon that restarts on failure.
+* **FFmpeg Requirements:** Specify the exact FFmpeg build requirements and flags needed on the Linux VPS (e.g., `libx264`, `aac`, `image2pipe`) for robust streaming.
+* **Nginx Reverse Proxy:** Provide a basic Nginx config to route frontend API calls and WebSocket connections safely to the Node API on the VPS.
+
+**2. Independent Stream Runner (Daemonization)**
+
+* In `artifacts/api-server/src/lib/stream-runner.ts`, ensure the `StreamRunner` class operates completely independently of the HTTP request lifecycle.
+* If the user closes their browser window, the active playlist MUST continue playing. The `Publisher` process (sending to YouTube/RTMP) and the current `Renderer` process must remain alive.
+
+**3. Seamless Update Sync (The Handoff Mechanism)**
+
+* When the frontend sends a composition update via `POST /api/stream/update` (or via the real-time WebSocket bus), the VPS must execute the strict handoff protocol:
+1. Keep the `Publisher` process alive and connected to the destination.
+2. Spawn a NEW `Renderer` FFmpeg process on the VPS with the new parameters (updated animation coordinates, new playlist order, etc.).
+3. Route the MPEG-TS output of the NEW `Renderer` to the existing `Publisher`'s input pipe.
+4. Safely kill the OLD `Renderer`.
+
+
+* Ensure that file descriptors (pipes) between the Node.js process and FFmpeg do not leak during this handoff.
+
+**4. Real-Time Command Sync (WebSockets)**
+
+* Ensure the WebSocket/SSE connection (implemented previously) acts as a two-way sync.
+* If the user applies an update, the API applies the Handoff and then broadcasts a `STREAM_UPDATED` event so all connected clients sync their local HTML preview to match the new VPS state.
+
+**Task:**
+Provide the `ecosystem.config.js` for PM2, the specific FFmpeg installation command for Ubuntu/Debian, and the refined code for the `stream-runner.ts` handoff logic to ensure file pipes don't break during the update sync.
+
+---
+
+### यह प्रॉम्प्ट कैसे काम करेगा?
+
+1. **PM2:** यह आपके Node API को VPS पर बैकग्राउंड में चलाएगा। अगर सर्वर रीस्टार्ट होता है, तो स्ट्रीम भी अपने आप शुरू हो जाएगी (अगर auto-restart ऑन है)।
+2. **Independent Runner:** अगर आपका इंटरनेट कट जाता है या आप लैपटॉप बंद कर देते हो, तो भी VPS पर वीडियो प्ले होते रहेंगे।
+3. **Seamless Handoff:** आपके अपडेट्स (जैसे नया लोगो या कैमरा) बिना YouTube स्ट्रीम को काटे तुरंत VPS पर अप्लाई हो जाएंगे।

@@ -19,3 +19,4 @@
 - [Editor chroma preview](editor-chroma-preview.md) — preview green-screen removal with a transparent canvas and export it with matching FFmpeg chromakey settings.
 - [Media render progress](media-render-progress.md) — stream actual FFmpeg progress and bound looping overlays to the main composition duration.
 - [Browser live media bridge](browser-live-media-bridge.md) — browser camera/mic preview needs a real-time bridge before it can enter the server FFmpeg broadcast.
+- [VPS stream lifecycle](vps-stream-lifecycle.md) — PM2 keeps the API alive, but in-memory stream sessions need a credential-safe durable store for restart recovery.

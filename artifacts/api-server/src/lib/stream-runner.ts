@@ -98,7 +98,6 @@ type StreamProcess = {
   durationTimer?: NodeJS.Timeout;
   restartTimer?: NodeJS.Timeout;
   playlistPaths?: string[];
-  playlistUpdateRequested?: boolean;
   voiceOutput?: Writable;
   webcamUpload?: PassThrough;
   webcamOutput?: PassThrough;
@@ -191,12 +190,20 @@ function cleanupPlaylists(process: StreamProcess): void {
   process.playlistPaths = undefined;
 }
 
+function cleanupPlaylistPaths(playlistPaths: string[] | undefined): void {
+  playlistPaths?.forEach((playlistPath) => unlinkSync(playlistPath));
+}
+
 function previewDirectory(streamId: string): string {
   const key = createHash("sha256").update(streamId).digest("hex");
   return path.join(previewRoot, key);
 }
 
 function stopPreview(process: StreamProcess, clearFiles = true): void {
+  const preview = process.preview;
+  if (preview?.stdin && process.renderer?.stdout) {
+    process.renderer.stdout.unpipe(preview.stdin);
+  }
   process.preview?.kill("SIGTERM");
   process.preview = undefined;
   if (clearFiles && process.previewDir) {
@@ -265,6 +272,26 @@ function startPreview(process: StreamProcess, renderer: ChildProcess): void {
     }
   });
   renderer.stdout?.pipe(preview.stdin!, { end: false });
+}
+
+function detachRendererOutputs(process: StreamProcess, renderer: ChildProcess): void {
+  renderer.stdout?.unpipe(process.publisherInput);
+  if (process.preview?.stdin) renderer.stdout?.unpipe(process.preview.stdin);
+
+  const webcamOutput = renderer.stdio[4] as Writable | null;
+  if (webcamOutput && process.webcamOutput) {
+    process.webcamOutput.unpipe(webcamOutput);
+  }
+
+  const voiceOutput = renderer.stdio[3] as Writable | null;
+  if (process.voiceOutput === voiceOutput) {
+    process.voiceOutput = undefined;
+  }
+}
+
+function stopRenderer(process: StreamProcess, renderer: ChildProcess): void {
+  detachRendererOutputs(process, renderer);
+  renderer.kill("SIGTERM");
 }
 
 const voiceFrameBytes = 1920;
@@ -854,9 +881,12 @@ function resultFor(streamId: string, process: StreamProcess, message: string): S
 }
 
 function launchProcess(process: StreamProcess): void {
+  const previousRenderer = process.renderer;
+  const previousPlaylistPaths = process.playlistPaths;
+
+  if (process.durationTimer) clearTimeout(process.durationTimer);
+  process.durationTimer = undefined;
   stopVoicePipe(process, false);
-  cleanupPlaylists(process);
-  stopPreview(process);
   startWebcamPipe(process);
   const videoPaths = getVideoPaths(process.input.category, process.input.videoSources, process.input.videoSource);
   const facePaths = process.input.composition?.webcamSource
@@ -877,7 +907,8 @@ function launchProcess(process: StreamProcess): void {
   const videoInput = prepareInput(videoPaths);
   const faceInput = facePaths.length ? prepareInput(facePaths) : undefined;
   const preparedAnimationInput = animationInput ? prepareInput([animationInput.path]) : undefined;
-  process.playlistPaths = [videoInput.playlistPath, faceInput?.playlistPath, preparedAnimationInput?.playlistPath].filter((playlistPath): playlistPath is string => Boolean(playlistPath));
+  const nextPlaylistPaths = [videoInput.playlistPath, faceInput?.playlistPath, preparedAnimationInput?.playlistPath]
+    .filter((playlistPath): playlistPath is string => Boolean(playlistPath));
   const publisher = startPublisher(process);
   const rendererInput = {
     ...process.input,
@@ -885,12 +916,22 @@ function launchProcess(process: StreamProcess): void {
     liveWebcam: process.input.liveWebcam ?? { position: "bottom-right" as const, scale: 0.25 },
     renderOffsetSeconds: process.playbackOffsetSeconds,
   };
-  const renderer = spawn("ffmpeg", buildFfmpegArgs(rendererInput, videoInput, faceInput, preparedAnimationInput, logoInput), {
-    stdio: ["ignore", "pipe", "pipe", "pipe", "pipe"],
-  });
+  let renderer: ChildProcess;
+  try {
+    renderer = spawn("ffmpeg", buildFfmpegArgs(rendererInput, videoInput, faceInput, preparedAnimationInput, logoInput), {
+      stdio: ["ignore", "pipe", "pipe", "pipe", "pipe"],
+    });
+  } catch (error) {
+    cleanupPlaylistPaths(nextPlaylistPaths);
+    throw error;
+  }
 
+  // Wire the new renderer before stopping the old one. The publisher and its
+  // ingest connection therefore survive composition and playlist updates.
+  stopPreview(process);
   process.child = publisher;
   process.renderer = renderer;
+  process.playlistPaths = nextPlaylistPaths;
   process.startedAt = new Date().toISOString();
   process.renderStartedAtMs = Date.now();
   startPreview(process, renderer);
@@ -928,10 +969,15 @@ function launchProcess(process: StreamProcess): void {
     // Renderer output is intentionally not logged.
   });
   renderer.once("error", (error) => {
+    if (process.renderer !== renderer) return;
     process.status = "failed";
     logger.error({ streamId: process.input.streamId, error: error.message }, "FFmpeg renderer error");
   });
   renderer.once("exit", (code, signal) => {
+    // A renderer replaced by a handoff is expected to exit after the new
+    // renderer has taken over. It must not change the stream status or start
+    // another renderer from its stale exit handler.
+    if (process.renderer !== renderer) return;
     cleanupPlaylists(process);
     process.renderer = undefined;
     if (process.durationTimer) {
@@ -939,20 +985,6 @@ function launchProcess(process: StreamProcess): void {
       process.durationTimer = undefined;
     }
     if (process.status !== "running") return;
-
-    if (process.playlistUpdateRequested) {
-      process.playlistUpdateRequested = false;
-      try {
-        launchProcess(process);
-      } catch (error) {
-        process.status = "failed";
-        logger.error(
-          { streamId: process.input.streamId, error: error instanceof Error ? error.message : "unknown error" },
-          "Stream playlist update rejected",
-        );
-      }
-      return;
-    }
 
     if (process.input.autoRestart && process.input.durationMinutes) {
       logger.info({ streamId: process.input.streamId, code, signal }, "Stream duration reached; restarting FFmpeg");
@@ -978,6 +1010,11 @@ function launchProcess(process: StreamProcess): void {
       "FFmpeg process exited",
     );
   });
+
+  if (previousRenderer && previousRenderer !== renderer) {
+    stopRenderer(process, previousRenderer);
+    cleanupPlaylistPaths(previousPlaylistPaths);
+  }
 }
 
 export function startStream(input: StreamRunnerInput): StreamRunnerResult {
@@ -1047,12 +1084,7 @@ export function updateStream(input: StreamRunnerInput): StreamRunnerResult {
     // endpoint instead of as a side effect of playlist/composition updates.
     liveWebcam: input.liveWebcam ?? current.input.liveWebcam,
   };
-  current.playlistUpdateRequested = true;
-  current.renderer?.kill("SIGTERM");
-  if (!current.renderer) {
-    current.playlistUpdateRequested = false;
-    launchProcess(current);
-  }
+  launchProcess(current);
   return resultFor(input.streamId, current, "FFmpeg playlist update accepted.");
 }
 
@@ -1061,7 +1093,6 @@ export function stopStream(streamId: string): StreamRunnerResult | null {
   if (!streamProcess) return null;
 
   streamProcess.status = "stopped";
-  streamProcess.playlistUpdateRequested = false;
   stopPreview(streamProcess);
   stopVoicePipe(streamProcess);
   stopWebcamPipe(streamProcess);
@@ -1072,7 +1103,7 @@ export function stopStream(streamId: string): StreamRunnerResult | null {
   }
   if (streamProcess.durationTimer) clearTimeout(streamProcess.durationTimer);
   if (streamProcess.restartTimer) clearTimeout(streamProcess.restartTimer);
-  streamProcess.renderer?.kill("SIGTERM");
+  if (streamProcess.renderer) stopRenderer(streamProcess, streamProcess.renderer);
   streamProcess.child?.kill("SIGTERM");
   setTimeout(() => {
     if (streamProcess.child && !streamProcess.child.killed) streamProcess.child.kill("SIGKILL");
@@ -1093,8 +1124,7 @@ export function attachLiveWebcam(
   process.webcamUpload?.destroy();
   process.webcamUpload = webcamInput;
   process.input = { ...process.input, liveWebcam: settings };
-  process.playlistUpdateRequested = true;
-  process.renderer?.kill("SIGTERM");
+  launchProcess(process);
   webcamInput.on("error", (error) => {
     logger.warn({ streamId, error: error.message }, "Live webcam input closed");
   });

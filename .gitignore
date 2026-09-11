@@ -55,6 +55,9 @@ attached_assets/ytvid_-M47B7wsm7c_1080p60.mp4
 *.webm
 *.mkv
 
+# Runtime-generated live preview files
+artifacts/api-server/.signal-desk-live-previews/
+
 # Private bot token used only for local URL notifications
 /bottoken.txt
 
