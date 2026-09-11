@@ -69,9 +69,44 @@ export type StreamCompositionInputChromaKeyTarget = typeof StreamCompositionInpu
 
 
 export const StreamCompositionInputChromaKeyTarget = {
+  main: 'main',
   webcam: 'webcam',
   animation: 'animation',
 } as const;
+
+export type StreamCompositionInputChromaKeyBySource = {[key: string]: {
+  enabled?: boolean;
+  /** @pattern ^#?[0-9a-fA-F]{6}$ */
+  color?: string;
+  /**
+     * @minimum 0.05
+     * @maximum 0.95
+     */
+  similarity?: number;
+  /**
+     * @minimum 0
+     * @maximum 0.5
+     */
+  blend?: number;
+}};
+
+export type StreamCompositionInputChromaKeyDurations = {[key: string]: number};
+
+export type StreamCompositionInputChromaKeyByLayer = {[key: string]: {
+  enabled?: boolean;
+  /** @pattern ^#?[0-9a-fA-F]{6}$ */
+  color?: string;
+  /**
+     * @minimum 0.05
+     * @maximum 0.95
+     */
+  similarity?: number;
+  /**
+     * @minimum 0
+     * @maximum 0.5
+     */
+  blend?: number;
+}};
 
 /**
  * Optional editor composition to apply directly while the live stream is encoded.
@@ -153,6 +188,9 @@ export interface StreamCompositionInput {
      * @maximum 180
      */
   hue?: number;
+  chromaKeyBySource?: StreamCompositionInputChromaKeyBySource;
+  chromaKeyDurations?: StreamCompositionInputChromaKeyDurations;
+  chromaKeyByLayer?: StreamCompositionInputChromaKeyByLayer;
   chromaKeyEnabled?: boolean;
   chromaKeyTarget?: StreamCompositionInputChromaKeyTarget;
   chromaKeyColor?: string;

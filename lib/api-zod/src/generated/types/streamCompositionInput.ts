@@ -6,6 +6,9 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { StreamCompositionInputAnimationPreset } from './streamCompositionInputAnimationPreset';
+import type { StreamCompositionInputChromaKeyByLayer } from './streamCompositionInputChromaKeyByLayer';
+import type { StreamCompositionInputChromaKeyBySource } from './streamCompositionInputChromaKeyBySource';
+import type { StreamCompositionInputChromaKeyDurations } from './streamCompositionInputChromaKeyDurations';
 import type { StreamCompositionInputChromaKeyTarget } from './streamCompositionInputChromaKeyTarget';
 import type { StreamCompositionInputCropMode } from './streamCompositionInputCropMode';
 import type { StreamCompositionInputLogoPosition } from './streamCompositionInputLogoPosition';
@@ -90,6 +93,9 @@ export interface StreamCompositionInput {
      * @maximum 180
      */
   hue?: number;
+  chromaKeyBySource?: StreamCompositionInputChromaKeyBySource;
+  chromaKeyDurations?: StreamCompositionInputChromaKeyDurations;
+  chromaKeyByLayer?: StreamCompositionInputChromaKeyByLayer;
   chromaKeyEnabled?: boolean;
   chromaKeyTarget?: StreamCompositionInputChromaKeyTarget;
   chromaKeyColor?: string;

@@ -227,6 +227,7 @@ type ComposeMediaBody = {
   chromaKeyColor?: unknown;
   chromaSimilarity?: unknown;
   chromaBlend?: unknown;
+  chromaKeyByLayer?: unknown;
 };
 
 type YoutubeDownloadInput = {
@@ -1051,15 +1052,42 @@ router.post("/media/compose", async (req, res): Promise<void> => {
   const contrast = clampNumber(body.contrast, 0.5, 1.8, 1);
   const saturation = clampNumber(body.saturation, 0, 2, 1);
   const hue = clampNumber(body.hue, -180, 180, 0);
-  const chromaKeyTarget = body.chromaKeyTarget === "animation" ? "animation" : "webcam";
-  const chromaKeyEnabled = body.chromaKeyEnabled === true
-    && Boolean(chromaKeyTarget === "animation" ? animationFileId : webcamFileId);
+  const chromaKeyTarget = body.chromaKeyTarget === "main" || body.chromaKeyTarget === "animation" ? body.chromaKeyTarget : "webcam";
   const rawChromaKeyColor = typeof body.chromaKeyColor === "string" ? body.chromaKeyColor.trim() : "#00ff00";
   const chromaKeyColor = /^#?[0-9a-f]{6}$/i.test(rawChromaKeyColor)
     ? `0x${rawChromaKeyColor.replace("#", "")}`
     : "0x00ff00";
   const chromaSimilarity = clampNumber(body.chromaSimilarity, 0.05, 0.95, 0.32);
   const chromaBlend = clampNumber(body.chromaBlend, 0, 0.5, 0.08);
+  const rawChromaByLayer = body.chromaKeyByLayer && typeof body.chromaKeyByLayer === "object"
+    ? body.chromaKeyByLayer as Record<string, unknown>
+    : {};
+  const parseLayerChroma = (layer: "main" | "webcam" | "animation") => {
+    const value = rawChromaByLayer[layer];
+    if (!value || typeof value !== "object") {
+      return {
+        enabled: body.chromaKeyEnabled === true && chromaKeyTarget === layer,
+        color: chromaKeyColor,
+        similarity: chromaSimilarity,
+        blend: chromaBlend,
+      };
+    }
+    const item = value as Record<string, unknown>;
+    const color = typeof item.color === "string" && /^#?[0-9a-f]{6}$/i.test(item.color)
+      ? `0x${item.color.replace("#", "")}`
+      : "0x00ff00";
+    return {
+      enabled: item.enabled === true,
+      color,
+      similarity: clampNumber(item.similarity, 0.05, 0.95, 0.32),
+      blend: clampNumber(item.blend, 0, 0.5, 0.08),
+    };
+  };
+  const chromaByLayer = {
+    main: parseLayerChroma("main"),
+    webcam: parseLayerChroma("webcam"),
+    animation: parseLayerChroma("animation"),
+  };
   const outputDimensions = {
     shorts: [1080, 1920],
     full: [1920, 1080],
@@ -1165,7 +1193,7 @@ router.post("/media/compose", async (req, res): Promise<void> => {
     ].filter(Boolean).join(",");
     const filterParts: string[] = [
       `color=c=#061518:s=${width}x${height}:d=${Math.max(1, estimatedDuration)}[canvas]`,
-      `[0:v]${mainFilters}[main]`,
+       `[0:v]${mainFilters}${chromaByLayer.main.enabled ? `,chromakey=${chromaByLayer.main.color}:similarity=${chromaByLayer.main.similarity}:blend=${chromaByLayer.main.blend}` : ""}[main]`,
       `[canvas][main]overlay=x='(W-w)/2+${Math.round(width * mainX / 100)}':y='(H-h)/2+${Math.round(height * mainY / 100)}'[base]`,
     ];
     let current = "[base]";
@@ -1177,8 +1205,9 @@ router.post("/media/compose", async (req, res): Promise<void> => {
       const scale = isLogo
         ? `scale=iw*${overlayScale}:ih*${overlayScale}`
         : `scale=${Math.round(width * (kind === "animation" ? animationScale : webcamScale))}:-2`;
-      const chroma = ((kind === "webcam" && chromaKeyTarget === "webcam") || (kind === "animation" && chromaKeyTarget === "animation")) && chromaKeyEnabled
-        ? `,chromakey=${chromaKeyColor}:similarity=${chromaSimilarity}:blend=${chromaBlend}`
+      const layerChroma = kind === "webcam" ? chromaByLayer.webcam : kind === "animation" ? chromaByLayer.animation : undefined;
+      const chroma = layerChroma?.enabled
+        ? `,chromakey=${layerChroma.color}:similarity=${layerChroma.similarity}:blend=${layerChroma.blend}`
         : "";
       const position = isLogo
         ? overlayCoordinates(logoPosition, "main_w", "main_h")

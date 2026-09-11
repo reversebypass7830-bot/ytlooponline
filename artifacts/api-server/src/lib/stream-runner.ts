@@ -28,8 +28,21 @@ export type StreamCompositionInput = {
   contrast?: number;
   saturation?: number;
   hue?: number;
+  chromaKeyBySource?: Record<string, {
+    enabled?: boolean;
+    color?: string;
+    similarity?: number;
+    blend?: number;
+  }>;
+  chromaKeyDurations?: Record<string, number>;
+  chromaKeyByLayer?: Partial<Record<"main" | "webcam" | "animation", {
+    enabled?: boolean;
+    color?: string;
+    similarity?: number;
+    blend?: number;
+  }>>;
   chromaKeyEnabled?: boolean;
-  chromaKeyTarget?: "webcam" | "animation";
+  chromaKeyTarget?: "main" | "webcam" | "animation";
   chromaKeyColor?: string;
   chromaSimilarity?: number;
   chromaBlend?: number;
@@ -160,11 +173,11 @@ function logoPosition(
   }
 }
 
-function prepareInput(paths: string[]): { path: string; playlistPath?: string } {
-  if (paths.length === 1) return { path: paths[0] };
+function prepareInput(paths: string[]): { path: string; playlistPath?: string; paths: string[] } {
+  if (paths.length === 1) return { path: paths[0], paths };
   const playlistPath = path.resolve(process.cwd(), `.signal-desk-playlist-${randomUUID()}.txt`);
   writeFileSync(playlistPath, `${paths.map((filePath) => `file '${escapePlaylistPath(filePath)}'`).join("\n")}\n`);
-  return { path: playlistPath, playlistPath };
+  return { path: playlistPath, playlistPath, paths };
 }
 
 function cleanupPlaylists(process: StreamProcess): void {
@@ -314,9 +327,9 @@ function setFile(url: URL, filename: string): string {
 
 function buildFfmpegArgs(
   input: StreamRunnerInput,
-  videoInput: { path: string; playlistPath?: string },
-  faceInput?: { path: string; playlistPath?: string },
-  animationInput?: { path: string; playlistPath?: string },
+  videoInput: { path: string; playlistPath?: string; paths: string[] },
+  faceInput?: { path: string; playlistPath?: string; paths: string[] },
+  animationInput?: { path: string; playlistPath?: string; paths: string[] },
   logoInput?: { path: string; image: boolean },
 ): string[] {
   const aspectRatio = input.aspectRatio ?? "full";
@@ -338,12 +351,67 @@ function buildFfmpegArgs(
   const logoScale = clamp(composition?.logoScale, 0.1, 0.6, 0.25);
   const liveWebcamInput = Boolean(input.liveWebcam);
   const liveWebcamScale = clamp(input.liveWebcam?.scale, 0.1, 0.8, 0.25);
+  const legacyChroma = composition?.chromaKeyEnabled
+    ? {
+        enabled: true,
+        color: composition.chromaKeyColor || "#00ff00",
+        similarity: clamp(composition.chromaSimilarity, 0.1, 0.9, 0.32),
+        blend: clamp(composition.chromaBlend, 0, 0.35, 0.08),
+      }
+    : undefined;
+  const chromaFor = (layer: "main" | "webcam" | "animation", source?: string) => {
+    const sourceSettings = source ? composition?.chromaKeyBySource?.[source] : undefined;
+    if (sourceSettings) {
+      return {
+        enabled: sourceSettings.enabled === true,
+        color: sourceSettings.color || "#00ff00",
+        similarity: clamp(sourceSettings.similarity, 0.1, 0.9, 0.32),
+        blend: clamp(sourceSettings.blend, 0, 0.35, 0.08),
+      };
+    }
+    const saved = composition?.chromaKeyByLayer?.[layer];
+    if (saved) {
+      return {
+        enabled: saved.enabled === true,
+        color: saved.color || "#00ff00",
+        similarity: clamp(saved.similarity, 0.1, 0.9, 0.32),
+        blend: clamp(saved.blend, 0, 0.35, 0.08),
+      };
+    }
+    return composition?.chromaKeyTarget === layer ? legacyChroma : undefined;
+  };
+  const mainChroma = chromaFor("main");
+  const webcamChroma = chromaFor("webcam", faceInput?.paths[0]);
+  const animationChroma = chromaFor("animation", animationInput?.paths[0]);
+  const sourceChromaSegments = videoInput.paths
+    .map((source, index) => {
+      const settings = chromaFor("main", source);
+      if (!settings?.enabled) return undefined;
+      const duration = clamp(composition?.chromaKeyDurations?.[source], 0.01, 24 * 60 * 60, 0);
+      return duration > 0 ? { settings, start: videoInput.paths.slice(0, index).reduce((total, item) => total + clamp(composition?.chromaKeyDurations?.[item], 0, 24 * 60 * 60, 0), 0), duration } : undefined;
+    })
+    .filter((segment): segment is { settings: NonNullable<ReturnType<typeof chromaFor>>; start: number; duration: number } => Boolean(segment));
+  const totalChromaDuration = sourceChromaSegments.length
+    ? videoInput.paths.reduce((total, source) => total + clamp(composition?.chromaKeyDurations?.[source], 0, 24 * 60 * 60, 0), 0)
+    : 0;
+  const mainChromaFilters = sourceChromaSegments.length
+    ? sourceChromaSegments.map(({ settings, start, duration }) => {
+        const end = start + duration;
+        const time = totalChromaDuration > 0
+          ? `between(mod(t\\,${totalChromaDuration.toFixed(3)})\\,${start.toFixed(3)}\\,${end.toFixed(3)})`
+          : "1";
+        return `chromakey=${settings.color}:similarity=${settings.similarity}:blend=${settings.blend}:enable='${time}'`;
+      }).join(",")
+    : mainChroma?.enabled
+      ? `chromakey=${mainChroma.color}:similarity=${mainChroma.similarity}:blend=${mainChroma.blend}`
+      : "";
   const needsVideoFilter = aspectRatio !== "full"
     || Boolean(facePath)
     || Boolean(animationPath)
     || Boolean(logoPath)
     || liveWebcamInput
     || Boolean(composition)
+    || Boolean(mainChroma?.enabled)
     || playbackSpeed !== 1
     || quality === "1080p";
   const videoBitrate = quality === "4k" && aspectRatio === "full" ? "28M" : "8M";
@@ -450,13 +518,13 @@ function buildFfmpegArgs(
           ...(composition
             ? [
                 `color=c=#061518:s=${width}x${height}[canvas]`,
-                `[0:v]${playbackSpeed === 1 ? "" : `setpts=PTS/${playbackSpeed},`}scale=${Math.round(width * mainScale)}:${Math.round(height * mainScale)}:force_original_aspect_ratio=${composition.cropMode === "crop" ? "increase" : "decrease"}${composition.cropMode === "crop" ? `,crop=${Math.round(width * mainScale)}:${Math.round(height * mainScale)}` : ""},eq=brightness=${clamp(composition.brightness, -1, 1, 0)}:contrast=${clamp(composition.contrast, 0.5, 1.8, 1)}:saturation=${clamp(composition.saturation, 0, 2, 1)},hue=h=${clamp(composition.hue, -180, 180, 0)}[main]`,
+                `[0:v]${playbackSpeed === 1 ? "" : `setpts=PTS/${playbackSpeed},`}scale=${Math.round(width * mainScale)}:${Math.round(height * mainScale)}:force_original_aspect_ratio=${composition.cropMode === "crop" ? "increase" : "decrease"}${composition.cropMode === "crop" ? `,crop=${Math.round(width * mainScale)}:${Math.round(height * mainScale)}` : ""},eq=brightness=${clamp(composition.brightness, -1, 1, 0)}:contrast=${clamp(composition.contrast, 0.5, 1.8, 1)}:saturation=${clamp(composition.saturation, 0, 2, 1)},hue=h=${clamp(composition.hue, -180, 180, 0)}${mainChromaFilters ? `,${mainChromaFilters}` : ""}[main]`,
                 `[canvas][main]overlay=x='(W-w)/2+${Math.round(width * clamp(composition.mainX, -48, 48, 0) / 100)}':y='(H-h)/2+${Math.round(height * clamp(composition.mainY, -48, 48, 0) / 100)}':eof_action=repeat[base]`,
               ]
             : [`[0:v]${playbackSpeed === 1 ? "" : `setpts=PTS/${playbackSpeed},`}scale=${width}:${height}:force_original_aspect_ratio=increase,crop=${width}:${height}[base]`]),
           ...(facePath
             ? [
-                `[${faceInputIndex}:v]${playbackSpeed === 1 ? "" : `setpts=PTS/${playbackSpeed},`}scale=iw*${webcamScale}:-1${composition?.chromaKeyEnabled && composition.chromaKeyTarget === "webcam" ? `,chromakey=${composition.chromaKeyColor || "#00ff00"}:similarity=${clamp(composition.chromaSimilarity, 0.1, 0.9, 0.32)}:blend=${clamp(composition.chromaBlend, 0, 0.35, 0.08)}` : ""}[face]`,
+                `[${faceInputIndex}:v]${playbackSpeed === 1 ? "" : `setpts=PTS/${playbackSpeed},`}scale=iw*${webcamScale}:-1${webcamChroma?.enabled ? `,chromakey=${webcamChroma.color}:similarity=${webcamChroma.similarity}:blend=${webcamChroma.blend}` : ""}[face]`,
                 composition
                   ? `[base][face]overlay=x='(main_w-overlay_w)/2+${Math.round(width * clamp(composition.webcamX, -48, 48, 0) / 100)}':y='(main_h-overlay_h)/2+${Math.round(height * clamp(composition.webcamY, -48, 48, 0) / 100)}':eof_action=repeat[with_face]`
                   : `[base][face]overlay=${
@@ -494,7 +562,7 @@ function buildFfmpegArgs(
             : []),
           ...(animationPath
             ? [
-                `[${animationInputIndex}:v]scale=${Math.round(width * animationScale)}:-2${composition?.chromaKeyEnabled && composition.chromaKeyTarget === "animation" ? `,chromakey=${composition.chromaKeyColor || "#00ff00"}:similarity=${clamp(composition.chromaSimilarity, 0.1, 0.9, 0.32)}:blend=${clamp(composition.chromaBlend, 0, 0.35, 0.08)}` : ""}[animation]`,
+                `[${animationInputIndex}:v]scale=${Math.round(width * animationScale)}:-2${animationChroma?.enabled ? `,chromakey=${animationChroma.color}:similarity=${animationChroma.similarity}:blend=${animationChroma.blend}` : ""}[animation]`,
                 `[${liveWebcamInput ? "with_live_webcam" : facePath ? "with_face" : "base"}][animation]overlay=(main_w-overlay_w)/2+${Math.round(width * clamp(composition?.animationX ?? input.liveAnimationX, -48, 48, 0) / 100)}:(main_h-overlay_h)/2+${Math.round(height * clamp(composition?.animationY ?? input.liveAnimationY, -48, 48, 0) / 100)}:eof_action=repeat[with_animation]`,
               ]
             : []),

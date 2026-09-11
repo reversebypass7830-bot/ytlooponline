@@ -936,12 +936,53 @@ components:
           minimum: -180
           maximum: 180
           default: 0
+        chromaKeyBySource:
+          type: object
+          additionalProperties:
+            type: object
+            properties:
+              enabled:
+                type: boolean
+              color:
+                type: string
+                pattern: "^#?[0-9a-fA-F]{6}$"
+              similarity:
+                type: number
+                minimum: 0.05
+                maximum: 0.95
+              blend:
+                type: number
+                minimum: 0
+                maximum: 0.5
+        chromaKeyDurations:
+          type: object
+          additionalProperties:
+            type: number
+            minimum: 0
+        chromaKeyByLayer:
+          type: object
+          additionalProperties:
+            type: object
+            properties:
+              enabled:
+                type: boolean
+              color:
+                type: string
+                pattern: "^#?[0-9a-fA-F]{6}$"
+              similarity:
+                type: number
+                minimum: 0.05
+                maximum: 0.95
+              blend:
+                type: number
+                minimum: 0
+                maximum: 0.5
         chromaKeyEnabled:
           type: boolean
           default: false
         chromaKeyTarget:
           type: string
-          enum: [webcam, animation]
+          enum: [main, webcam, animation]
           default: webcam
         chromaKeyColor:
           type: string

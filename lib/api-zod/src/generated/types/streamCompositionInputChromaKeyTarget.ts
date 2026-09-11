@@ -10,6 +10,7 @@ export type StreamCompositionInputChromaKeyTarget = typeof StreamCompositionInpu
 
 
 export const StreamCompositionInputChromaKeyTarget = {
+  main: 'main',
   webcam: 'webcam',
   animation: 'animation',
 } as const;

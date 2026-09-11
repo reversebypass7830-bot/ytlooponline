@@ -111,6 +111,22 @@ export const startStreamBodyCompositionHueDefault = 0;
 export const startStreamBodyCompositionHueMin = -180;
 export const startStreamBodyCompositionHueMax = 180;
 
+export const startStreamBodyCompositionChromaKeyBySourceColorRegExp = new RegExp('^#?[0-9a-fA-F]{6}$');
+export const startStreamBodyCompositionChromaKeyBySourceSimilarityMin = 0.05;
+export const startStreamBodyCompositionChromaKeyBySourceSimilarityMax = 0.95;
+
+export const startStreamBodyCompositionChromaKeyBySourceBlendMin = 0;
+export const startStreamBodyCompositionChromaKeyBySourceBlendMax = 0.5;
+
+export const startStreamBodyCompositionChromaKeyDurationsMinOne = 0;
+
+export const startStreamBodyCompositionChromaKeyByLayerColorRegExp = new RegExp('^#?[0-9a-fA-F]{6}$');
+export const startStreamBodyCompositionChromaKeyByLayerSimilarityMin = 0.05;
+export const startStreamBodyCompositionChromaKeyByLayerSimilarityMax = 0.95;
+
+export const startStreamBodyCompositionChromaKeyByLayerBlendMin = 0;
+export const startStreamBodyCompositionChromaKeyByLayerBlendMax = 0.5;
+
 export const startStreamBodyCompositionChromaKeyEnabledDefault = false;
 export const startStreamBodyCompositionChromaKeyTargetDefault = `webcam`;
 export const startStreamBodyCompositionChromaKeyColorDefault = `#00ff00`;
@@ -166,8 +182,21 @@ export const StartStreamBody = zod.object({
   "contrast": zod.number().min(startStreamBodyCompositionContrastMin).max(startStreamBodyCompositionContrastMax).default(startStreamBodyCompositionContrastDefault),
   "saturation": zod.number().min(startStreamBodyCompositionSaturationMin).max(startStreamBodyCompositionSaturationMax).default(startStreamBodyCompositionSaturationDefault),
   "hue": zod.number().min(startStreamBodyCompositionHueMin).max(startStreamBodyCompositionHueMax).default(startStreamBodyCompositionHueDefault),
+  "chromaKeyBySource": zod.record(zod.string(), zod.object({
+  "enabled": zod.boolean().optional(),
+  "color": zod.string().regex(startStreamBodyCompositionChromaKeyBySourceColorRegExp).optional(),
+  "similarity": zod.number().min(startStreamBodyCompositionChromaKeyBySourceSimilarityMin).max(startStreamBodyCompositionChromaKeyBySourceSimilarityMax).optional(),
+  "blend": zod.number().min(startStreamBodyCompositionChromaKeyBySourceBlendMin).max(startStreamBodyCompositionChromaKeyBySourceBlendMax).optional()
+})).optional(),
+  "chromaKeyDurations": zod.record(zod.string(), zod.number().min(startStreamBodyCompositionChromaKeyDurationsMinOne)).optional(),
+  "chromaKeyByLayer": zod.record(zod.string(), zod.object({
+  "enabled": zod.boolean().optional(),
+  "color": zod.string().regex(startStreamBodyCompositionChromaKeyByLayerColorRegExp).optional(),
+  "similarity": zod.number().min(startStreamBodyCompositionChromaKeyByLayerSimilarityMin).max(startStreamBodyCompositionChromaKeyByLayerSimilarityMax).optional(),
+  "blend": zod.number().min(startStreamBodyCompositionChromaKeyByLayerBlendMin).max(startStreamBodyCompositionChromaKeyByLayerBlendMax).optional()
+})).optional(),
   "chromaKeyEnabled": zod.boolean().default(startStreamBodyCompositionChromaKeyEnabledDefault),
-  "chromaKeyTarget": zod.enum(['webcam', 'animation']).default(startStreamBodyCompositionChromaKeyTargetDefault),
+  "chromaKeyTarget": zod.enum(['main', 'webcam', 'animation']).default(startStreamBodyCompositionChromaKeyTargetDefault),
   "chromaKeyColor": zod.string().default(startStreamBodyCompositionChromaKeyColorDefault),
   "chromaSimilarity": zod.number().min(startStreamBodyCompositionChromaSimilarityMin).max(startStreamBodyCompositionChromaSimilarityMax).default(startStreamBodyCompositionChromaSimilarityDefault),
   "chromaBlend": zod.number().min(startStreamBodyCompositionChromaBlendMin).max(startStreamBodyCompositionChromaBlendMax).default(startStreamBodyCompositionChromaBlendDefault)
@@ -294,6 +323,22 @@ export const updateStreamBodyCompositionHueDefault = 0;
 export const updateStreamBodyCompositionHueMin = -180;
 export const updateStreamBodyCompositionHueMax = 180;
 
+export const updateStreamBodyCompositionChromaKeyBySourceColorRegExp = new RegExp('^#?[0-9a-fA-F]{6}$');
+export const updateStreamBodyCompositionChromaKeyBySourceSimilarityMin = 0.05;
+export const updateStreamBodyCompositionChromaKeyBySourceSimilarityMax = 0.95;
+
+export const updateStreamBodyCompositionChromaKeyBySourceBlendMin = 0;
+export const updateStreamBodyCompositionChromaKeyBySourceBlendMax = 0.5;
+
+export const updateStreamBodyCompositionChromaKeyDurationsMinOne = 0;
+
+export const updateStreamBodyCompositionChromaKeyByLayerColorRegExp = new RegExp('^#?[0-9a-fA-F]{6}$');
+export const updateStreamBodyCompositionChromaKeyByLayerSimilarityMin = 0.05;
+export const updateStreamBodyCompositionChromaKeyByLayerSimilarityMax = 0.95;
+
+export const updateStreamBodyCompositionChromaKeyByLayerBlendMin = 0;
+export const updateStreamBodyCompositionChromaKeyByLayerBlendMax = 0.5;
+
 export const updateStreamBodyCompositionChromaKeyEnabledDefault = false;
 export const updateStreamBodyCompositionChromaKeyTargetDefault = `webcam`;
 export const updateStreamBodyCompositionChromaKeyColorDefault = `#00ff00`;
@@ -349,8 +394,21 @@ export const UpdateStreamBody = zod.object({
   "contrast": zod.number().min(updateStreamBodyCompositionContrastMin).max(updateStreamBodyCompositionContrastMax).default(updateStreamBodyCompositionContrastDefault),
   "saturation": zod.number().min(updateStreamBodyCompositionSaturationMin).max(updateStreamBodyCompositionSaturationMax).default(updateStreamBodyCompositionSaturationDefault),
   "hue": zod.number().min(updateStreamBodyCompositionHueMin).max(updateStreamBodyCompositionHueMax).default(updateStreamBodyCompositionHueDefault),
+  "chromaKeyBySource": zod.record(zod.string(), zod.object({
+  "enabled": zod.boolean().optional(),
+  "color": zod.string().regex(updateStreamBodyCompositionChromaKeyBySourceColorRegExp).optional(),
+  "similarity": zod.number().min(updateStreamBodyCompositionChromaKeyBySourceSimilarityMin).max(updateStreamBodyCompositionChromaKeyBySourceSimilarityMax).optional(),
+  "blend": zod.number().min(updateStreamBodyCompositionChromaKeyBySourceBlendMin).max(updateStreamBodyCompositionChromaKeyBySourceBlendMax).optional()
+})).optional(),
+  "chromaKeyDurations": zod.record(zod.string(), zod.number().min(updateStreamBodyCompositionChromaKeyDurationsMinOne)).optional(),
+  "chromaKeyByLayer": zod.record(zod.string(), zod.object({
+  "enabled": zod.boolean().optional(),
+  "color": zod.string().regex(updateStreamBodyCompositionChromaKeyByLayerColorRegExp).optional(),
+  "similarity": zod.number().min(updateStreamBodyCompositionChromaKeyByLayerSimilarityMin).max(updateStreamBodyCompositionChromaKeyByLayerSimilarityMax).optional(),
+  "blend": zod.number().min(updateStreamBodyCompositionChromaKeyByLayerBlendMin).max(updateStreamBodyCompositionChromaKeyByLayerBlendMax).optional()
+})).optional(),
   "chromaKeyEnabled": zod.boolean().default(updateStreamBodyCompositionChromaKeyEnabledDefault),
-  "chromaKeyTarget": zod.enum(['webcam', 'animation']).default(updateStreamBodyCompositionChromaKeyTargetDefault),
+  "chromaKeyTarget": zod.enum(['main', 'webcam', 'animation']).default(updateStreamBodyCompositionChromaKeyTargetDefault),
   "chromaKeyColor": zod.string().default(updateStreamBodyCompositionChromaKeyColorDefault),
   "chromaSimilarity": zod.number().min(updateStreamBodyCompositionChromaSimilarityMin).max(updateStreamBodyCompositionChromaSimilarityMax).default(updateStreamBodyCompositionChromaSimilarityDefault),
   "chromaBlend": zod.number().min(updateStreamBodyCompositionChromaBlendMin).max(updateStreamBodyCompositionChromaBlendMax).default(updateStreamBodyCompositionChromaBlendDefault)

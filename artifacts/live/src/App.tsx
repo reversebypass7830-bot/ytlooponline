@@ -23,6 +23,9 @@ type FacePosition = "top-left" | "top-right" | "bottom-left" | "bottom-right" | 
 type EditorLayer = "main" | "webcam" | "animation";
 type AnimationPreset = "none" | "subscribe" | "like" | "follow";
 type EditorTransform = { x: number; y: number; scale: number };
+type EditorChromaSettings = { enabled: boolean; color: string; similarity: number; blend: number };
+type EditorChromaByLayer = Record<EditorLayer, EditorChromaSettings>;
+type EditorChromaByVideoId = Record<string, EditorChromaSettings>;
 type EditorColorAdjustments = {
   brightness: number;
   contrast: number;
@@ -30,7 +33,7 @@ type EditorColorAdjustments = {
   hue: number;
 };
 type EditorCropMode = "fit" | "crop";
-type EditorChromaTarget = "webcam" | "animation";
+type EditorChromaTarget = EditorLayer;
 type EditorStreamComposition = {
   mainX: number;
   mainY: number;
@@ -52,11 +55,14 @@ type EditorStreamComposition = {
   contrast: number;
   saturation: number;
   hue: number;
-  chromaKeyEnabled: boolean;
-  chromaKeyTarget: EditorChromaTarget;
-  chromaKeyColor: string;
-  chromaSimilarity: number;
-  chromaBlend: number;
+  chromaKeyByLayer?: EditorChromaByLayer;
+  chromaKeyBySource?: Record<string, EditorChromaSettings>;
+  chromaKeyDurations?: Record<string, number>;
+  chromaKeyEnabled?: boolean;
+  chromaKeyTarget?: EditorChromaTarget;
+  chromaKeyColor?: string;
+  chromaSimilarity?: number;
+  chromaBlend?: number;
 };
 type EditorDraft = {
   groupId: string;
@@ -78,11 +84,8 @@ type EditorDraft = {
   animationPreset: AnimationPreset;
   reverseVideo: boolean;
   colorAdjustments: EditorColorAdjustments;
-  chromaKeyEnabled: boolean;
-  chromaKeyTarget: EditorChromaTarget;
-  chromaKeyColor: string;
-  chromaSimilarity: number;
-  chromaBlend: number;
+  chromaKeyByLayer: EditorChromaByLayer;
+  chromaKeyByVideoId: EditorChromaByVideoId;
   webcamId: string;
   animationId: string;
   animationTransform: EditorTransform;
@@ -516,7 +519,13 @@ function rebuildGroupMembership(groups: VideoGroup[], videos: VideoItem[]): Vide
 
 function normalizeEditorDraft(value: unknown): EditorDraft | undefined {
   if (!value || typeof value !== "object") return undefined;
-  const draft = value as Partial<EditorDraft>;
+  const draft = value as Partial<EditorDraft> & {
+    chromaKeyEnabled?: unknown;
+    chromaKeyTarget?: unknown;
+    chromaKeyColor?: unknown;
+    chromaSimilarity?: unknown;
+    chromaBlend?: unknown;
+  };
   const transform = (candidate: unknown, fallback: EditorTransform): EditorTransform => {
     if (!candidate || typeof candidate !== "object") return fallback;
     const item = candidate as Partial<EditorTransform>;
@@ -531,7 +540,40 @@ function normalizeEditorDraft(value: unknown): EditorDraft | undefined {
     : {};
   const editorLibrary = draft.editorLibrary === "youtube" ? "youtube" : "personal";
   const selectedLayer = draft.selectedLayer === "webcam" || draft.selectedLayer === "animation" ? draft.selectedLayer : "main";
-  const chromaKeyTarget = draft.chromaKeyTarget === "animation" ? "animation" : "webcam";
+  const chromaKeyTarget = draft.chromaKeyTarget === "main" || draft.chromaKeyTarget === "animation" ? draft.chromaKeyTarget : "webcam";
+  const chromaSettings = (candidate: unknown, fallback: EditorChromaSettings): EditorChromaSettings => {
+    if (!candidate || typeof candidate !== "object") return fallback;
+    const item = candidate as Partial<EditorChromaSettings>;
+    return {
+      enabled: item.enabled === true,
+      color: typeof item.color === "string" && /^#[0-9a-f]{6}$/i.test(item.color) ? item.color : fallback.color,
+      similarity: typeof item.similarity === "number" ? Math.max(0.05, Math.min(0.95, item.similarity)) : fallback.similarity,
+      blend: typeof item.blend === "number" ? Math.max(0, Math.min(0.5, item.blend)) : fallback.blend,
+    };
+  };
+  const legacyChroma = {
+    enabled: draft.chromaKeyEnabled === true,
+    color: typeof draft.chromaKeyColor === "string" && /^#[0-9a-f]{6}$/i.test(draft.chromaKeyColor) ? draft.chromaKeyColor : "#00ff00",
+    similarity: typeof draft.chromaSimilarity === "number" ? Math.max(0.05, Math.min(0.95, draft.chromaSimilarity)) : 0.32,
+    blend: typeof draft.chromaBlend === "number" ? Math.max(0, Math.min(0.5, draft.chromaBlend)) : 0.08,
+  };
+  const savedChroma = draft.chromaKeyByLayer && typeof draft.chromaKeyByLayer === "object"
+    ? draft.chromaKeyByLayer as Partial<EditorChromaByLayer>
+    : {};
+  const savedChromaByVideoId = draft.chromaKeyByVideoId && typeof draft.chromaKeyByVideoId === "object"
+    ? draft.chromaKeyByVideoId as Record<string, unknown>
+    : {};
+  const chromaKeyByVideoId: EditorChromaByVideoId = Object.fromEntries(
+    Object.entries(savedChromaByVideoId)
+      .filter(([key]) => Boolean(key))
+      .map(([key, value]) => [key, chromaSettings(value, { enabled: false, color: "#00ff00", similarity: 0.32, blend: 0.08 })]),
+  );
+  const chromaKeyByLayer: EditorChromaByLayer = {
+    main: chromaSettings(savedChroma.main, { enabled: false, color: "#00ff00", similarity: 0.32, blend: 0.08 }),
+    webcam: chromaSettings(savedChroma.webcam, chromaKeyTarget === "webcam" ? legacyChroma : { enabled: false, color: "#00ff00", similarity: 0.32, blend: 0.08 }),
+    animation: chromaSettings(savedChroma.animation, chromaKeyTarget === "animation" ? legacyChroma : { enabled: false, color: "#00ff00", similarity: 0.32, blend: 0.08 }),
+  };
+  if (chromaKeyTarget === "main" && legacyChroma.enabled && !savedChroma.main) chromaKeyByLayer.main = legacyChroma;
   const cropMode = draft.cropMode === "crop" ? "crop" : "fit";
   return {
     groupId: typeof draft.groupId === "string" ? draft.groupId : "",
@@ -558,11 +600,8 @@ function normalizeEditorDraft(value: unknown): EditorDraft | undefined {
       saturation: typeof adjustments.saturation === "number" ? Math.max(0, Math.min(2, adjustments.saturation)) : 1,
       hue: typeof adjustments.hue === "number" ? Math.max(-180, Math.min(180, adjustments.hue)) : 0,
     },
-    chromaKeyEnabled: draft.chromaKeyEnabled === true,
-    chromaKeyTarget,
-    chromaKeyColor: typeof draft.chromaKeyColor === "string" && /^#[0-9a-f]{6}$/i.test(draft.chromaKeyColor) ? draft.chromaKeyColor : "#00ff00",
-    chromaSimilarity: typeof draft.chromaSimilarity === "number" ? Math.max(0.05, Math.min(0.95, draft.chromaSimilarity)) : 0.32,
-    chromaBlend: typeof draft.chromaBlend === "number" ? Math.max(0, Math.min(0.5, draft.chromaBlend)) : 0.08,
+    chromaKeyByLayer,
+    chromaKeyByVideoId,
     webcamId: typeof draft.webcamId === "string" ? draft.webcamId : "",
     animationId: typeof draft.animationId === "string" ? draft.animationId : "",
     animationTransform: transform(draft.animationTransform, { x: 0, y: 0, scale: 0.25 }),
@@ -2505,11 +2544,16 @@ function VideoEditorPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}
   const [animationPreset, setAnimationPreset] = useState<AnimationPreset>("none");
   const [reverseVideo, setReverseVideo] = useState(false);
   const [colorAdjustments, setColorAdjustments] = useState<EditorColorAdjustments>({ brightness: 0, contrast: 1, saturation: 1, hue: 0 });
-  const [chromaKeyEnabled, setChromaKeyEnabled] = useState(false);
-  const [chromaKeyTarget, setChromaKeyTarget] = useState<EditorChromaTarget>("webcam");
-  const [chromaKeyColor, setChromaKeyColor] = useState("#00ff00");
-  const [chromaSimilarity, setChromaSimilarity] = useState(0.32);
-  const [chromaBlend, setChromaBlend] = useState(0.08);
+  const [chromaKeyByLayer, setChromaKeyByLayer] = useState<EditorChromaByLayer>(() => ({
+    main: { enabled: false, color: "#00ff00", similarity: 0.32, blend: 0.08 },
+    webcam: { enabled: false, color: "#00ff00", similarity: 0.32, blend: 0.08 },
+    animation: { enabled: false, color: "#00ff00", similarity: 0.32, blend: 0.08 },
+  }));
+  const [chromaKeyByVideoId, setChromaKeyByVideoId] = useState<EditorChromaByVideoId>({});
+  const [chromaDraft, setChromaDraft] = useState<EditorChromaSettings>(() => ({
+    enabled: false, color: "#00ff00", similarity: 0.32, blend: 0.08,
+  }));
+  const [chromaSourceId, setChromaSourceId] = useState("");
   const [webcamId, setWebcamId] = useState("");
   const [animationId, setAnimationId] = useState("");
   const [animationTransform, setAnimationTransform] = useState<EditorTransform>({ x: 0, y: 0, scale: 0.25 });
@@ -2552,7 +2596,7 @@ function VideoEditorPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}
   const groupVideos = editorLibrary === "youtube" ? animationGroupVideos : personalGroupVideos;
   const selectedVideos = selectedIds.map((id) => personalGroupVideos.find((video) => video.id === id)).filter((video): video is VideoItem => Boolean(video));
   const logo = data.editorAssets.find((asset) => asset.id === logoId);
-  const previewVideo = selectedVideos[0];
+  const previewVideo = selectedVideos.find((video) => video.id === chromaSourceId) || selectedVideos[0];
   const webcamVideos = useMemo(
     () => data.videos.filter((video) =>
       video.serverSource
@@ -2593,11 +2637,10 @@ function VideoEditorPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}
       setAnimationPreset(draft.animationPreset);
       setReverseVideo(draft.reverseVideo);
       setColorAdjustments(draft.colorAdjustments);
-      setChromaKeyEnabled(draft.chromaKeyEnabled);
-      setChromaKeyTarget(draft.chromaKeyTarget);
-      setChromaKeyColor(draft.chromaKeyColor);
-      setChromaSimilarity(draft.chromaSimilarity);
-      setChromaBlend(draft.chromaBlend);
+       setChromaKeyByLayer(draft.chromaKeyByLayer);
+       setChromaKeyByVideoId(draft.chromaKeyByVideoId);
+       setChromaDraft(draft.chromaKeyByVideoId[draft.selectedIds[0]] || draft.chromaKeyByLayer[draft.selectedLayer]);
+       setChromaSourceId(draft.selectedIds[0] || "");
       setWebcamId(draft.webcamId);
       setAnimationId(draft.animationId);
       setAnimationTransform(draft.animationTransform);
@@ -2628,11 +2671,8 @@ function VideoEditorPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}
         animationPreset,
         reverseVideo,
         colorAdjustments,
-        chromaKeyEnabled,
-        chromaKeyTarget,
-        chromaKeyColor,
-        chromaSimilarity,
-        chromaBlend,
+         chromaKeyByLayer,
+         chromaKeyByVideoId,
         webcamId,
         animationId,
         animationTransform,
@@ -2642,9 +2682,20 @@ function VideoEditorPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}
   }, [
     draftHydrated, groupId, animationGroupId, editorLibrary, selectedIds, loopEnabled, loopCount, title,
     outputAspectRatio, cropMode, logoPosition, overlayScale, webcamPosition, webcamScale, mainTransform,
-    webcamTransform, selectedLayer, animationPreset, reverseVideo, colorAdjustments, chromaKeyEnabled,
-    chromaKeyTarget, chromaKeyColor, chromaSimilarity, chromaBlend, webcamId, animationId, animationTransform, logoId,
+    webcamTransform, selectedLayer, animationPreset, reverseVideo, colorAdjustments, chromaKeyByLayer, chromaKeyByVideoId,
+    webcamId, animationId, animationTransform, logoId,
   ]);
+  const activeMainVideo = selectedVideos.find((video) => video.id === chromaSourceId) || selectedVideos[0];
+  const activeChromaVideo = selectedLayer === "main" ? activeMainVideo : selectedLayer === "webcam" ? webcam : animation;
+  useEffect(() => {
+    if (selectedLayer === "main" && activeMainVideo && !selectedVideos.some((video) => video.id === chromaSourceId)) {
+      setChromaSourceId(activeMainVideo.id);
+    }
+    const sourceSettings = activeChromaVideo
+      ? chromaKeyByVideoId[activeChromaVideo.id]
+      : chromaKeyByLayer[selectedLayer];
+    setChromaDraft(sourceSettings || chromaKeyByLayer[selectedLayer]);
+  }, [selectedLayer, activeMainVideo?.id, activeChromaVideo?.id, chromaSourceId, chromaKeyByVideoId, chromaKeyByLayer]);
   useEffect(() => {
     if (webcamId && !webcam) {
       setWebcamId("");
@@ -2657,11 +2708,12 @@ function VideoEditorPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}
       if (selectedLayer === "animation") setSelectedLayer("main");
     }
   }, [animationId, animation, selectedLayer]);
-  useEffect(() => {
-    if (chromaKeyTarget === "animation" && !animation && webcam) setChromaKeyTarget("webcam");
-    if (chromaKeyTarget === "webcam" && !webcam && animation) setChromaKeyTarget("animation");
-  }, [animation, chromaKeyTarget, webcam]);
   const previewUrl = videoPlaybackUrl(previewVideo, workspace.licenseId);
+  const previewChromaByLayer: EditorChromaByLayer = {
+    main: previewVideo ? chromaKeyByVideoId[previewVideo.id] || chromaKeyByLayer.main : chromaKeyByLayer.main,
+    webcam: webcam ? chromaKeyByVideoId[webcam.id] || chromaKeyByLayer.webcam : chromaKeyByLayer.webcam,
+    animation: animation ? chromaKeyByVideoId[animation.id] || chromaKeyByLayer.animation : chromaKeyByLayer.animation,
+  };
   const editorCanvasProps = {
     previewUrl,
      loopEnabled,
@@ -2678,11 +2730,7 @@ function VideoEditorPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}
     animationPreset,
     reverseVideo,
     colorAdjustments,
-    chromaKeyEnabled,
-    chromaKeyTarget,
-    chromaKeyColor,
-    chromaSimilarity,
-    chromaBlend,
+     chromaKeyByLayer: previewChromaByLayer,
     onSelectLayer: setSelectedLayer,
     onMainTransformChange: setMainTransform,
     onWebcamTransformChange: setWebcamTransform,
@@ -2698,6 +2746,7 @@ function VideoEditorPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}
     setGroupId(nextGroupId);
     const nextVideos = videosForFolderScope(nextGroupId, data.groups, data.videos).filter((video) => video.serverSource);
     setSelectedIds(nextVideos.map((video) => video.id));
+    setChromaSourceId(nextVideos[0]?.id || "");
     const nextGroup = data.groups.find((group) => group.id === nextGroupId);
     setTitle(nextGroup ? `${nextGroup.name} · edited` : "");
     setWebcamId("");
@@ -2709,7 +2758,12 @@ function VideoEditorPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}
     setSelectedLayer("main");
   };
   const toggleVideo = (videoId: string) => {
-    setSelectedIds((current) => current.includes(videoId) ? current.filter((id) => id !== videoId) : [...current, videoId]);
+    setSelectedIds((current) => {
+      const next = current.includes(videoId) ? current.filter((id) => id !== videoId) : [...current, videoId];
+      if (!chromaSourceId && next.includes(videoId)) setChromaSourceId(videoId);
+      if (chromaSourceId === videoId && !next.includes(videoId)) setChromaSourceId(next[0] || "");
+      return next;
+    });
   };
   const selectAnimation = (videoId: string) => {
     setAnimationId((current) => current === videoId ? "" : videoId);
@@ -2772,11 +2826,38 @@ function VideoEditorPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}
     contrast: colorAdjustments.contrast,
     saturation: colorAdjustments.saturation,
     hue: colorAdjustments.hue,
-    chromaKeyEnabled,
-    chromaKeyTarget,
-    chromaKeyColor,
-    chromaSimilarity,
-    chromaBlend,
+    chromaKeyByLayer,
+    chromaKeyBySource: Object.fromEntries(
+      [
+        ...selectedVideos.map((video) => [video.serverSource, chromaKeyByVideoId[video.id]] as const),
+        ...(webcam?.serverSource ? [[webcam.serverSource, chromaKeyByVideoId[webcam.id]] as const] : []),
+        ...(animation?.serverSource ? [[animation.serverSource, chromaKeyByVideoId[animation.id]] as const] : []),
+      ].filter((entry): entry is readonly [string, EditorChromaSettings] => Boolean(entry[0] && entry[1])),
+    ),
+    chromaKeyDurations: Object.fromEntries(
+      selectedVideos
+        .filter((video): video is VideoItem & { serverSource: string } => Boolean(video.serverSource))
+        .map((video) => [video.serverSource, parseDurationSeconds(video.duration)]),
+    ),
+    chromaKeyEnabled: Object.values(chromaKeyByLayer).some((settings) => settings.enabled),
+    chromaKeyTarget: (chromaKeyByLayer.webcam.enabled ? "webcam" : chromaKeyByLayer.animation.enabled ? "animation" : "main"),
+    chromaKeyColor: chromaKeyByLayer[selectedLayer].color,
+    chromaSimilarity: chromaKeyByLayer[selectedLayer].similarity,
+    chromaBlend: chromaKeyByLayer[selectedLayer].blend,
+  };
+  const selectedChromaLabel = activeChromaVideo
+    ? `${selectedLayer === "main" ? "main video" : selectedLayer === "webcam" ? "face cam" : "animation"} · ${activeChromaVideo.title}`
+    : selectedLayer === "main" ? "main video" : selectedLayer === "webcam" ? "face cam" : "animation overlay";
+  const selectedChromaAvailable = Boolean(activeChromaVideo);
+  const appliedChromaVideos = Object.values(chromaKeyByVideoId).filter((settings) => settings.enabled).length;
+  const applyChromaToSelected = () => {
+    if (!selectedChromaAvailable) return;
+    if (activeChromaVideo) {
+      setChromaKeyByVideoId((current) => ({ ...current, [activeChromaVideo.id]: { ...chromaDraft } }));
+    } else {
+      setChromaKeyByLayer((current) => ({ ...current, [selectedLayer]: { ...chromaDraft } }));
+    }
+    setToast(`${selectedChromaLabel} background removal applied`);
   };
   const createStreamFromEditor = () => {
     if (!groupId || !selectedVideos.length) {
@@ -2894,10 +2975,12 @@ function VideoEditorPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}
                <div className="field"><label>Saturation · {Math.round(colorAdjustments.saturation * 100)}%</label><input type="range" min="0" max="200" value={Math.round(colorAdjustments.saturation * 100)} onChange={(event) => setColorAdjustments((current) => ({ ...current, saturation: Number(event.target.value) / 100 }))} data-testid="input-editor-saturation"/></div>
                <div className="field"><label>Hue · {colorAdjustments.hue}°</label><input type="range" min="-180" max="180" value={colorAdjustments.hue} onChange={(event) => setColorAdjustments((current) => ({ ...current, hue: Number(event.target.value) }))} data-testid="input-editor-hue"/></div>
              </div>
-               <label className="check-control editor-toggle-control"><input type="checkbox" checked={chromaKeyEnabled} onChange={(event) => setChromaKeyEnabled(event.target.checked)} disabled={!webcam && !animation} data-testid="toggle-editor-green-screen"/><span><strong>Remove background with Chroma key</strong><small>{webcam || animation ? "Removes the selected key color from the face cam or animation layer in the live signal." : "Add a face cam or animation overlay first to enable background removal."}</small></span></label>
-              {(webcam || animation) && <div className="field"><label>Chroma key layer</label><select value={chromaKeyTarget} onChange={(event) => setChromaKeyTarget(event.target.value as EditorChromaTarget)} data-testid="select-editor-chroma-target"><option value="webcam" disabled={!webcam}>Face cam</option><option value="animation" disabled={!animation}>Animation overlay</option></select></div>}
-             {chromaKeyEnabled && <div className="editor-effect-grid chroma-key-grid"><div className="field"><label>Key color</label><input type="color" value={chromaKeyColor} onChange={(event) => setChromaKeyColor(event.target.value)} data-testid="input-editor-key-color"/></div><div className="field"><label>Color range · {Math.round(chromaSimilarity * 100)}%</label><input type="range" min="10" max="90" value={Math.round(chromaSimilarity * 100)} onChange={(event) => setChromaSimilarity(Number(event.target.value) / 100)} data-testid="input-editor-key-similarity"/></div><div className="field"><label>Edge blend · {Math.round(chromaBlend * 100)}%</label><input type="range" min="0" max="35" value={Math.round(chromaBlend * 100)} onChange={(event) => setChromaBlend(Number(event.target.value) / 100)} data-testid="input-editor-key-blend"/></div></div>}
-              <div className="editor-reset-row"><span>Reset all crop, layer, loop and effect changes.</span><button type="button" className="button ghost small" onClick={() => { setLoopEnabled(true); setLoopCount("1"); setOutputAspectRatio("full"); setCropMode("fit"); setLogoPosition("bottom-right"); setOverlayScale("25"); setWebcamPosition("top-right"); setWebcamScale("25"); setMainTransform({ x: 0, y: 0, scale: 1 }); setWebcamTransform({ x: 0, y: 0, scale: 0.25 }); setAnimationTransform({ x: 0, y: 0, scale: 0.25 }); setSelectedLayer("main"); setAnimationPreset("none"); setReverseVideo(false); setColorAdjustments({ brightness: 0, contrast: 1, saturation: 1, hue: 0 }); setChromaKeyEnabled(false); setChromaKeyTarget("webcam"); setChromaKeyColor("#00ff00"); setChromaSimilarity(0.32); setChromaBlend(0.08); setWebcamId(""); setAnimationId(""); setLogoId(""); setToast("All editor changes were reset"); }} data-testid="button-reset-editor">Reset edits</button></div>
+                 <label className="check-control editor-toggle-control"><input type="checkbox" checked={chromaDraft.enabled} onChange={(event) => setChromaDraft((current) => ({ ...current, enabled: event.target.checked }))} disabled={!selectedChromaAvailable} data-testid="toggle-editor-green-screen"/><span><strong>Remove background from selected video</strong><small>{selectedChromaAvailable ? `Editing ${selectedChromaLabel}. Configure it, then apply it to this video.` : `Select a ${selectedChromaLabel} first.`}</small></span></label>
+                 {selectedLayer === "main" && <div className="field"><label>Video to edit</label><select value={activeMainVideo?.id || ""} onChange={(event) => { setChromaSourceId(event.target.value); setSelectedLayer("main"); }} disabled={!selectedVideos.length} data-testid="select-editor-chroma-video"><option value="">Select a selected video</option>{selectedVideos.map((video) => <option key={video.id} value={video.id}>{video.title}</option>)}</select><span className="field-hint">Select one video, configure the key, press Apply, then choose the next video. Each video keeps its own setting.</span></div>}
+                 <div className="field"><label>Selected video for background removal</label><div className="editor-readonly">{selectedChromaLabel} · {chromaDraft.enabled ? "green screen removal on" : "off"}</div></div>
+                {selectedChromaAvailable && <div className="editor-effect-grid chroma-key-grid"><div className="field"><label>Key color</label><input type="color" value={chromaDraft.color} onChange={(event) => setChromaDraft((current) => ({ ...current, color: event.target.value }))} data-testid="input-editor-key-color"/></div><div className="field"><label>Color range · {Math.round(chromaDraft.similarity * 100)}%</label><input type="range" min="10" max="90" value={Math.round(chromaDraft.similarity * 100)} onChange={(event) => setChromaDraft((current) => ({ ...current, similarity: Number(event.target.value) / 100 }))} data-testid="input-editor-key-similarity"/></div><div className="field"><label>Edge blend · {Math.round(chromaDraft.blend * 100)}%</label><input type="range" min="0" max="35" value={Math.round(chromaDraft.blend * 100)} onChange={(event) => setChromaDraft((current) => ({ ...current, blend: Number(event.target.value) / 100 }))} data-testid="input-editor-key-blend"/></div></div>}
+                 <div className="editor-chroma-apply-row"><button type="button" className="button secondary small" onClick={applyChromaToSelected} disabled={!selectedChromaAvailable} data-testid="button-apply-editor-green-screen"><Check size={13}/> Apply to {selectedChromaLabel}</button><span>{appliedChromaVideos ? `${appliedChromaVideos} video${appliedChromaVideos === 1 ? "" : "s"} have background removal applied.` : "No video has background removal applied."}</span></div>
+               <div className="editor-reset-row"><span>Reset all crop, layer, loop and effect changes.</span><button type="button" className="button ghost small" onClick={() => { const resetChroma = { main: { enabled: false, color: "#00ff00", similarity: 0.32, blend: 0.08 }, webcam: { enabled: false, color: "#00ff00", similarity: 0.32, blend: 0.08 }, animation: { enabled: false, color: "#00ff00", similarity: 0.32, blend: 0.08 } } satisfies EditorChromaByLayer; setLoopEnabled(true); setLoopCount("1"); setOutputAspectRatio("full"); setCropMode("fit"); setLogoPosition("bottom-right"); setOverlayScale("25"); setWebcamPosition("top-right"); setWebcamScale("25"); setMainTransform({ x: 0, y: 0, scale: 1 }); setWebcamTransform({ x: 0, y: 0, scale: 0.25 }); setAnimationTransform({ x: 0, y: 0, scale: 0.25 }); setSelectedLayer("main"); setAnimationPreset("none"); setReverseVideo(false); setColorAdjustments({ brightness: 0, contrast: 1, saturation: 1, hue: 0 }); setChromaKeyByLayer(resetChroma); setChromaKeyByVideoId({}); setChromaSourceId(selectedVideos[0]?.id || ""); setChromaDraft(resetChroma.main); setWebcamId(""); setAnimationId(""); setLogoId(""); setToast("All editor changes were reset"); }} data-testid="button-reset-editor">Reset edits</button></div>
                <div className="form-note"><Sparkles size={14} style={{verticalAlign:"-3px",marginRight:6}}/>These effects are shown in the preview and applied directly by the live encoder.</div>
            </section>
            {error && <div className="error-note" style={{whiteSpace:"pre-line"}}>{error}</div>}
@@ -2929,11 +3012,7 @@ type EditorCanvasProps = {
   animationPreset: AnimationPreset;
   reverseVideo: boolean;
   colorAdjustments: EditorColorAdjustments;
-  chromaKeyEnabled: boolean;
-  chromaKeyTarget: EditorChromaTarget;
-  chromaKeyColor: string;
-  chromaSimilarity: number;
-  chromaBlend: number;
+  chromaKeyByLayer: EditorChromaByLayer;
   onSelectLayer: (layer: EditorLayer) => void;
   onMainTransformChange: (transform: EditorTransform) => void;
   onWebcamTransformChange: (transform: EditorTransform) => void;
@@ -2958,11 +3037,7 @@ function EditorCanvas({
   animationPreset,
   reverseVideo,
   colorAdjustments,
-  chromaKeyEnabled,
-  chromaKeyTarget,
-  chromaKeyColor,
-  chromaSimilarity,
-  chromaBlend,
+  chromaKeyByLayer,
   onSelectLayer,
   onMainTransformChange,
   onWebcamTransformChange,
@@ -3112,6 +3187,10 @@ function EditorCanvas({
     like: "LIKE",
     follow: "FOLLOW",
   }[animationPreset];
+  const mainChroma = chromaKeyByLayer.main;
+  const webcamChroma = chromaKeyByLayer.webcam;
+  const animationChroma = chromaKeyByLayer.animation;
+  const anyChromaEnabled = Object.values(chromaKeyByLayer).some((settings) => settings.enabled);
 
   return <div
     ref={canvasRef}
@@ -3121,7 +3200,17 @@ function EditorCanvas({
     onPointerUp={onPointerUp}
     onPointerCancel={onPointerUp}
   >
-    {previewUrl ? <video
+     {previewUrl && mainChroma.enabled ? <ChromaKeyPreview
+        src={previewUrl}
+        className={`editor-preview-video editor-layer-main ${selectedLayer === "main" ? "active" : ""}`}
+        style={{
+          transform: `translate(${mainTransform.x}%, ${mainTransform.y}%) scale(${mainTransform.scale})`,
+        }}
+        layer="main"
+        keyColor={mainChroma.color}
+        similarity={mainChroma.similarity}
+        blend={mainChroma.blend}
+     /> : previewUrl ? <video
        ref={mainVideoRef}
        src={previewUrl}
        muted
@@ -3136,14 +3225,14 @@ function EditorCanvas({
          filter: `brightness(${1 + colorAdjustments.brightness}) contrast(${colorAdjustments.contrast}) saturate(${colorAdjustments.saturation}) hue-rotate(${colorAdjustments.hue}deg)`,
        }}
     /> : <div className="editor-empty"><Layers size={27}/><strong>Your composition appears here</strong><span>Choose a category and tick the clips you want to merge.</span></div>}
-      {webcamUrl && (chromaKeyEnabled && chromaKeyTarget === "webcam" ? <ChromaKeyPreview
+       {webcamUrl && (webcamChroma.enabled ? <ChromaKeyPreview
         src={webcamUrl}
         className={`editor-face-layer ${selectedLayer === "webcam" ? "active" : ""}`}
         style={{ left: `${50 + webcamTransform.x}%`, top: `${50 + webcamTransform.y}%`, width: `${webcamTransform.scale * 100}%` }}
         layer="webcam"
-        keyColor={chromaKeyColor}
-        similarity={chromaSimilarity}
-        blend={chromaBlend}
+         keyColor={webcamChroma.color}
+         similarity={webcamChroma.similarity}
+         blend={webcamChroma.blend}
       /> : <video
         src={webcamUrl}
         muted
@@ -3154,14 +3243,14 @@ function EditorCanvas({
         data-editor-layer="webcam"
         style={{ left: `${50 + webcamTransform.x}%`, top: `${50 + webcamTransform.y}%`, width: `${webcamTransform.scale * 100}%` }}
       />)}
-      {animationUrl && (chromaKeyEnabled && chromaKeyTarget === "animation" ? <ChromaKeyPreview
+       {animationUrl && (animationChroma.enabled ? <ChromaKeyPreview
         src={animationUrl}
         className={`editor-face-layer editor-animation-layer ${selectedLayer === "animation" ? "active" : ""}`}
         style={{ left: `${50 + animationTransform.x}%`, top: `${50 + animationTransform.y}%`, width: `${animationTransform.scale * 100}%` }}
         layer="animation"
-        keyColor={chromaKeyColor}
-        similarity={chromaSimilarity}
-        blend={chromaBlend}
+         keyColor={animationChroma.color}
+         similarity={animationChroma.similarity}
+         blend={animationChroma.blend}
       /> : <video
         src={animationUrl}
         muted
@@ -3186,7 +3275,7 @@ function EditorCanvas({
        aria-hidden="true"
        style={{ left: `${50 + animationTransform.x}%`, top: `${50 + animationTransform.y}%`, width: `${animationTransform.scale * 100}%` }}
      ><span className="editor-selection-label">Animation · {Math.round(animationTransform.scale * 100)}%</span><button type="button" data-editor-resize="animation" aria-label="Resize animation" className="editor-resize-handle" /></div>}
-     {(reverseVideo || chromaKeyEnabled || colorAdjustments.brightness !== 0 || colorAdjustments.contrast !== 1 || colorAdjustments.saturation !== 1 || colorAdjustments.hue !== 0) && <div className="editor-effect-badges"><span>{reverseVideo ? "Reverse" : "Effects"}</span>{chromaKeyEnabled && <span>Green screen removed</span>}{colorAdjustments.brightness !== 0 || colorAdjustments.contrast !== 1 || colorAdjustments.saturation !== 1 || colorAdjustments.hue !== 0 ? <span>Color grade</span> : null}</div>}
+     {(reverseVideo || anyChromaEnabled || colorAdjustments.brightness !== 0 || colorAdjustments.contrast !== 1 || colorAdjustments.saturation !== 1 || colorAdjustments.hue !== 0) && <div className="editor-effect-badges"><span>{reverseVideo ? "Reverse" : "Effects"}</span>{anyChromaEnabled && <span>Green screen removed</span>}{colorAdjustments.brightness !== 0 || colorAdjustments.contrast !== 1 || colorAdjustments.saturation !== 1 || colorAdjustments.hue !== 0 ? <span>Color grade</span> : null}</div>}
     <div className="editor-canvas-toolbar">
       <span className="editor-canvas-hint">{isFullscreen ? "Fullscreen preview" : "Drag to move · wheel or pinch to zoom"}</span>
        {expanded && onCloseExpanded && <button type="button" className="editor-canvas-button" onPointerDown={(event) => event.stopPropagation()} onClick={onCloseExpanded} title="Close large preview">Close editor</button>}
@@ -3266,7 +3355,7 @@ function ChromaKeyPreview({ src, className, style, layer, keyColor, similarity, 
 
   return <div className={`${className} editor-chroma-preview`} data-editor-layer={layer} style={style}>
     <video ref={videoRef} src={src} muted autoPlay loop playsInline aria-hidden="true" />
-    <canvas ref={canvasRef} aria-label={`${layer === "webcam" ? "Face cam" : "Animation"} with green screen removed`} />
+    <canvas ref={canvasRef} aria-label={`${layer === "main" ? "Main video" : layer === "webcam" ? "Face cam" : "Animation"} with green screen removed`} />
   </div>;
 }
 
