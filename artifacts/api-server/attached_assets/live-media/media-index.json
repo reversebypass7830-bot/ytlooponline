@@ -180,5 +180,19 @@
     "quality": "uploaded",
     "createdAt": "2026-09-10T20:20:37.553Z",
     "sizeBytes": 1196547
+  },
+  {
+    "fileId": "8f95048a-002e-4270-a1f9-96a875affc9d",
+    "filename": "8f95048a-002e-4270-a1f9-96a875affc9d__m-edited.mp4",
+    "sourcePath": "/home/runner/workspace/artifacts/api-server/attached_assets/live-media/edited-videos/m/8f95048a-002e-4270-a1f9-96a875affc9d__m-edited.mp4",
+    "playbackUrl": "/api/media/files/8f95048a-002e-4270-a1f9-96a875affc9d",
+    "title": "m · edited",
+    "duration": "22:09",
+    "licenseId": "lic-e72cd238-ce4a-4f65-8975-fa76c7bab72f",
+    "licenseName": "m",
+    "folderName": "Edited Videos",
+    "quality": "edited",
+    "createdAt": "2026-09-10T21:21:11.466Z",
+    "sizeBytes": 1681805439
   }
 ]

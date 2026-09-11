@@ -69,6 +69,8 @@ export interface StreamStartInput {
      */
   durationMinutes?: number;
   autoRestart?: boolean;
+  /** Keeps a server-side microphone PCM input ready for live voice-over. */
+  voiceAudio?: boolean;
   /** Optional server-ready animation video to layer above the live playlist. */
   liveAnimationSource?: string;
   /**

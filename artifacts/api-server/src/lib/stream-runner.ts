@@ -2,6 +2,7 @@ import { spawn, type ChildProcess } from "node:child_process";
 import { existsSync, unlinkSync, writeFileSync } from "node:fs";
 import { randomUUID } from "node:crypto";
 import path from "node:path";
+import { PassThrough, type Writable } from "node:stream";
 import { logger } from "./logger";
 
 export type StreamRunnerStatus = "running" | "stopped" | "failed";
@@ -22,6 +23,7 @@ export type StreamRunnerInput = {
   faceScale?: number;
   durationMinutes?: number;
   autoRestart?: boolean;
+  voiceAudio?: boolean;
   liveAnimationSource?: string;
   liveAnimationX?: number;
   liveAnimationY?: number;
@@ -37,6 +39,7 @@ export type StreamRunnerResult = {
 
 type StreamProcess = {
   child: ChildProcess | null;
+  renderer?: ChildProcess;
   startedAt: string;
   status: StreamRunnerStatus;
   input: StreamRunnerInput;
@@ -44,6 +47,9 @@ type StreamProcess = {
   restartTimer?: NodeJS.Timeout;
   playlistPaths?: string[];
   playlistUpdateRequested?: boolean;
+  voiceInput?: PassThrough;
+  voiceQueue: Buffer[];
+  voiceTimer?: NodeJS.Timeout;
 };
 
 const assetNamesByCategory: Record<string, string> = {
@@ -107,6 +113,38 @@ function cleanupPlaylists(process: StreamProcess): void {
   process.playlistPaths = undefined;
 }
 
+const voiceFrameBytes = 1920;
+const silenceFrame = Buffer.alloc(voiceFrameBytes);
+
+function resetVoicePipe(process: StreamProcess): void {
+  process.voiceInput?.destroy();
+  process.voiceInput = undefined;
+}
+
+function startVoicePipe(process: StreamProcess, child: ChildProcess): void {
+  if (process.input.voiceAudio !== true) return;
+  const output = child.stdio[3] as Writable | null;
+  if (!output || typeof output.write !== "function") return;
+  const voiceInput = new PassThrough();
+  process.voiceInput = voiceInput;
+  voiceInput.pipe(output);
+  if (!process.voiceTimer) {
+    process.voiceTimer = setInterval(() => {
+      const current = processes.get(process.input.streamId);
+      if (!current || current.status !== "running" || !current.voiceInput || current.voiceInput.destroyed) return;
+      const next = current.voiceQueue.shift() || silenceFrame;
+      current.voiceInput.write(next);
+    }, 20);
+  }
+}
+
+function stopVoicePipe(process: StreamProcess): void {
+  if (process.voiceTimer) clearInterval(process.voiceTimer);
+  process.voiceTimer = undefined;
+  resetVoicePipe(process);
+  process.voiceQueue.length = 0;
+}
+
 function validateIngestUrl(rawUrl: string): URL {
   let url: URL;
   try {
@@ -133,7 +171,6 @@ function buildFfmpegArgs(
   faceInput?: { path: string; playlistPath?: string },
   animationInput?: { path: string; playlistPath?: string },
 ): string[] {
-  const ingestUrl = validateIngestUrl(input.ingestUrl);
   const aspectRatio = input.aspectRatio ?? "full";
   const quality = input.quality ?? "4k";
   const dimensions = {
@@ -149,6 +186,8 @@ function buildFfmpegArgs(
   const videoBitrate = quality === "4k" && aspectRatio === "full" ? "28M" : "8M";
   const videoBuffer = quality === "4k" && aspectRatio === "full" ? "56M" : "16M";
   const videoLevel = quality === "4k" && aspectRatio === "full" ? "5.2" : "4.2";
+  const voiceAudio = input.voiceAudio === true;
+  const voiceInputIndex = 1 + Number(Boolean(facePath)) + Number(Boolean(animationPath));
 
   const inputArgs = [
     "-hide_banner",
@@ -183,6 +222,23 @@ function buildFfmpegArgs(
       animationInput.path,
     );
   }
+  if (voiceAudio) {
+    inputArgs.push(
+      "-thread_queue_size",
+      "512",
+      "-f",
+      "s16le",
+      "-ar",
+      "48000",
+      "-ac",
+      "1",
+      "-i",
+      "pipe:3",
+    );
+  }
+  const audioFilter = voiceAudio
+    ? `[0:a:0]aresample=48000[base_audio];[${voiceInputIndex}:a:0]aresample=48000[voice_audio];[base_audio][voice_audio]amix=inputs=2:duration=first:dropout_transition=0:weights=1 1[mixed_audio]`
+    : "";
 
   const videoArgs = needsVideoFilter
     ? [
@@ -213,6 +269,7 @@ function buildFfmpegArgs(
                 `[${facePath ? "[out]" : "[base]"}][animation]overlay=(main_w-overlay_w)/2+${Math.round(width * Math.max(-48, Math.min(48, input.liveAnimationX ?? 0)) / 100)}:(main_h-overlay_h)/2+${Math.round(height * Math.max(-48, Math.min(48, input.liveAnimationY ?? 0)) / 100)}[composed]`,
               ]
             : []),
+          ...(audioFilter ? [audioFilter] : []),
         ].join(";"),
         "-map",
         animationPath ? "[composed]" : facePath ? "[out]" : "[base]",
@@ -247,11 +304,13 @@ function buildFfmpegArgs(
         "-fps_mode",
         "cfr",
       ]
-    : ["-map", "0:v:0", "-c:v", "copy"];
+    : voiceAudio
+      ? ["-filter_complex", audioFilter, "-map", "0:v:0", "-c:v", "copy"]
+      : ["-map", "0:v:0", "-c:v", "copy"];
 
   const audioArgs = [
     "-map",
-    "0:a:0?",
+    voiceAudio ? "[mixed_audio]" : "0:a:0?",
     "-c:a",
     "aac",
     "-b:a",
@@ -261,13 +320,31 @@ function buildFfmpegArgs(
     ...(playbackSpeed === 1 ? [] : ["-af", `atempo=${playbackSpeed}`]),
   ];
 
+  return [
+    ...inputArgs,
+    ...videoArgs,
+    ...audioArgs,
+    "-f",
+    "mpegts",
+    "-mpegts_flags",
+    "+resend_headers",
+    "-flush_packets",
+    "1",
+    "pipe:1",
+  ];
+}
+
+function buildPublisherArgs(input: StreamRunnerInput): string[] {
+  const ingestUrl = validateIngestUrl(input.ingestUrl);
+  const inputArgs = ["-hide_banner", "-loglevel", "warning", "-thread_queue_size", "1024", "-f", "mpegts", "-i", "pipe:0"];
+  const outputArgs = ["-map", "0:v:0", "-map", "0:a:0?", "-c", "copy"];
+
   if (ingestUrl.pathname.includes("http_upload_hls")) {
     const playlistUrl = setFile(ingestUrl, "signal_desk.m3u8");
     const segmentUrl = setFile(ingestUrl, "signal_desk_%05d.ts");
     return [
       ...inputArgs,
-      ...videoArgs,
-      ...audioArgs,
+      ...outputArgs,
       "-f",
       "hls",
       "-method",
@@ -287,7 +364,7 @@ function buildFfmpegArgs(
   }
 
   if (ingestUrl.protocol === "rtmp:" || ingestUrl.protocol === "rtmps:") {
-    return [...inputArgs, ...videoArgs, ...audioArgs, "-f", "flv", ingestUrl.toString()];
+    return [...inputArgs, ...outputArgs, "-f", "flv", ingestUrl.toString()];
   }
 
   throw new Error("This URL is not a supported YouTube HLS or RTMP ingest URL.");
@@ -303,6 +380,7 @@ function resultFor(streamId: string, process: StreamProcess, message: string): S
 }
 
 function launchProcess(process: StreamProcess): void {
+  stopVoicePipe(process);
   cleanupPlaylists(process);
   const videoPaths = getVideoPaths(process.input.category, process.input.videoSources, process.input.videoSource);
   const facePaths = process.input.faceCategory
@@ -315,27 +393,48 @@ function launchProcess(process: StreamProcess): void {
   const faceInput = facePaths.length ? prepareInput(facePaths) : undefined;
   const preparedAnimationInput = animationInput ? prepareInput([animationInput.path]) : undefined;
   process.playlistPaths = [videoInput.playlistPath, faceInput?.playlistPath, preparedAnimationInput?.playlistPath].filter((playlistPath): playlistPath is string => Boolean(playlistPath));
-  const child = spawn("ffmpeg", buildFfmpegArgs(process.input, videoInput, faceInput, preparedAnimationInput), {
-    stdio: ["ignore", "ignore", "pipe"],
+  const publisher = spawn("ffmpeg", buildPublisherArgs(process.input), {
+    stdio: ["pipe", "ignore", "pipe"],
+  });
+  const renderer = spawn("ffmpeg", buildFfmpegArgs(process.input, videoInput, faceInput, preparedAnimationInput), {
+    stdio: ["ignore", "pipe", "pipe", "pipe"],
   });
 
-  process.child = child;
+  process.child = publisher;
+  process.renderer = renderer;
   process.startedAt = new Date().toISOString();
+  renderer.stdout?.pipe(publisher.stdin!, { end: false });
+  startVoicePipe(process, renderer);
   if (process.input.durationMinutes) {
     process.durationTimer = setTimeout(() => {
-      if (process.status === "running") process.child?.kill("SIGTERM");
+      if (process.status === "running") process.renderer?.kill("SIGTERM");
     }, process.input.durationMinutes * 60 * 1000);
   }
 
-  child.stderr?.on("data", () => {
+  publisher.stderr?.on("data", () => {
     // FFmpeg output can contain the private ingest URL. Keep it out of logs.
   });
-  child.once("error", (error) => {
+  renderer.stderr?.on("data", () => {
+    // Renderer output is intentionally not logged.
+  });
+  publisher.once("error", (error) => {
     process.status = "failed";
     logger.error({ streamId: process.input.streamId, error: error.message }, "FFmpeg process error");
   });
-  child.once("exit", (code, signal) => {
+  publisher.once("exit", (code, signal) => {
+    if (process.status === "running") {
+      process.status = "failed";
+      process.renderer?.kill("SIGTERM");
+      logger.error({ streamId: process.input.streamId, code, signal }, "Live publisher exited");
+    }
+  });
+  renderer.once("error", (error) => {
+    process.status = "failed";
+    logger.error({ streamId: process.input.streamId, error: error.message }, "FFmpeg renderer error");
+  });
+  renderer.once("exit", (code, signal) => {
     cleanupPlaylists(process);
+    process.renderer = undefined;
     if (process.durationTimer) {
       clearTimeout(process.durationTimer);
       process.durationTimer = undefined;
@@ -396,6 +495,7 @@ export function startStream(input: StreamRunnerInput): StreamRunnerResult {
     startedAt: new Date().toISOString(),
     status: "running",
     input,
+    voiceQueue: [],
   };
   processes.set(input.streamId, streamProcess);
   launchProcess(streamProcess);
@@ -423,8 +523,8 @@ export function updateStream(input: StreamRunnerInput): StreamRunnerResult {
   }
   current.input = input;
   current.playlistUpdateRequested = true;
-  current.child?.kill("SIGTERM");
-  if (!current.child) {
+  current.renderer?.kill("SIGTERM");
+  if (!current.renderer) {
     current.playlistUpdateRequested = false;
     launchProcess(current);
   }
@@ -437,13 +537,25 @@ export function stopStream(streamId: string): StreamRunnerResult | null {
 
   streamProcess.status = "stopped";
   streamProcess.playlistUpdateRequested = false;
+  stopVoicePipe(streamProcess);
   if (streamProcess.durationTimer) clearTimeout(streamProcess.durationTimer);
   if (streamProcess.restartTimer) clearTimeout(streamProcess.restartTimer);
+  streamProcess.renderer?.kill("SIGTERM");
   streamProcess.child?.kill("SIGTERM");
   setTimeout(() => {
     if (streamProcess.child && !streamProcess.child.killed) streamProcess.child.kill("SIGKILL");
   }, 5000).unref();
   return resultFor(streamId, streamProcess, "FFmpeg stream process stopped.");
+}
+
+export function appendVoiceAudio(streamId: string, chunk: Buffer): void {
+  const streamProcess = processes.get(streamId);
+  if (!streamProcess || streamProcess.status !== "running" || streamProcess.input.voiceAudio !== true) return;
+  if (chunk.length === 0) return;
+  streamProcess.voiceQueue.push(Buffer.from(chunk));
+  if (streamProcess.voiceQueue.length > 150) {
+    streamProcess.voiceQueue.splice(0, streamProcess.voiceQueue.length - 150);
+  }
 }
 
 export function getStreamStatus(streamId: string): StreamRunnerResult {

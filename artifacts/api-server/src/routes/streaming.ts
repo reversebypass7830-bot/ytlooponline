@@ -9,6 +9,7 @@ import {
 } from "@workspace/api-zod";
 import {
   getStreamStatus,
+  appendVoiceAudio,
   startStream,
   stopStream,
   updateStream,
@@ -41,6 +42,7 @@ router.post("/stream/start", (req, res): void => {
       faceScale: parsed.data.faceScale,
       durationMinutes: parsed.data.durationMinutes,
       autoRestart: parsed.data.autoRestart,
+      voiceAudio: parsed.data.voiceAudio,
       liveAnimationSource: parsed.data.liveAnimationSource,
       liveAnimationX: parsed.data.liveAnimationX,
       liveAnimationY: parsed.data.liveAnimationY,
@@ -96,6 +98,7 @@ router.post("/stream/update", (req, res): void => {
       faceScale: parsed.data.faceScale,
       durationMinutes: parsed.data.durationMinutes,
       autoRestart: parsed.data.autoRestart,
+      voiceAudio: parsed.data.voiceAudio,
       liveAnimationSource: parsed.data.liveAnimationSource,
       liveAnimationX: parsed.data.liveAnimationX,
       liveAnimationY: parsed.data.liveAnimationY,
@@ -108,6 +111,19 @@ router.post("/stream/update", (req, res): void => {
     req.log.warn({ streamId: parsed.data.streamId, status }, "Stream update rejected");
     res.status(status).json({ error: message });
   }
+});
+
+router.post("/stream/voice/:streamId", (req, res): void => {
+  const streamId = typeof req.params.streamId === "string" ? req.params.streamId : "";
+  if (!streamId) {
+    res.status(400).json({ error: "A stream id is required." });
+    return;
+  }
+  req.on("data", (chunk: Buffer) => appendVoiceAudio(streamId, chunk));
+  req.on("end", () => res.status(204).end());
+  req.on("error", () => {
+    if (!res.headersSent) res.status(499).end();
+  });
 });
 
 router.get("/stream/status/:streamId", (req, res): void => {

@@ -1672,7 +1672,7 @@ function LiveAnimationControl({
   </section>;
 }
 
-function useLivePreviewDevices() {
+function useLivePreviewDevices(streamId?: string) {
   const [webcamStream, setWebcamStream] = useState<MediaStream | null>(null);
   const [voiceStream, setVoiceStream] = useState<MediaStream | null>(null);
   const [webcamError, setWebcamError] = useState("");
@@ -1736,11 +1736,36 @@ function useLivePreviewDevices() {
     if (!voiceStream) return;
     const AudioContextClass = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
     if (!AudioContextClass) return;
-    const context = new AudioContextClass();
+    const context = new AudioContextClass({ sampleRate: 48000 });
     const source = context.createMediaStreamSource(voiceStream);
     const analyser = context.createAnalyser();
     analyser.fftSize = 256;
     source.connect(analyser);
+    const processor = context.createScriptProcessor(1024, 1, 1);
+    const silentOutput = context.createGain();
+    silentOutput.gain.value = 0;
+    source.connect(processor);
+    processor.connect(silentOutput);
+    silentOutput.connect(context.destination);
+    let uploadController: ReadableStreamDefaultController<Uint8Array> | null = null;
+    let uploadClosed = false;
+    let pendingSamples: number[] = [];
+    const uploadBody = new ReadableStream<Uint8Array>({
+      start(controller) {
+        uploadController = controller;
+      },
+      cancel() {
+        uploadClosed = true;
+      },
+    });
+    const upload = streamId
+      ? fetch(`/api/stream/voice/${encodeURIComponent(streamId)}`, {
+          method: "POST",
+          headers: { "content-type": "application/octet-stream" },
+          body: uploadBody,
+          duplex: "half",
+        } as RequestInit & { duplex: "half" }).catch(() => undefined)
+      : Promise.resolve();
     const buffer = new Uint8Array(analyser.frequencyBinCount);
     let frame = 0;
     const measure = () => {
@@ -1749,15 +1774,33 @@ function useLivePreviewDevices() {
       setVoiceLevel(Math.min(100, Math.round(average * 2.8)));
       frame = window.requestAnimationFrame(measure);
     };
+    processor.onaudioprocess = (event) => {
+      if (!uploadController || uploadClosed) return;
+      const input = event.inputBuffer.getChannelData(0);
+      for (let index = 0; index < input.length; index += 1) pendingSamples.push(input[index]);
+      while (pendingSamples.length >= 960) {
+        const pcm = new Int16Array(960);
+        for (let index = 0; index < pcm.length; index += 1) {
+          pcm[index] = Math.max(-32768, Math.min(32767, Math.round(pendingSamples[index] * 32767)));
+        }
+        pendingSamples = pendingSamples.slice(960);
+        uploadController.enqueue(new Uint8Array(pcm.buffer));
+      }
+    };
     void context.resume().catch(() => undefined);
     measure();
     return () => {
       window.cancelAnimationFrame(frame);
+      uploadClosed = true;
+      uploadController?.close();
+      processor.disconnect();
+      silentOutput.disconnect();
       source.disconnect();
       analyser.disconnect();
       void context.close().catch(() => undefined);
+      void upload;
     };
-  }, [voiceStream]);
+  }, [voiceStream, streamId]);
 
   return {
     webcamStream,
@@ -1796,6 +1839,7 @@ function LivePage({workspace}:{workspace:ReturnType<typeof useWorkspace>}) {
        playbackSpeed:c.playbackSpeed||1, quality:c.streamQuality||"4k", aspectRatio:c.aspectRatio||"full", facePosition:c.facePosition||"bottom-right",
       faceScale:(c.faceSize||25)/100, durationMinutes:(c.durationHours||1)*60,
       autoRestart:Boolean(c.autoRestart),
+      voiceAudio:true,
        liveAnimationSource:liveAnimation?.serverSource,
        liveAnimationX:c.liveAnimationX||0,
        liveAnimationY:c.liveAnimationY||0,
@@ -1807,7 +1851,7 @@ function LivePage({workspace}:{workspace:ReturnType<typeof useWorkspace>}) {
   }catch(error){workspace.setToast(error instanceof Error?error.message:"Could not start the real stream.");}finally{setBusy(ids=>ids.filter(id=>id!==c.id));}};
    const stop=async(c:LiveChannel)=>{if(busy.includes(c.id))return;setBusy(ids=>[...ids,c.id]);try{const scopedStreamId=streamIdFor(workspace.clientId,c.id);await stopStream({streamId:scopedStreamId});playlistSignatures.current.delete(scopedStreamId);update({channels:data.channels.map(x=>x.id===c.id?{...x,status:"stopped",viewers:0}:x)},{message:`${c.title} was taken off air`,type:"edit"});}catch(error){workspace.setToast(error instanceof Error?error.message:"Could not stop the stream.");}finally{setBusy(ids=>ids.filter(id=>id!==c.id));}};
    useEffect(()=>{const liveChannels=data.channels.filter(c=>c.status==="live");if(!liveChannels.length)return;const timer=window.setInterval(()=>{void Promise.all(liveChannels.map(async c=>{try{const result=await getStreamStatus(streamIdFor(workspace.clientId,c.id));if(result.status!=="running"){update({channels:data.channels.map(x=>x.id===c.id?{...x,status:"stopped",viewers:0}:x)},{message:`${c.title} stream process ${result.status}`,type:"edit"});}}catch{ /* Keep the visible state until the API is reachable again. */ }}));},5000);return()=>window.clearInterval(timer);},[data.channels,update,workspace.clientId]);
-    useEffect(()=>{const liveChannels=data.channels.filter(c=>c.status==="live");void Promise.all(liveChannels.map(async c=>{const scopedStreamId=streamIdFor(workspace.clientId,c.id);const playlist=playlistFor(c,data.groups,data.videos);if(!playlist.category)return;const liveAnimation=data.videos.find((video)=>video.id===c.liveAnimationId && video.serverSource);const signature=JSON.stringify({videoSources:playlist.videoSources,faceSources:playlist.faceSources,liveAnimationId:c.liveAnimationId,liveAnimationX:c.liveAnimationX||0,liveAnimationY:c.liveAnimationY||0,liveAnimationScale:c.liveAnimationScale||0.25});if(playlistSignatures.current.get(scopedStreamId)===signature)return;if(!playlist.videoSources.length){try{await stopStream({streamId:scopedStreamId});playlistSignatures.current.set(scopedStreamId,signature);update({channels:data.channels.map(x=>x.id===c.id?{...x,status:"stopped",viewers:0}:x)},{message:`${c.title} stopped because its playlist is empty`,type:"edit"});}catch(error){workspace.setToast(error instanceof Error?error.message:"The empty live playlist could not be stopped.");}return;}try{await updateStream({streamId:scopedStreamId,ingestUrl:c.streamUrl,category:playlist.category,videoSources:playlist.videoSources,videoSource:playlist.mainVideos[0]?.serverSource,faceCategory:playlist.faceSources.length?playlist.faceCategory:undefined,faceSources:playlist.faceSources,playbackSpeed:c.playbackSpeed||1,quality:c.streamQuality||"4k",aspectRatio:c.aspectRatio||"full",facePosition:c.facePosition||"bottom-right",faceScale:(c.faceSize||25)/100,durationMinutes:(c.durationHours||1)*60,autoRestart:Boolean(c.autoRestart),liveAnimationSource:liveAnimation?.serverSource,liveAnimationX:c.liveAnimationX||0,liveAnimationY:c.liveAnimationY||0,liveAnimationScale:c.liveAnimationScale||0.25});playlistSignatures.current.set(scopedStreamId,signature);workspace.setToast(`${c.title} playlist updated while live`);}catch(error){workspace.setToast(error instanceof Error?error.message:"The live playlist could not be updated.");}}));},[data.channels,data.groups,data.videos,workspace.clientId,workspace.setToast,update]);
+    useEffect(()=>{const liveChannels=data.channels.filter(c=>c.status==="live");void Promise.all(liveChannels.map(async c=>{const scopedStreamId=streamIdFor(workspace.clientId,c.id);const playlist=playlistFor(c,data.groups,data.videos);if(!playlist.category)return;const liveAnimation=data.videos.find((video)=>video.id===c.liveAnimationId && video.serverSource);const signature=JSON.stringify({videoSources:playlist.videoSources,faceSources:playlist.faceSources,liveAnimationId:c.liveAnimationId,liveAnimationX:c.liveAnimationX||0,liveAnimationY:c.liveAnimationY||0,liveAnimationScale:c.liveAnimationScale||0.25});if(playlistSignatures.current.get(scopedStreamId)===signature)return;if(!playlist.videoSources.length){try{await stopStream({streamId:scopedStreamId});playlistSignatures.current.set(scopedStreamId,signature);update({channels:data.channels.map(x=>x.id===c.id?{...x,status:"stopped",viewers:0}:x)},{message:`${c.title} stopped because its playlist is empty`,type:"edit"});}catch(error){workspace.setToast(error instanceof Error?error.message:"The empty live playlist could not be stopped.");}return;}try{await updateStream({streamId:scopedStreamId,ingestUrl:c.streamUrl,category:playlist.category,videoSources:playlist.videoSources,videoSource:playlist.mainVideos[0]?.serverSource,faceCategory:playlist.faceSources.length?playlist.faceCategory:undefined,faceSources:playlist.faceSources,playbackSpeed:c.playbackSpeed||1,quality:c.streamQuality||"4k",aspectRatio:c.aspectRatio||"full",facePosition:c.facePosition||"bottom-right",faceScale:(c.faceSize||25)/100,durationMinutes:(c.durationHours||1)*60,autoRestart:Boolean(c.autoRestart),voiceAudio:true,liveAnimationSource:liveAnimation?.serverSource,liveAnimationX:c.liveAnimationX||0,liveAnimationY:c.liveAnimationY||0,liveAnimationScale:c.liveAnimationScale||0.25});playlistSignatures.current.set(scopedStreamId,signature);workspace.setToast(`${c.title} playlist updated while live`);}catch(error){workspace.setToast(error instanceof Error?error.message:"The live playlist could not be updated.");}}));},[data.channels,data.groups,data.videos,workspace.clientId,workspace.setToast,update]);
    const groupsById=useMemo(()=>Object.fromEntries(data.groups.map(g=>[g.id,g.name])),[data.groups]);
    return <AppShell title="Live channels" workspace={workspace}><div className="page live-page"><div className="page-head"><div><p className="eyebrow">Broadcast operations / control room</p><h1>Live channels</h1><p className="subtle">Prepare your destinations, then take the room live with confidence.</p></div><div className="page-head-actions"><span className="page-live-indicator"><span className="status-dot"/>{data.channels.filter(c=>c.status==="live").length ? "Signal monitored" : "Room is ready"}</span><button className="button" onClick={()=>{setEditing(undefined);setShowForm(true)}} data-testid="button-add-channel"><Plus size={16}/> Add channel</button></div></div>
       <div className="live-overview-grid">
@@ -1828,7 +1872,7 @@ function LivePreviewPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}
   const [webcamPosition, setWebcamPosition] = useState<FacePosition>("bottom-right");
   const [webcamScale, setWebcamScale] = useState(0.25);
   const [webcamEnabled, setWebcamEnabled] = useState(false);
-  const devices = useLivePreviewDevices();
+  const devices = useLivePreviewDevices(selectedChannelId ? streamIdFor(workspace.clientId, selectedChannelId) : undefined);
   const selectedChannel = data.channels.find((channel) => channel.id === selectedChannelId);
 
   useEffect(() => {
@@ -1867,6 +1911,7 @@ function LivePreviewPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}
         faceScale: (selectedChannel.faceSize || 25) / 100,
         durationMinutes: (selectedChannel.durationHours || 1) * 60,
         autoRestart: Boolean(selectedChannel.autoRestart),
+        voiceAudio: true,
         liveAnimationSource: animation?.serverSource,
         liveAnimationX: settings.x,
         liveAnimationY: settings.y,
@@ -1931,7 +1976,7 @@ function LivePreviewPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}
             </div>
             <div className={`live-device-card ${devices.voiceStream ? "ready" : ""}`}>
               <div className="live-device-icon"><Mic size={18}/></div>
-              <div className="live-device-copy"><strong>Voice over microphone</strong><p>{devices.voiceStream ? "Microphone is listening for your voice over." : "Allow microphone access to monitor your live voice."}</p>{devices.voiceStream && <div className="voice-meter"><span style={{ width: `${devices.voiceLevel}%` }}/></div>}</div>
+              <div className="live-device-copy"><strong>Voice over microphone</strong><p>{devices.voiceStream ? "Your microphone is being mixed into the live broadcast." : "Allow microphone access to add your voice to the live broadcast."}</p>{devices.voiceStream && <div className="voice-meter"><span style={{ width: `${devices.voiceLevel}%` }}/></div>}</div>
               <button className={`button small ${devices.voiceStream ? "ghost" : "secondary"}`} onClick={() => { if (devices.voiceStream) devices.disableVoice(); else void devices.enableVoice(); }} data-testid="button-toggle-live-microphone">{devices.voiceStream ? "Mute mic" : "Enable mic"}</button>
             </div>
           </div>
@@ -1939,7 +1984,7 @@ function LivePreviewPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}
           <div className="live-device-adjustments">
             <div className="field"><label>Webcam position</label><select value={webcamPosition} onChange={(event) => setWebcamPosition(event.target.value as FacePosition)} disabled={!webcamEnabled}><option value="top-left">Top left</option><option value="top-right">Top right</option><option value="bottom-left">Bottom left</option><option value="bottom-right">Bottom right</option><option value="center">Center</option></select></div>
             <div className="field"><label>Webcam size · {Math.round(webcamScale * 100)}%</label><input type="range" min="10" max="60" value={Math.round(webcamScale * 100)} onChange={(event) => setWebcamScale(Number(event.target.value) / 100)} disabled={!webcamEnabled}/></div>
-            <div className="live-preview-note"><ShieldCheck size={14}/><span>Browser camera and microphone are preview-only controls. They do not replace the server-side stream audio or saved face-camera source; use the live channel settings for what is sent to the broadcast.</span></div>
+            <div className="live-preview-note"><ShieldCheck size={14}/><span>The camera stays a local preview. Microphone audio is sent to the selected running channel and mixed into the live broadcast without stopping it.</span></div>
           </div>
         </section>
       </div>}

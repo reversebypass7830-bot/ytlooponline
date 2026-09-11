@@ -39,6 +39,7 @@ export const startStreamBodyFaceScaleMax = 0.6;
 export const startStreamBodyDurationMinutesMax = 1440;
 
 export const startStreamBodyAutoRestartDefault = false;
+export const startStreamBodyVoiceAudioDefault = false;
 export const startStreamBodyLiveAnimationXDefault = 0;
 export const startStreamBodyLiveAnimationXMin = -48;
 export const startStreamBodyLiveAnimationXMax = 48;
@@ -69,6 +70,7 @@ export const StartStreamBody = zod.object({
   "faceScale": zod.number().min(startStreamBodyFaceScaleMin).max(startStreamBodyFaceScaleMax).default(startStreamBodyFaceScaleDefault),
   "durationMinutes": zod.number().min(1).max(startStreamBodyDurationMinutesMax).optional(),
   "autoRestart": zod.boolean().default(startStreamBodyAutoRestartDefault),
+  "voiceAudio": zod.boolean().default(startStreamBodyVoiceAudioDefault).describe('Keeps a server-side microphone PCM input ready for live voice-over.'),
   "liveAnimationSource": zod.string().optional().describe('Optional server-ready animation video to layer above the live playlist.'),
   "liveAnimationX": zod.number().min(startStreamBodyLiveAnimationXMin).max(startStreamBodyLiveAnimationXMax).default(startStreamBodyLiveAnimationXDefault),
   "liveAnimationY": zod.number().min(startStreamBodyLiveAnimationYMin).max(startStreamBodyLiveAnimationYMax).default(startStreamBodyLiveAnimationYDefault),
@@ -123,6 +125,7 @@ export const updateStreamBodyFaceScaleMax = 0.6;
 export const updateStreamBodyDurationMinutesMax = 1440;
 
 export const updateStreamBodyAutoRestartDefault = false;
+export const updateStreamBodyVoiceAudioDefault = false;
 export const updateStreamBodyLiveAnimationXDefault = 0;
 export const updateStreamBodyLiveAnimationXMin = -48;
 export const updateStreamBodyLiveAnimationXMax = 48;
@@ -153,6 +156,7 @@ export const UpdateStreamBody = zod.object({
   "faceScale": zod.number().min(updateStreamBodyFaceScaleMin).max(updateStreamBodyFaceScaleMax).default(updateStreamBodyFaceScaleDefault),
   "durationMinutes": zod.number().min(1).max(updateStreamBodyDurationMinutesMax).optional(),
   "autoRestart": zod.boolean().default(updateStreamBodyAutoRestartDefault),
+  "voiceAudio": zod.boolean().default(updateStreamBodyVoiceAudioDefault).describe('Keeps a server-side microphone PCM input ready for live voice-over.'),
   "liveAnimationSource": zod.string().optional().describe('Optional server-ready animation video to layer above the live playlist.'),
   "liveAnimationX": zod.number().min(updateStreamBodyLiveAnimationXMin).max(updateStreamBodyLiveAnimationXMax).default(updateStreamBodyLiveAnimationXDefault),
   "liveAnimationY": zod.number().min(updateStreamBodyLiveAnimationYMin).max(updateStreamBodyLiveAnimationYMax).default(updateStreamBodyLiveAnimationYDefault),

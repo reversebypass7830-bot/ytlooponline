@@ -816,6 +816,10 @@ components:
         autoRestart:
           type: boolean
           default: false
+        voiceAudio:
+          type: boolean
+          default: false
+          description: Keeps a server-side microphone PCM input ready for live voice-over.
         liveAnimationSource:
           type: string
           description: Optional server-ready animation video to layer above the live playlist.
