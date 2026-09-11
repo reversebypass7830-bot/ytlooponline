@@ -56,3 +56,17 @@ mtime_ms = 1789039392352
 storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:2da47273-af59-417a-a43d-b441b179dfe7/4e2ab4e2-1d1e-42ef-ad9e-232269b446e0/437221ff-94af-44ea-9822-c83669398e4d"
 storage_version_token = "1789039494278876"
 content_type = "image/png"
+
+[[outputs]]
+id = "AUCV0uDQE_1Z09SgtertQ"
+uri = "file://PROJECT_CONTEXT_PROMPT.md"
+type = "text"
+title = "R Loop Bypass project context prompt"
+description = "Copy-paste this Markdown prompt into another agent to explain the project's purpose, real-time playlist loop, preview pipeline, FFmpeg streaming flow, live updates, webcam/microphone bridge, and engineering rules."
+logical_id = "cf759ab9-a0d8-4751-9223-3a08b48f75e9"
+content_hash = "sha256:20676fbd3ba09a9b0f771f1d33f3aec1b32bfd0aeea64a1631b4d0d264e89679"
+size = 13808
+mtime_ms = 1789125766502
+storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:65498bfa-47f2-4d0b-a109-673d164cb624/cf759ab9-a0d8-4751-9223-3a08b48f75e9/4bbabb61-e331-42fd-87e1-b7a0c9fb5f55"
+storage_version_token = "1789125781492499"
+content_type = "text/markdown"
