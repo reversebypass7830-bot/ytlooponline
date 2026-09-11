@@ -538,6 +538,10 @@ input:focus, textarea:focus, select:focus { border-color:#5fa49d; box-shadow:0 0
 .editor-file-button input { position:absolute; inset:0; opacity:0; cursor:pointer; }
 .editor-render-button { width:100%; min-height:44px; }
 .editor-render-button:disabled { opacity:.55; cursor:not-allowed; transform:none; box-shadow:none; }
+.stream-key-notice { display:flex; gap:10px; align-items:flex-start; padding:12px; border:1px solid #cfe1d3; border-radius:10px; background:#f3f9f1; color:#315f56; margin-bottom:14px; }
+.stream-key-notice > svg { flex:0 0 auto; margin-top:2px; color:#2c8179; }
+.stream-key-notice strong { display:block; color:#234f48; font-size:12px; }
+.stream-key-notice p { margin:4px 0 0; color:#6d8379; font-size:11px; line-height:1.45; }
 @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:.5; } }
 @keyframes fade { from { opacity:0; } to { opacity:1; } }
 @keyframes rise { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }

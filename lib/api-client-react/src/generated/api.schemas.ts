@@ -37,6 +37,137 @@ export const StreamStartInputFacePosition = {
   center: 'center',
 } as const;
 
+export type StreamCompositionInputCropMode = typeof StreamCompositionInputCropMode[keyof typeof StreamCompositionInputCropMode];
+
+
+export const StreamCompositionInputCropMode = {
+  fit: 'fit',
+  crop: 'crop',
+} as const;
+
+export type StreamCompositionInputLogoPosition = typeof StreamCompositionInputLogoPosition[keyof typeof StreamCompositionInputLogoPosition];
+
+
+export const StreamCompositionInputLogoPosition = {
+  'top-left': 'top-left',
+  'top-right': 'top-right',
+  'bottom-left': 'bottom-left',
+  'bottom-right': 'bottom-right',
+} as const;
+
+export type StreamCompositionInputAnimationPreset = typeof StreamCompositionInputAnimationPreset[keyof typeof StreamCompositionInputAnimationPreset];
+
+
+export const StreamCompositionInputAnimationPreset = {
+  none: 'none',
+  subscribe: 'subscribe',
+  like: 'like',
+  follow: 'follow',
+} as const;
+
+export type StreamCompositionInputChromaKeyTarget = typeof StreamCompositionInputChromaKeyTarget[keyof typeof StreamCompositionInputChromaKeyTarget];
+
+
+export const StreamCompositionInputChromaKeyTarget = {
+  webcam: 'webcam',
+  animation: 'animation',
+} as const;
+
+/**
+ * Optional editor composition to apply directly while the live stream is encoded.
+ */
+export interface StreamCompositionInput {
+  /**
+     * @minimum -48
+     * @maximum 48
+     */
+  mainX?: number;
+  /**
+     * @minimum -48
+     * @maximum 48
+     */
+  mainY?: number;
+  /**
+     * @minimum 0.5
+     * @maximum 2.5
+     */
+  mainScale?: number;
+  cropMode?: StreamCompositionInputCropMode;
+  webcamSource?: string;
+  /**
+     * @minimum -48
+     * @maximum 48
+     */
+  webcamX?: number;
+  /**
+     * @minimum -48
+     * @maximum 48
+     */
+  webcamY?: number;
+  /**
+     * @minimum 0.1
+     * @maximum 0.8
+     */
+  webcamScale?: number;
+  animationSource?: string;
+  /**
+     * @minimum -48
+     * @maximum 48
+     */
+  animationX?: number;
+  /**
+     * @minimum -48
+     * @maximum 48
+     */
+  animationY?: number;
+  /**
+     * @minimum 0.1
+     * @maximum 0.8
+     */
+  animationScale?: number;
+  logoSource?: string;
+  logoPosition?: StreamCompositionInputLogoPosition;
+  /**
+     * @minimum 0.1
+     * @maximum 0.6
+     */
+  logoScale?: number;
+  animationPreset?: StreamCompositionInputAnimationPreset;
+  /**
+     * @minimum -1
+     * @maximum 1
+     */
+  brightness?: number;
+  /**
+     * @minimum 0.5
+     * @maximum 1.8
+     */
+  contrast?: number;
+  /**
+     * @minimum 0
+     * @maximum 2
+     */
+  saturation?: number;
+  /**
+     * @minimum -180
+     * @maximum 180
+     */
+  hue?: number;
+  chromaKeyEnabled?: boolean;
+  chromaKeyTarget?: StreamCompositionInputChromaKeyTarget;
+  chromaKeyColor?: string;
+  /**
+     * @minimum 0.1
+     * @maximum 0.9
+     */
+  chromaSimilarity?: number;
+  /**
+     * @minimum 0
+     * @maximum 0.35
+     */
+  chromaBlend?: number;
+}
+
 export interface StreamStartInput {
   /** @minLength 1 */
   streamId: string;
@@ -88,6 +219,7 @@ export interface StreamStartInput {
      * @maximum 0.8
      */
   liveAnimationScale?: number;
+  composition?: StreamCompositionInput;
 }
 
 export interface StreamStopInput {

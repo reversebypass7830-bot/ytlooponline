@@ -47,6 +47,7 @@ router.post("/stream/start", (req, res): void => {
       liveAnimationX: parsed.data.liveAnimationX,
       liveAnimationY: parsed.data.liveAnimationY,
       liveAnimationScale: parsed.data.liveAnimationScale,
+      composition: parsed.data.composition,
     });
     res.status(202).json(StartStreamResponse.parse(result));
   } catch (error) {
@@ -103,6 +104,7 @@ router.post("/stream/update", (req, res): void => {
       liveAnimationX: parsed.data.liveAnimationX,
       liveAnimationY: parsed.data.liveAnimationY,
       liveAnimationScale: parsed.data.liveAnimationScale,
+      composition: parsed.data.composition,
     });
     res.status(202).json(StartStreamResponse.parse(result));
   } catch (error) {

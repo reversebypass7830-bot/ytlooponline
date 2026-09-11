@@ -31,6 +31,33 @@ type EditorColorAdjustments = {
 };
 type EditorCropMode = "fit" | "crop";
 type EditorChromaTarget = "webcam" | "animation";
+type EditorStreamComposition = {
+  mainX: number;
+  mainY: number;
+  mainScale: number;
+  cropMode: EditorCropMode;
+  webcamSource?: string;
+  webcamX: number;
+  webcamY: number;
+  webcamScale: number;
+  animationSource?: string;
+  animationX: number;
+  animationY: number;
+  animationScale: number;
+  logoSource?: string;
+  logoPosition: "top-left" | "top-right" | "bottom-left" | "bottom-right";
+  logoScale: number;
+  animationPreset: AnimationPreset;
+  brightness: number;
+  contrast: number;
+  saturation: number;
+  hue: number;
+  chromaKeyEnabled: boolean;
+  chromaKeyTarget: EditorChromaTarget;
+  chromaKeyColor: string;
+  chromaSimilarity: number;
+  chromaBlend: number;
+};
 type EditorDraft = {
   groupId: string;
   animationGroupId: string;
@@ -68,6 +95,7 @@ type LiveChannel = {
   facePosition?: FacePosition; faceSize?: number; durationHours?: number; autoRestart?: boolean; streamQuality?: StreamQuality;
   playlistVideoIds?: string[];
   liveAnimationId?: string; liveAnimationX?: number; liveAnimationY?: number; liveAnimationScale?: number;
+  editorComposition?: EditorStreamComposition;
 };
 type VideoItem = {
   id: string; title: string; duration: string; status: VideoStatus; groupId: string;
@@ -130,6 +158,27 @@ async function apiJson<T>(path: string, init?: RequestInit): Promise<T> {
     throw error;
   }
   return payload;
+}
+function resolveStreamIngestUrl(streamUrl: string, streamKey: string): string {
+  const key = streamKey.trim();
+  if (!key) return streamUrl.trim();
+  if (streamUrl.includes("{streamKey}")) return streamUrl.replaceAll("{streamKey}", encodeURIComponent(key));
+  let url: URL;
+  try {
+    url = new URL(streamUrl.trim());
+  } catch {
+    return streamUrl.trim();
+  }
+  if (url.protocol === "rtmp:" || url.protocol === "rtmps:") {
+    const pathName = url.pathname.replace(/\/+$/, "");
+    url.pathname = `${pathName}/${encodeURIComponent(key)}`;
+    return url.toString();
+  }
+  if (url.pathname.includes("http_upload_hls")) {
+    if (!url.searchParams.get("cid")) url.searchParams.set("cid", key);
+    else if (!url.searchParams.get("stream_key")) url.searchParams.set("stream_key", key);
+  }
+  return url.toString();
 }
 type YoutubeDownloadResult = {
   fileId: string;
@@ -400,7 +449,7 @@ function ensureDefaultYoutubeFolders(groups: VideoGroup[]): VideoGroup[] {
     next.push({
       id: editedVideosFolderId,
       name: editedVideosFolderName,
-      description: "Protected destination for videos rendered by the editor.",
+      description: "Protected destination for media created by the workspace.",
       videoIds: [],
       createdAt: now(),
     });
@@ -1414,6 +1463,7 @@ function ChannelModal({ channel, groups, videos, onSave, onClose }: {channel?:Li
   const [form,setForm] = useState({
     groupId:channel?.groupId||"",
     streamUrl:channel?.streamUrl||"https://a.upload.youtube.com/http_upload_hls?cid=&copy=0&file=",
+    streamKey:channel?.streamKey||"",
     aspectRatio:channel?.aspectRatio||"full" as AspectRatio,
     playbackSpeed:channel?.playbackSpeed||1,
     faceGroupId:channel?.faceGroupId||"",
@@ -1451,17 +1501,19 @@ function ChannelModal({ channel, groups, videos, onSave, onClose }: {channel?:Li
     onSave({
       id:channel?.id||uid("ch"), title:channel?.title||`${platform} channel`, platform,
       status:channel?.status||"stopped", groupId:form.groupId, streamUrl:form.streamUrl.trim(),
-      streamKey:channel?.streamKey||"", viewers:channel?.viewers||0, startedAt:channel?.startedAt||null,
+      streamKey:form.streamKey.trim(), viewers:channel?.viewers||0, startedAt:channel?.startedAt||null,
       thumbnailColor:channel?.thumbnailColor||colors[0], createdAt:channel?.createdAt||now(),
        aspectRatio:form.aspectRatio, playbackSpeed:Number(form.playbackSpeed), faceGroupId:form.faceGroupId || undefined,
       facePosition:form.facePosition, faceSize:Number(form.faceSize), durationHours:Number(form.durationHours),
          autoRestart:form.autoRestart, streamQuality:form.streamQuality, playlistVideoIds:form.playlistVideoIds,
          liveAnimationId:channel?.liveAnimationId, liveAnimationX:channel?.liveAnimationX, liveAnimationY:channel?.liveAnimationY, liveAnimationScale:channel?.liveAnimationScale,
+          editorComposition:channel?.editorComposition,
     });
   };
    return <Modal title={channel ? "Update channel" : "Add live channel"} onClose={onClose} footer={<><button className="button ghost" onClick={onClose} data-testid="button-cancel-channel">Cancel</button><button className="button" type="submit" form="channel-form" disabled={!form.streamUrl.trim() || !form.groupId || !form.playlistVideoIds.length} data-testid="button-save-channel">{channel ? "Save changes" : "Add channel"} <Check size={14}/></button></>}><form id="channel-form" onSubmit={submit}>
     <div className="form-grid">
-      <div className="field full"><label>Live URL</label><input autoFocus required value={form.streamUrl} onChange={e=>set("streamUrl",e.target.value)} placeholder="https://a.upload.youtube.com/http_upload_hls?...&file=" data-testid="input-stream-url"/></div>
+     <div className="field full"><label>Live ingest URL</label><input autoFocus required value={form.streamUrl} onChange={e=>set("streamUrl",e.target.value)} placeholder="https://a.upload.youtube.com/http_upload_hls?...&file=" data-testid="input-stream-url"/><span className="field-hint">Keep the stream key separate here. For RTMP, the key is appended automatically when the channel starts.</span></div>
+       <div className="field full"><label>Stream key</label><input type="password" autoComplete="new-password" value={form.streamKey} onChange={e=>set("streamKey",e.target.value)} placeholder="Paste the platform stream key" data-testid="input-channel-stream-key"/><span className="field-hint">Stored only in this workspace and never shown in the channel table.</span></div>
        <div className="field"><label>Main video folder</label><select required value={form.groupId} onChange={e=>{const groupId=e.target.value;setForm(current=>({...current,groupId,playlistVideoIds:[]}));}} data-testid="select-channel-group"><option value="">Select a folder</option>{groups.map(g=><option key={g.id} value={g.id}>{g.name}</option>)}</select></div>
        <div className="field"><label>Live format</label><select value={form.aspectRatio} onChange={e=>set("aspectRatio",e.target.value as AspectRatio)} data-testid="select-channel-ratio"><option value="shorts">Shorts · 9:16 vertical</option><option value="full">Big live · 16:9 landscape</option><option value="square">Square · 1:1</option></select></div>
        <div className="field"><label>Video speed</label><select value={form.playbackSpeed} onChange={e=>set("playbackSpeed",Number(e.target.value))} data-testid="select-channel-speed"><option value="0.5">0.5× slow</option><option value="0.75">0.75×</option><option value="1">1× normal</option><option value="1.25">1.25×</option><option value="1.5">1.5×</option><option value="2">2× fast</option></select></div>
@@ -1493,6 +1545,24 @@ function ChannelModal({ channel, groups, videos, onSave, onClose }: {channel?:Li
 
 function ConfirmModal({title, copy, onConfirm, onClose}: {title:string;copy:string;onConfirm:()=>void;onClose:()=>void}) { return <Modal title={title} onClose={onClose} footer={<><button className="button ghost" onClick={onClose} data-testid="button-cancel-confirm">Keep it</button><button className="button danger" onClick={onConfirm} data-testid="button-confirm-delete"><Trash2 size={14}/> Delete</button></>}><p className="confirm-copy">{copy}</p><div className="form-note"><ShieldCheck size={14} style={{verticalAlign:"-3px",marginRight:6}}/>This action cannot be undone from the workspace.</div></Modal>; }
 
+function StreamKeyModal({
+  channel,
+  value,
+  onChange,
+  onContinue,
+  onClose,
+  busy,
+}: {
+  channel: LiveChannel;
+  value: string;
+  onChange: (value: string) => void;
+  onContinue: () => void;
+  onClose: () => void;
+  busy?: boolean;
+}) {
+  return <Modal title={`Add stream key · ${channel.title}`} onClose={onClose} footer={<><button className="button ghost" onClick={onClose} disabled={busy} data-testid="button-cancel-stream-key">Cancel</button><button className="button" onClick={onContinue} disabled={busy || !value.trim()} data-testid="button-continue-stream-key">Continue to stream <ArrowRight size={14}/></button></>}><div className="stream-key-notice"><ShieldCheck size={18}/><div><strong>This channel needs its stream key before it can go live.</strong><p>The edited composition is already attached. Add the key, continue, then use Start on the channel.</p></div></div><div className="field"><label htmlFor="stream-key-prompt">Stream key</label><input id="stream-key-prompt" type="password" autoFocus autoComplete="new-password" value={value} onChange={(event) => onChange(event.target.value)} placeholder="Paste your platform stream key" data-testid="input-stream-key-prompt"/><span className="field-hint">The key is used only to build the private ingest request. It is never displayed in the channel list.</span></div></Modal>;
+}
+
 function streamIdFor(clientId:string, channelId:string):string {
   return `${clientId}:${channelId}`;
 }
@@ -1522,11 +1592,11 @@ function videosForFolderScope(groupId: string | undefined, groups: VideoGroup[],
 function playlistFor(channel:LiveChannel, groups:VideoGroup[], videos:VideoItem[]) {
   const mainGroup=groups.find(group=>group.id===channel.groupId);
   const faceGroup=channel.faceGroupId?groups.find(group=>group.id===channel.faceGroupId):undefined;
-  const folderVideos=videosForGroup(channel.groupId, groups, videos);
+  const folderVideos=videosForFolderScope(channel.groupId, groups, videos);
   const mainVideos=channel.playlistVideoIds?.length
     ? channel.playlistVideoIds.map((id) => folderVideos.find((video) => video.id === id)).filter((video): video is VideoItem => Boolean(video))
     : folderVideos;
-  const faceVideos=videosForGroup(channel.faceGroupId, groups, videos);
+  const faceVideos=videosForFolderScope(channel.faceGroupId, groups, videos);
   return {
     category:mainGroup?.name,
     mainVideos,
@@ -1617,6 +1687,37 @@ function LiveAnimationControl({
   };
   const stopDragging = () => { dragRef.current = null; };
 
+  const composition = channel.editorComposition;
+  const editorWebcam = composition?.webcamSource
+    ? data.videos.find((video) => video.serverSource === composition.webcamSource)
+    : undefined;
+  const editorAnimation = composition?.animationSource
+    ? data.videos.find((video) => video.serverSource === composition.animationSource)
+    : undefined;
+  const previewFaceVideo = editorWebcam || faceVideo;
+  const previewAnimation = editorAnimation || animation;
+  const previewFaceSize = composition?.webcamScale ? composition.webcamScale * 100 : (channel.faceSize || 25);
+  const previewFaceStyle: CSSProperties | undefined = composition
+    ? {
+        width: `${previewFaceSize}%`,
+        left: `${50 + (composition.webcamX || 0)}%`,
+        top: `${50 + (composition.webcamY || 0)}%`,
+        transform: "translate(-50%, -50%)",
+      }
+    : undefined;
+  const previewMainStyle: CSSProperties | undefined = composition
+    ? {
+        transform: `translate(${composition.mainX || 0}%, ${composition.mainY || 0}%) scale(${composition.mainScale || 1})`,
+        filter: `brightness(${1 + (composition.brightness || 0)}) contrast(${composition.contrast || 1}) saturate(${composition.saturation || 1}) hue-rotate(${composition.hue || 0}deg)`,
+      }
+    : undefined;
+  const previewAnimationStyle: CSSProperties | undefined = composition
+    ? {
+        left: `${50 + (composition.animationX || 0)}%`,
+        top: `${50 + (composition.animationY || 0)}%`,
+        width: `${(composition.animationScale || 0.25) * 100}%`,
+      }
+    : undefined;
   return <section className="card live-animation-control" data-testid={`live-animation-control-${channel.id}`}>
     <div className="section-head">
       <div><h2 className="section-title">Live animation control</h2><p className="subtle">Drag an overlay on the preview, then apply it directly to the running stream.</p></div>
@@ -1631,15 +1732,15 @@ function LiveAnimationControl({
         onPointerUp={stopDragging}
         onPointerCancel={stopDragging}
       >
-        {mainVideo ? <video src={videoPlaybackUrl(mainVideo, licenseId)} muted autoPlay loop playsInline /> : <div className="live-animation-empty"><MonitorPlay size={22}/><span>Choose a live playlist first.</span></div>}
-        {faceVideo && <video
-          src={videoPlaybackUrl(faceVideo, licenseId)}
+        {mainVideo ? <video src={videoPlaybackUrl(mainVideo, licenseId)} muted autoPlay loop playsInline style={previewMainStyle} /> : <div className="live-animation-empty"><MonitorPlay size={22}/><span>Choose a live playlist first.</span></div>}
+        {previewFaceVideo && <video
+           src={videoPlaybackUrl(previewFaceVideo, licenseId)}
           muted
           autoPlay
           loop
           playsInline
           className={`live-server-face-layer live-webcam-${channel.facePosition || "bottom-right"}`}
-          style={{ width: `${(channel.faceSize || 25)}%` }}
+           style={previewFaceStyle || { width: `${(channel.faceSize || 25)}%` }}
         />}
         {webcamEnabled && webcamStream && <video
           ref={webcamRef}
@@ -1649,14 +1750,14 @@ function LiveAnimationControl({
           className={`live-webcam-layer live-webcam-${webcamPosition || "bottom-right"}`}
           style={{ width: `${(webcamScale || 0.25) * 100}%` }}
         />}
-        {animation && <video
-          src={videoPlaybackUrl(animation, licenseId)}
+        {previewAnimation && <video
+           src={videoPlaybackUrl(previewAnimation, licenseId)}
           muted
           autoPlay
           loop
           playsInline
           className="live-animation-layer"
-          style={{ left: `${50 + position.x}%`, top: `${50 + position.y}%`, width: `${position.scale * 100}%` }}
+           style={previewAnimationStyle || { left: `${50 + position.x}%`, top: `${50 + position.y}%`, width: `${position.scale * 100}%` }}
         />}
         <span className="live-animation-live-badge"><span className="status-dot"/>LIVE PREVIEW</span>
         {animation && <span className="live-animation-drag-hint">Drag overlay</span>}
@@ -1666,7 +1767,7 @@ function LiveAnimationControl({
         <div className="field"><label>Overlay size · {Math.round(position.scale * 100)}%</label><input type="range" min="10" max="80" value={Math.round(position.scale * 100)} onChange={(event) => setPosition((current) => ({ ...current, scale: Number(event.target.value) / 100 }))} disabled={!animation}/></div>
         <div className="live-animation-position"><span>Position {Math.round(position.x)} / {Math.round(position.y)}</span><button type="button" className="section-link" onClick={() => setPosition({ x: 0, y: 0, scale: 0.25 })} disabled={!animation}>Center overlay</button></div>
         <div className="live-animation-actions"><button type="button" className="button" onClick={() => void onApply({ id: animationId, x: position.x, y: position.y, scale: position.scale })} disabled={busy || !livePlaylist.videoSources.length}>{busy ? "Updating live…" : "Apply to live"} <Radio size={14}/></button><button type="button" className="button ghost" onClick={() => void onApply({ id: "", x: 0, y: 0, scale: 0.25 })} disabled={busy || !channel.liveAnimationId}>Remove overlay</button></div>
-        <span className="field-hint">The configured playlist, face camera, and animation are previewed together. Applying a new overlay briefly rebuilds the live FFmpeg composition without editing or saving the source video.</span>
+         <span className="field-hint">The configured playlist, edited layers, face camera, and animation are previewed together. Applying a new overlay briefly rebuilds the live FFmpeg composition without creating a rendered copy.</span>
       </div>
     </div>
   </section>;
@@ -1816,42 +1917,44 @@ function useLivePreviewDevices(streamId?: string) {
 }
 
 function LivePage({workspace}:{workspace:ReturnType<typeof useWorkspace>}) {
-  const {data,update}=workspace; const [editing,setEditing]=useState<LiveChannel|undefined>(); const [showForm,setShowForm]=useState(false); const [deleting,setDeleting]=useState<LiveChannel|undefined>(); const [busy,setBusy]=useState<string[]>([]);
+  const {data,update}=workspace; const [editing,setEditing]=useState<LiveChannel|undefined>(); const [showForm,setShowForm]=useState(false); const [deleting,setDeleting]=useState<LiveChannel|undefined>(); const [busy,setBusy]=useState<string[]>([]); const [streamKeyChannel,setStreamKeyChannel]=useState<LiveChannel|undefined>(); const [streamKeyDraft,setStreamKeyDraft]=useState("");
   const playlistSignatures=useRef(new Map<string,string>());
   const save=(channel:LiveChannel)=>{const exists=data.channels.some(c=>c.id===channel.id); update({channels:exists?data.channels.map(c=>c.id===channel.id?channel:c):[channel,...data.channels]}, {message:exists?`${channel.title} was updated`:`${channel.title} was added`,type:"edit"}); setShowForm(false);setEditing(undefined);};
-  const start=async(c:LiveChannel)=>{if(busy.includes(c.id))return;setBusy(ids=>[...ids,c.id]);try{
+  const start=async(c:LiveChannel)=>{if(busy.includes(c.id))return;if(!c.streamKey?.trim()){setStreamKeyDraft("");setStreamKeyChannel(c);return;}setBusy(ids=>[...ids,c.id]);try{
      const playlist=playlistFor(c,data.groups,data.videos);
      const category=playlist.category;
      const faceCategory=playlist.faceCategory;
      const mainVideo=playlist.mainVideos[0];
      const faceVideo=playlist.faceVideos[0];
-      const liveAnimation=data.videos.find((video)=>video.id===c.liveAnimationId && video.serverSource);
+       const composition=c.editorComposition;
+       const liveAnimation=data.videos.find((video)=>video.id===c.liveAnimationId && video.serverSource);
      if(!category)throw new Error("Choose a video category before starting.");
       if(!playlist.mainVideos.length)throw new Error("Tick at least one video in the selected folder before starting.");
       if(!playlist.mainVideos.every(video=>video.serverSource))throw new Error("Every ticked video in the selected folder must be server-ready before starting.");
      if(playlist.faceVideos.length&&!playlist.faceVideos.every(video=>video.serverSource))throw new Error("Every video in the face category must be server-ready before starting.");
      const scopedStreamId=streamIdFor(workspace.clientId,c.id);
     const result=await startStream({
-        streamId:scopedStreamId, ingestUrl:c.streamUrl, category, videoSource:mainVideo?.serverSource,
+         streamId:scopedStreamId, ingestUrl:resolveStreamIngestUrl(c.streamUrl,c.streamKey), category, videoSource:mainVideo?.serverSource,
         videoSources:playlist.videoSources,
-        faceCategory, faceSource:faceVideo?.serverSource,
-        faceSources:playlist.faceSources,
+         faceCategory:composition?.webcamSource ? "editor face cam" : faceCategory, faceSource:composition?.webcamSource || faceVideo?.serverSource,
+         faceSources:composition?.webcamSource ? [composition.webcamSource] : playlist.faceSources,
        playbackSpeed:c.playbackSpeed||1, quality:c.streamQuality||"4k", aspectRatio:c.aspectRatio||"full", facePosition:c.facePosition||"bottom-right",
       faceScale:(c.faceSize||25)/100, durationMinutes:(c.durationHours||1)*60,
       autoRestart:Boolean(c.autoRestart),
       voiceAudio:true,
-       liveAnimationSource:liveAnimation?.serverSource,
-       liveAnimationX:c.liveAnimationX||0,
-       liveAnimationY:c.liveAnimationY||0,
-       liveAnimationScale:c.liveAnimationScale||0.25,
+        liveAnimationSource:composition?.animationSource || liveAnimation?.serverSource,
+        liveAnimationX:composition?.animationX ?? c.liveAnimationX ?? 0,
+        liveAnimationY:composition?.animationY ?? c.liveAnimationY ?? 0,
+        liveAnimationScale:composition?.animationScale ?? c.liveAnimationScale ?? 0.25,
+        composition,
     });
     if(result.status!=="running")throw new Error(result.message);
-      playlistSignatures.current.set(scopedStreamId,JSON.stringify({videoSources:playlist.videoSources,faceSources:playlist.faceSources,liveAnimationId:c.liveAnimationId,liveAnimationX:c.liveAnimationX||0,liveAnimationY:c.liveAnimationY||0,liveAnimationScale:c.liveAnimationScale||0.25}));
+       playlistSignatures.current.set(scopedStreamId,JSON.stringify({videoSources:playlist.videoSources,faceSources:composition?.webcamSource?[composition.webcamSource]:playlist.faceSources,liveAnimationId:c.liveAnimationId,liveAnimationX:(composition?.animationX ?? c.liveAnimationX) || 0,liveAnimationY:(composition?.animationY ?? c.liveAnimationY) || 0,liveAnimationScale:(composition?.animationScale ?? c.liveAnimationScale) || 0.25,composition}));
     update({channels:data.channels.map(x=>x.id===c.id?{...x,status:"live",viewers:0,startedAt:now()}:x)},{message:`${c.title} is now streaming from the ${category} video`,type:"live"});
   }catch(error){workspace.setToast(error instanceof Error?error.message:"Could not start the real stream.");}finally{setBusy(ids=>ids.filter(id=>id!==c.id));}};
    const stop=async(c:LiveChannel)=>{if(busy.includes(c.id))return;setBusy(ids=>[...ids,c.id]);try{const scopedStreamId=streamIdFor(workspace.clientId,c.id);await stopStream({streamId:scopedStreamId});playlistSignatures.current.delete(scopedStreamId);update({channels:data.channels.map(x=>x.id===c.id?{...x,status:"stopped",viewers:0}:x)},{message:`${c.title} was taken off air`,type:"edit"});}catch(error){workspace.setToast(error instanceof Error?error.message:"Could not stop the stream.");}finally{setBusy(ids=>ids.filter(id=>id!==c.id));}};
    useEffect(()=>{const liveChannels=data.channels.filter(c=>c.status==="live");if(!liveChannels.length)return;const timer=window.setInterval(()=>{void Promise.all(liveChannels.map(async c=>{try{const result=await getStreamStatus(streamIdFor(workspace.clientId,c.id));if(result.status!=="running"){update({channels:data.channels.map(x=>x.id===c.id?{...x,status:"stopped",viewers:0}:x)},{message:`${c.title} stream process ${result.status}`,type:"edit"});}}catch{ /* Keep the visible state until the API is reachable again. */ }}));},5000);return()=>window.clearInterval(timer);},[data.channels,update,workspace.clientId]);
-    useEffect(()=>{const liveChannels=data.channels.filter(c=>c.status==="live");void Promise.all(liveChannels.map(async c=>{const scopedStreamId=streamIdFor(workspace.clientId,c.id);const playlist=playlistFor(c,data.groups,data.videos);if(!playlist.category)return;const liveAnimation=data.videos.find((video)=>video.id===c.liveAnimationId && video.serverSource);const signature=JSON.stringify({videoSources:playlist.videoSources,faceSources:playlist.faceSources,liveAnimationId:c.liveAnimationId,liveAnimationX:c.liveAnimationX||0,liveAnimationY:c.liveAnimationY||0,liveAnimationScale:c.liveAnimationScale||0.25});if(playlistSignatures.current.get(scopedStreamId)===signature)return;if(!playlist.videoSources.length){try{await stopStream({streamId:scopedStreamId});playlistSignatures.current.set(scopedStreamId,signature);update({channels:data.channels.map(x=>x.id===c.id?{...x,status:"stopped",viewers:0}:x)},{message:`${c.title} stopped because its playlist is empty`,type:"edit"});}catch(error){workspace.setToast(error instanceof Error?error.message:"The empty live playlist could not be stopped.");}return;}try{await updateStream({streamId:scopedStreamId,ingestUrl:c.streamUrl,category:playlist.category,videoSources:playlist.videoSources,videoSource:playlist.mainVideos[0]?.serverSource,faceCategory:playlist.faceSources.length?playlist.faceCategory:undefined,faceSources:playlist.faceSources,playbackSpeed:c.playbackSpeed||1,quality:c.streamQuality||"4k",aspectRatio:c.aspectRatio||"full",facePosition:c.facePosition||"bottom-right",faceScale:(c.faceSize||25)/100,durationMinutes:(c.durationHours||1)*60,autoRestart:Boolean(c.autoRestart),voiceAudio:true,liveAnimationSource:liveAnimation?.serverSource,liveAnimationX:c.liveAnimationX||0,liveAnimationY:c.liveAnimationY||0,liveAnimationScale:c.liveAnimationScale||0.25});playlistSignatures.current.set(scopedStreamId,signature);workspace.setToast(`${c.title} playlist updated while live`);}catch(error){workspace.setToast(error instanceof Error?error.message:"The live playlist could not be updated.");}}));},[data.channels,data.groups,data.videos,workspace.clientId,workspace.setToast,update]);
+    useEffect(()=>{const liveChannels=data.channels.filter(c=>c.status==="live");void Promise.all(liveChannels.map(async c=>{const scopedStreamId=streamIdFor(workspace.clientId,c.id);const playlist=playlistFor(c,data.groups,data.videos);if(!playlist.category)return;const composition=c.editorComposition;const liveAnimation=data.videos.find((video)=>video.id===c.liveAnimationId && video.serverSource);const signature=JSON.stringify({videoSources:playlist.videoSources,faceSources:composition?.webcamSource?[composition.webcamSource]:playlist.faceSources,liveAnimationId:c.liveAnimationId,liveAnimationX:(composition?.animationX ?? c.liveAnimationX) || 0,liveAnimationY:(composition?.animationY ?? c.liveAnimationY) || 0,liveAnimationScale:(composition?.animationScale ?? c.liveAnimationScale) || 0.25,composition});if(playlistSignatures.current.get(scopedStreamId)===signature)return;if(!playlist.videoSources.length){try{await stopStream({streamId:scopedStreamId});playlistSignatures.current.set(scopedStreamId,signature);update({channels:data.channels.map(x=>x.id===c.id?{...x,status:"stopped",viewers:0}:x)},{message:`${c.title} stopped because its playlist is empty`,type:"edit"});}catch(error){workspace.setToast(error instanceof Error?error.message:"The empty live playlist could not be stopped.");}return;}try{await updateStream({streamId:scopedStreamId,ingestUrl:resolveStreamIngestUrl(c.streamUrl,c.streamKey),category:playlist.category,videoSources:playlist.videoSources,videoSource:playlist.mainVideos[0]?.serverSource,faceCategory:composition?.webcamSource?"editor face cam":(playlist.faceSources.length?playlist.faceCategory:undefined),faceSource:composition?.webcamSource||playlist.faceVideos[0]?.serverSource,faceSources:composition?.webcamSource?[composition.webcamSource]:playlist.faceSources,playbackSpeed:c.playbackSpeed||1,quality:c.streamQuality||"4k",aspectRatio:c.aspectRatio||"full",facePosition:c.facePosition||"bottom-right",faceScale:(c.faceSize||25)/100,durationMinutes:(c.durationHours||1)*60,autoRestart:Boolean(c.autoRestart),voiceAudio:true,liveAnimationSource:composition?.animationSource||liveAnimation?.serverSource,liveAnimationX:(composition?.animationX ?? c.liveAnimationX) || 0,liveAnimationY:(composition?.animationY ?? c.liveAnimationY) || 0,liveAnimationScale:(composition?.animationScale ?? c.liveAnimationScale) || 0.25,composition});playlistSignatures.current.set(scopedStreamId,signature);workspace.setToast(`${c.title} playlist updated while live`);}catch(error){workspace.setToast(error instanceof Error?error.message:"The live playlist could not be updated.");}}));},[data.channels,data.groups,data.videos,workspace.clientId,workspace.setToast,update]);
    const groupsById=useMemo(()=>Object.fromEntries(data.groups.map(g=>[g.id,g.name])),[data.groups]);
    return <AppShell title="Live channels" workspace={workspace}><div className="page live-page"><div className="page-head"><div><p className="eyebrow">Broadcast operations / control room</p><h1>Live channels</h1><p className="subtle">Prepare your destinations, then take the room live with confidence.</p></div><div className="page-head-actions"><span className="page-live-indicator"><span className="status-dot"/>{data.channels.filter(c=>c.status==="live").length ? "Signal monitored" : "Room is ready"}</span><button className="button" onClick={()=>{setEditing(undefined);setShowForm(true)}} data-testid="button-add-channel"><Plus size={16}/> Add channel</button></div></div>
       <div className="live-overview-grid">
@@ -1861,7 +1964,7 @@ function LivePage({workspace}:{workspace:ReturnType<typeof useWorkspace>}) {
       </div>
      <div className="card section-card"><div className="section-head"><div><h2 className="section-title">{data.channels.length} channel{data.channels.length===1?"":"s"}</h2><p className="subtle" style={{margin:"5px 0 0",fontSize:11}}>{data.channels.filter(c=>c.status==="live").length} currently broadcasting · {data.channels.filter(c=>c.status==="scheduled").length} scheduled</p></div><div className="status live"><span className="status-dot"/>{data.channels.filter(c=>c.status==="live").length ? "Room monitored" : "Room quiet"}</div></div>{data.channels.length===0?<EmptyState icon={<MonitorPlay size={21}/>} title="Your live room is empty" copy="Add a destination to start preparing your first broadcast." action="Add first channel" onClick={()=>setShowForm(true)}/>:<div className="table-wrap"><table className="data-table"><thead><tr><th>Channel</th><th>Platform</th><th>Status</th><th>Playlist</th><th>Live URL</th><th/></tr></thead><tbody>{data.channels.map(c=><tr key={c.id} data-testid={`row-channel-${c.id}`}><td><div style={{display:"flex",alignItems:"center",gap:10}}><div className="thumb" style={{background:c.thumbnailColor,width:34,height:34}}><Radio size={14}/></div><div><div className="table-title">{c.title}</div><div className="table-sub">{c.status==="live" ? `Live for ${fmtTime(c.startedAt)}` : "Ready to broadcast"}</div></div></div></td><td><span className="mono" style={{fontSize:11}}>{c.platform}</span></td><td><div className={`status ${c.status}`}><span className="status-dot"/>{c.status}</div></td><td><span className="table-sub">{groupsById[c.groupId]||"Unassigned"} · {c.playlistVideoIds?.length || videosForGroup(c.groupId,data.groups,data.videos).length} video{(c.playlistVideoIds?.length || videosForGroup(c.groupId,data.groups,data.videos).length)===1?"":"s"}</span></td><td><span className="table-sub url-cell" title={c.streamUrl}>{c.streamUrl}</span></td><td><div className="actions">{c.status==="live"?<button className="button warn small" onClick={()=>stop(c)} data-testid={`button-stop-${c.id}`}><Square size={12}/> Stop</button>:<button className="button secondary small" onClick={()=>start(c)} data-testid={`button-start-${c.id}`}><Play size={12}/> Start</button>}<button className="icon-button" style={{width:30,height:30}} onClick={()=>{setEditing(c);setShowForm(true)}} title="Edit channel" data-testid={`button-edit-channel-${c.id}`}><Pencil size={13}/></button><button className="icon-button" style={{width:30,height:30}} onClick={()=>setDeleting(c)} title="Delete channel" data-testid={`button-delete-channel-${c.id}`}><Trash2 size={13}/></button></div></td></tr>)}</tbody></table></div>}</div>
      <div className="card section-card" style={{marginTop:18}}><div className="section-head"><div><h2 className="section-title">Signal checklist</h2><p className="subtle" style={{margin:"5px 0 0",fontSize:11}}>A few calm checks before you go on air.</p></div><Clipboard size={17} color="#6c8b83"/></div><div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(190px,1fr))",gap:10}}>{["Live URL is saved locally","At least one destination is ready","Stream process status is monitored"].map((t)=><div key={t} style={{display:"flex",gap:9,alignItems:"center",fontSize:11,color:"#60736c",padding:11,background:"#f5f8f1",borderRadius:8}}><span style={{width:20,height:20,borderRadius:"50%",display:"grid",placeItems:"center",background:"#dcefe1",color:"#2a7a72"}}><Check size={12}/></span>{t}</div>)}</div></div>
-  </div>{showForm&&<ChannelModal channel={editing} groups={data.groups} videos={data.videos} onSave={save} onClose={()=>{setShowForm(false);setEditing(undefined)}}/>}{deleting&&<ConfirmModal title="Delete this channel?" copy={`“${deleting.title}” and its stream settings will be removed from this workspace. Any live signal must be stopped first.`} onClose={()=>setDeleting(undefined)} onConfirm={()=>{update({channels:data.channels.filter(c=>c.id!==deleting.id)},{message:`${deleting.title} was deleted`,type:"edit"});setDeleting(undefined)}}/>}</AppShell>;
+   </div>{showForm&&<ChannelModal channel={editing} groups={data.groups} videos={data.videos} onSave={save} onClose={()=>{setShowForm(false);setEditing(undefined)}}/>}{deleting&&<ConfirmModal title="Delete this channel?" copy={`“${deleting.title}” and its stream settings will be removed from this workspace. Any live signal must be stopped first.`} onClose={()=>setDeleting(undefined)} onConfirm={()=>{update({channels:data.channels.filter(c=>c.id!==deleting.id)},{message:`${deleting.title} was deleted`,type:"edit"});setDeleting(undefined)}}/>}{streamKeyChannel&&<StreamKeyModal channel={streamKeyChannel} value={streamKeyDraft} onChange={setStreamKeyDraft} onClose={()=>setStreamKeyChannel(undefined)} onContinue={()=>{const channel={...streamKeyChannel,streamKey:streamKeyDraft.trim()};update({channels:data.channels.map((item)=>item.id===channel.id?channel:item)},{message:`Stream key saved for ${channel.title}`,type:"edit"});setStreamKeyChannel(undefined);void start(channel);}}/>}</AppShell>;
 }
 
 function LivePreviewPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}) {
@@ -1895,15 +1998,24 @@ function LivePreviewPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}
     setOverlayBusy(true);
     try {
       const streamId = streamIdFor(workspace.clientId, selectedChannel.id);
+      const composition = selectedChannel.editorComposition
+        ? {
+            ...selectedChannel.editorComposition,
+            animationSource: animation?.serverSource,
+            animationX: settings.x,
+            animationY: settings.y,
+            animationScale: settings.scale,
+          }
+        : undefined;
       await updateStream({
         streamId,
-        ingestUrl: selectedChannel.streamUrl,
+        ingestUrl: resolveStreamIngestUrl(selectedChannel.streamUrl, selectedChannel.streamKey),
         category: playlist.category || "",
         videoSource: playlist.mainVideos[0]?.serverSource,
         videoSources: playlist.videoSources,
-        faceCategory: playlist.faceSources.length ? playlist.faceCategory : undefined,
-        faceSource: playlist.faceVideos[0]?.serverSource,
-        faceSources: playlist.faceSources,
+        faceCategory: composition?.webcamSource ? "editor face cam" : (playlist.faceSources.length ? playlist.faceCategory : undefined),
+        faceSource: composition?.webcamSource || playlist.faceVideos[0]?.serverSource,
+        faceSources: composition?.webcamSource ? [composition.webcamSource] : playlist.faceSources,
         playbackSpeed: selectedChannel.playbackSpeed || 1,
         quality: selectedChannel.streamQuality || "4k",
         aspectRatio: selectedChannel.aspectRatio || "full",
@@ -1912,10 +2024,11 @@ function LivePreviewPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}
         durationMinutes: (selectedChannel.durationHours || 1) * 60,
         autoRestart: Boolean(selectedChannel.autoRestart),
         voiceAudio: true,
-        liveAnimationSource: animation?.serverSource,
+        liveAnimationSource: composition?.animationSource || animation?.serverSource,
         liveAnimationX: settings.x,
         liveAnimationY: settings.y,
         liveAnimationScale: settings.scale,
+        composition,
       });
       const next = {
         ...selectedChannel,
@@ -1923,6 +2036,7 @@ function LivePreviewPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}
         liveAnimationX: settings.x,
         liveAnimationY: settings.y,
         liveAnimationScale: settings.scale,
+        editorComposition: composition,
       };
       update(
         { channels: data.channels.map((channel) => channel.id === next.id ? next : channel) },
@@ -2067,6 +2181,50 @@ function TrimModal({video,licenseId="",licenseName="",folderName="",onCreate,onC
       <div className="form-note"><Scissors size={14} style={{verticalAlign:"-3px",marginRight:6}}/>Use HH:MM:SS or MM:SS; milliseconds are optional. Save karne par original video replace hokar selected part hi rahega; stream quality preserve karne ke liye lossless copy prefer hoti hai. {duration>0&&<span>Source length: {formatTimecode(duration)}.</span>}</div>
     {error&&<div className="error-note">{error}</div>}
   </form></Modal>;
+}
+
+function AddToStreamChannelModal({
+  channels,
+  mainGroupId,
+  mainVideoIds,
+  animationId,
+  title,
+  composition,
+  onSave,
+  onClose,
+}: {
+  channels: LiveChannel[];
+  mainGroupId: string;
+  mainVideoIds: string[];
+  animationId?: string;
+  title: string;
+  composition: EditorStreamComposition;
+  onSave: (channel: LiveChannel) => void;
+  onClose: () => void;
+}) {
+  const [channelId, setChannelId] = useState(channels[0]?.id || "");
+  const channel = channels.find((item) => item.id === channelId);
+  const [streamKey, setStreamKey] = useState(channel?.streamKey || "");
+  useEffect(() => {
+    setStreamKey(channel?.streamKey || "");
+  }, [channelId, channel?.streamKey]);
+  const continueToStream = () => {
+    if (!channel || !streamKey.trim() || !mainGroupId || !mainVideoIds.length) return;
+    onSave({
+      ...channel,
+      groupId: mainGroupId,
+      playlistVideoIds: mainVideoIds,
+      streamKey: streamKey.trim(),
+      liveAnimationId: animationId || undefined,
+      liveAnimationX: composition.animationX,
+      liveAnimationY: composition.animationY,
+      liveAnimationScale: composition.animationScale,
+      editorComposition: composition,
+    });
+  };
+  return <Modal title="Add edited stream to a channel" onClose={onClose} footer={channels.length ? <><button className="button ghost" onClick={onClose} data-testid="button-cancel-add-stream">Cancel</button><button className="button" onClick={continueToStream} disabled={!channel || !streamKey.trim() || !mainGroupId || !mainVideoIds.length} data-testid="button-continue-add-stream">Continue to stream channel <ArrowRight size={14}/></button></> : <Link className="button" href="/live" onClick={onClose}>Create a stream channel <ArrowRight size={14}/></Link>}>
+    {!channels.length ? <div className="stream-key-notice"><Radio size={18}/><div><strong>Create a stream channel first.</strong><p>Your edited composition will be ready to attach as soon as a destination is configured.</p></div></div> : <><div className="stream-key-notice"><Check size={18}/><div><strong>{title || "Edited composition"} is ready.</strong><p>The selected clips, face cam, animation, logo, color adjustments, and canvas positions will be used by the live encoder without creating a slow rendered copy.</p></div></div><div className="field"><label>Stream channel</label><select value={channelId} onChange={(event) => setChannelId(event.target.value)} data-testid="select-add-stream-channel">{channels.map((item) => <option key={item.id} value={item.id}>{item.title} · {item.status}</option>)}</select></div><div className="field"><label>Stream key</label><input type="password" autoFocus autoComplete="new-password" value={streamKey} onChange={(event) => setStreamKey(event.target.value)} placeholder="Paste your platform stream key" data-testid="input-add-stream-key"/><span className="field-hint">The key is required before Continue. It is used only when this channel starts.</span></div><div className="form-note"><ShieldCheck size={14} style={{verticalAlign:"-3px",marginRight:6}}/>After Continue, open the channel, press Start, then use Live Stream Preview for the live composition, face cam, and voice-over.</div></>}
+  </Modal>;
 }
 
 function YoutubeDownloadModal({groups,defaultGroupId="",licenseId="",licenseName="",onSaveMany,onClose}:{groups:VideoGroup[];defaultGroupId?:string;licenseId?:string;licenseName?:string;onSaveMany:(input:VideoItem[] | StartYoutubeDownloadsInput)=>void;onClose:()=>void}) {
@@ -2231,7 +2389,7 @@ function VideosPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}) {
       const canAddChild=!isIncludedFolder(g.id,data.groups);
       const canAddVideo=isUserUploadFolder(g.id,data.groups);
       const canManageChildren=!isProtectedWorkspaceFolder(g,data.groups);
-      const openLabel=isRoot?"Choose Included Animations or My Animations":g.id===includedAnimationFolderId?"Admin managed · shared with every license":g.id===myAnimationFolderId?"Private to this license":isEditedVideosFolder(g.id,data.groups)?"Protected render destination":"Open folder";
+      const openLabel=isRoot?"Choose Included Animations or My Animations":g.id===includedAnimationFolderId?"Admin managed · shared with every license":g.id===myAnimationFolderId?"Private to this license":isEditedVideosFolder(g.id,data.groups)?"Protected media destination":"Open folder";
        return <div className="folder-tree-node" key={g.id}><div className={`card group-card ${children.length ? "group-card-parent" : ""}`} data-testid={`card-group-${g.id}`}><button className={`group-open ${isRoot ? "group-open-static" : ""}`} disabled={isRoot} onClick={()=>openGroup(g.id)} data-testid={`button-open-group-${g.id}`}><h3>{g.name}{isEditedVideosFolder(g.id,data.groups)&&<span className="folder-protected-badge">Protected</span>}</h3><p>{g.description||"No description yet."}</p><span className="group-open-label">{openLabel} {!isRoot&&<ArrowRight size={12}/>}</span></button><div className="group-foot"><span>{g.videoIds.length} video{g.videoIds.length===1?"":"s"}</span><div className="group-actions">{canAddVideo&&<button onClick={()=>openAddVideo(g.id)} className="section-link" data-testid={`button-add-video-${g.id}`}>Add video</button>}{canAddChild&&canManageChildren&&<button onClick={()=>openNewGroup(g.id)} className="section-link" data-testid={`button-add-subfolder-${g.id}`}>Add folder inside</button>}{!isProtectedWorkspaceFolder(g,data.groups)&&<button onClick={()=>setDeleting({kind:"group",id:g.id,name:g.name})} className="section-link" style={{color:"#a05b45"}} data-testid={`button-delete-group-${g.id}`}>Delete</button>}</div></div>{children.length>0&&<div className="folder-tree-children"><span className="folder-tree-label">Inside {g.name}</span>{children.filter((child)=>!isIncludedFolder(child.id,data.groups)).map(renderGroupCard)}</div>}</div></div>;
     };
       const personalGroups = data.groups.filter((item) => !isYoutubeAnimationRoot(item.id, data.groups) && !isIncludedFolder(item.id, data.groups));
@@ -2241,6 +2399,7 @@ function VideosPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}) {
 
 function VideoEditorPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}) {
   const {data, update, setToast} = workspace;
+  const [, setLocation] = useLocation();
   const [groupId, setGroupId] = useState("");
   const [animationGroupId, setAnimationGroupId] = useState("");
   const [editorLibrary, setEditorLibrary] = useState<"personal" | "youtube">("personal");
@@ -2270,15 +2429,12 @@ function VideoEditorPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}
   const [animationTransform, setAnimationTransform] = useState<EditorTransform>({ x: 0, y: 0, scale: 0.25 });
   const [logoId, setLogoId] = useState("");
   const [previewExpanded, setPreviewExpanded] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const [renderProgress, setRenderProgress] = useState(0);
-  const [renderPhase, setRenderPhase] = useState("");
   const [error, setError] = useState("");
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [draftHydrated, setDraftHydrated] = useState(false);
+  const [showAddToStream, setShowAddToStream] = useState(false);
   const editorDraft = data.editorDraft;
   const selectedGroup = data.groups.find((group) => group.id === groupId);
-  const editedGroup = data.groups.find((group) => isEditedVideosFolder(group.id, data.groups));
   const editorGroups = useMemo(
     () => data.groups.filter((group) => editorLibrary === "youtube"
       ? isAnimationFolder(group.id, data.groups)
@@ -2510,141 +2666,54 @@ function VideoEditorPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}
       setUploadingLogo(false);
     }
   };
-  const compose = async (event: FormEvent) => {
-    event.preventDefault();
-    if (!groupId || selectedVideos.length === 0 || busy) {
-      setError("Choose a category and at least one server-ready video.");
-      return;
-    }
-    setBusy(true);
-    setRenderProgress(0);
-    setRenderPhase("Preparing source playlist");
-    setError("");
-    let renderedResult: { fileId: string; sourcePath: string; playbackUrl: string; duration: string } | undefined;
-    try {
-      const response = await fetch("/api/media/compose", {
-        method: "POST",
-        headers: {
-          "X-License-Id": workspace.licenseId,
-          "X-License-Name": workspace.user,
-          "X-Folder-Name": folderPathForGroup(editedGroup?.id, data.groups) || editedVideosFolderName,
-          "Accept": "application/x-ndjson",
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          fileIds: selectedVideos.map((video) => getMediaFileId(video)).filter((id): id is string => Boolean(id)),
-          title: title.trim() || `${selectedGroup?.name || "Library"} · edited`,
-           loopCount: loopEnabled ? Number(loopCount) : 1,
-          logoFileId: logo?.fileId,
-          webcamFileId: webcam ? getMediaFileId(webcam) : undefined,
-          animationFileId: animation ? getMediaFileId(animation) : undefined,
-          logoPosition,
-          mainX: mainTransform.x,
-          mainY: mainTransform.y,
-          mainScale: mainTransform.scale,
-          webcamX: webcamTransform.x,
-          webcamY: webcamTransform.y,
-          webcamScale: webcamTransform.scale,
-          animationX: animationTransform.x,
-          animationY: animationTransform.y,
-          animationScale: animationTransform.scale,
-          overlayScale: Number(overlayScale) / 100,
-          animationPreset,
-          outputAspectRatio,
-           cropMode,
-           reverseVideo,
-           brightness: colorAdjustments.brightness,
-           contrast: colorAdjustments.contrast,
-           saturation: colorAdjustments.saturation,
-           hue: colorAdjustments.hue,
-           chromaKeyEnabled,
-           chromaKeyTarget,
-           chromaKeyColor,
-           chromaSimilarity,
-           chromaBlend,
-        }),
-      });
-      if (!response.ok) {
-        const payload = await response.json().catch(() => undefined) as { error?: string } | undefined;
-        throw new Error(payload?.error || `Render failed with status ${response.status}.`);
-      }
-      if (!response.body) throw new Error("The render connection closed before returning progress.");
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-      let buffer = "";
-      while (true) {
-        const chunk = await reader.read();
-        buffer += decoder.decode(chunk.value || new Uint8Array(), { stream: !chunk.done });
-        const lines = buffer.split(/\r?\n/);
-        buffer = lines.pop() || "";
-        for (const line of lines) {
-          if (!line.trim()) continue;
-          const event = JSON.parse(line) as {
-            type: "progress" | "complete" | "error";
-            progress?: number;
-            phase?: string;
-            result?: { fileId: string; sourcePath: string; playbackUrl: string; duration: string };
-            error?: string;
-          };
-          if (event.type === "progress") {
-            setRenderProgress(Math.max(0, Math.min(100, event.progress || 0)));
-            setRenderPhase(event.phase || "Rendering final video");
-          } else if (event.type === "error") {
-            throw new Error(event.error || "The edited video could not be created.");
-          } else if (event.type === "complete" && event.result) {
-            renderedResult = event.result;
-          }
-        }
-        if (chunk.done) break;
-      }
-      if (!renderedResult) throw new Error("The render ended without producing a video file.");
-      const result = renderedResult;
-      const output: VideoItem = {
-        id: uid("vid"),
-        title: title.trim() || `${selectedGroup?.name || "Library"} · edited`,
-        duration: result.duration,
-        status: "published",
-        groupId: editedGroup?.id || editedVideosFolderId,
-        sourceUrl: result.playbackUrl,
-        serverSource: result.sourcePath,
-        thumbnailColor: "#2c8b88",
-        views: 0,
-        createdAt: now(),
-        licenseId: workspace.licenseId,
-        licenseName: workspace.user,
-        folderName: folderPathForGroup(editedGroup?.id, data.groups) || editedVideosFolderName,
-        quality: "edited",
-      };
-      const videos = [...data.videos, output];
-      setRenderProgress(96);
-      update({ videos, groups: rebuildGroupMembership(data.groups, videos) }, { message: `${output.title} was saved to Edited Videos`, type: "video" });
-      setToast("Edited video is ready in the protected Edited Videos folder.");
-    } catch (reason) {
-      setError(reason instanceof Error ? reason.message : "The edited video could not be created.");
-      setRenderProgress(0);
-      setRenderPhase("");
-    } finally {
-      setBusy(false);
-      if (renderedResult) {
-        setRenderProgress(100);
-        window.setTimeout(() => {
-          setRenderProgress(0);
-          setRenderPhase("");
-        }, 1200);
-      }
-    }
+  const streamComposition: EditorStreamComposition = {
+    mainX: mainTransform.x,
+    mainY: mainTransform.y,
+    mainScale: mainTransform.scale,
+    cropMode,
+    webcamSource: webcam?.serverSource,
+    webcamX: webcamTransform.x,
+    webcamY: webcamTransform.y,
+    webcamScale: webcamTransform.scale,
+    animationSource: animation?.serverSource,
+    animationX: animationTransform.x,
+    animationY: animationTransform.y,
+    animationScale: animationTransform.scale,
+    logoSource: logo?.sourcePath,
+    logoPosition: logoPosition as EditorStreamComposition["logoPosition"],
+    logoScale: Number(overlayScale) / 100,
+    animationPreset,
+    brightness: colorAdjustments.brightness,
+    contrast: colorAdjustments.contrast,
+    saturation: colorAdjustments.saturation,
+    hue: colorAdjustments.hue,
+    chromaKeyEnabled,
+    chromaKeyTarget,
+    chromaKeyColor,
+    chromaSimilarity,
+    chromaBlend,
+  };
+  const attachToStream = (channel: LiveChannel) => {
+    const exists = data.channels.some((item) => item.id === channel.id);
+    update(
+      { channels: exists ? data.channels.map((item) => item.id === channel.id ? channel : item) : [channel, ...data.channels] },
+      { message: `${channel.title} is ready with the edited stream`, type: "live" },
+    );
+    setShowAddToStream(false);
+    setToast(`${channel.title} is ready. Open Live channels and press Start.`);
+    setLocation("/live");
   };
   return <AppShell title="Video editor" workspace={workspace}>
     <div className="page editor-page">
       <div className="page-head">
-         <div><p className="eyebrow">Edit & compose</p><h1>Build your video</h1><p className="subtle">Pick a category, choose Short or Long format, add a face cam, and save the final file back into your library.</p></div>
-        <div className="editor-head-badge"><Wand2 size={15}/> Server render</div>
+         <div><p className="eyebrow">Edit & compose</p><h1>Build your live signal</h1><p className="subtle">Shape the video, add layers, then send the finished composition directly to a stream channel.</p></div>
+        <div className="editor-head-badge"><Radio size={15}/> Direct to stream</div>
       </div>
        <div className="editor-command-bar">
-         <div className="editor-command-intro"><span className="editor-command-kicker">Production desk</span><strong>Shape the next signal</strong><span>Every choice is previewed here before the server renders your final file.</span></div>
-         <div className="editor-steps"><div className="editor-step active"><b>01</b><span>Choose clips</span></div><div className="editor-step"><b>02</b><span>Compose layers</span></div><div className="editor-step"><b>03</b><span>Render library cut</span></div></div>
+          <div className="editor-command-intro"><span className="editor-command-kicker">Production desk</span><strong>Shape the next signal</strong><span>Every choice is previewed here before the live encoder takes it on air.</span></div>
+         <div className="editor-steps"><div className="editor-step active"><b>01</b><span>Choose clips</span></div><div className="editor-step"><b>02</b><span>Compose layers</span></div><div className="editor-step"><b>03</b><span>Send to live channel</span></div></div>
        </div>
-      <form className="editor-layout" onSubmit={compose}>
+      <form className="editor-layout" onSubmit={(event)=>event.preventDefault()}>
         <section className="editor-stage card">
            <div className="editor-stage-head"><div><span className="metric-kicker">Live composition</span><strong>{selectedVideos.length ? `${selectedVideos.length} clips · ${loopEnabled ? `loops ${loopCount}` : "single pass"}` : "Choose videos to preview"}</strong></div><span className="editor-stage-status"><span className="status-dot"/>Preview</span></div>
             <EditorCanvas {...editorCanvasProps} />
@@ -2652,7 +2721,7 @@ function VideoEditorPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}
               <div><strong>{previewUrl ? "Preview is ready to edit" : "Select a video first"}</strong><span>{previewUrl ? "Open the large canvas to position, zoom, and fit every layer precisely." : "Choose a category and at least one server-ready video from the panel."}</span></div>
               <button type="button" className="button editor-expand-button" onClick={() => setPreviewExpanded(true)} disabled={!previewUrl}><MonitorPlay size={15}/> Open large preview & edit <ArrowRight size={14}/></button>
             </div>
-           <div className="editor-stage-foot"><span><Layers size={13}/> {selectedVideos.length || 0} clips selected · {outputAspectRatio === "shorts" ? "Short 9:16" : outputAspectRatio === "square" ? "Square 1:1" : "Long 16:9"}</span><span><Sparkles size={13}/> Logo and face cam are rendered into the saved MP4</span></div>
+            <div className="editor-stage-foot"><span><Layers size={13}/> {selectedVideos.length || 0} clips selected · {outputAspectRatio === "shorts" ? "Short 9:16" : outputAspectRatio === "square" ? "Square 1:1" : "Long 16:9"}</span><span><Sparkles size={13}/> Logo, face cam, and effects follow the live signal</span></div>
         </section>
          {previewExpanded && <div className="editor-focus-backdrop" role="dialog" aria-modal="true" aria-label="Large video editor" onMouseDown={(event) => { if (event.target === event.currentTarget) setPreviewExpanded(false); }}>
            <div className="editor-focus-window">
@@ -2685,7 +2754,7 @@ function VideoEditorPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}
             {logo && <div className="form-grid"><div className="field"><label>Logo position</label><select value={logoPosition} onChange={(event) => setLogoPosition(event.target.value)}><option value="top-left">Top left</option><option value="top-right">Top right</option><option value="bottom-left">Bottom left</option><option value="bottom-right">Bottom right</option></select></div><div className="field"><label>Logo size · {overlayScale}%</label><input type="range" min="10" max="60" value={overlayScale} onChange={(event) => setOverlayScale(event.target.value)}/></div></div>}
               <div className="field"><label>Face cam video</label><select value={webcamId} onChange={(event) => { setWebcamId(event.target.value); setSelectedLayer(event.target.value ? "webcam" : "main"); }} data-testid="select-editor-facecam"><option value="">No face cam</option>{webcamVideos.map((video) => <option key={video.id} value={video.id}>{video.title}</option>)}</select><span className="field-hint">Only videos from this license workspace are available here.</span></div>
              {webcam && <div className="editor-layer-note"><span>Canvas face cam: {Math.round(webcamTransform.scale * 100)}%</span><button type="button" className="section-link" onClick={() => setSelectedLayer("webcam")}>Edit on canvas <ArrowRight size={12}/></button></div>}
-               <div className="field"><label>Animation overlay</label><select value={animationId} onChange={(event) => { setAnimationId(event.target.value); setSelectedLayer(event.target.value ? "animation" : "main"); }} data-testid="select-editor-animation-overlay"><option value="">No animation overlay</option>{includedAnimationVideos.length > 0 && <optgroup label="Admin · Included Animations">{includedAnimationVideos.map((video) => <option key={video.id} value={video.id}>{video.title}</option>)}</optgroup>}{myAnimationVideos.length > 0 && <optgroup label="My Animations">{myAnimationVideos.map((video) => <option key={video.id} value={video.id}>{video.title}</option>)}</optgroup>}</select><span className="field-hint">Admin and My Animations stay separate from the Personal video and render above it like a third layer.</span></div>
+                <div className="field"><label>Animation overlay</label><select value={animationId} onChange={(event) => { setAnimationId(event.target.value); setSelectedLayer(event.target.value ? "animation" : "main"); }} data-testid="select-editor-animation-overlay"><option value="">No animation overlay</option>{includedAnimationVideos.length > 0 && <optgroup label="Admin · Included Animations">{includedAnimationVideos.map((video) => <option key={video.id} value={video.id}>{video.title}</option>)}</optgroup>}{myAnimationVideos.length > 0 && <optgroup label="My Animations">{myAnimationVideos.map((video) => <option key={video.id} value={video.id}>{video.title}</option>)}</optgroup>}</select><span className="field-hint">Admin and My Animations stay separate from Personal video and appear above it in the live signal.</span></div>
               {animation && <div className="editor-layer-note"><span>Animation overlay: {Math.round(animationTransform.scale * 100)}%</span><button type="button" className="section-link" onClick={() => setSelectedLayer("animation")}>Edit on canvas <ArrowRight size={12}/></button></div>}
              <div className="field"><label>Animated callout</label><select value={animationPreset} onChange={(event) => setAnimationPreset(event.target.value as AnimationPreset)} data-testid="select-editor-animation"><option value="none">No animation</option><option value="subscribe">Subscribe pop-in</option><option value="like">Like burst</option><option value="follow">Follow pulse</option></select><span className="field-hint">The animation is previewed on the canvas and burned into the final MP4.</span></div>
              <EditorTransformControls
@@ -2704,26 +2773,26 @@ function VideoEditorPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}
           </section>
            <section className="card editor-panel">
              <div className="section-head"><div><h2 className="section-title">4. Color & effects</h2><p className="subtle">Adjust the main video, reverse it, or key out a green background.</p></div><Sparkles size={17} color="#6c8b83"/></div>
-             <label className="check-control editor-toggle-control"><input type="checkbox" checked={reverseVideo} onChange={(event) => setReverseVideo(event.target.checked)} data-testid="toggle-editor-reverse"/><span><strong>Reverse main video</strong><small>Plays the selected clips from end to start when rendered.</small></span></label>
+              <label className="check-control editor-toggle-control"><input type="checkbox" checked={reverseVideo} onChange={(event) => setReverseVideo(event.target.checked)} data-testid="toggle-editor-reverse"/><span><strong>Reverse main video</strong><small>Plays the selected clips from end to start in the live composition.</small></span></label>
              <div className="editor-effect-grid">
                <div className="field"><label>Brightness · {Math.round(colorAdjustments.brightness * 100)}%</label><input type="range" min="-100" max="100" value={Math.round(colorAdjustments.brightness * 100)} onChange={(event) => setColorAdjustments((current) => ({ ...current, brightness: Number(event.target.value) / 100 }))} data-testid="input-editor-brightness"/></div>
                <div className="field"><label>Contrast · {Math.round(colorAdjustments.contrast * 100)}%</label><input type="range" min="50" max="180" value={Math.round(colorAdjustments.contrast * 100)} onChange={(event) => setColorAdjustments((current) => ({ ...current, contrast: Number(event.target.value) / 100 }))} data-testid="input-editor-contrast"/></div>
                <div className="field"><label>Saturation · {Math.round(colorAdjustments.saturation * 100)}%</label><input type="range" min="0" max="200" value={Math.round(colorAdjustments.saturation * 100)} onChange={(event) => setColorAdjustments((current) => ({ ...current, saturation: Number(event.target.value) / 100 }))} data-testid="input-editor-saturation"/></div>
                <div className="field"><label>Hue · {colorAdjustments.hue}°</label><input type="range" min="-180" max="180" value={colorAdjustments.hue} onChange={(event) => setColorAdjustments((current) => ({ ...current, hue: Number(event.target.value) }))} data-testid="input-editor-hue"/></div>
              </div>
-              <label className="check-control editor-toggle-control"><input type="checkbox" checked={chromaKeyEnabled} onChange={(event) => setChromaKeyEnabled(event.target.checked)} disabled={!webcam && !animation} data-testid="toggle-editor-green-screen"/><span><strong>Remove background with Chroma key</strong><small>{webcam || animation ? "Removes the selected key color from the face cam or animation layer during preview and render." : "Add a face cam or animation overlay first to enable background removal."}</small></span></label>
+               <label className="check-control editor-toggle-control"><input type="checkbox" checked={chromaKeyEnabled} onChange={(event) => setChromaKeyEnabled(event.target.checked)} disabled={!webcam && !animation} data-testid="toggle-editor-green-screen"/><span><strong>Remove background with Chroma key</strong><small>{webcam || animation ? "Removes the selected key color from the face cam or animation layer in the live signal." : "Add a face cam or animation overlay first to enable background removal."}</small></span></label>
               {(webcam || animation) && <div className="field"><label>Chroma key layer</label><select value={chromaKeyTarget} onChange={(event) => setChromaKeyTarget(event.target.value as EditorChromaTarget)} data-testid="select-editor-chroma-target"><option value="webcam" disabled={!webcam}>Face cam</option><option value="animation" disabled={!animation}>Animation overlay</option></select></div>}
              {chromaKeyEnabled && <div className="editor-effect-grid chroma-key-grid"><div className="field"><label>Key color</label><input type="color" value={chromaKeyColor} onChange={(event) => setChromaKeyColor(event.target.value)} data-testid="input-editor-key-color"/></div><div className="field"><label>Color range · {Math.round(chromaSimilarity * 100)}%</label><input type="range" min="10" max="90" value={Math.round(chromaSimilarity * 100)} onChange={(event) => setChromaSimilarity(Number(event.target.value) / 100)} data-testid="input-editor-key-similarity"/></div><div className="field"><label>Edge blend · {Math.round(chromaBlend * 100)}%</label><input type="range" min="0" max="35" value={Math.round(chromaBlend * 100)} onChange={(event) => setChromaBlend(Number(event.target.value) / 100)} data-testid="input-editor-key-blend"/></div></div>}
               <div className="editor-reset-row"><span>Reset all crop, layer, loop and effect changes.</span><button type="button" className="button ghost small" onClick={() => { setLoopEnabled(true); setLoopCount("1"); setOutputAspectRatio("full"); setCropMode("fit"); setLogoPosition("bottom-right"); setOverlayScale("25"); setWebcamPosition("top-right"); setWebcamScale("25"); setMainTransform({ x: 0, y: 0, scale: 1 }); setWebcamTransform({ x: 0, y: 0, scale: 0.25 }); setAnimationTransform({ x: 0, y: 0, scale: 0.25 }); setSelectedLayer("main"); setAnimationPreset("none"); setReverseVideo(false); setColorAdjustments({ brightness: 0, contrast: 1, saturation: 1, hue: 0 }); setChromaKeyEnabled(false); setChromaKeyTarget("webcam"); setChromaKeyColor("#00ff00"); setChromaSimilarity(0.32); setChromaBlend(0.08); setWebcamId(""); setAnimationId(""); setLogoId(""); setToast("All editor changes were reset"); }} data-testid="button-reset-editor">Reset edits</button></div>
-             <div className="form-note"><Sparkles size={14} style={{verticalAlign:"-3px",marginRight:6}}/>These effects are shown in the preview and applied to the saved MP4 during render.</div>
+               <div className="form-note"><Sparkles size={14} style={{verticalAlign:"-3px",marginRight:6}}/>These effects are shown in the preview and applied directly by the live encoder.</div>
            </section>
            {error && <div className="error-note" style={{whiteSpace:"pre-line"}}>{error}</div>}
-           {(busy || renderProgress > 0) && <div className="render-progress" role="status" aria-live="polite"><div className="render-progress-head"><span><Wand2 size={13}/> {renderPhase || "Rendering to Edited Videos"}</span><strong>{renderProgress}%</strong></div><div className="render-progress-track"><span style={{width:`${renderProgress}%`}}/></div><small>Progress is connected to FFmpeg’s encoded duration. Face cam and animation overlays loop until the main video ends.</small></div>}
-            <button className="button editor-render-button" type="submit" disabled={busy || !selectedVideos.length}>{busy ? `Rendering ${outputAspectRatio === "shorts" ? "Short" : outputAspectRatio === "square" ? "Square" : "Long"} video…` : "Render & save to library"} <ArrowRight size={15}/></button>
-           <div className="form-note"><Sparkles size={14} style={{verticalAlign:"-3px",marginRight:6}}/>Source clips stay untouched. Every rendered result is added to the protected Edited Videos folder.</div>
+             <button className="button editor-render-button" type="button" disabled={!selectedVideos.length} onClick={()=>{setError("");setShowAddToStream(true);}} data-testid="button-add-edited-stream"><Radio size={15}/> Add to stream channel <ArrowRight size={15}/></button>
+            <div className="form-note"><Sparkles size={14} style={{verticalAlign:"-3px",marginRight:6}}/>No intermediate MP4 is created. The selected composition is applied live by the stream encoder, including face cam, animation, logo, color, and microphone audio.</div>
         </aside>
       </form>
     </div>
+     {showAddToStream && <AddToStreamChannelModal channels={data.channels} mainGroupId={groupId} mainVideoIds={selectedIds} animationId={animationId} title={title.trim() || `${selectedGroup?.name || "Edited"} stream`} composition={streamComposition} onSave={attachToStream} onClose={()=>setShowAddToStream(false)}/>}
   </AppShell>;
 }
 

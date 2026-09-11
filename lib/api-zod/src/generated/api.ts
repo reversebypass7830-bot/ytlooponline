@@ -52,6 +52,76 @@ export const startStreamBodyLiveAnimationScaleDefault = 0.25;
 export const startStreamBodyLiveAnimationScaleMin = 0.1;
 export const startStreamBodyLiveAnimationScaleMax = 0.8;
 
+export const startStreamBodyCompositionMainXDefault = 0;
+export const startStreamBodyCompositionMainXMin = -48;
+export const startStreamBodyCompositionMainXMax = 48;
+
+export const startStreamBodyCompositionMainYDefault = 0;
+export const startStreamBodyCompositionMainYMin = -48;
+export const startStreamBodyCompositionMainYMax = 48;
+
+export const startStreamBodyCompositionMainScaleDefault = 1;
+export const startStreamBodyCompositionMainScaleMin = 0.5;
+export const startStreamBodyCompositionMainScaleMax = 2.5;
+
+export const startStreamBodyCompositionCropModeDefault = `fit`;
+export const startStreamBodyCompositionWebcamXDefault = 0;
+export const startStreamBodyCompositionWebcamXMin = -48;
+export const startStreamBodyCompositionWebcamXMax = 48;
+
+export const startStreamBodyCompositionWebcamYDefault = 0;
+export const startStreamBodyCompositionWebcamYMin = -48;
+export const startStreamBodyCompositionWebcamYMax = 48;
+
+export const startStreamBodyCompositionWebcamScaleDefault = 0.25;
+export const startStreamBodyCompositionWebcamScaleMin = 0.1;
+export const startStreamBodyCompositionWebcamScaleMax = 0.8;
+
+export const startStreamBodyCompositionAnimationXDefault = 0;
+export const startStreamBodyCompositionAnimationXMin = -48;
+export const startStreamBodyCompositionAnimationXMax = 48;
+
+export const startStreamBodyCompositionAnimationYDefault = 0;
+export const startStreamBodyCompositionAnimationYMin = -48;
+export const startStreamBodyCompositionAnimationYMax = 48;
+
+export const startStreamBodyCompositionAnimationScaleDefault = 0.25;
+export const startStreamBodyCompositionAnimationScaleMin = 0.1;
+export const startStreamBodyCompositionAnimationScaleMax = 0.8;
+
+export const startStreamBodyCompositionLogoPositionDefault = `bottom-right`;
+export const startStreamBodyCompositionLogoScaleDefault = 0.25;
+export const startStreamBodyCompositionLogoScaleMin = 0.1;
+export const startStreamBodyCompositionLogoScaleMax = 0.6;
+
+export const startStreamBodyCompositionAnimationPresetDefault = `none`;
+export const startStreamBodyCompositionBrightnessDefault = 0;
+export const startStreamBodyCompositionBrightnessMin = -1;
+export const startStreamBodyCompositionBrightnessMax = 1;
+
+export const startStreamBodyCompositionContrastDefault = 1;
+export const startStreamBodyCompositionContrastMin = 0.5;
+export const startStreamBodyCompositionContrastMax = 1.8;
+
+export const startStreamBodyCompositionSaturationDefault = 1;
+export const startStreamBodyCompositionSaturationMin = 0;
+export const startStreamBodyCompositionSaturationMax = 2;
+
+export const startStreamBodyCompositionHueDefault = 0;
+export const startStreamBodyCompositionHueMin = -180;
+export const startStreamBodyCompositionHueMax = 180;
+
+export const startStreamBodyCompositionChromaKeyEnabledDefault = false;
+export const startStreamBodyCompositionChromaKeyTargetDefault = `webcam`;
+export const startStreamBodyCompositionChromaKeyColorDefault = `#00ff00`;
+export const startStreamBodyCompositionChromaSimilarityDefault = 0.32;
+export const startStreamBodyCompositionChromaSimilarityMin = 0.1;
+export const startStreamBodyCompositionChromaSimilarityMax = 0.9;
+
+export const startStreamBodyCompositionChromaBlendDefault = 0.08;
+export const startStreamBodyCompositionChromaBlendMin = 0;
+export const startStreamBodyCompositionChromaBlendMax = 0.35;
+
 
 
 export const StartStreamBody = zod.object({
@@ -74,7 +144,34 @@ export const StartStreamBody = zod.object({
   "liveAnimationSource": zod.string().optional().describe('Optional server-ready animation video to layer above the live playlist.'),
   "liveAnimationX": zod.number().min(startStreamBodyLiveAnimationXMin).max(startStreamBodyLiveAnimationXMax).default(startStreamBodyLiveAnimationXDefault),
   "liveAnimationY": zod.number().min(startStreamBodyLiveAnimationYMin).max(startStreamBodyLiveAnimationYMax).default(startStreamBodyLiveAnimationYDefault),
-  "liveAnimationScale": zod.number().min(startStreamBodyLiveAnimationScaleMin).max(startStreamBodyLiveAnimationScaleMax).default(startStreamBodyLiveAnimationScaleDefault)
+  "liveAnimationScale": zod.number().min(startStreamBodyLiveAnimationScaleMin).max(startStreamBodyLiveAnimationScaleMax).default(startStreamBodyLiveAnimationScaleDefault),
+  "composition": zod.object({
+  "mainX": zod.number().min(startStreamBodyCompositionMainXMin).max(startStreamBodyCompositionMainXMax).default(startStreamBodyCompositionMainXDefault),
+  "mainY": zod.number().min(startStreamBodyCompositionMainYMin).max(startStreamBodyCompositionMainYMax).default(startStreamBodyCompositionMainYDefault),
+  "mainScale": zod.number().min(startStreamBodyCompositionMainScaleMin).max(startStreamBodyCompositionMainScaleMax).default(startStreamBodyCompositionMainScaleDefault),
+  "cropMode": zod.enum(['fit', 'crop']).default(startStreamBodyCompositionCropModeDefault),
+  "webcamSource": zod.string().optional(),
+  "webcamX": zod.number().min(startStreamBodyCompositionWebcamXMin).max(startStreamBodyCompositionWebcamXMax).default(startStreamBodyCompositionWebcamXDefault),
+  "webcamY": zod.number().min(startStreamBodyCompositionWebcamYMin).max(startStreamBodyCompositionWebcamYMax).default(startStreamBodyCompositionWebcamYDefault),
+  "webcamScale": zod.number().min(startStreamBodyCompositionWebcamScaleMin).max(startStreamBodyCompositionWebcamScaleMax).default(startStreamBodyCompositionWebcamScaleDefault),
+  "animationSource": zod.string().optional(),
+  "animationX": zod.number().min(startStreamBodyCompositionAnimationXMin).max(startStreamBodyCompositionAnimationXMax).default(startStreamBodyCompositionAnimationXDefault),
+  "animationY": zod.number().min(startStreamBodyCompositionAnimationYMin).max(startStreamBodyCompositionAnimationYMax).default(startStreamBodyCompositionAnimationYDefault),
+  "animationScale": zod.number().min(startStreamBodyCompositionAnimationScaleMin).max(startStreamBodyCompositionAnimationScaleMax).default(startStreamBodyCompositionAnimationScaleDefault),
+  "logoSource": zod.string().optional(),
+  "logoPosition": zod.enum(['top-left', 'top-right', 'bottom-left', 'bottom-right']).default(startStreamBodyCompositionLogoPositionDefault),
+  "logoScale": zod.number().min(startStreamBodyCompositionLogoScaleMin).max(startStreamBodyCompositionLogoScaleMax).default(startStreamBodyCompositionLogoScaleDefault),
+  "animationPreset": zod.enum(['none', 'subscribe', 'like', 'follow']).default(startStreamBodyCompositionAnimationPresetDefault),
+  "brightness": zod.number().min(startStreamBodyCompositionBrightnessMin).max(startStreamBodyCompositionBrightnessMax).default(startStreamBodyCompositionBrightnessDefault),
+  "contrast": zod.number().min(startStreamBodyCompositionContrastMin).max(startStreamBodyCompositionContrastMax).default(startStreamBodyCompositionContrastDefault),
+  "saturation": zod.number().min(startStreamBodyCompositionSaturationMin).max(startStreamBodyCompositionSaturationMax).default(startStreamBodyCompositionSaturationDefault),
+  "hue": zod.number().min(startStreamBodyCompositionHueMin).max(startStreamBodyCompositionHueMax).default(startStreamBodyCompositionHueDefault),
+  "chromaKeyEnabled": zod.boolean().default(startStreamBodyCompositionChromaKeyEnabledDefault),
+  "chromaKeyTarget": zod.enum(['webcam', 'animation']).default(startStreamBodyCompositionChromaKeyTargetDefault),
+  "chromaKeyColor": zod.string().default(startStreamBodyCompositionChromaKeyColorDefault),
+  "chromaSimilarity": zod.number().min(startStreamBodyCompositionChromaSimilarityMin).max(startStreamBodyCompositionChromaSimilarityMax).default(startStreamBodyCompositionChromaSimilarityDefault),
+  "chromaBlend": zod.number().min(startStreamBodyCompositionChromaBlendMin).max(startStreamBodyCompositionChromaBlendMax).default(startStreamBodyCompositionChromaBlendDefault)
+}).optional().describe('Optional editor composition to apply directly while the live stream is encoded.')
 })
 
 export const StartStreamResponse = zod.object({
@@ -138,6 +235,76 @@ export const updateStreamBodyLiveAnimationScaleDefault = 0.25;
 export const updateStreamBodyLiveAnimationScaleMin = 0.1;
 export const updateStreamBodyLiveAnimationScaleMax = 0.8;
 
+export const updateStreamBodyCompositionMainXDefault = 0;
+export const updateStreamBodyCompositionMainXMin = -48;
+export const updateStreamBodyCompositionMainXMax = 48;
+
+export const updateStreamBodyCompositionMainYDefault = 0;
+export const updateStreamBodyCompositionMainYMin = -48;
+export const updateStreamBodyCompositionMainYMax = 48;
+
+export const updateStreamBodyCompositionMainScaleDefault = 1;
+export const updateStreamBodyCompositionMainScaleMin = 0.5;
+export const updateStreamBodyCompositionMainScaleMax = 2.5;
+
+export const updateStreamBodyCompositionCropModeDefault = `fit`;
+export const updateStreamBodyCompositionWebcamXDefault = 0;
+export const updateStreamBodyCompositionWebcamXMin = -48;
+export const updateStreamBodyCompositionWebcamXMax = 48;
+
+export const updateStreamBodyCompositionWebcamYDefault = 0;
+export const updateStreamBodyCompositionWebcamYMin = -48;
+export const updateStreamBodyCompositionWebcamYMax = 48;
+
+export const updateStreamBodyCompositionWebcamScaleDefault = 0.25;
+export const updateStreamBodyCompositionWebcamScaleMin = 0.1;
+export const updateStreamBodyCompositionWebcamScaleMax = 0.8;
+
+export const updateStreamBodyCompositionAnimationXDefault = 0;
+export const updateStreamBodyCompositionAnimationXMin = -48;
+export const updateStreamBodyCompositionAnimationXMax = 48;
+
+export const updateStreamBodyCompositionAnimationYDefault = 0;
+export const updateStreamBodyCompositionAnimationYMin = -48;
+export const updateStreamBodyCompositionAnimationYMax = 48;
+
+export const updateStreamBodyCompositionAnimationScaleDefault = 0.25;
+export const updateStreamBodyCompositionAnimationScaleMin = 0.1;
+export const updateStreamBodyCompositionAnimationScaleMax = 0.8;
+
+export const updateStreamBodyCompositionLogoPositionDefault = `bottom-right`;
+export const updateStreamBodyCompositionLogoScaleDefault = 0.25;
+export const updateStreamBodyCompositionLogoScaleMin = 0.1;
+export const updateStreamBodyCompositionLogoScaleMax = 0.6;
+
+export const updateStreamBodyCompositionAnimationPresetDefault = `none`;
+export const updateStreamBodyCompositionBrightnessDefault = 0;
+export const updateStreamBodyCompositionBrightnessMin = -1;
+export const updateStreamBodyCompositionBrightnessMax = 1;
+
+export const updateStreamBodyCompositionContrastDefault = 1;
+export const updateStreamBodyCompositionContrastMin = 0.5;
+export const updateStreamBodyCompositionContrastMax = 1.8;
+
+export const updateStreamBodyCompositionSaturationDefault = 1;
+export const updateStreamBodyCompositionSaturationMin = 0;
+export const updateStreamBodyCompositionSaturationMax = 2;
+
+export const updateStreamBodyCompositionHueDefault = 0;
+export const updateStreamBodyCompositionHueMin = -180;
+export const updateStreamBodyCompositionHueMax = 180;
+
+export const updateStreamBodyCompositionChromaKeyEnabledDefault = false;
+export const updateStreamBodyCompositionChromaKeyTargetDefault = `webcam`;
+export const updateStreamBodyCompositionChromaKeyColorDefault = `#00ff00`;
+export const updateStreamBodyCompositionChromaSimilarityDefault = 0.32;
+export const updateStreamBodyCompositionChromaSimilarityMin = 0.1;
+export const updateStreamBodyCompositionChromaSimilarityMax = 0.9;
+
+export const updateStreamBodyCompositionChromaBlendDefault = 0.08;
+export const updateStreamBodyCompositionChromaBlendMin = 0;
+export const updateStreamBodyCompositionChromaBlendMax = 0.35;
+
 
 
 export const UpdateStreamBody = zod.object({
@@ -160,7 +327,34 @@ export const UpdateStreamBody = zod.object({
   "liveAnimationSource": zod.string().optional().describe('Optional server-ready animation video to layer above the live playlist.'),
   "liveAnimationX": zod.number().min(updateStreamBodyLiveAnimationXMin).max(updateStreamBodyLiveAnimationXMax).default(updateStreamBodyLiveAnimationXDefault),
   "liveAnimationY": zod.number().min(updateStreamBodyLiveAnimationYMin).max(updateStreamBodyLiveAnimationYMax).default(updateStreamBodyLiveAnimationYDefault),
-  "liveAnimationScale": zod.number().min(updateStreamBodyLiveAnimationScaleMin).max(updateStreamBodyLiveAnimationScaleMax).default(updateStreamBodyLiveAnimationScaleDefault)
+  "liveAnimationScale": zod.number().min(updateStreamBodyLiveAnimationScaleMin).max(updateStreamBodyLiveAnimationScaleMax).default(updateStreamBodyLiveAnimationScaleDefault),
+  "composition": zod.object({
+  "mainX": zod.number().min(updateStreamBodyCompositionMainXMin).max(updateStreamBodyCompositionMainXMax).default(updateStreamBodyCompositionMainXDefault),
+  "mainY": zod.number().min(updateStreamBodyCompositionMainYMin).max(updateStreamBodyCompositionMainYMax).default(updateStreamBodyCompositionMainYDefault),
+  "mainScale": zod.number().min(updateStreamBodyCompositionMainScaleMin).max(updateStreamBodyCompositionMainScaleMax).default(updateStreamBodyCompositionMainScaleDefault),
+  "cropMode": zod.enum(['fit', 'crop']).default(updateStreamBodyCompositionCropModeDefault),
+  "webcamSource": zod.string().optional(),
+  "webcamX": zod.number().min(updateStreamBodyCompositionWebcamXMin).max(updateStreamBodyCompositionWebcamXMax).default(updateStreamBodyCompositionWebcamXDefault),
+  "webcamY": zod.number().min(updateStreamBodyCompositionWebcamYMin).max(updateStreamBodyCompositionWebcamYMax).default(updateStreamBodyCompositionWebcamYDefault),
+  "webcamScale": zod.number().min(updateStreamBodyCompositionWebcamScaleMin).max(updateStreamBodyCompositionWebcamScaleMax).default(updateStreamBodyCompositionWebcamScaleDefault),
+  "animationSource": zod.string().optional(),
+  "animationX": zod.number().min(updateStreamBodyCompositionAnimationXMin).max(updateStreamBodyCompositionAnimationXMax).default(updateStreamBodyCompositionAnimationXDefault),
+  "animationY": zod.number().min(updateStreamBodyCompositionAnimationYMin).max(updateStreamBodyCompositionAnimationYMax).default(updateStreamBodyCompositionAnimationYDefault),
+  "animationScale": zod.number().min(updateStreamBodyCompositionAnimationScaleMin).max(updateStreamBodyCompositionAnimationScaleMax).default(updateStreamBodyCompositionAnimationScaleDefault),
+  "logoSource": zod.string().optional(),
+  "logoPosition": zod.enum(['top-left', 'top-right', 'bottom-left', 'bottom-right']).default(updateStreamBodyCompositionLogoPositionDefault),
+  "logoScale": zod.number().min(updateStreamBodyCompositionLogoScaleMin).max(updateStreamBodyCompositionLogoScaleMax).default(updateStreamBodyCompositionLogoScaleDefault),
+  "animationPreset": zod.enum(['none', 'subscribe', 'like', 'follow']).default(updateStreamBodyCompositionAnimationPresetDefault),
+  "brightness": zod.number().min(updateStreamBodyCompositionBrightnessMin).max(updateStreamBodyCompositionBrightnessMax).default(updateStreamBodyCompositionBrightnessDefault),
+  "contrast": zod.number().min(updateStreamBodyCompositionContrastMin).max(updateStreamBodyCompositionContrastMax).default(updateStreamBodyCompositionContrastDefault),
+  "saturation": zod.number().min(updateStreamBodyCompositionSaturationMin).max(updateStreamBodyCompositionSaturationMax).default(updateStreamBodyCompositionSaturationDefault),
+  "hue": zod.number().min(updateStreamBodyCompositionHueMin).max(updateStreamBodyCompositionHueMax).default(updateStreamBodyCompositionHueDefault),
+  "chromaKeyEnabled": zod.boolean().default(updateStreamBodyCompositionChromaKeyEnabledDefault),
+  "chromaKeyTarget": zod.enum(['webcam', 'animation']).default(updateStreamBodyCompositionChromaKeyTargetDefault),
+  "chromaKeyColor": zod.string().default(updateStreamBodyCompositionChromaKeyColorDefault),
+  "chromaSimilarity": zod.number().min(updateStreamBodyCompositionChromaSimilarityMin).max(updateStreamBodyCompositionChromaSimilarityMax).default(updateStreamBodyCompositionChromaSimilarityDefault),
+  "chromaBlend": zod.number().min(updateStreamBodyCompositionChromaBlendMin).max(updateStreamBodyCompositionChromaBlendMax).default(updateStreamBodyCompositionChromaBlendDefault)
+}).optional().describe('Optional editor composition to apply directly while the live stream is encoded.')
 })
 
 export const UpdateStreamResponse = zod.object({

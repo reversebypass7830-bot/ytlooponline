@@ -1,0 +1,30 @@
+देखो भाई, उधर क्या करना है update? जैसे कि अभी render button है उधर, ठीक है। Render में बहुत time ले रहा है। इससे बढ़िया मैं नया feature बताता हूँ, वह add कर देना, ठीक है। Render हटा दो। Render के बदले, वो stream मैंने पूरा edit कर लिया। ठीक है, उसको उधर रख दो कि stream preview के अंदर ले जाने के लिए, properly। Stream preview, ठीक है। जब stream preview पर ले जाएगा, same video, ठीक है। Steam preview पर नहीं, वो क्या बोलते हैं? Stream channel पर add कर दो। जैसे ही stream channel पर add हो जाएगा तो हमें उधर जाकर stream key add करना है। stream key इधर से ही दे देंगे। उधर stream key मतलब stream channel पर add करो। click किया तो उधर पहले ऊपर popup notification आएगा तो stream key add करो और पूरा पहले से edited है, नीचे continue दबा दिया तो उधर stream पर add हो जाएगा। ठीक है। और उसको start करेंगे और तब preview में दिखेगा video कैसे चल रहा है। जैसे edit किया है वैसे ही चलना चाहिए, उधर properly। और अपना face cam भी add कर सकते हैं और voice-over दे सकें live बीच में, ठीक है। कुछ भी crash न हो, proper working होना चाहिए हर एक चीज।
+
+WI
+wikekag807
+wikekag807
+Free
+13 minutes ago
+समझ गया। मैं editor के server-render flow को हटाकर edited video को सीधे stream channel workflow में जोड़ूँगा: stream key prompt, edited-video selection, start/stop preview, और existing face-cam/voice controls को उसी stream path से जोड़कर देखूँगा। पहले मौजूदा stream-channel और editor wiring देख रहा हूँ ताकि नया flow टूटे नहीं।
+
+
+
+34 actions
+मौजूदा stream runner में face-cam और microphone bridge पहले से मौजूद हैं, इसलिए उसे हटाने के बजाय editor की composition settings उसी stream process में भेजूँगा। अब मैं तीन हिस्से जोड़ रहा हूँ: edited composition को channel में save करना, stream-key continue dialog, और live FFmpeg में वही layer positioning/effects लगाना।
+
+
+
+45 actions
+Основной пользовательский flow уже собран. Сейчас проверю типы и FFmpeg-путь целиком; после этого исправлю только реальные несовместимости, особенно вокруг сгенерированных stream-ти��ов и FFmpeg filter graph.
+
+
+
+16 actions
+类型检查和 API 构建已通过。接下来我会确认前端热重载没有语法错误，并检查编辑器页面和 live channel 页面是否能正常渲染；如果界面正常，再做一次针对 stream runner 的受控启动验证。
+
+
+
+17 actions
+
+Worked for 10 minutes
+You've reached your daily free quota limit. It will reset at 12:00 AM UTC.

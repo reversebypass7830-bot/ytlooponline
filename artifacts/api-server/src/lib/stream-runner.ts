@@ -7,6 +7,34 @@ import { logger } from "./logger";
 
 export type StreamRunnerStatus = "running" | "stopped" | "failed";
 
+export type StreamCompositionInput = {
+  mainX?: number;
+  mainY?: number;
+  mainScale?: number;
+  cropMode?: "fit" | "crop";
+  webcamSource?: string;
+  webcamX?: number;
+  webcamY?: number;
+  webcamScale?: number;
+  animationSource?: string;
+  animationX?: number;
+  animationY?: number;
+  animationScale?: number;
+  logoSource?: string;
+  logoPosition?: "top-left" | "top-right" | "bottom-left" | "bottom-right";
+  logoScale?: number;
+  animationPreset?: "none" | "subscribe" | "like" | "follow";
+  brightness?: number;
+  contrast?: number;
+  saturation?: number;
+  hue?: number;
+  chromaKeyEnabled?: boolean;
+  chromaKeyTarget?: "webcam" | "animation";
+  chromaKeyColor?: string;
+  chromaSimilarity?: number;
+  chromaBlend?: number;
+};
+
 export type StreamRunnerInput = {
   streamId: string;
   ingestUrl: string;
@@ -28,6 +56,7 @@ export type StreamRunnerInput = {
   liveAnimationX?: number;
   liveAnimationY?: number;
   liveAnimationScale?: number;
+  composition?: StreamCompositionInput;
 };
 
 export type StreamRunnerResult = {
@@ -101,6 +130,23 @@ function escapePlaylistPath(filePath: string): string {
   return filePath.replace(/'/g, "'\\''");
 }
 
+function clamp(value: number | undefined, minimum: number, maximum: number, fallback: number): number {
+  return Number.isFinite(value) ? Math.min(maximum, Math.max(minimum, value as number)) : fallback;
+}
+
+function logoPosition(
+  position: StreamCompositionInput["logoPosition"] | undefined,
+  width: string,
+  height: string,
+): string {
+  switch (position) {
+    case "top-right": return `${width}-overlay_w-24:24`;
+    case "bottom-left": return `24:${height}-overlay_h-24`;
+    case "bottom-right": return `${width}-overlay_w-24:${height}-overlay_h-24`;
+    default: return "24:24";
+  }
+}
+
 function prepareInput(paths: string[]): { path: string; playlistPath?: string } {
   if (paths.length === 1) return { path: paths[0] };
   const playlistPath = path.resolve(process.cwd(), `.signal-desk-playlist-${randomUUID()}.txt`);
@@ -170,6 +216,7 @@ function buildFfmpegArgs(
   videoInput: { path: string; playlistPath?: string },
   faceInput?: { path: string; playlistPath?: string },
   animationInput?: { path: string; playlistPath?: string },
+  logoInput?: { path: string; image: boolean },
 ): string[] {
   const aspectRatio = input.aspectRatio ?? "full";
   const quality = input.quality ?? "4k";
@@ -181,13 +228,28 @@ function buildFfmpegArgs(
   const [width, height] = dimensions;
   const facePath = faceInput?.path;
   const animationPath = animationInput?.path;
+  const logoPath = logoInput?.path;
+  const composition = input.composition;
   const playbackSpeed = Math.min(2, Math.max(0.5, input.playbackSpeed ?? 1));
-  const needsVideoFilter = aspectRatio !== "full" || Boolean(facePath) || Boolean(animationPath) || playbackSpeed !== 1 || quality === "1080p";
+  const mainScale = clamp(composition?.mainScale, 0.5, 2.5, 1);
+  const webcamScale = clamp(composition?.webcamScale, 0.1, 0.8, input.faceScale ?? 0.25);
+  const animationScale = clamp(composition?.animationScale, 0.1, 0.8, input.liveAnimationScale ?? 0.25);
+  const logoScale = clamp(composition?.logoScale, 0.1, 0.6, 0.25);
+  const needsVideoFilter = aspectRatio !== "full"
+    || Boolean(facePath)
+    || Boolean(animationPath)
+    || Boolean(logoPath)
+    || Boolean(composition)
+    || playbackSpeed !== 1
+    || quality === "1080p";
   const videoBitrate = quality === "4k" && aspectRatio === "full" ? "28M" : "8M";
   const videoBuffer = quality === "4k" && aspectRatio === "full" ? "56M" : "16M";
   const videoLevel = quality === "4k" && aspectRatio === "full" ? "5.2" : "4.2";
   const voiceAudio = input.voiceAudio === true;
-  const voiceInputIndex = 1 + Number(Boolean(facePath)) + Number(Boolean(animationPath));
+  const faceInputIndex = 1;
+  const animationInputIndex = faceInputIndex + Number(Boolean(facePath));
+  const logoInputIndex = animationInputIndex + Number(Boolean(animationPath));
+  const voiceInputIndex = logoInputIndex + Number(Boolean(logoPath));
 
   const inputArgs = [
     "-hide_banner",
@@ -222,6 +284,13 @@ function buildFfmpegArgs(
       animationInput.path,
     );
   }
+  if (logoInput) {
+    inputArgs.push(
+      ...(logoInput.image ? ["-loop", "1"] : ["-re", "-stream_loop", "-1"]),
+      "-i",
+      logoInput.path,
+    );
+  }
   if (voiceAudio) {
     inputArgs.push(
       "-thread_queue_size",
@@ -244,35 +313,49 @@ function buildFfmpegArgs(
     ? [
         "-filter_complex",
         [
-          `[0:v]${playbackSpeed === 1 ? "" : `setpts=PTS/${playbackSpeed},`}scale=${width}:${height}:force_original_aspect_ratio=increase,crop=${width}:${height}[base]`,
+          ...(composition
+            ? [
+                `color=c=#061518:s=${width}x${height}[canvas]`,
+                `[0:v]${playbackSpeed === 1 ? "" : `setpts=PTS/${playbackSpeed},`}scale=${Math.round(width * mainScale)}:${Math.round(height * mainScale)}:force_original_aspect_ratio=${composition.cropMode === "crop" ? "increase" : "decrease"}${composition.cropMode === "crop" ? `,crop=${Math.round(width * mainScale)}:${Math.round(height * mainScale)}` : ""},eq=brightness=${clamp(composition.brightness, -1, 1, 0)}:contrast=${clamp(composition.contrast, 0.5, 1.8, 1)}:saturation=${clamp(composition.saturation, 0, 2, 1)},hue=h=${clamp(composition.hue, -180, 180, 0)}[main]`,
+                `[canvas][main]overlay=x='(W-w)/2+${Math.round(width * clamp(composition.mainX, -48, 48, 0) / 100)}':y='(H-h)/2+${Math.round(height * clamp(composition.mainY, -48, 48, 0) / 100)}':eof_action=repeat[base]`,
+              ]
+            : [`[0:v]${playbackSpeed === 1 ? "" : `setpts=PTS/${playbackSpeed},`}scale=${width}:${height}:force_original_aspect_ratio=increase,crop=${width}:${height}[base]`]),
           ...(facePath
             ? [
-                `[1:v]${playbackSpeed === 1 ? "" : `setpts=PTS/${playbackSpeed},`}scale=iw*${Math.min(0.6, Math.max(0.1, input.faceScale ?? 0.25))}:-1[face]`,
-                `[base][face]overlay=${
-                  input.facePosition === "top-left" || input.facePosition === "bottom-left"
-                    ? "24"
-                    : input.facePosition === "center"
-                      ? "(W-w)/2"
-                      : "W-w-24"
-                }:${
-                  input.facePosition === "top-left" || input.facePosition === "top-right"
-                    ? "24"
-                    : input.facePosition === "center"
-                      ? "(H-h)/2"
-                      : "H-h-24"
-                }[out]`,
+                `[${faceInputIndex}:v]${playbackSpeed === 1 ? "" : `setpts=PTS/${playbackSpeed},`}scale=iw*${webcamScale}:-1${composition?.chromaKeyEnabled && composition.chromaKeyTarget === "webcam" ? `,chromakey=${composition.chromaKeyColor || "#00ff00"}:similarity=${clamp(composition.chromaSimilarity, 0.1, 0.9, 0.32)}:blend=${clamp(composition.chromaBlend, 0, 0.35, 0.08)}` : ""}[face]`,
+                composition
+                  ? `[base][face]overlay=x='(main_w-overlay_w)/2+${Math.round(width * clamp(composition.webcamX, -48, 48, 0) / 100)}':y='(main_h-overlay_h)/2+${Math.round(height * clamp(composition.webcamY, -48, 48, 0) / 100)}':eof_action=repeat[with_face]`
+                  : `[base][face]overlay=${
+                    input.facePosition === "top-left" || input.facePosition === "bottom-left"
+                      ? "24"
+                      : input.facePosition === "center"
+                        ? "(W-w)/2"
+                        : "W-w-24"
+                  }:${
+                    input.facePosition === "top-left" || input.facePosition === "top-right"
+                      ? "24"
+                      : input.facePosition === "center"
+                        ? "(H-h)/2"
+                        : "H-h-24"
+                  }[with_face]`,
               ]
             : []),
           ...(animationPath
             ? [
-                `[${facePath ? 2 : 1}:v]scale=${Math.round(width * Math.min(0.8, Math.max(0.1, input.liveAnimationScale ?? 0.25)))}:-2[animation]`,
-                `[${facePath ? "[out]" : "[base]"}][animation]overlay=(main_w-overlay_w)/2+${Math.round(width * Math.max(-48, Math.min(48, input.liveAnimationX ?? 0)) / 100)}:(main_h-overlay_h)/2+${Math.round(height * Math.max(-48, Math.min(48, input.liveAnimationY ?? 0)) / 100)}[composed]`,
+                `[${animationInputIndex}:v]scale=${Math.round(width * animationScale)}:-2${composition?.chromaKeyEnabled && composition.chromaKeyTarget === "animation" ? `,chromakey=${composition.chromaKeyColor || "#00ff00"}:similarity=${clamp(composition.chromaSimilarity, 0.1, 0.9, 0.32)}:blend=${clamp(composition.chromaBlend, 0, 0.35, 0.08)}` : ""}[animation]`,
+                `[${facePath ? "with_face" : "base"}][animation]overlay=(main_w-overlay_w)/2+${Math.round(width * clamp(composition?.animationX ?? input.liveAnimationX, -48, 48, 0) / 100)}:(main_h-overlay_h)/2+${Math.round(height * clamp(composition?.animationY ?? input.liveAnimationY, -48, 48, 0) / 100)}:eof_action=repeat[with_animation]`,
+              ]
+            : []),
+          ...(logoPath
+            ? [
+                `[${logoInputIndex}:v]scale=iw*${logoScale}:ih*${logoScale}[logo]`,
+                `[${animationPath ? "with_animation" : facePath ? "with_face" : "base"}][logo]overlay=${logoPosition(composition?.logoPosition, "main_w", "main_h")}:eof_action=repeat[with_logo]`,
               ]
             : []),
           ...(audioFilter ? [audioFilter] : []),
         ].join(";"),
         "-map",
-        animationPath ? "[composed]" : facePath ? "[out]" : "[base]",
+        logoPath ? "[with_logo]" : animationPath ? "[with_animation]" : facePath ? "[with_face]" : "[base]",
         "-c:v",
         "libx264",
         "-preset",
@@ -383,11 +466,20 @@ function launchProcess(process: StreamProcess): void {
   stopVoicePipe(process);
   cleanupPlaylists(process);
   const videoPaths = getVideoPaths(process.input.category, process.input.videoSources, process.input.videoSource);
-  const facePaths = process.input.faceCategory
+  const facePaths = process.input.composition?.webcamSource
+    ? [getVideoPath("editor face cam", process.input.composition.webcamSource)]
+    : process.input.faceCategory
     ? getVideoPaths(process.input.faceCategory, process.input.faceSources, process.input.faceSource)
     : [];
-  const animationInput = process.input.liveAnimationSource
-    ? { path: getVideoPaths("live animation", undefined, process.input.liveAnimationSource)[0] }
+  const animationSource = process.input.composition?.animationSource || process.input.liveAnimationSource;
+  const animationInput = animationSource
+    ? { path: getVideoPaths("live animation", undefined, animationSource)[0] }
+    : undefined;
+  const logoInput = process.input.composition?.logoSource
+    ? {
+        path: getVideoPath("editor logo", process.input.composition.logoSource),
+        image: /\.(png|jpe?g|webp)$/i.test(process.input.composition.logoSource),
+      }
     : undefined;
   const videoInput = prepareInput(videoPaths);
   const faceInput = facePaths.length ? prepareInput(facePaths) : undefined;
@@ -396,7 +488,7 @@ function launchProcess(process: StreamProcess): void {
   const publisher = spawn("ffmpeg", buildPublisherArgs(process.input), {
     stdio: ["pipe", "ignore", "pipe"],
   });
-  const renderer = spawn("ffmpeg", buildFfmpegArgs(process.input, videoInput, faceInput, preparedAnimationInput), {
+  const renderer = spawn("ffmpeg", buildFfmpegArgs(process.input, videoInput, faceInput, preparedAnimationInput, logoInput), {
     stdio: ["ignore", "pipe", "pipe", "pipe"],
   });
 
@@ -489,6 +581,9 @@ export function startStream(input: StreamRunnerInput): StreamRunnerResult {
   getVideoPaths(input.category, input.videoSources, input.videoSource);
   if (input.faceCategory) getVideoPaths(input.faceCategory, input.faceSources, input.faceSource);
   if (input.liveAnimationSource) getVideoPaths("live animation", undefined, input.liveAnimationSource);
+  if (input.composition?.webcamSource) getVideoPath("editor face cam", input.composition.webcamSource);
+  if (input.composition?.animationSource) getVideoPath("live animation", input.composition.animationSource);
+  if (input.composition?.logoSource) getVideoPath("editor logo", input.composition.logoSource);
 
   const streamProcess: StreamProcess = {
     child: null,
@@ -512,6 +607,9 @@ export function updateStream(input: StreamRunnerInput): StreamRunnerResult {
   getVideoPaths(input.category, input.videoSources, input.videoSource);
   if (input.faceCategory) getVideoPaths(input.faceCategory, input.faceSources, input.faceSource);
   if (input.liveAnimationSource) getVideoPaths("live animation", undefined, input.liveAnimationSource);
+  if (input.composition?.webcamSource) getVideoPath("editor face cam", input.composition.webcamSource);
+  if (input.composition?.animationSource) getVideoPath("live animation", input.composition.animationSource);
+  if (input.composition?.logoSource) getVideoPath("editor logo", input.composition.logoSource);
 
   if (current.durationTimer) {
     clearTimeout(current.durationTimer);

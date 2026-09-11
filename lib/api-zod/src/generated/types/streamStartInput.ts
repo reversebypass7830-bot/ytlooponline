@@ -5,6 +5,7 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { StreamCompositionInput } from './streamCompositionInput';
 import type { StreamStartInputAspectRatio } from './streamStartInputAspectRatio';
 import type { StreamStartInputFacePosition } from './streamStartInputFacePosition';
 import type { StreamStartInputQuality } from './streamStartInputQuality';
@@ -60,4 +61,5 @@ export interface StreamStartInput {
      * @maximum 0.8
      */
   liveAnimationScale?: number;
+  composition?: StreamCompositionInput;
 }

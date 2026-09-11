@@ -838,10 +838,124 @@ components:
           minimum: 0.1
           maximum: 0.8
           default: 0.25
+        composition:
+          $ref: '#/components/schemas/StreamCompositionInput'
       required:
         - streamId
         - ingestUrl
         - category
+    StreamCompositionInput:
+      type: object
+      description: Optional editor composition to apply directly while the live stream is encoded.
+      properties:
+        mainX:
+          type: number
+          minimum: -48
+          maximum: 48
+          default: 0
+        mainY:
+          type: number
+          minimum: -48
+          maximum: 48
+          default: 0
+        mainScale:
+          type: number
+          minimum: 0.5
+          maximum: 2.5
+          default: 1
+        cropMode:
+          type: string
+          enum: [fit, crop]
+          default: fit
+        webcamSource:
+          type: string
+        webcamX:
+          type: number
+          minimum: -48
+          maximum: 48
+          default: 0
+        webcamY:
+          type: number
+          minimum: -48
+          maximum: 48
+          default: 0
+        webcamScale:
+          type: number
+          minimum: 0.1
+          maximum: 0.8
+          default: 0.25
+        animationSource:
+          type: string
+        animationX:
+          type: number
+          minimum: -48
+          maximum: 48
+          default: 0
+        animationY:
+          type: number
+          minimum: -48
+          maximum: 48
+          default: 0
+        animationScale:
+          type: number
+          minimum: 0.1
+          maximum: 0.8
+          default: 0.25
+        logoSource:
+          type: string
+        logoPosition:
+          type: string
+          enum: [top-left, top-right, bottom-left, bottom-right]
+          default: bottom-right
+        logoScale:
+          type: number
+          minimum: 0.1
+          maximum: 0.6
+          default: 0.25
+        animationPreset:
+          type: string
+          enum: [none, subscribe, like, follow]
+          default: none
+        brightness:
+          type: number
+          minimum: -1
+          maximum: 1
+          default: 0
+        contrast:
+          type: number
+          minimum: 0.5
+          maximum: 1.8
+          default: 1
+        saturation:
+          type: number
+          minimum: 0
+          maximum: 2
+          default: 1
+        hue:
+          type: number
+          minimum: -180
+          maximum: 180
+          default: 0
+        chromaKeyEnabled:
+          type: boolean
+          default: false
+        chromaKeyTarget:
+          type: string
+          enum: [webcam, animation]
+          default: webcam
+        chromaKeyColor:
+          type: string
+          default: '#00ff00'
+        chromaSimilarity:
+          type: number
+          minimum: 0.1
+          maximum: 0.9
+          default: 0.32
+        chromaBlend:
+          type: number
+          minimum: 0
+          maximum: 0.35
+          default: 0.08
     StreamStopInput:
       type: object
       properties:
