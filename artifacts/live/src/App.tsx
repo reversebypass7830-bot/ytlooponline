@@ -2690,6 +2690,7 @@ function VideoEditorPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}
   const [animationTransform, setAnimationTransform] = useState<EditorTransform>({ x: 0, y: 0, scale: 0.25 });
   const [logoId, setLogoId] = useState("");
   const [previewExpanded, setPreviewExpanded] = useState(false);
+  const [mobileEditorPanel, setMobileEditorPanel] = useState<"files" | "timing" | "layers" | "effects">("files");
   const [error, setError] = useState("");
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [draftHydrated, setDraftHydrated] = useState(false);
@@ -2981,6 +2982,8 @@ function VideoEditorPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}
     : selectedLayer === "main" ? "main video" : selectedLayer === "webcam" ? "face cam" : "animation overlay";
   const selectedChromaAvailable = Boolean(activeChromaVideo);
   const appliedChromaVideos = Object.values(chromaKeyByVideoId).filter((settings) => settings.enabled).length;
+  const mobilePanelClass = (panel: typeof mobileEditorPanel) =>
+    `card editor-panel mobile-editor-panel mobile-editor-panel-${panel} ${mobileEditorPanel === panel ? "is-mobile-active" : ""}`;
   const applyChromaToSelected = () => {
     if (!selectedChromaAvailable) return;
     if (activeChromaVideo) {
@@ -3056,9 +3059,25 @@ function VideoEditorPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}
               <div className="editor-focus-controls"><EditorTransformControls {...editorCanvasProps} hasWebcam={Boolean(webcam)} hasAnimation={Boolean(animation)} /></div>
            </div>
          </div>}
-        <aside className="editor-controls">
-          <section className="card editor-panel">
-              <div className="section-head"><div><h2 className="section-title">1. Choose source layers</h2><p className="subtle">Keep one personal video as the main layer, then add Face cam or an Admin/My animation above it.</p></div><FileVideo size={17} color="#6c8b83"/></div>
+         <div className="mobile-editor-tabs" role="tablist" aria-label="Mobile editor controls">
+           {([
+             ["files", <FileVideo size={14}/>, "Files"],
+             ["timing", <Type size={14}/>, "Timing"],
+             ["layers", <Image size={14}/>, "Layers"],
+             ["effects", <Sparkles size={14}/>, "Effects"],
+           ] as const).map(([panel, icon, label]) => <button
+             key={panel}
+             type="button"
+             className={mobileEditorPanel === panel ? "active" : ""}
+             onClick={() => setMobileEditorPanel(panel)}
+             role="tab"
+             aria-selected={mobileEditorPanel === panel}
+             data-testid={`button-mobile-editor-${panel}`}
+           >{icon}<span>{label}</span></button>)}
+         </div>
+         <aside className="editor-controls">
+           <section className={mobilePanelClass("files")} data-mobile-editor-panel="files">
+              <div className="section-head"><div><h2 className="section-title">1. Choose files & source layers</h2><p className="subtle">Choose your files first. Personal videos and Admin + My animations stay in separate tabs.</p></div><FileVideo size={17} color="#6c8b83"/></div>
              <div className="editor-library-tabs" role="tablist" aria-label="Editor libraries">
                 <button type="button" className={editorLibrary === "personal" ? "active" : ""} onClick={() => chooseEditorLibrary("personal")} role="tab" aria-selected={editorLibrary === "personal"} data-testid="button-editor-personal-library"><FileVideo size={13}/> Personal video</button>
                 <button type="button" className={editorLibrary === "youtube" ? "active" : ""} onClick={() => chooseEditorLibrary("youtube")} role="tab" aria-selected={editorLibrary === "youtube"} data-testid="button-editor-youtube-animations"><Youtube size={13}/> Admin + My animations</button>
@@ -3067,14 +3086,14 @@ function VideoEditorPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}
             <div className="editor-clip-list">{groupVideos.length ? groupVideos.map((video, index) => <EditorClipCard key={video.id} video={video} index={index} licenseId={workspace.licenseId} animationMode={editorLibrary === "youtube"} selected={editorLibrary === "youtube" ? animationId === video.id : selectedIds.includes(video.id)} onToggle={() => editorLibrary === "youtube" ? selectAnimation(video.id) : toggleVideo(video.id)} />) : <div className="editor-mini-empty"><FolderOpen size={17}/>{editorLibrary === "youtube" ? "Choose Included Animations or My Animations to see overlay videos." : "Choose a personal category to see its videos."}</div>}</div>
               <div className="editor-selected-folder">{editorLibrary === "youtube" ? (selectedAnimationGroup ? <><FolderOpen size={13}/><span>Overlay folder: <strong>{folderPathForGroup(selectedAnimationGroup.id, data.groups).replace(`${youtubeAnimationRootName}/`, "") || selectedAnimationGroup.name}</strong></span></> : <span>Choose Admin Included or My Animations.</span>) : (selectedGroup ? <><FolderOpen size={13}/><span>Main folder: <strong>{folderPathForGroup(selectedGroup.id, data.groups)}</strong></span></> : <span>Choose a personal category for the main video.</span>)}</div>
           </section>
-          <section className="card editor-panel">
+          <section className={mobilePanelClass("timing")} data-mobile-editor-panel="timing">
              <div className="section-head"><div><h2 className="section-title">2. Timing & output</h2><p className="subtle">Choose whether this edit is a vertical Short or a landscape Long video.</p></div><Type size={17} color="#6c8b83"/></div>
             <div className="field"><label>Output title</label><input value={title} onChange={(event) => setTitle(event.target.value)} placeholder="Night drive · long cut" data-testid="input-editor-title"/></div>
               <div className="form-grid"><div className="field"><label>Video format</label><select value={outputAspectRatio} onChange={(event) => setOutputAspectRatio(event.target.value as AspectRatio)} data-testid="select-editor-format"><option value="full">Long video · 16:9 landscape</option><option value="shorts">Short video · 9:16 vertical</option><option value="square">Square video · 1:1</option></select></div><div className="field"><label>Frame behavior</label><select value={cropMode} onChange={(event) => setCropMode(event.target.value as EditorCropMode)} data-testid="select-editor-crop-mode"><option value="fit">Fit entire video</option><option value="crop">Fill frame & crop edges</option></select></div></div>
               <div className="form-grid"><label className="check-control editor-toggle-control"><input type="checkbox" checked={loopEnabled} onChange={(event) => setLoopEnabled(event.target.checked)} data-testid="toggle-editor-loop"/><span><strong>Loop selected video</strong><small>Repeat the selected playlist when enabled.</small></span></label><div className="field"><label>Loop count</label><input type="number" min="1" max="12" value={loopCount} disabled={!loopEnabled} onChange={(event) => setLoopCount(event.target.value)} data-testid="input-editor-loop-count"/></div></div>
              <div className="field"><label>Selected total</label><div className="editor-readonly">{selectedVideos.length} clip{selectedVideos.length === 1 ? "" : "s"} · {outputAspectRatio === "shorts" ? "Short format" : outputAspectRatio === "square" ? "Square format" : "Long format"}</div></div>
           </section>
-          <section className="card editor-panel">
+          <section className={mobilePanelClass("layers")} data-mobile-editor-panel="layers">
              <div className="section-head"><div><h2 className="section-title">3. Face cam & brand layers</h2><p className="subtle">Place a face cam video on top of the main video, then add a logo if needed.</p></div><Image size={17} color="#6c8b83"/></div>
             <div className="field"><label>Logo / watermark</label><div className="input-action-row"><select value={logoId} onChange={(event) => setLogoId(event.target.value)}><option value="">No logo</option>{data.editorAssets.map((asset) => <option key={asset.id} value={asset.id}>{asset.title}</option>)}</select><label className="button secondary small editor-file-button"><Upload size={13}/>{uploadingLogo ? "Uploading…" : "Upload"}<input type="file" accept="image/png,image/jpeg,image/webp" disabled={uploadingLogo} onChange={(event) => { const file = event.target.files?.[0]; if (file) void uploadLogo(file); event.currentTarget.value = ""; }}/></label></div></div>
             {logo && <div className="form-grid"><div className="field"><label>Logo position</label><select value={logoPosition} onChange={(event) => setLogoPosition(event.target.value)}><option value="top-left">Top left</option><option value="top-right">Top right</option><option value="bottom-left">Bottom left</option><option value="bottom-right">Bottom right</option></select></div><div className="field"><label>Logo size · {overlayScale}%</label><input type="range" min="10" max="60" value={overlayScale} onChange={(event) => setOverlayScale(event.target.value)}/></div></div>}
@@ -3097,7 +3116,7 @@ function VideoEditorPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}
              />
              {webcam && <div className="form-grid"><div className="field"><label>Face cam position</label><select value={webcamPosition} onChange={(event) => setWebcamPosition(event.target.value)} data-testid="select-editor-facecam-position"><option value="top-left">Top left</option><option value="top-right">Top right</option><option value="bottom-left">Bottom left</option><option value="bottom-right">Bottom right</option></select></div><div className="field"><label>Face cam size · {webcamScale}%</label><input type="range" min="10" max="60" value={webcamScale} onChange={(event) => setWebcamScale(event.target.value)} data-testid="input-editor-facecam-size"/></div></div>}
           </section>
-           <section className="card editor-panel">
+           <section className={mobilePanelClass("effects")} data-mobile-editor-panel="effects">
              <div className="section-head"><div><h2 className="section-title">4. Color & effects</h2><p className="subtle">Adjust the main video, reverse it, or key out a green background.</p></div><Sparkles size={17} color="#6c8b83"/></div>
               <label className="check-control editor-toggle-control"><input type="checkbox" checked={reverseVideo} onChange={(event) => setReverseVideo(event.target.checked)} data-testid="toggle-editor-reverse"/><span><strong>Reverse main video</strong><small>Plays the selected clips from end to start in the live composition.</small></span></label>
              <div className="editor-effect-grid">

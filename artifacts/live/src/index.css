@@ -1826,6 +1826,7 @@ select { height: 41px; }
 .editor-clip:hover, .editor-clip.selected { border-color: #98be9e; background: #eef6e5; }
 .editor-render-button { min-height: 48px; }
 .editor-head-badge { color: #2c6d69; background: #eaf4dd; border-color: #c8ddb5; }
+.mobile-editor-tabs { display:none; }
 
 /* Keep the composition visible while the long control rail scrolls independently. */
 @media (min-width: 981px) {
@@ -2377,6 +2378,51 @@ select { height: 41px; }
   .editor-preview-actions > div { min-width: 0; }
   .editor-stage-foot { font-size: 9px; }
   .editor-panel { padding: 13px; border-radius: 13px; }
+  .mobile-editor-tabs {
+    position: sticky;
+    bottom: 10px;
+    z-index: 20;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 5px;
+    margin: 0 0 10px;
+    padding: 5px;
+    border: 1px solid rgba(123,155,135,.38);
+    border-radius: 14px;
+    background: rgba(247,250,241,.94);
+    box-shadow: 0 12px 30px rgba(26,63,50,.16);
+    backdrop-filter: blur(12px);
+  }
+  .mobile-editor-tabs button {
+    display:flex;
+    min-height:44px;
+    align-items:center;
+    justify-content:center;
+    gap:5px;
+    padding:7px 4px;
+    border:0;
+    border-radius:10px;
+    color:#6c8278;
+    background:transparent;
+    font:700 9px var(--app-font-mono);
+  }
+  .mobile-editor-tabs button.active {
+    color:#154f4b;
+    background:#dff0df;
+    box-shadow:inset 0 -2px #6d9e6f;
+  }
+  .mobile-editor-tabs button:active { transform:scale(.97); }
+  .mobile-editor-panel { display:none; }
+  .mobile-editor-panel.is-mobile-active { display:block; }
+  .mobile-editor-panel .section-head { margin-bottom:12px; }
+  .mobile-editor-panel .section-head .section-title { font-size:13px; }
+  .mobile-editor-panel .subtle { font-size:10px; line-height:1.45; }
+  .mobile-editor-panel-files .editor-library-tabs { grid-template-columns:repeat(2, minmax(0,1fr)); }
+  .mobile-editor-panel-files .editor-library-tabs button { min-height:46px; font-size:9px; }
+  .mobile-editor-panel-files .editor-animation-folders { grid-template-columns:1fr; }
+  .mobile-editor-panel-files .editor-clip-list { grid-template-columns:repeat(2,minmax(0,1fr)); max-height:none; }
+  .mobile-editor-panel-files .editor-clip { min-height:64px; }
+  .mobile-editor-panel-files .editor-category-lock { align-items:flex-start; }
   .editor-panel .section-head { align-items: flex-start; }
   .editor-layer-tabs button,
   .editor-library-tabs button { min-height: 42px; }
@@ -2416,4 +2462,17 @@ select { height: 41px; }
   .editor-clip-list { grid-template-columns: 1fr; }
   .editor-stage-head { flex-direction: column; }
   .editor-stage-status { text-align: left; }
+}
+
+@media (max-width: 700px) {
+  /* Keep landing artwork fully inside compact mobile cards instead of cropping
+     the reference image into an oversized desktop-style hero. */
+  .hero-monitor-wrap { max-width: 370px; margin-inline: auto; }
+  .comparison-image { object-fit: contain; padding: 10px; background:#0b1819; }
+  .power-feature-art { width:100%; height:112px; margin:0 auto 14px; border-radius:10px; }
+  .power-feature-art img { width:96px; height:96px; }
+  .use-case-image { height:240px; min-height:0; background:#173b36; }
+  .use-case-image img { object-fit:contain; object-position:center; padding:10px; }
+  .workflow-art { min-height:290px; overflow:hidden; }
+  .workflow-artwork { width:166px; height:166px; transform:translate(38px,-41px) rotate(10deg); }
 }
