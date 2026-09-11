@@ -3,7 +3,6 @@ import { AnimatePresence, motion, useInView, useReducedMotion } from "framer-mot
 import { ArrowDown, ArrowLeftRight, ArrowRight, Check, Menu, MessageCircle, Play, Radio, Send, Signal, X, Zap } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import GetOfferButton from "@/components/GetOfferButton";
-import logoImage from "@assets/image_1788788255512.png";
 import loopControlArtwork from "@assets/loopstream_reference/feature-loop-control.jpeg";
 import streamingArtwork from "@assets/loopstream_reference/feature-24x7-streaming.jpeg";
 import playlistArtwork from "@assets/loopstream_reference/feature-playlist-builder.jpeg";
@@ -19,12 +18,6 @@ import musicReferenceImage from "@assets/generated_images/use-case-music-live.jp
 import cartoonsReferenceImage from "@assets/generated_images/use-case-kids-entertainment_2.jpg";
 import educationReferenceImage from "@assets/generated_images/use-case-education_2.jpg";
 import affiliateReferenceImage from "@assets/generated_images/use-case-product-showcase.jpg";
-import youtubeReferenceIcon from "@assets/loopstream_reference/youtube.webp";
-import facebookReferenceIcon from "@assets/loopstream_reference/facebook.webp";
-import twitchReferenceIcon from "@assets/loopstream_reference/twitch.webp";
-import kickReferenceIcon from "@assets/loopstream_reference/kick.webp";
-import instagramReferenceIcon from "@assets/loopstream_reference/instagram.webp";
-import xReferenceIcon from "@assets/loopstream_reference/x.webp";
 
 const ease = [0.22, 1, 0.36, 1] as const;
 
@@ -40,15 +33,6 @@ const useCases = [
   { title: "Kids & entertainment", note: "Give every show a colorful channel", image: cartoonsReferenceImage },
   { title: "Education & classes", note: "Turn lessons into a live classroom", image: educationReferenceImage },
   { title: "Product showcases", note: "Keep product stories in motion", image: affiliateReferenceImage },
-];
-
-const platformIcons = [
-  { label: "YouTube", image: youtubeReferenceIcon },
-  { label: "Facebook", image: facebookReferenceIcon },
-  { label: "Twitch", image: twitchReferenceIcon },
-  { label: "Kick", image: kickReferenceIcon },
-  { label: "Instagram", image: instagramReferenceIcon, comingSoon: true },
-  { label: "X", image: xReferenceIcon, comingSoon: true },
 ];
 
 const powerfulFeatures = [
@@ -69,7 +53,7 @@ const MONTHLY_OFFER_DURATION = 3 * 60 * 60 * 1000;
 const MONTHLY_OFFER_DEADLINE_KEY = "r-loop-bypass-monthly-offer-deadline";
 
 function BrandMark() {
-  return <span className="marketing-mark"><img src={logoImage} alt="" /></span>;
+  return <span className="marketing-mark" aria-hidden="true"><span>S</span><i /></span>;
 }
 
 function RollLabel({ children }: { children: string }) {
@@ -89,7 +73,7 @@ function PublicNav({ onAccess }: { onAccess?: () => void }) {
     else setLocation(href);
   };
   return <header className={`marketing-nav ${menuOpen ? "is-open" : ""}`}>
-    <Link href="/" className="marketing-brand" data-testid="link-public-home"><BrandMark /><span>R LOOP <b>BYPASS</b></span></Link>
+    <Link href="/" className="marketing-brand" data-testid="link-public-home"><BrandMark /><span>Streamly</span></Link>
     <nav className="marketing-links" aria-label="Main navigation">
       {navItems.map((item) => <button key={item.label} className="marketing-link" onClick={() => go(item.href)} data-testid={`link-${item.label.toLowerCase().replace(" ", "-")}`}><RollLabel>{item.label}</RollLabel></button>)}
     </nav>
@@ -107,7 +91,7 @@ function PublicNav({ onAccess }: { onAccess?: () => void }) {
 
 function IntroReveal({ onComplete }: { onComplete: () => void }) {
   const [index, setIndex] = useState(0);
-  const greetings = ["Hello.", "नमस्ते.", "Bonjour.", "Ciao.", "R Loop Bypass."];
+  const greetings = ["Hello.", "नमस्ते.", "Bonjour.", "Ciao.", "Streamly."];
   useEffect(() => {
     const timer = window.setInterval(() => setIndex((current) => Math.min(current + 1, greetings.length - 1)), 470);
     const done = window.setTimeout(onComplete, 2250);
@@ -143,7 +127,8 @@ function SignalMonitor() {
       <div className="stage-wash" />
       <div className="scan-lines" />
       <div className="monitor-center"><AnimatePresence mode="wait"><motion.div key={current.label} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: .35 }}><div className="monitor-state"><span className="monitor-state-dot" />{current.label}</div><p>{current.sub}</p></motion.div></AnimatePresence></div>
-      <div className="monitor-corner monitor-corner-left">RLB / CH.01</div><div className="monitor-corner monitor-corner-right">4K · 60 FPS</div>
+       <div className="monitor-corner monitor-corner-left">STL / CH.01</div><div className="monitor-corner monitor-corner-right">4K · 60 FPS</div>
+       <div className="monitor-hud" aria-label="Broadcast cues"><span className="is-live"><i />LIVE</span><span>CHAT 24</span><span>SCHEDULED 06:30</span></div>
     </div>
     <div className="monitor-wave"><span /><span /><span /><span /><span /><span /><span /><span /><span /><span /><span /><span /><span /><span /><span /><span /></div>
     <div className="monitor-foot"><span><Signal size={13} /> YouTube</span><span><Signal size={13} /> Facebook</span><strong>Auto-restart <i /></strong></div>
@@ -449,7 +434,7 @@ function PlanOfferSlider() {
         {accessPlans.map((plan, index) => <article className={`plan-offer-card ${plan.isFeatured ? "is-featured" : ""}`} key={plan.term}>
           <div className="plan-offer-card-header">
             <div>
-              <span className="plan-offer-card-kicker">R LOOP BYPASS / {plan.label}</span>
+              <span className="plan-offer-card-kicker">STREAMLY / {plan.label}</span>
               <h3>{plan.term}</h3>
             </div>
             {plan.isFree ? <span className="plan-offer-best-value">FREE</span> : plan.isFeatured && <span className="plan-offer-best-value">BEST VALUE</span>}
@@ -493,12 +478,10 @@ function PlanOfferSlider() {
 }
 
 export function LandingPage() {
-  const [intro, setIntro] = useState(true);
   const [activeCase, setActiveCase] = useState(0);
   const [heroTransform, setHeroTransform] = useState("perspective(1200px) rotateX(0deg) rotateY(0deg) translate3d(0, 0, 0)");
   const [, setLocation] = useLocation();
   const reducedMotion = useReducedMotion();
-  const completeIntro = () => setIntro(false);
   const moveHero = (event: PointerEvent<HTMLDivElement>) => {
     if (reducedMotion || event.pointerType === "touch") return;
     const bounds = event.currentTarget.getBoundingClientRect();
@@ -508,15 +491,14 @@ export function LandingPage() {
   };
   const resetHero = () => setHeroTransform("perspective(1200px) rotateX(0deg) rotateY(0deg) translate3d(0, 0, 0)");
   return <div className="marketing-page">
-    {intro && !reducedMotion && <IntroReveal onComplete={completeIntro} />}
     <PublicNav />
     <main>
       <section className="marketing-hero" data-testid="section-marketing-hero">
         <div className="hero-orbit hero-orbit-one" /><div className="hero-orbit hero-orbit-two" />
         <div className="hero-copy">
           <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: .25, duration: .7, ease }} className="signal-tag"><span className="signal-tag-dot" /> YOUR CHANNEL, ON LOOP</motion.div>
-          <motion.h1 initial={{ opacity: 0, y: 22 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: .35, duration: .8, ease }}><HeroRollText>Make the long</HeroRollText><br /><em><HeroRollText>signal feel alive.</HeroRollText></em></motion.h1>
-          <motion.p initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: .48, duration: .7, ease }}>R Loop Bypass turns a playlist into a dependable 24-hour live channel. Build once, broadcast with confidence.</motion.p>
+           <motion.h1 initial={{ opacity: 0, y: 22 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: .35, duration: .8, ease }}><HeroRollText>Make the</HeroRollText><br /><em><HeroRollText>signal feel alive.</HeroRollText></em></motion.h1>
+           <motion.p initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: .48, duration: .7, ease }}>Streamly turns a playlist into a dependable 24-hour live channel. Build once, broadcast with confidence.</motion.p>
           <motion.div className="hero-actions" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: .6, duration: .7, ease }}>
              <div
                onClick={() => setLocation("/pricing")}
@@ -540,26 +522,7 @@ export function LandingPage() {
 
       <MarketingSection className="signal-strip"><div className="strip-label">Built for the channel that keeps going</div><div className="strip-lines"><span /><span /><span /><span /><span /><span /><span /></div><div className="strip-stats"><strong>24<span>h</span></strong><small>broadcast window</small></div><div className="strip-stats"><strong>4K</strong><small>output ceiling</small></div><div className="strip-stats"><strong>02</strong><small>platform destinations</small></div><div className="strip-platforms"><span>YouTube</span><span>Facebook</span><span>Apps <b>coming soon</b></span></div></MarketingSection>
 
-       <MarketingSection id="capabilities" className="capabilities-section"><div className="section-intro"><span className="section-index">01 / THE CONTROL ROOM</span><h2>From playlist<br /><em>to transmission.</em></h2><p>Every part of the broadcast is deliberate. R Loop Bypass gives a small team the calm, precise controls of a real channel room.</p></div><div className="capability-list"><div className="capability-item"><span>01</span><div><h3>Loop without babysitting</h3><p>Keep a selected library in motion, with playback that comes back on its own when a connection gets noisy.</p></div><Zap size={18} /></div><div className="capability-item"><span>02</span><div><h3>Schedule the handoff</h3><p>Shape a playlist, set the duration, and send the next broadcast out when your audience expects it.</p></div><Zap size={18} /></div><div className="capability-item"><span>03</span><div><h3>Meet the platform</h3><p>Stream to YouTube and Facebook with crisp 4K or 1080p output, depending on the room and the moment.</p></div><Zap size={18} /></div></div></MarketingSection>
-
-       <MarketingSection className="power-features-section">
-         <div className="power-features-head">
-           <div>
-             <span className="section-index">POWERFUL FEATURES</span>
-             <h2>Minimal <em>effort.</em></h2>
-           </div>
-           <div className="power-features-platforms" aria-label="Supported streaming platforms">
-             {platformIcons.map((platform) => <div className={`power-platform-icon ${platform.comingSoon ? "is-coming-soon" : ""}`} key={platform.label}><img src={platform.image} alt="" /><span>{platform.label}</span>{platform.comingSoon && <small>soon</small>}</div>)}
-           </div>
-         </div>
-         <div className="power-features-grid">
-            {powerfulFeatures.map(({ title, description, artwork }) => <article className="power-feature-card" key={title}>
-              <div className="power-feature-art"><img src={artwork} alt={`${title} feature`} /></div>
-             <h3>{title}</h3>
-             <p>{description}</p>
-           </article>)}
-         </div>
-       </MarketingSection>
+       <MarketingSection id="capabilities" className="capabilities-section"><div className="section-intro"><span className="section-index">01 / THE CONTROL ROOM</span><h2>From playlist<br /><em>to transmission.</em></h2><p>Five precise controls keep the signal moving while you focus on the story, the lesson, or the next broadcast.</p></div><div className="capability-list">{powerfulFeatures.map(({ title, description, artwork }, index) => <div className="capability-item" key={title}><span>{String(index + 1).padStart(2, "0")}</span><div className="capability-copy"><div className="capability-art"><img src={artwork} alt="" /></div><div><h3>{title}</h3><p>{description}</p></div></div><Zap size={18} /></div>)}</div></MarketingSection>
 
       <MarketingSection id="use-cases" className="use-cases-section"><div className="use-case-head"><div><span className="section-index">02 / PROGRAMMING</span><h2>A channel for<br /><em>every rhythm.</em></h2></div><p>From early morning movement to a quiet night sky, build the loop your audience returns to.</p></div><div className="use-case-feature"><div className="use-case-image"><AnimatePresence mode="wait"><motion.img key={useCases[activeCase].title} src={useCases[activeCase].image} alt={useCases[activeCase].title} initial={{ opacity: 0, scale: 1.05 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} transition={{ duration: .6 }} /></AnimatePresence><div className="image-caption"><span>Now programming</span><strong>{useCases[activeCase].title}</strong></div></div><div className="use-case-rail">{useCases.map((item, index) => <button key={item.title} className={`use-case-tab ${activeCase === index ? "active" : ""}`} onClick={() => setActiveCase(index)} data-testid={`button-use-case-${index}`}><span>0{index + 1}</span><strong>{item.title}</strong><small>{item.note}</small><ArrowRight size={15} /></button>)}</div></div></MarketingSection>
 
@@ -568,7 +531,7 @@ export function LandingPage() {
       <MarketingSection className="final-cta"><div className="final-cta-grid" /><span className="section-index">READY WHEN YOU ARE</span><h2>Give your next loop<br /><em>a proper signal.</em></h2><p>Start with one channel. Build the library around it. Keep the room on air.</p><Link href="/pricing" className="signal-button" data-testid="link-final-pricing"><span>View access options</span><ArrowRight size={16} /></Link></MarketingSection>
        <PlanOfferSlider />
     </main>
-    <footer className="marketing-footer"><Link href="/" className="marketing-brand" data-testid="link-footer-home"><BrandMark /><span>R LOOP <b>BYPASS</b></span></Link><span>Broadcast automation for the long signal.</span><Link href="/access" data-testid="link-footer-access">Access workspace <ArrowRight size={13} /></Link></footer>
+    <footer className="marketing-footer"><Link href="/" className="marketing-brand" data-testid="link-footer-home"><BrandMark /><span>Streamly</span></Link><span>Broadcast automation for the long signal.</span><Link href="/access" data-testid="link-footer-access">Access workspace <ArrowRight size={13} /></Link></footer>
   </div>;
 }
 
@@ -587,7 +550,7 @@ export function GatewayPage() {
         <button type="button" className="signal-button" onClick={() => setLocation("/pricing")}><span>Back to pricing</span><ArrowRight size={16} /></button>
       </div>
     </main>
-    <footer className="marketing-footer"><Link href="/" className="marketing-brand" data-testid="link-gateway-footer-home"><BrandMark /><span>R LOOP <b>BYPASS</b></span></Link><span>Secure access setup.</span><Link href="/pricing" data-testid="link-gateway-pricing">Back to pricing <ArrowRight size={13} /></Link></footer>
+    <footer className="marketing-footer"><Link href="/" className="marketing-brand" data-testid="link-gateway-footer-home"><BrandMark /><span>Streamly</span></Link><span>Secure access setup.</span><Link href="/pricing" data-testid="link-gateway-pricing">Back to pricing <ArrowRight size={13} /></Link></footer>
   </div>;
 }
 
@@ -612,7 +575,7 @@ export function PricingPage() {
     <PublicNav />
     <main className="pricing-main">
       <div className="pricing-intro">
-        <span className="section-index">R LOOP BYPASS / PAYWALL</span>
+        <span className="section-index">STREAMLY / ACCESS WINDOWS</span>
         <h1>Choose your <em>access.</em></h1>
         <p>Start free for one day, then choose the access window that fits your live channel. Every plan includes the full broadcast toolkit.</p>
       </div>
@@ -655,6 +618,6 @@ export function PricingPage() {
         </motion.div>}
       </AnimatePresence>
     </main>
-    <footer className="marketing-footer"><Link href="/" className="marketing-brand" data-testid="link-pricing-footer-home"><BrandMark /><span>R LOOP <b>BYPASS</b></span></Link><span>Simple access. Serious signal.</span><Link href="/" data-testid="link-pricing-back">Back to overview <ArrowRight size={13} /></Link></footer>
+    <footer className="marketing-footer"><Link href="/" className="marketing-brand" data-testid="link-pricing-footer-home"><BrandMark /><span>Streamly</span></Link><span>Simple access. Serious signal.</span><Link href="/" data-testid="link-pricing-back">Back to overview <ArrowRight size={13} /></Link></footer>
   </div>;
 }

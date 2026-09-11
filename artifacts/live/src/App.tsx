@@ -1265,8 +1265,8 @@ function ClerkAuthPage({ mode }: { mode: "sign-in" | "sign-up" }) {
   return <div className="auth-page">
     <div className="auth-page-backdrop" />
     <div className="auth-page-intro">
-      <Link href="/" className="access-brand"><span className="access-brand-mark"><img src={logoImage} alt="R Loop Bypass logo" /></span><span>R LOOP <b>BYPASS</b></span></Link>
-      <p className="eyebrow">R LOOP BYPASS / ACCOUNT ACCESS</p>
+      <Link href="/" className="access-brand"><span className="access-brand-mark" aria-hidden="true"><span>S</span><i /></span><span>Streamly</span></Link>
+      <p className="eyebrow">STREAMLY / ACCOUNT ACCESS</p>
       <h1>{mode === "sign-in" ? <>Keep your<br /><em>signal moving.</em></> : <>Create your<br /><em>signal room.</em></>}</h1>
       <p>{mode === "sign-in" ? "Login with Google to return to your workspace, trial, and active plan." : "Create an account and your trial workspace will be ready immediately."}</p>
     </div>
@@ -3939,11 +3939,11 @@ function ClerkProviderWithRoutes() {
   return <ClerkProvider
     publishableKey={clerkPubKey}
     proxyUrl={clerkProxyUrl}
-    appearance={{ theme: shadcn, variables: { colorPrimary: "#d5f365", colorForeground: "#173737", colorBackground: "#f5f7f0", colorInput: "#ffffff", colorInputForeground: "#173737", colorNeutral: "#bdd3c7", borderRadius: "0.7rem", fontFamily: "Inter, sans-serif" } }}
+    appearance={{ theme: shadcn, variables: { colorPrimary: "#176446", colorForeground: "#173a2c", colorBackground: "#eef3e8", colorInput: "#fbfcf5", colorInputForeground: "#173a2c", colorNeutral: "#b8cfbd", borderRadius: "0.7rem", fontFamily: "Manrope, sans-serif" } }}
     signInUrl={`${basePath}/sign-in`}
     signUpUrl={`${basePath}/sign-up`}
     localization={{
-      signIn: { start: { title: "Login with Google", subtitle: "Return to your R Loop Bypass workspace" } },
+      signIn: { start: { title: "Login with Google", subtitle: "Return to your Streamly workspace" } },
       signUp: { start: { title: "Create your workspace", subtitle: "Start your account trial today" } },
     }}
     routerPush={(to) => setLocation(stripBase(to))}

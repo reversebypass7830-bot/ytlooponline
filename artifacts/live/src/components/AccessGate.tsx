@@ -170,11 +170,11 @@ export function AccessGate({
       <header className="access-gate-header">
         <a className="access-gate-brand" href="/" data-testid="link-access-gate-home">
           <span className="access-gate-brand-mark" aria-hidden="true">
-            <span>R</span>
+            <span>S</span>
             <i />
           </span>
           <span className="access-gate-brand-name">
-            R LOOP <strong>BYPASS</strong>
+            Streamly
           </span>
         </a>
         <div className="access-gate-header-note">
@@ -187,7 +187,7 @@ export function AccessGate({
         <section className="access-gate-intro" aria-labelledby="access-gate-heading">
           <div className="access-gate-overline">
             <span className="access-gate-overline-line" aria-hidden="true" />
-            Your room, ready
+            Streamly / private access
           </div>
           <h1 id="access-gate-heading">
             Good to see
@@ -423,7 +423,7 @@ export function AccessGate({
       <footer className="access-gate-footer">
         <span>Broadcast automation for the long signal.</span>
         <span className="access-gate-footer-rule" aria-hidden="true" />
-        <span>R Loop Bypass</span>
+        <span>Streamly</span>
       </footer>
 
       {giftOpen && (

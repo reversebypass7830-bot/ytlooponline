@@ -1,0 +1,664 @@
+# MASTER UI DESIGN PROMPT — 24/7 YOUTUBE VIDEO STREAMING PLATFORM
+
+Design and create a premium, production-ready, fully responsive website UI for a modern **24/7 YouTube video streaming / continuous broadcasting platform**.
+
+The website should feel like a real premium SaaS/media-tech product designed by an expert product-design team — NOT like a generic AI-generated website.
+
+Use the supplied reference images as the primary visual direction. If reference images are provided, preserve their visual language, composition style, illustration quality, spacing philosophy, and branding while creating a cohesive website.
+
+IMPORTANT:
+
+* Design ONLY the **Landing Page** and **Login / Access Page**.
+* Do not create dashboard pages or unnecessary internal application screens.
+* Make every section feel like part of the same professional product.
+* Keep the design highly polished, minimal, editorial, modern and memorable.
+* Make the entire experience mobile-first and responsive.
+
+---
+
+# 1. BRAND / VISUAL DIRECTION
+
+Create two connected visual identities:
+
+## LOGIN / ACCESS PAGE
+
+Use a sophisticated LIGHT theme.
+
+Background:
+
+* Soft mint/sage green
+* Approximately `#F0F4EE`
+* Very subtle tonal variations are acceptable
+
+Primary accent:
+
+* Deep forest green
+* Orange used selectively for small highlights/details
+
+Typography:
+
+* Premium editorial serif for the major emotional headline
+* Use italic styling selectively
+* Headline should have a sophisticated magazine/editorial feeling
+* Supporting text should use a clean modern sans-serif
+
+Overall feeling:
+
+* Premium
+* Calm
+* Trustworthy
+* Private
+* Human
+* Editorial
+* Minimal
+
+Example headline treatment:
+
+"Good to see
+**you**"
+
+Make the emphasized word visually distinctive using italic serif typography.
+
+---
+
+# 2. MAIN LANDING PAGE
+
+Use a DARK cinematic theme.
+
+Background:
+
+* Deep black / near-black
+* Approximately `#0A0F0A`
+
+Primary accent:
+
+* Neon/lime green
+* Approximately `#C8F052`
+
+Supporting colors:
+
+* Soft off-white
+* Muted gray-green
+* Very subtle darker green surfaces
+
+The lime green should provide strong contrast without making the interface look overly neon.
+
+Overall feeling:
+
+* Premium broadcast technology
+* Modern media infrastructure
+* Creative
+* Minimal
+* Confident
+* Technical but approachable
+
+---
+
+# 3. NAVIGATION
+
+Create a clean premium navigation bar.
+
+LEFT:
+
+* Brand logo
+* Use the provided logo/reference asset if supplied
+* Do not create a random unrelated logo
+
+CENTER:
+
+* Capabilities
+* Use cases
+* Pricing
+
+RIGHT:
+
+* "Access workspace" CTA
+* Pill-shaped button
+* Lime/green accent
+* Clear hover state
+
+Navigation should remain elegant and lightweight.
+
+Desktop:
+
+* Horizontal navigation
+
+Tablet:
+
+* Slightly compressed navigation
+
+Mobile:
+
+* Logo + compact menu button
+* CTA should remain accessible without overcrowding
+
+Add subtle sticky/floating navigation behavior if appropriate.
+
+---
+
+# 4. HERO SECTION
+
+Create a highly impactful hero section.
+
+Main headline should communicate effortless continuous broadcasting.
+
+Use bold modern sans-serif typography.
+
+Visual hierarchy should feel similar to premium editorial technology websites.
+
+Suggested headline direction:
+
+"Make the **signal feel**"
+
+Use large typography with selective lime-green emphasis.
+
+Supporting copy should communicate that users can continuously stream videos to YouTube with minimal effort.
+
+Primary CTA:
+
+* Strong lime-green pill button
+* Example: "Start streaming"
+
+Secondary CTA:
+
+* Ghost/outline button
+* Example: "See how it works"
+
+Do not overcrowd the hero.
+
+---
+
+# 5. HERO PRODUCT VISUAL
+
+Create a large product/broadcast visualization next to or underneath the hero copy.
+
+The visual should show a realistic-but-friendly broadcasting setup:
+
+* Broadcast monitor
+* Streaming video
+* Live indicator
+* YouTube-style player/interface
+* Live chat panel
+* Playlist information
+* 24/7 streaming indication
+* Small scheduling/programming elements
+
+Use flat friendly cartoon-style broadcaster characters where appropriate.
+
+The visual should look like a premium product illustration rather than a generic stock image.
+
+Add subtle depth:
+
+* Floating UI panels
+* Soft shadows
+* Thin green borders
+* Very subtle glow
+* Layered cards
+
+Do not make the illustration excessively complicated.
+
+---
+
+# 6. FEATURE SECTION
+
+Create a section titled:
+
+"Minimal **effort**"
+
+Use a bold headline with selective lime emphasis.
+
+Section label:
+
+"POWERFUL FEATURES"
+
+Use small uppercase/monospace typography for labels.
+
+Create a premium feature grid containing exactly these five capabilities:
+
+1. Loop Control
+2. 24x7 Streaming
+3. Playlist Builder
+4. 1080p & 4K Output
+5. Advanced Scheduler
+
+Each feature should have:
+
+* Short title
+* One-line/short description
+* Distinct icon
+* Premium card surface
+* Thin green border
+* Subtle green glow
+* Hover animation
+* Consistent spacing
+
+---
+
+# 7. FEATURE ICON STYLE
+
+Use glossy 3D / gradient sticker-inspired icons.
+
+Visual direction:
+
+* Pink
+* Purple
+* Magenta
+* Subtle highlights
+* Soft reflections
+* Rounded forms
+
+Icons should feel like polished product icons.
+
+Use recognizable real-world symbols where appropriate:
+
+* Loop / repeat icon
+* 24/7 clock
+* Playlist icon
+* HD/4K display icon
+* Calendar/scheduler icon
+
+Do NOT use random abstract symbols when a recognizable icon exists.
+
+Icons should look professionally designed and consistent.
+
+---
+
+# 8. USE CASES SECTION
+
+Create a numbered editorial-style use-case section.
+
+Section label:
+
+"NOW PROGRAMMING"
+
+Headline direction:
+
+"Built for every kind of broadcast."
+
+Use a clean vertical list with large numbers.
+
+Include:
+
+03 — News & live updates
+04 — Kids & entertainment
+05 — Education & classes
+06 — Product showcases
+
+Each item should contain:
+
+* Large number
+* Title
+* Short description
+* Supporting visual/icon
+* Hover interaction
+
+Use generous whitespace.
+
+The section should feel closer to an editorial magazine layout than a standard SaaS feature list.
+
+---
+
+# 9. "QUIET SYSTEMS MAKE GOOD TV" SECTION
+
+Create a visually memorable section around the headline:
+
+"Quiet systems **make good TV**"
+
+Use large typography.
+
+Concept:
+The technology works quietly in the background while the content stays in focus.
+
+Show floating product cards/mockups around the section.
+
+Cards can display:
+
+* Playlist scheduling
+* Upcoming stream
+* Program timeline
+* Video queue
+* Live status
+* Scheduling controls
+
+Use thin green borders and subtle glow.
+
+Add a sophisticated testimonial/pitch feeling.
+
+The visual should communicate:
+"Set it once. Let it run."
+
+Do not make it feel like a generic dashboard screenshot.
+
+---
+
+# 10. CARD SYSTEM
+
+Cards across the dark landing page should follow one consistent design system.
+
+Use:
+
+* Near-black surfaces
+* Very subtle green tint
+* 1px green/olive borders
+* Soft shadows
+* Minimal glow
+* Rounded but not excessively rounded corners
+
+Avoid:
+
+* Huge gradients everywhere
+* Excessive glassmorphism
+* Excessive blur
+* Overly bright neon
+* Generic AI SaaS cards
+
+Cards should feel tactile and premium.
+
+---
+
+# 11. TYPOGRAPHY
+
+Use a strong typography system.
+
+Landing page:
+
+* Modern bold sans-serif for headlines
+* Clean sans-serif for body text
+* Monospace/small uppercase labels for metadata
+
+Login page:
+
+* Editorial serif headline
+* Italic emphasis
+* Modern sans-serif body/form text
+
+Create strong hierarchy between:
+
+* Hero headline
+* Section headings
+* Card titles
+* Labels
+* Supporting copy
+
+Typography must remain highly readable on mobile.
+
+---
+
+# 12. LOGIN / ACCESS PAGE
+
+Create a dedicated light-themed access page.
+
+Desktop layout:
+
+LEFT:
+
+* Brand/intro area
+* Premium editorial headline
+* Supporting copy
+
+RIGHT:
+
+* Floating access card
+
+Top trust badges:
+
+* "Private by default"
+* "Ready in seconds"
+
+Access card should contain:
+
+Title:
+"Access your workspace"
+
+Mobile number field:
+
+* Country selector
+* Default country: +91
+* Mobile number input
+
+Primary CTA:
+"Continue with mobile"
+
+Secondary authentication option:
+"Continue with Google"
+
+Include:
+
+* Google icon
+* Proper input states
+* Focus state
+* Error state
+* Loading state
+* Disabled state
+* Success state
+
+Do not ask for unnecessary information.
+
+The login card should have:
+
+* Soft shadow
+* Clean white/off-white surface
+* Slightly rounded corners
+* Elegant spacing
+* Premium form controls
+
+---
+
+# 13. LOGIN PAGE RESPONSIVE BEHAVIOR
+
+Desktop:
+
+* Two-column composition
+* Large editorial typography
+* Floating access card
+
+Tablet:
+
+* Reduced spacing
+* Balanced two-column layout
+
+Mobile:
+
+* Single-column layout
+* Intro content at top
+* Access card below
+* Trust badges remain visible
+* No horizontal overflow
+* Large tap-friendly controls
+* Minimum comfortable touch targets
+* Typography automatically scales
+
+The login experience must feel excellent on a small phone screen.
+
+---
+
+# 14. DARK / LIGHT MODE
+
+Support both:
+
+LIGHT MODE:
+
+* Login/access experience
+* Sage/mint background
+* Forest green
+* Orange accents
+* Editorial typography
+
+DARK MODE:
+
+* Main landing page
+* Near-black background
+* Lime green
+* Off-white typography
+* Subtle green borders/glows
+
+If a theme switcher is included, make it subtle and professional.
+
+Never allow theme switching to break contrast or readability.
+
+---
+
+# 15. ICONOGRAPHY
+
+Use recognizable, production-quality icons.
+
+Examples:
+
+* Google
+* YouTube
+* Play
+* Calendar
+* Clock
+* Playlist
+* Repeat
+* Monitor
+* Settings
+* User
+* Arrow
+* Menu
+* Close
+* Check
+* Warning
+
+Use a consistent icon family.
+
+Icons should have correct proportions, optical alignment and appropriate stroke weight.
+
+Do not use emoji as UI icons.
+
+---
+
+# 16. MICRO-INTERACTIONS
+
+Add tasteful animations:
+
+* Button hover
+* Card hover
+* Icon floating
+* Subtle glow
+* Section reveal
+* Smooth scrolling
+* Navigation transitions
+* Input focus animation
+* Login loading state
+* CTA press feedback
+
+Animations should be:
+
+* Fast
+* Smooth
+* Premium
+* Purposeful
+
+Avoid excessive animations that reduce usability.
+
+Respect reduced-motion accessibility preferences.
+
+---
+
+# 17. RESPONSIVE DESIGN
+
+The website MUST be fully responsive.
+
+Optimize specifically for:
+
+* Large desktop
+* Laptop
+* Tablet
+* iPhone-sized mobile screens
+* Android mobile screens
+
+Requirements:
+
+* No horizontal scrolling
+* No clipped text
+* No overlapping elements
+* Buttons remain easily tappable
+* Images scale correctly
+* Cards stack intelligently
+* Navigation adapts properly
+* Hero layout changes naturally
+* Typography scales fluidly
+
+Design mobile layouts intentionally rather than simply shrinking desktop layouts.
+
+---
+
+# 18. IMAGE / ASSET RULE
+
+If the user provides images or reference screenshots:
+
+USE THOSE PROVIDED IMAGES/ASSETS WHERE APPROPRIATE.
+
+Do not replace supplied brand visuals with random stock imagery.
+
+If an additional image/illustration is required:
+
+* Generate it in the same visual language
+* Maintain the same color palette
+* Maintain consistent character/illustration style
+* Maintain consistent lighting
+* Maintain consistent proportions
+
+Every visual should look as though it belongs to the same website.
+
+---
+
+# 19. PRODUCTION QUALITY
+
+The final design should feel like a real startup/product website ready for launch.
+
+Prioritize:
+
+* Visual hierarchy
+* Strong spacing system
+* Consistent grid
+* Accessible contrast
+* Responsive behavior
+* Clear CTA hierarchy
+* Realistic UI components
+* Proper states
+* Professional iconography
+* Consistent border radius
+* Consistent shadows
+* Consistent typography
+* High-quality illustrations
+
+Do not produce:
+
+* Generic templates
+* Excessive gradients
+* Random stock photos
+* Emoji icons
+* Inconsistent components
+* Excessive rounded cards
+* Fake-looking UI
+* Unnecessary sections
+* Dashboard UI
+* Overloaded hero sections
+
+---
+
+# FINAL DESIGN GOAL
+
+The final website should communicate:
+
+"24/7 streaming infrastructure that quietly keeps your content on air."
+
+It should combine:
+
+PREMIUM EDITORIAL DESIGN
++
+MODERN BROADCAST TECHNOLOGY
++
+MINIMAL SAAS UX
++
+FRIENDLY ILLUSTRATION
++
+HIGH-END RESPONSIVE DESIGN
+
+The landing page should immediately communicate the product value.
+
+The login page should immediately communicate trust, privacy and simplicity.
+
+Every screen should feel intentional, refined and production-ready.

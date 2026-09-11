@@ -1,0 +1,185 @@
+**3D icons + character/illustration images + UI card visuals** alag-alag jagah use karne chahiye. Main aapko exact placement bhi bata deta hoon.
+
+### 🧊 1. 3D Icons — sabse best free source
+
+**[3Dicons.co](https://3dicons.co/?utm_source=chatgpt.com)** — isme 1,500+ 3D icons hain, aur current V1 collection **CC0** hai, yani personal/commercial project mein use kar sakte ho without attribution. ([3D Icons][1])
+
+Aapke website ke liye ye icons download karo:
+
+| Feature            | Icon              |
+| ------------------ | ----------------- |
+| Loop Control       | 🔄 Repeat/Loop    |
+| 24x7 Streaming     | 🕐 Clock          |
+| Playlist Builder   | ▶️ Playlist/Video |
+| 1080p & 4K         | 🖥️ Monitor / 4K  |
+| Advanced Scheduler | 📅 Calendar       |
+| Privacy            | 🔒 Lock           |
+| Live Streaming     | 📡 Broadcast      |
+| YouTube            | YouTube logo/icon |
+| Workspace          | 💻 Laptop         |
+| Analytics          | 📊 Chart          |
+
+**3Dicons mein gradient style choose karo**, aur icons ko pink/purple glossy style mein rakho—exactly aapke reference design jaisa.
+
+---
+
+### 🟣 2. Alternative free 3D icons
+
+**[Free3DIcons](https://free3dicons.com/?utm_source=chatgpt.com)** — 2,200+ free 3D icons, PNG/WebP/JPG formats aur transparent PNG/WebP options available hain. ([free3dicons.com][2])
+
+Agar kisi particular icon ka 3D version 3Dicons.co par na mile, yahan search kar sakte ho.
+
+---
+
+### 👨‍💻 3. Website illustrations / characters
+
+**[unDraw](https://undraw.co/?utm_source=chatgpt.com)**
+
+Ye aapke **login page** ke liye useful hai. unDraw illustrations commercial/personal projects ke liye free hain aur attribution required nahi hai. ([unDraw][3])
+
+Search terms:
+
+* `Working at Home`
+* `Streaming`
+* `Broadcast`
+* `Website`
+* `Computer`
+* `Workspace`
+* `Live`
+* `Video`
+* `Technology`
+
+Unke search mein **Broadcast**, **Website**, **Computer Apps**, **Chatting** jaise relevant illustrations already milte hain. ([unDraw][4])
+
+---
+
+# 🎯 Aapke website mein exactly kahan kya lagega
+
+### LANDING PAGE
+
+**Hero section**
+
+Right side:
+
+> Large broadcast monitor + YouTube live screen + chat + playlist cards
+
+Yahan **custom generated product illustration** best rahegi.
+
+**Feature section**
+
+5 cards:
+
+```text
+[ 3D LOOP ICON ]
+Loop Control
+
+[ 3D CLOCK ICON ]
+24x7 Streaming
+
+[ 3D PLAYLIST ICON ]
+Playlist Builder
+
+[ 3D 4K MONITOR ]
+1080p & 4K Output
+
+[ 3D CALENDAR ]
+Advanced Scheduler
+```
+
+Yahan **3Dicons** ke icons use karo.
+
+---
+
+### USE CASE SECTION
+
+Yahan bade 3D icons/mini illustrations:
+
+```text
+03  News & Live Updates       [📺 3D TV]
+04  Kids & Entertainment      [🎮 3D Character]
+05  Education & Classes       [🎓 3D Education]
+06  Product Showcases         [📦 3D Product]
+```
+
+Isse section boring list nahi lagega.
+
+---
+
+### "QUIET SYSTEMS MAKE GOOD TV"
+
+Yahan **real-looking UI cards** use karo.
+
+Example:
+
+```text
+┌─────────────────────────────┐
+│ PLAYLIST SCHEDULE           │
+│                             │
+│ ● Morning News      08:00  │
+│ ● Kids Zone         12:00  │
+│ ● Tech Talk         02:00  │
+│ ● Movie Marathon    06:00  │
+└─────────────────────────────┘
+```
+
+Is section mein stock image mat lagana.
+
+**UI cards khud design/generate karna** best rahega.
+
+---
+
+# 🔐 LOGIN PAGE
+
+Login page mein:
+
+### Left side
+
+Large:
+
+**Good to see
+*you***
+
+Neeche:
+
+* small description
+* small orange line
+* friendly creator/broadcaster illustration
+
+Yahan **unDraw-style illustration** ya custom illustration use kar sakte ho.
+
+### Right side
+
+Clean floating card:
+
+```text
+┌──────────────────────────────┐
+│ Access your workspace        │
+│                              │
+│ 🇮🇳 +91  Enter mobile number │
+│                              │
+│ [ Continue with mobile  → ]  │
+│                              │
+│ ───────── or ─────────       │
+│                              │
+│ [ G  Continue with Google ]  │
+└──────────────────────────────┘
+```
+
+---
+
+# ⭐ Sabse important: images random mat lagana
+
+Aapke case mein main ye **3 asset categories** rakhunga:
+
+**1. 3D icons** → Features/cards
+**2. Custom illustrations** → Hero + login + use cases
+**3. Custom UI mockups** → Scheduler + playlist + streaming monitor
+
+Isse website ka design **ek hi visual language** mein rahega.
+
+Aur jo reference image maine abhi generate ki thi, usi style mein **individual assets** bhi generate kiye ja sakte hain—jaise **5 feature 3D icons, hero broadcast mockup, login illustration, playlist card aur scheduler card**—taaki aap directly developer ko de sako.
+
+[1]: https://3dicons.co/?utm_source=chatgpt.com "3dicons - Open Source & Free Premium 3D Icon Library"
+[2]: https://free3dicons.com/?utm_source=chatgpt.com "free3dicons.com | Download Free 3D Icons for Websites, Apps & Creative Projects"
+[3]: https://undraw.co/license?utm_source=chatgpt.com "License | unDraw"
+[4]: https://undraw.co/search/illustrations?utm_source=chatgpt.com "Search - illustrations | unDraw"

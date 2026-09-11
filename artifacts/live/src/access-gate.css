@@ -1124,3 +1124,111 @@
     transition-duration: .01ms !important;
   }
 }
+
+/* Streamly access: a calm sage room, intentionally lighter than the live surface. */
+.access-gate-shell {
+  --access-gate-ink: #173a2c;
+  --access-gate-ink-soft: #60766a;
+  --access-gate-green: #176446;
+  --access-gate-green-dark: #0c4932;
+  --access-gate-green-soft: #e7f1df;
+  --access-gate-green-wash: #f0f7ea;
+  --access-gate-line: #d7e4d3;
+  --access-gate-surface: #fbfcf5;
+  --access-gate-canvas: #eef3e8;
+  --access-gate-coral: #ae503c;
+  font-family: "Manrope", "Avenir Next", sans-serif;
+  background:
+    radial-gradient(circle at 86% 0%, rgba(206, 229, 176, .78), transparent 28rem),
+    linear-gradient(135deg, #f0f4e9 0%, #e8f0e4 53%, #f3f4e9 100%);
+}
+.access-gate-shell::before {
+  opacity: .24;
+  background-image: linear-gradient(rgba(23, 100, 70, .07) 1px, transparent 1px), linear-gradient(90deg, rgba(23, 100, 70, .07) 1px, transparent 1px);
+  background-size: 58px 58px;
+  mask-image: linear-gradient(to bottom, rgba(0, 0, 0, .34), transparent 58%);
+}
+.access-gate-orb-one { background: #dbeacb; opacity: .72; }
+.access-gate-orb-two { background: #e2efcf; opacity: .75; }
+.access-gate-header { border-bottom-color: #d2dfcf; }
+.access-gate-brand-mark {
+  border-color: #b7d1b5;
+  border-radius: 9px;
+  color: #f5fbef;
+  background: var(--access-gate-green);
+  font-family: "Manrope", sans-serif;
+  font-weight: 800;
+}
+.access-gate-brand-mark i { background: #d7f36d; }
+.access-gate-brand-name {
+  color: var(--access-gate-ink);
+  font-family: "DM Mono", monospace;
+  letter-spacing: .16em;
+}
+.access-gate-header-note { color: #5d776a; }
+.access-gate-intro h1,
+.access-gate-card h2,
+.access-gate-modal h2 {
+  font-family: "Instrument Serif", Georgia, serif;
+  font-weight: 400;
+}
+.access-gate-intro h1 { color: #173a2c; font-size: clamp(60px, 7vw, 96px); letter-spacing: -.06em; }
+.access-gate-intro h1 em { color: var(--access-gate-green); }
+.access-gate-overline { color: var(--access-gate-green); }
+.access-gate-overline-line { background: #c67b55; }
+.access-gate-intro-copy { color: #5f766a; }
+.access-gate-trust-row { color: var(--access-gate-green); }
+.access-gate-signal {
+  border-color: #d1e2ca;
+  border-radius: 14px;
+  background: rgba(251, 253, 246, .78);
+  box-shadow: 0 14px 32px rgba(32, 82, 50, .06);
+}
+.access-gate-signal-icon { color: #215e40; background: #dcebb6; }
+.access-gate-card {
+  border-color: #ccdfcf;
+  border-radius: 18px;
+  background: rgba(251, 253, 247, .94);
+  box-shadow: 0 24px 58px rgba(37, 84, 53, .1), 0 2px 7px rgba(37, 84, 53, .04);
+}
+.access-gate-card::before { background: #c8df76; }
+.access-gate-card h2 { font-size: 34px; }
+.access-gate-card-copy { color: #60776a; }
+.access-gate-field { color: #527260; }
+.access-gate-field input,
+.access-gate-phone-control,
+.access-gate-input-with-icon {
+  border-color: #c7dbca;
+  background: #f9fcf6;
+}
+.access-gate-field input:focus,
+.access-gate-phone-control:focus-within,
+.access-gate-input-with-icon:focus-within {
+  border-color: #4d986c;
+  box-shadow: 0 0 0 3px #deedd8;
+}
+.access-gate-button-primary {
+  border-color: var(--access-gate-green);
+  background: var(--access-gate-green);
+  box-shadow: 0 9px 18px rgba(23, 100, 70, .14);
+}
+.access-gate-button-primary:hover:not(:disabled) { background: var(--access-gate-green-dark); }
+.access-gate-google-button {
+  border-color: #c5d8c7;
+  border-radius: 11px;
+  background: #fafcf6;
+}
+.access-gate-license-trigger { border-radius: 10px; }
+.access-gate-license-trigger:hover { background: rgba(220, 236, 208, .42); }
+.access-gate-gift-strip {
+  border-color: #cfdfc9;
+  border-radius: 13px;
+  background: rgba(239, 247, 231, .82);
+}
+.access-gate-gift-icon { background: #dae9b6; }
+.access-gate-footer { color: #71907e; }
+.access-gate-modal { border-radius: 18px; background: #fbfcf6; }
+
+@media (max-width: 780px) {
+  .access-gate-intro h1 { font-size: clamp(58px, 16vw, 82px); }
+}

@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Instrument+Serif:ital@0;1&family=Manrope:wght@400;500;600;700;800&display=swap');
 @import 'tailwindcss';
 @import 'tw-animate-css';
 
@@ -46,6 +46,7 @@
   --destructive-foreground: 40 25% 98%;
   --app-font-sans: 'Manrope', ui-sans-serif, sans-serif;
   --app-font-mono: 'DM Mono', ui-monospace, monospace;
+  --app-font-display: 'Instrument Serif', Georgia, serif;
   --radius: 0.85rem;
 }
 
@@ -2683,4 +2684,148 @@ select { height: 41px; }
   .use-case-image img { object-fit:contain; object-position:center; padding:10px; }
   .workflow-art { min-height:290px; overflow:hidden; }
   .workflow-artwork { width:166px; height:166px; transform:translate(38px,-41px) rotate(10deg); }
+}
+
+/* Streamly public surfaces: broadcast black, paper-white type, one live lime. */
+.marketing-page {
+  --studio: #080d0d;
+  --studio-soft: #101b19;
+  --line: rgba(194, 229, 196, .15);
+  --signal: #d7f36d;
+  --signal-ink: #15210f;
+  background: var(--studio);
+  font-family: var(--app-font-sans);
+}
+.marketing-page .marketing-nav {
+  background: rgba(8, 13, 13, .78);
+  border-bottom-color: rgba(215, 243, 109, .13);
+}
+.marketing-page .marketing-mark {
+  position: relative;
+  overflow: visible;
+  border: 1px solid rgba(215, 243, 109, .36);
+  border-radius: 9px;
+  color: var(--signal-ink);
+  background: var(--signal);
+  font: 800 17px/1 var(--app-font-sans);
+}
+.marketing-mark span { transform: translateY(-1px); }
+.marketing-mark i {
+  position: absolute;
+  right: -3px;
+  bottom: -3px;
+  width: 7px;
+  height: 7px;
+  border: 2px solid var(--studio);
+  border-radius: 50%;
+  background: var(--signal);
+}
+.marketing-page .marketing-brand { letter-spacing: .15em; }
+.marketing-page .marketing-brand > span:last-child { color: #eff8eb; }
+.marketing-page .marketing-brand b { color: var(--signal); }
+.marketing-page .marketing-hero {
+  min-height: 790px;
+  background:
+    radial-gradient(circle at 73% 49%, rgba(215, 243, 109, .12), transparent 25rem),
+    radial-gradient(circle at 93% 93%, rgba(28, 105, 90, .28), transparent 31rem),
+    linear-gradient(115deg, #080d0d 0%, #0b1817 54%, #122621 100%);
+}
+.marketing-page .marketing-hero:before {
+  opacity: .1;
+  background-size: 86px 86px;
+  mask-image: linear-gradient(90deg, black, transparent 82%);
+}
+.marketing-page .hero-copy h1,
+.marketing-page .section-intro h2,
+.marketing-page .use-case-head h2,
+.marketing-page .workflow-copy h2,
+.marketing-page .final-cta h2,
+.marketing-page .pricing-intro h1,
+.marketing-page .gateway-card h1 {
+  font-family: var(--app-font-display);
+  font-weight: 400;
+  letter-spacing: -.055em;
+}
+.marketing-page .hero-copy h1 { font-size: clamp(64px, 8vw, 122px); line-height: .84; }
+.marketing-page .hero-copy h1 em,
+.marketing-page .section-intro h2 em,
+.marketing-page .use-case-head h2 em,
+.marketing-page .workflow-copy h2 em,
+.marketing-page .final-cta h2 em,
+.marketing-page .pricing-intro h1 em,
+.marketing-page .gateway-card h1 em { font-style: italic; }
+.marketing-page .hero-copy > p { max-width: 430px; color: #a4b9aa; }
+.marketing-page .hero-monitor-wrap { max-width: 720px; }
+.marketing-page .signal-monitor {
+  border-color: rgba(215, 243, 109, .34);
+  border-radius: 12px;
+  background: linear-gradient(145deg, rgba(19, 32, 28, .95), rgba(5, 15, 15, .96));
+  box-shadow: 0 34px 90px rgba(0, 0, 0, .44), inset 0 0 0 1px rgba(255, 255, 255, .035);
+}
+.marketing-page .monitor-stage { background: #101a19; }
+.marketing-page .stage-wash { background: linear-gradient(90deg, rgba(3, 13, 13, .62), rgba(7, 21, 18, .08) 75%), linear-gradient(0deg, rgba(3, 13, 13, .68), transparent 60%); }
+.marketing-page .monitor-state { border-radius: 7px; background: rgba(5, 16, 15, .82); }
+.marketing-page .monitor-hud {
+  position: absolute;
+  top: 12px;
+  right: 13px;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #c6d9c9;
+  font: 8px var(--app-font-mono);
+  letter-spacing: .08em;
+}
+.marketing-page .monitor-hud span { padding: 5px 7px; border: 1px solid rgba(220, 240, 220, .18); border-radius: 4px; background: rgba(5, 16, 15, .66); }
+.marketing-page .monitor-hud .is-live { color: var(--signal); }
+.marketing-page .monitor-hud i { display: inline-block; width: 5px; height: 5px; margin-right: 4px; border-radius: 50%; background: var(--signal); vertical-align: 1px; }
+.marketing-page .comparison-section { background: #080d0d; }
+.marketing-page .signal-strip { background: #dcead2; }
+.marketing-page .capabilities-section { background: #0d1b19; }
+.marketing-page .capabilities-section .section-intro h2 { font-size: clamp(47px, 6vw, 86px); }
+.marketing-page .capability-item { padding-block: 29px; }
+.marketing-page .capability-item h3 { font-family: var(--app-font-sans); font-size: 18px; }
+.marketing-page .capability-item > svg { color: var(--signal); opacity: .8; }
+.marketing-page .capability-copy { display: flex; align-items: center; gap: 18px; }
+.marketing-page .capability-art {
+  display: grid;
+  width: 62px;
+  height: 62px;
+  flex: 0 0 62px;
+  place-items: center;
+  overflow: hidden;
+  border: 1px solid rgba(215, 243, 109, .24);
+  border-radius: 12px;
+  background: #152725;
+}
+.marketing-page .capability-art img { width: 58px; height: 58px; object-fit: contain; filter: saturate(1.12) drop-shadow(0 7px 9px rgba(0, 0, 0, .34)); transition: transform .3s ease; }
+.marketing-page .capability-item:hover .capability-art img { transform: scale(1.1) rotate(-3deg); }
+.marketing-page .use-cases-section { background: #dcead2; }
+.marketing-page .use-case-image { border-radius: 9px; }
+.marketing-page .workflow-section { background: #080d0d; }
+.marketing-page .final-cta { background: #122522; }
+.marketing-page .marketing-footer { background: #050909; }
+.marketing-page :is(button, a):focus-visible {
+  outline: 2px solid var(--signal);
+  outline-offset: 4px;
+}
+.auth-page .access-brand-mark { position: relative; overflow: visible; color: #132118; background: #d7f36d; font: 800 16px/1 var(--app-font-sans); }
+.auth-page .access-brand-mark i { position: absolute; right: -3px; bottom: -3px; width: 7px; height: 7px; border: 2px solid #071315; border-radius: 50%; background: #d7f36d; }
+
+@media (max-width: 900px) {
+  .marketing-page .hero-copy h1 { font-size: clamp(67px, 12vw, 104px); }
+}
+@media (max-width: 620px) {
+  .marketing-page .marketing-hero { min-height: 910px; }
+  .marketing-page .hero-copy h1 { font-size: clamp(58px, 17vw, 82px); }
+  .marketing-page .hero-copy > p { font-size: 13px; }
+  .marketing-page .hero-monitor-wrap { max-width: 100%; }
+  .marketing-page .signal-monitor { transform: none; }
+  .marketing-page .monitor-hud { top: 9px; right: 10px; gap: 3px; font-size: 6px; }
+  .marketing-page .monitor-hud span { padding: 4px 4px; }
+  .marketing-page .capabilities-section .section-intro h2 { font-size: 58px; }
+  .marketing-page .capability-copy { align-items: flex-start; gap: 12px; }
+  .marketing-page .capability-art { width: 48px; height: 48px; flex-basis: 48px; border-radius: 9px; }
+  .marketing-page .capability-art img { width: 45px; height: 45px; }
 }
