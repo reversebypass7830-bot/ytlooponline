@@ -2040,13 +2040,13 @@ function LivePreviewPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}
   const [webcamPosition, setWebcamPosition] = useState<FacePosition>("bottom-right");
   const [webcamScale, setWebcamScale] = useState(0.25);
   const [webcamEnabled, setWebcamEnabled] = useState(false);
+  const selectedChannel = data.channels.find((channel) => channel.id === selectedChannelId);
    const devices = useLivePreviewDevices({
-     streamId: selectedChannelId ? streamIdFor(workspace.clientId, selectedChannelId) : undefined,
+     streamId: selectedChannel?.status === "live" ? streamIdFor(workspace.clientId, selectedChannel.id) : undefined,
      webcamEnabled,
      webcamPosition,
      webcamScale,
    });
-  const selectedChannel = data.channels.find((channel) => channel.id === selectedChannelId);
 
   useEffect(() => {
     if (selectedChannel && data.channels.some((channel) => channel.id === selectedChannel.id)) return;

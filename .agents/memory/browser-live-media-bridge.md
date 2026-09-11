@@ -3,8 +3,8 @@ name: Browser live media bridge
 description: Constraint separating local browser camera/microphone preview from the server-side FFmpeg broadcast.
 ---
 
-The Live Stream Preview can show browser camera locally, while microphone audio is captured as 48 kHz mono PCM and streamed to the selected server-side broadcast process. The server keeps a PCM input ready and mixes it into the outgoing live audio.
+The Live Stream Preview sends browser camera as a live WebM input pipe and microphone audio as 48 kHz mono PCM to the selected server-side broadcast process. FFmpeg overlays the camera and mixes the voice while the publisher process stays alive.
 
-**Why:** Browser permissions alone do not expose a server-readable media source; a small PCM upload bridge is enough for voice-over without adding a WebRTC stack, and the browser camera still remains local-only.
+**Why:** Browser permissions alone do not expose a server-readable media source. Separate camera and PCM upload pipes avoid a WebRTC stack while keeping camera, voice, and the main publisher coordinated; abrupt client disconnects must not crash Node.
 
-**How to apply:** Keep camera copy explicit about being local-only, send microphone frames only for the selected stream ID, and retain the publisher process while renderer or voice input settings change.
+**How to apply:** Only open media upload pipes for a running stream, detach them safely on browser errors or toggles, keep the publisher alive while the renderer restarts, and provide silence when the main video has no audio track.
