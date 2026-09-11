@@ -1462,7 +1462,7 @@ function ChannelModal({ channel, groups, videos, onSave, onClose }: {channel?:Li
   const existingVideos = channel ? videosForGroup(channel.groupId, groups, videos) : [];
   const [form,setForm] = useState({
     groupId:channel?.groupId||"",
-    streamUrl:channel?.streamUrl||"https://a.upload.youtube.com/http_upload_hls?cid=&copy=0&file=",
+    streamUrl:channel?.streamUrl||"",
     streamKey:channel?.streamKey||"",
     aspectRatio:channel?.aspectRatio||"full" as AspectRatio,
     playbackSpeed:channel?.playbackSpeed||1,
@@ -1512,7 +1512,7 @@ function ChannelModal({ channel, groups, videos, onSave, onClose }: {channel?:Li
   };
    return <Modal title={channel ? "Update channel" : "Add live channel"} onClose={onClose} footer={<><button className="button ghost" onClick={onClose} data-testid="button-cancel-channel">Cancel</button><button className="button" type="submit" form="channel-form" disabled={!form.streamUrl.trim() || !form.groupId || !form.playlistVideoIds.length} data-testid="button-save-channel">{channel ? "Save changes" : "Add channel"} <Check size={14}/></button></>}><form id="channel-form" onSubmit={submit}>
     <div className="form-grid">
-     <div className="field full"><label>Live ingest URL</label><input autoFocus required value={form.streamUrl} onChange={e=>set("streamUrl",e.target.value)} placeholder="https://a.upload.youtube.com/http_upload_hls?...&file=" data-testid="input-stream-url"/><span className="field-hint">Keep the stream key separate here. For RTMP, the key is appended automatically when the channel starts.</span></div>
+      <div className="field full"><label>Stream URL</label><input autoFocus required value={form.streamUrl} onChange={e=>set("streamUrl",e.target.value)} placeholder="Paste your platform stream URL" data-testid="input-stream-url"/><span className="field-hint">Paste the URL provided by your platform. The stream key can stay separate below, or be included in the full URL.</span></div>
        <div className="field full"><label>Stream key</label><input type="password" autoComplete="new-password" value={form.streamKey} onChange={e=>set("streamKey",e.target.value)} placeholder="Paste the platform stream key" data-testid="input-channel-stream-key"/><span className="field-hint">Stored only in this workspace and never shown in the channel table.</span></div>
        <div className="field"><label>Main video folder</label><select required value={form.groupId} onChange={e=>{const groupId=e.target.value;setForm(current=>({...current,groupId,playlistVideoIds:[]}));}} data-testid="select-channel-group"><option value="">Select a folder</option>{groups.map(g=><option key={g.id} value={g.id}>{g.name}</option>)}</select></div>
        <div className="field"><label>Live format</label><select value={form.aspectRatio} onChange={e=>set("aspectRatio",e.target.value as AspectRatio)} data-testid="select-channel-ratio"><option value="shorts">Shorts · 9:16 vertical</option><option value="full">Big live · 16:9 landscape</option><option value="square">Square · 1:1</option></select></div>
@@ -1917,10 +1917,19 @@ function useLivePreviewDevices(streamId?: string) {
 }
 
 function LivePage({workspace}:{workspace:ReturnType<typeof useWorkspace>}) {
-  const {data,update}=workspace; const [editing,setEditing]=useState<LiveChannel|undefined>(); const [showForm,setShowForm]=useState(false); const [deleting,setDeleting]=useState<LiveChannel|undefined>(); const [busy,setBusy]=useState<string[]>([]); const [streamKeyChannel,setStreamKeyChannel]=useState<LiveChannel|undefined>(); const [streamKeyDraft,setStreamKeyDraft]=useState("");
+  const {data,update}=workspace; const [location,setLocation]=useLocation(); const [editing,setEditing]=useState<LiveChannel|undefined>(); const [showForm,setShowForm]=useState(false); const [deleting,setDeleting]=useState<LiveChannel|undefined>(); const [busy,setBusy]=useState<string[]>([]); const [streamKeyChannel,setStreamKeyChannel]=useState<LiveChannel|undefined>(); const [streamKeyDraft,setStreamKeyDraft]=useState("");
   const playlistSignatures=useRef(new Map<string,string>());
   const save=(channel:LiveChannel)=>{const exists=data.channels.some(c=>c.id===channel.id); update({channels:exists?data.channels.map(c=>c.id===channel.id?channel:c):[channel,...data.channels]}, {message:exists?`${channel.title} was updated`:`${channel.title} was added`,type:"edit"}); setShowForm(false);setEditing(undefined);};
-  const start=async(c:LiveChannel)=>{if(busy.includes(c.id))return;if(!c.streamKey?.trim()){setStreamKeyDraft("");setStreamKeyChannel(c);return;}setBusy(ids=>[...ids,c.id]);try{
+  useEffect(() => {
+    const channelId = new URLSearchParams(location.split("?")[1] || "").get("editChannel");
+    if (!channelId) return;
+    const channel = data.channels.find((item) => item.id === channelId);
+    if (!channel) return;
+    setEditing(channel);
+    setShowForm(true);
+    setLocation("/live");
+  }, [data.channels, location, setLocation]);
+  const start=async(c:LiveChannel)=>{if(busy.includes(c.id))return;if(!c.streamUrl?.trim()){setEditing(c);setShowForm(true);workspace.setToast("Paste the stream URL before starting.");return;}if(!c.streamKey?.trim()&&c.streamUrl.includes("{streamKey}")){setStreamKeyDraft("");setStreamKeyChannel(c);return;}setBusy(ids=>[...ids,c.id]);try{
      const playlist=playlistFor(c,data.groups,data.videos);
      const category=playlist.category;
      const faceCategory=playlist.faceCategory;
@@ -2432,7 +2441,6 @@ function VideoEditorPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}
   const [error, setError] = useState("");
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [draftHydrated, setDraftHydrated] = useState(false);
-  const [showAddToStream, setShowAddToStream] = useState(false);
   const editorDraft = data.editorDraft;
   const selectedGroup = data.groups.find((group) => group.id === groupId);
   const editorGroups = useMemo(
@@ -2693,15 +2701,44 @@ function VideoEditorPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}
     chromaSimilarity,
     chromaBlend,
   };
-  const attachToStream = (channel: LiveChannel) => {
-    const exists = data.channels.some((item) => item.id === channel.id);
+  const createStreamFromEditor = () => {
+    if (!groupId || !selectedVideos.length) {
+      setError("Select at least one server-ready video before creating a stream.");
+      return;
+    }
+    const channelId = uid("ch");
+    const channelTitle = title.trim() || `${selectedGroup?.name || "Edited"} stream`;
+    const channel: LiveChannel = {
+      id: channelId,
+      title: channelTitle,
+      platform: "Custom RTMP",
+      status: "stopped",
+      groupId,
+      streamUrl: "",
+      streamKey: "",
+      viewers: 0,
+      startedAt: null,
+      thumbnailColor: colors[0],
+      createdAt: now(),
+      aspectRatio: outputAspectRatio,
+      playbackSpeed: 1,
+      facePosition: webcamPosition as FacePosition,
+      faceSize: Number(webcamScale),
+      durationHours: 1,
+      autoRestart: false,
+      streamQuality: "4k",
+      playlistVideoIds: selectedVideos.map((video) => video.id),
+      liveAnimationId: animationId || undefined,
+      liveAnimationX: animationTransform.x,
+      liveAnimationY: animationTransform.y,
+      liveAnimationScale: animationTransform.scale,
+      editorComposition: streamComposition,
+    };
     update(
-      { channels: exists ? data.channels.map((item) => item.id === channel.id ? channel : item) : [channel, ...data.channels] },
-      { message: `${channel.title} is ready with the edited stream`, type: "live" },
+      { channels: [channel, ...data.channels] },
+      { message: `${channel.title} was created from the editor`, type: "live" },
     );
-    setShowAddToStream(false);
-    setToast(`${channel.title} is ready. Open Live channels and press Start.`);
-    setLocation("/live");
+    setLocation(`/live?editChannel=${encodeURIComponent(channelId)}`);
   };
   return <AppShell title="Video editor" workspace={workspace}>
     <div className="page editor-page">
@@ -2787,12 +2824,11 @@ function VideoEditorPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}
                <div className="form-note"><Sparkles size={14} style={{verticalAlign:"-3px",marginRight:6}}/>These effects are shown in the preview and applied directly by the live encoder.</div>
            </section>
            {error && <div className="error-note" style={{whiteSpace:"pre-line"}}>{error}</div>}
-             <button className="button editor-render-button" type="button" disabled={!selectedVideos.length} onClick={()=>{setError("");setShowAddToStream(true);}} data-testid="button-add-edited-stream"><Radio size={15}/> Add to stream channel <ArrowRight size={15}/></button>
+              <button className="button editor-render-button" type="button" disabled={!selectedVideos.length} onClick={createStreamFromEditor} data-testid="button-add-edited-stream"><Radio size={15}/> Add to stream channel <ArrowRight size={15}/></button>
             <div className="form-note"><Sparkles size={14} style={{verticalAlign:"-3px",marginRight:6}}/>No intermediate MP4 is created. The selected composition is applied live by the stream encoder, including face cam, animation, logo, color, and microphone audio.</div>
         </aside>
       </form>
     </div>
-     {showAddToStream && <AddToStreamChannelModal channels={data.channels} mainGroupId={groupId} mainVideoIds={selectedIds} animationId={animationId} title={title.trim() || `${selectedGroup?.name || "Edited"} stream`} composition={streamComposition} onSave={attachToStream} onClose={()=>setShowAddToStream(false)}/>}
   </AppShell>;
 }
 
