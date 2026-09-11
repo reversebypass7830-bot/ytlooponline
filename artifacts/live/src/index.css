@@ -2403,6 +2403,21 @@ select { height: 41px; }
     min-height: 0;
     aspect-ratio: 16 / 10;
   }
+  .editor-canvas.editor-canvas-shorts {
+    width: auto;
+    height: clamp(220px, 34vh, 290px);
+    max-width: 100%;
+    min-height: 0;
+    aspect-ratio: 9 / 16;
+    margin-inline: auto;
+  }
+  .editor-canvas.editor-canvas-square {
+    width: min(100%, 250px);
+    height: auto;
+    min-height: 0;
+    aspect-ratio: 1;
+    margin-inline: auto;
+  }
   .editor-canvas-toolbar { top: 7px; left: 7px; right: 7px; }
   .editor-canvas-button { display: none; }
   .editor-canvas-button { min-height: 32px; padding-inline: 8px; }
