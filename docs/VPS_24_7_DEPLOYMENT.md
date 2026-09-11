@@ -122,9 +122,15 @@ bus.
 2. A playlist, overlay, coordinate, or live webcam update marks a renderer
    handoff.
 3. A new renderer is started with the new inputs.
-4. The new renderer output is piped to the existing publisher bridge.
-5. The old renderer is terminated after its output is detached.
-6. Publisher input is never ended by a renderer exit.
+4. Webcam and microphone pipes are primed immediately with a transparent PNG
+   and one second of silent PCM, so FFmpeg does not wait for the first browser
+   packet before producing output.
+5. The new renderer output is piped to the existing publisher bridge.
+6. The old renderer is terminated only after the new renderer emits its first
+   MPEG-TS chunk. If it produces no output for 15 seconds, the handoff is
+   rolled back and the old renderer remains active.
+7. Publisher input is never ended by a renderer exit; EPIPE/closed input
+   streams are logged and handled without crashing the API.
 
 The ingest URL cannot be changed while a channel is live. Stop and start the
 channel when changing the destination; otherwise the publisher connection is

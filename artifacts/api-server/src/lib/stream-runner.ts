@@ -109,6 +109,13 @@ type StreamProcess = {
   voiceTimer?: NodeJS.Timeout;
   playbackOffsetSeconds: number;
   renderStartedAtMs: number;
+  rendererHandoff?: {
+    oldRenderer: ChildProcess;
+    oldPlaylistPaths?: string[];
+    oldRenderStartedAtMs: number;
+    newRenderer: ChildProcess;
+    timeout?: NodeJS.Timeout;
+  };
 };
 
 const assetNamesByCategory: Record<string, string> = {
@@ -191,7 +198,15 @@ function cleanupPlaylists(process: StreamProcess): void {
 }
 
 function cleanupPlaylistPaths(playlistPaths: string[] | undefined): void {
-  playlistPaths?.forEach((playlistPath) => unlinkSync(playlistPath));
+  playlistPaths?.forEach((playlistPath) => {
+    try {
+      unlinkSync(playlistPath);
+    } catch (error) {
+      if (!(error && typeof error === "object" && "code" in error && error.code === "ENOENT")) {
+        throw error;
+      }
+    }
+  });
 }
 
 function previewDirectory(streamId: string): string {
@@ -298,6 +313,7 @@ const voiceFrameBytes = 1920;
 const voiceJitterFrames = 8;
 const maxVoiceBufferBytes = voiceFrameBytes * 50;
 const silenceFrame = Buffer.alloc(voiceFrameBytes);
+const silenceSecond = Buffer.alloc(maxVoiceBufferBytes);
 const liveMediaJitterMs = 200;
 const liveWebcamMaxQueueFrames = 8;
 const liveWebcamFrameIntervalMs = 100;
@@ -305,6 +321,18 @@ const transparentWebcamFrame = Buffer.from(
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=",
   "base64",
 );
+
+function primeWebcamPipe(process: StreamProcess): void {
+  if (!process.input.liveWebcam || !process.webcamOutput || process.webcamOutput.destroyed) return;
+  try {
+    process.webcamOutput.write(transparentWebcamFrame);
+  } catch (error) {
+    logger.warn(
+      { streamId: process.input.streamId, error: error instanceof Error ? error.message : "unknown error" },
+      "Live webcam pipe prime skipped",
+    );
+  }
+}
 
 function resetVoicePipe(process: StreamProcess): void {
   process.voiceOutput = undefined;
@@ -343,6 +371,16 @@ function startVoicePipe(process: StreamProcess, child: ChildProcess): void {
     logger.warn({ streamId: process.input.streamId, error: error.message }, "Voice input pipe closed");
     if (process.voiceOutput === output) process.voiceOutput = undefined;
   });
+  try {
+    // Feed one second of silence before browser microphone data arrives so
+    // FFmpeg can initialize the s16le input without starving the publisher.
+    output.write(silenceSecond);
+  } catch (error) {
+    logger.warn(
+      { streamId: process.input.streamId, error: error instanceof Error ? error.message : "unknown error" },
+      "Voice input prime skipped",
+    );
+  }
   if (!process.voiceTimer) {
     process.voiceTimer = setInterval(() => {
       const current = processes.get(process.input.streamId);
@@ -436,9 +474,18 @@ function startWebcamPipe(process: StreamProcess): PassThrough {
   if (process.webcamOutput) return process.webcamOutput;
   const output = new PassThrough({ highWaterMark: 1024 * 1024 });
   process.webcamOutput = output;
+  output.on("error", (error) => {
+    logger.warn({ streamId: process.input.streamId, error: error.message }, "Live webcam pipe closed");
+  });
   process.webcamTimer = setInterval(() => {
     const current = processes.get(process.input.streamId);
-    if (!current || current.status !== "running" || !current.webcamOutput || current.webcamOutput.destroyed) return;
+    if (
+      !current
+      || current.status !== "running"
+      || !current.input.liveWebcam
+      || !current.webcamOutput
+      || current.webcamOutput.destroyed
+    ) return;
     const cutoff = Date.now() - liveMediaJitterMs;
     let newestReadyIndex = -1;
     for (let index = 0; index < current.webcamQueue.length; index += 1) {
@@ -460,6 +507,7 @@ function startWebcamPipe(process: StreamProcess): PassThrough {
       );
     }
   }, liveWebcamFrameIntervalMs);
+  primeWebcamPipe(process);
   return output;
 }
 
@@ -880,14 +928,48 @@ function resultFor(streamId: string, process: StreamProcess, message: string): S
   };
 }
 
+const rendererHandoffTimeoutMs = 15_000;
+
+function completeRendererHandoff(process: StreamProcess, renderer: ChildProcess): void {
+  const handoff = process.rendererHandoff;
+  if (!handoff || handoff.newRenderer !== renderer) return;
+  if (handoff.timeout) clearTimeout(handoff.timeout);
+  process.rendererHandoff = undefined;
+  stopRenderer(process, handoff.oldRenderer);
+  cleanupPlaylistPaths(handoff.oldPlaylistPaths);
+  logger.info({ streamId: process.input.streamId }, "FFmpeg renderer handoff completed");
+}
+
+function abortRendererHandoff(process: StreamProcess, renderer: ChildProcess, reason: string): void {
+  const handoff = process.rendererHandoff;
+  if (!handoff || handoff.newRenderer !== renderer) return;
+  if (handoff.timeout) clearTimeout(handoff.timeout);
+  process.rendererHandoff = undefined;
+
+  detachRendererOutputs(process, renderer);
+  renderer.kill("SIGTERM");
+  cleanupPlaylistPaths(process.playlistPaths);
+  process.playlistPaths = handoff.oldPlaylistPaths;
+  process.renderer = handoff.oldRenderer;
+  process.renderStartedAtMs = handoff.oldRenderStartedAtMs;
+  startPreview(process, handoff.oldRenderer);
+  startVoicePipe(process, handoff.oldRenderer);
+  logger.warn({ streamId: process.input.streamId, reason }, "FFmpeg renderer handoff rolled back");
+}
+
 function launchProcess(process: StreamProcess): void {
+  if (process.rendererHandoff) {
+    throw new Error("A previous renderer update is still warming up. Try the update again shortly.");
+  }
   const previousRenderer = process.renderer;
   const previousPlaylistPaths = process.playlistPaths;
+  const previousRenderStartedAtMs = process.renderStartedAtMs;
 
   if (process.durationTimer) clearTimeout(process.durationTimer);
   process.durationTimer = undefined;
   stopVoicePipe(process, false);
   startWebcamPipe(process);
+  primeWebcamPipe(process);
   const videoPaths = getVideoPaths(process.input.category, process.input.videoSources, process.input.videoSource);
   const facePaths = process.input.composition?.webcamSource
     ? [getVideoPath("editor face cam", process.input.composition.webcamSource)]
@@ -969,11 +1051,19 @@ function launchProcess(process: StreamProcess): void {
     // Renderer output is intentionally not logged.
   });
   renderer.once("error", (error) => {
+    if (process.rendererHandoff?.newRenderer === renderer) {
+      logger.warn({ streamId: process.input.streamId, error: error.message }, "Warming FFmpeg renderer failed");
+      return;
+    }
     if (process.renderer !== renderer) return;
     process.status = "failed";
     logger.error({ streamId: process.input.streamId, error: error.message }, "FFmpeg renderer error");
   });
   renderer.once("exit", (code, signal) => {
+    if (process.rendererHandoff?.newRenderer === renderer) {
+      abortRendererHandoff(process, renderer, `new renderer exited (${code ?? signal ?? "unknown"})`);
+      return;
+    }
     // A renderer replaced by a handoff is expected to exit after the new
     // renderer has taken over. It must not change the stream status or start
     // another renderer from its stale exit handler.
@@ -1012,8 +1102,19 @@ function launchProcess(process: StreamProcess): void {
   });
 
   if (previousRenderer && previousRenderer !== renderer) {
-    stopRenderer(process, previousRenderer);
-    cleanupPlaylistPaths(previousPlaylistPaths);
+    const handoff: NonNullable<StreamProcess["rendererHandoff"]> = {
+      oldRenderer: previousRenderer,
+      oldPlaylistPaths: previousPlaylistPaths,
+      oldRenderStartedAtMs: previousRenderStartedAtMs,
+      newRenderer: renderer,
+    };
+    process.rendererHandoff = handoff;
+    renderer.stdout?.once("data", () => completeRendererHandoff(process, renderer));
+    handoff.timeout = setTimeout(
+      () => abortRendererHandoff(process, renderer, "new renderer produced no output within 15 seconds"),
+      rendererHandoffTimeoutMs,
+    );
+    handoff.timeout.unref();
   }
 }
 
@@ -1054,6 +1155,9 @@ export function updateStream(input: StreamRunnerInput): StreamRunnerResult {
   if (!current || current.status !== "running") {
     throw new Error("This channel is not currently streaming.");
   }
+  if (current.rendererHandoff) {
+    throw new Error("A previous renderer update is still warming up. Try the update again shortly.");
+  }
   if (current.publisherIngestUrl && current.publisherIngestUrl !== input.ingestUrl) {
     throw new Error("The live destination cannot be changed while on air. Stop the channel and start it again.");
   }
@@ -1077,6 +1181,7 @@ export function updateStream(input: StreamRunnerInput): StreamRunnerResult {
     0,
     (Date.now() - current.renderStartedAtMs) / 1000,
   ) * Math.min(2, Math.max(0.5, current.input.playbackSpeed ?? 1));
+  const previousInput = current.input;
   current.input = {
     ...input,
     // Keep the hot camera overlay attached when a normal stream update arrives
@@ -1084,7 +1189,12 @@ export function updateStream(input: StreamRunnerInput): StreamRunnerResult {
     // endpoint instead of as a side effect of playlist/composition updates.
     liveWebcam: input.liveWebcam ?? current.input.liveWebcam,
   };
-  launchProcess(current);
+  try {
+    launchProcess(current);
+  } catch (error) {
+    current.input = previousInput;
+    throw error;
+  }
   return resultFor(input.streamId, current, "FFmpeg playlist update accepted.");
 }
 
@@ -1103,7 +1213,14 @@ export function stopStream(streamId: string): StreamRunnerResult | null {
   }
   if (streamProcess.durationTimer) clearTimeout(streamProcess.durationTimer);
   if (streamProcess.restartTimer) clearTimeout(streamProcess.restartTimer);
+  const pendingHandoff = streamProcess.rendererHandoff;
+  if (pendingHandoff?.timeout) clearTimeout(pendingHandoff.timeout);
+  streamProcess.rendererHandoff = undefined;
   if (streamProcess.renderer) stopRenderer(streamProcess, streamProcess.renderer);
+  if (pendingHandoff) stopRenderer(streamProcess, pendingHandoff.oldRenderer);
+  cleanupPlaylistPaths(streamProcess.playlistPaths);
+  cleanupPlaylistPaths(pendingHandoff?.oldPlaylistPaths);
+  streamProcess.playlistPaths = undefined;
   streamProcess.child?.kill("SIGTERM");
   setTimeout(() => {
     if (streamProcess.child && !streamProcess.child.killed) streamProcess.child.kill("SIGKILL");
@@ -1123,8 +1240,14 @@ export function attachLiveWebcam(
   }
   process.webcamUpload?.destroy();
   process.webcamUpload = webcamInput;
+  const previousInput = process.input;
   process.input = { ...process.input, liveWebcam: settings };
-  launchProcess(process);
+  try {
+    launchProcess(process);
+  } catch (error) {
+    process.input = previousInput;
+    throw error;
+  }
   webcamInput.on("error", (error) => {
     logger.warn({ streamId, error: error.message }, "Live webcam input closed");
   });

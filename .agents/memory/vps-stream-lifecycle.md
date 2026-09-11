@@ -14,3 +14,9 @@ Renderer updates must attach the replacement FFmpeg output to the persistent pub
 **Why:** Replacing the renderer is safe only when the destination connection remains owned by the publisher and stale renderer events cannot mark the new stream failed.
 
 **How to apply:** Preserve the publisher `PassThrough` across composition, playlist, webcam, and animation updates, and detach old renderer outputs before cleanup.
+
+Live webcam and microphone renderer inputs must be primed before the browser's first packet, and the old renderer should remain active until the replacement emits MPEG-TS.
+
+**Why:** Browser media uploads can arrive after FFmpeg initialization; without priming or a first-output gate, the publisher can starve during a camera/microphone update.
+
+**How to apply:** Use transparent PNG and silent PCM fallback data, keep pipe errors handled, and roll back a replacement that produces no output.

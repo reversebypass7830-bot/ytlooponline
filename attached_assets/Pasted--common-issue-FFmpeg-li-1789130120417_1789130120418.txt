@@ -1,0 +1,50 @@
+हां भाई, मैं बिल्कुल समझ गया कि क्या दिक्कत आ रही है। यह बहुत ही common issue है जब हम FFmpeg में live inputs (webcam और mic) को बीच में जोड़ते हैं।
+
+जब आप नॉर्मल वीडियो प्ले करते हो, तो FFmpeg फाइल से रीड करता है और सब सही चलता है। लेकिन जैसे ही आप webcam और mic on करते हो, सिस्टम एक नया **Renderer** स्टार्ट करता है जो `image2pipe` (वेबकैम के लिए) और `s16le` (माइक के लिए) inputs का इंतज़ार करता है। अगर ब्राउज़र से chunks आने में ज़रा भी देरी हुई (network delay या initialization delay), तो **FFmpeg अटक (block) जाता है**। FFmpeg जब तक पहला फ्रेम और ऑडियो चंक रिसीव नहीं करता, वो आउटपुट नहीं देता। आउटपुट रुकने की वजह से **Publisher** भूखा रह जाता है (starves) और आपकी YouTube/RTMP स्ट्रीम कट जाती है (pending/pairing में चली जाती है)।
+
+इसको जड़ से खत्म करने के लिए हमें Node.js backend (`stream-runner.ts`) में **"Pipe Priming" (पाइप्स में डमी डेटा भरना)** और **Safe Handoff Timing** का लॉजिक लगाना होगा।
+
+अपने कोडिंग एजेंट को यह detailed prompt कॉपी-पेस्ट करके दे दो। यह बिल्कुल सटीक तरीके से इस ग्लिच को फिक्स कर देगा:
+
+---
+
+### Copy-Paste Prompt for your Coding Agent
+
+**Project:** R Loop Bypass (Live Broadcasting Control Room)
+**Issue:** The live broadcast runs perfectly on a standard video loop. However, the moment the user enables the webcam (face cam) and microphone via the live UI, the stream hangs (goes into a pending/pairing state) and drops.
+
+**Root Cause Analysis:**
+When the frontend calls `POST /api/stream/update` to add the webcam and mic, the backend spawns a new FFmpeg Renderer expecting data via `image2pipe` (PNGs) and `s16le` (PCM audio) on standard input pipes. FFmpeg is a blocking architecture; it will halt and produce NO output until it receives data on these new pipes. Because the browser's HTTP chunk streams haven't arrived or are delayed by network latency, the new Renderer stalls. The existing Publisher receives no MPEG-TS output, starves, and drops the connection to the RTMP/HLS destination.
+
+**Required Fixes in `artifacts/api-server/src/lib/stream-runner.ts` and `streaming.ts`:**
+
+Please implement the following exact logic to fix this handoff crash:
+
+**1. Prime the Input Pipes (Prevent FFmpeg Blocking):**
+
+* When spawning the new Renderer process during an `update`, **do not wait** for the browser to send the first webcam/mic chunks.
+* *Immediately* write a predefined transparent 1x1 PNG frame to the webcam pipe.
+* *Immediately* write 1 second of zeroed/silent PCM data to the microphone pipe.
+* This "primes" FFmpeg, forcing it to start encoding and outputting MPEG-TS packets immediately, preventing the Publisher from starving.
+
+**2. Asynchronous Handoff Timing (Make it Seamless):**
+
+* Currently, the old Renderer might be killed before the new Renderer is fully producing data.
+* Change the handoff logic: When the new Renderer is spawned, listen to its `stdout` (or the internal Node passthrough stream).
+* **Only kill the old Renderer AFTER the new Renderer emits its first chunk of MPEG-TS output.** This guarantees zero downtime for the Publisher.
+
+**3. Robust Error Handling on Pipes (`EPIPE` handling):**
+
+* If the user's internet drops or the frontend delays sending chunks, Node.js might throw an `EPIPE` error when trying to write to the FFmpeg stdin pipes.
+* Add strict `.on('error')` handlers to the webcam and voice input streams. If an error occurs, do not crash the Node API process. Fall back to continuously injecting the transparent frame and silent audio loop into the pipes until real data resumes.
+
+**Task:**
+Rewrite the `update` handoff function and the stream pipe initialization in `stream-runner.ts`. Show the exact code for injecting the initial transparent PNG and silent buffer, and implement the "wait for first output chunk" logic before killing the old renderer. Adhere strictly to the project architecture: the Publisher must remain untouched and alive.
+
+---
+
+### इस प्रॉम्प्ट से क्या ठीक होगा?
+
+1. **No More Blocking:** जैसे ही आप कैमरा ऑन करोगे, सर्वर FFmpeg को तुरंत एक "खाली फोटो" और "शांत आवाज़" दे देगा, जिससे स्ट्रीम अटकेगी नहीं। जब आपकी असली वीडियो/आवाज़ सर्वर तक पहुंचेगी, वो तुरंत रिप्लेस हो जाएगी।
+2. **Smooth Transition:** पुराना वीडियो तब तक बंद नहीं होगा जब तक नए वेबकैम वाले वीडियो का पहला टुकड़ा (chunk) तैयार नहीं हो जाता। इससे स्ट्रीम "pending" या "buffering" में नहीं जाएगी।
+3. **Crash Protection:** अगर कैमरा लोड होने में टाइम लेता है या इंटरनेट धीमा है, तो भी सर्वर क्रैश नहीं होगा।
