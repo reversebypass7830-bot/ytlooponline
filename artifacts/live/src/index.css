@@ -2013,9 +2013,55 @@ select { height: 41px; }
   .filter-row select { width: 100%; }
   .data-table { min-width: 730px; }
   .group-grid { grid-template-columns: 1fr; }
-  .modal-head, .modal-body { padding-left: 19px; padding-right: 19px; }
-  .modal-foot { padding-left: 19px; padding-right: 19px; }
-  .modal-foot .button { flex: 1; }
+  .modal-backdrop {
+    place-items: center;
+    padding: 10px;
+    overflow: hidden;
+  }
+  .modal {
+    width: min(100%, calc(100vw - 20px));
+    max-width: 100%;
+    max-height: calc(100dvh - 20px);
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+  .modal-head {
+    min-width: 0;
+    padding: 14px 15px 11px;
+  }
+  .modal-head h2 {
+    min-width: 0;
+    overflow-wrap: anywhere;
+    font-size: 18px;
+  }
+  .modal-body {
+    min-width: 0;
+    padding: 14px 15px 16px;
+    overflow-x: clip;
+  }
+  .modal-foot {
+    min-width: 0;
+    flex-wrap: wrap;
+    padding: 10px 15px 14px;
+  }
+  .modal-foot .button {
+    min-width: 0;
+    flex: 1 1 0;
+  }
+  .form-grid,
+  .form-grid > *,
+  .field {
+    min-width: 0;
+  }
+  .field label {
+    overflow-wrap: anywhere;
+  }
+  .field input,
+  .field select,
+  .field textarea {
+    min-width: 0;
+    max-width: 100%;
+  }
   .editor-controls { grid-template-columns: 1fr; }
   .editor-effect-grid, .chroma-key-grid { grid-template-columns: 1fr; }
   .editor-library-tabs { grid-template-columns: 1fr; }
