@@ -1834,6 +1834,7 @@ function useLivePreviewDevices({
   const [webcamError, setWebcamError] = useState("");
   const [voiceError, setVoiceError] = useState("");
   const [voiceLevel, setVoiceLevel] = useState(0);
+  const voiceLevelRef = useRef(0);
 
   const stopTracks = (stream: MediaStream | null) => {
     stream?.getTracks().forEach((track) => track.stop());
@@ -1890,104 +1891,54 @@ function useLivePreviewDevices({
 
   useEffect(() => {
     if (!webcamStream || !streamId || !webcamEnabled) return;
-    let uploadClosed = false;
-    let uploadController: ReadableStreamDefaultController<Uint8Array> | null = null;
-    let captureInFlight = false;
-    const uploadBody = new ReadableStream<Uint8Array>({
-      start(controller) {
-        uploadController = controller;
-      },
-      cancel() {
-        uploadClosed = true;
-      },
-    }, { highWaterMark: 1, size: () => 1 });
-    const upload = fetch(
-      `/api/stream/webcam/${encodeURIComponent(streamId)}?position=${encodeURIComponent(webcamPosition)}&scale=${encodeURIComponent(webcamScale)}`,
-      {
-        method: "POST",
-        headers: { "content-type": "application/x-live-webcam-frames" },
-        body: uploadBody,
-        duplex: "half",
-      } as RequestInit & { duplex: "half" },
-    ).catch(() => undefined);
-    const preview = document.createElement("video");
-    preview.muted = true;
-    preview.playsInline = true;
-    preview.srcObject = webcamStream;
-    const canvas = document.createElement("canvas");
-    const context = canvas.getContext("2d");
-    let captureTimer: number | undefined;
-    const captureFrame = async () => {
-      if (captureInFlight || uploadClosed || !uploadController || !context || preview.readyState < HTMLMediaElement.HAVE_CURRENT_DATA) return;
-      captureInFlight = true;
-      try {
-      const sourceWidth = preview.videoWidth || 640;
-      const sourceHeight = preview.videoHeight || 480;
-      const width = Math.min(sourceWidth, 640);
-      const height = Math.max(1, Math.round(sourceHeight * (width / sourceWidth)));
-      if (canvas.width !== width || canvas.height !== height) {
-        canvas.width = width;
-        canvas.height = height;
-      }
-      context.clearRect(0, 0, width, height);
-      context.drawImage(preview, 0, 0, width, height);
-      const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/png"));
-      if (!blob || uploadClosed || !uploadController) return;
-      const bytes = new Uint8Array(await blob.arrayBuffer());
-      const packet = new Uint8Array(4 + bytes.length);
-      new DataView(packet.buffer).setUint32(0, bytes.length);
-      packet.set(bytes, 4);
-      const controller = uploadController;
-      if (!controller || uploadClosed || controller.desiredSize === null || controller.desiredSize <= 0) return;
-      try {
-        controller.enqueue(packet);
-      } catch {
-        uploadClosed = true;
-        uploadController = null;
-      }
-      } finally {
-        captureInFlight = false;
-      }
-    };
-    void preview.play().catch(() => undefined);
-    const startCapture = () => {
-      captureTimer = window.setInterval(() => { void captureFrame(); }, 100);
-    };
-    if (preview.readyState >= HTMLMediaElement.HAVE_METADATA) startCapture();
-    else preview.addEventListener("loadedmetadata", startCapture, { once: true });
+    const sourceTrack = webcamStream.getVideoTracks()[0];
+    if (!sourceTrack) return;
+    const worker = new Worker(new URL("./workers/webcam-capture.worker.ts", import.meta.url), { type: "module" });
+    const workerTrack = sourceTrack.clone();
+    worker.addEventListener("error", () => {
+      setWebcamError("The background webcam processor stopped. Try enabling the camera again.");
+    });
+    worker.addEventListener("message", (event: MessageEvent<{ type?: string; message?: string }>) => {
+      if (event.data.type === "error" && event.data.message) setWebcamError(event.data.message);
+    });
+    try {
+      worker.postMessage({
+        type: "start",
+        track: workerTrack,
+        uploadUrl: `/api/stream/webcam/${encodeURIComponent(streamId)}?position=${encodeURIComponent(webcamPosition)}&scale=${encodeURIComponent(webcamScale)}`,
+        maxWidth: 512,
+        frameIntervalMs: 100,
+        jpegQuality: 0.72,
+      }, [workerTrack as unknown as Transferable]);
+    } catch (error) {
+      workerTrack.stop();
+      worker.terminate();
+      setWebcamError(error instanceof Error ? error.message : "The webcam could not start its background processor.");
+    }
     return () => {
-      uploadClosed = true;
-      if (captureTimer !== undefined) window.clearInterval(captureTimer);
-      preview.pause();
-      preview.srcObject = null;
-      const controller = uploadController;
-      uploadController = null;
-      try { controller?.close(); } catch { /* The fetch body may already be closed. */ }
-      void upload;
+      worker.postMessage({ type: "stop" });
+      worker.terminate();
     };
   }, [webcamEnabled, webcamPosition, webcamScale, streamId, webcamStream]);
 
   useEffect(() => {
     if (!voiceStream) return;
     const AudioContextClass = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
-    if (!AudioContextClass) return;
+    if (!AudioContextClass) {
+      setVoiceError("This browser does not provide an audio worklet.");
+      return;
+    }
     const context = new AudioContextClass({ sampleRate: 48000 });
     const source = context.createMediaStreamSource(voiceStream);
     const analyser = context.createAnalyser();
     analyser.fftSize = 256;
     source.connect(analyser);
-    const processor = context.createScriptProcessor(1024, 1, 1);
     const silentOutput = context.createGain();
     silentOutput.gain.value = 0;
-    source.connect(processor);
-    processor.connect(silentOutput);
     silentOutput.connect(context.destination);
     let uploadController: ReadableStreamDefaultController<Uint8Array> | null = null;
     let uploadClosed = false;
-    let pendingSamples: number[] = [];
     const pcmBytes = 1920;
-    const pcmSamples = 960;
-    const maxPendingSamples = 4800;
     const uploadBody = new ReadableStream<Uint8Array>({
       start(controller) {
         uploadController = controller;
@@ -2005,47 +1956,55 @@ function useLivePreviewDevices({
         } as RequestInit & { duplex: "half" }).catch(() => undefined)
       : Promise.resolve();
     const buffer = new Uint8Array(analyser.frequencyBinCount);
-    let frame = 0;
     const measure = () => {
       analyser.getByteTimeDomainData(buffer);
       const average = buffer.reduce((sum, value) => sum + Math.abs(value - 128), 0) / buffer.length;
-      setVoiceLevel(Math.min(100, Math.round(average * 2.8)));
-      frame = window.requestAnimationFrame(measure);
-    };
-    processor.onaudioprocess = (event) => {
-      if (!uploadController || uploadClosed) return;
-      const input = event.inputBuffer.getChannelData(0);
-      for (let index = 0; index < input.length; index += 1) pendingSamples.push(input[index]);
-      while (pendingSamples.length >= pcmSamples) {
-        const controller = uploadController;
-        if (!controller || controller.desiredSize === null || controller.desiredSize < pcmBytes) {
-          if (pendingSamples.length > maxPendingSamples) pendingSamples = pendingSamples.slice(-maxPendingSamples);
-          return;
-        }
-        const pcm = new Int16Array(pcmSamples);
-        for (let index = 0; index < pcm.length; index += 1) {
-          pcm[index] = Math.max(-32768, Math.min(32767, Math.round(pendingSamples[index] * 32767)));
-        }
-         try {
-           controller.enqueue(new Uint8Array(pcm.buffer));
-           pendingSamples = pendingSamples.slice(pcmSamples);
-         } catch {
-           uploadClosed = true;
-           uploadController = null;
-           return;
-         }
+      const nextLevel = Math.min(100, Math.round(average * 2.8));
+      if (Math.abs(nextLevel - voiceLevelRef.current) >= 2) {
+        voiceLevelRef.current = nextLevel;
+        setVoiceLevel(nextLevel);
       }
-      if (pendingSamples.length > maxPendingSamples) pendingSamples = pendingSamples.slice(-maxPendingSamples);
     };
-    void context.resume().catch(() => undefined);
-    measure();
+    const meterTimer = window.setInterval(measure, 100);
+    let processor: AudioWorkletNode | null = null;
+    let disposed = false;
+    const startWorklet = async () => {
+      try {
+        if (!context.audioWorklet) throw new Error("This browser does not provide an audio worklet.");
+        await context.audioWorklet.addModule(new URL("./workers/microphone-capture.worklet.ts", import.meta.url));
+        if (disposed) return;
+        processor = new AudioWorkletNode(context, "r-loop-microphone-capture", {
+          numberOfInputs: 1,
+          numberOfOutputs: 1,
+          outputChannelCount: [1],
+        });
+        processor.port.onmessage = (event: MessageEvent<{ type?: string; buffer?: ArrayBuffer }>) => {
+          if (event.data.type !== "pcm" || !event.data.buffer || uploadClosed || !uploadController) return;
+          if (uploadController.desiredSize === null || uploadController.desiredSize < pcmBytes) return;
+          try {
+            uploadController.enqueue(new Uint8Array(event.data.buffer));
+          } catch {
+            uploadClosed = true;
+            uploadController = null;
+          }
+        };
+        source.connect(processor);
+        processor.connect(silentOutput);
+        await context.resume();
+      } catch (error) {
+        setVoiceError(error instanceof Error ? error.message : "The microphone background processor could not start.");
+      }
+    };
+    void startWorklet();
     return () => {
-      window.cancelAnimationFrame(frame);
+      disposed = true;
+      window.clearInterval(meterTimer);
       uploadClosed = true;
       const controller = uploadController;
       uploadController = null;
       try { controller?.close(); } catch { /* The fetch body may already be closed. */ }
-      processor.disconnect();
+      processor?.port.close();
+      processor?.disconnect();
       silentOutput.disconnect();
       source.disconnect();
       analyser.disconnect();

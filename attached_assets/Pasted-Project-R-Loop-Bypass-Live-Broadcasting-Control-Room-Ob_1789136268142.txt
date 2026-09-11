@@ -1,0 +1,51 @@
+Project: R Loop Bypass (Live Broadcasting Control Room)
+Objective: Extreme Frontend Performance Optimization. Ensure the UI runs at a buttery-smooth 60 FPS on low-end mobile devices and PCs, with absolutely no UI lag or network-induced freezing when the webcam, microphone, and live preview are active.
+
+Context & Bottleneck:
+Currently, capturing webcam frames, processing audio, and sending them to the backend might be blocking the browser's Main Thread. Operations like canvas.toBlob() or canvas.toDataURL('image/png') inside requestAnimationFrame or setInterval on the main React thread will completely freeze low-end mobile devices. We must aggressively optimize the frontend architecture in artifacts/live/src/App.tsx and related hooks.
+
+Please implement the following Ultra-Low Latency & High-Performance architecture:
+
+1. Off-Main-Thread Video Processing (Web Workers & OffscreenCanvas):
+
+Never process video frames on the main UI thread.
+
+Move the canvas drawing and PNG/JPEG extraction to a Web Worker using OffscreenCanvas.
+
+Pass the webcam MediaStreamTrack (using MediaStreamTrackProcessor or drawing the <video> to the offscreen canvas) directly to the worker.
+
+Let the Web Worker handle the frame encoding and the fetch (Network POST) streaming. This keeps the React UI completely free to maintain 60 FPS.
+
+2. Efficient Media Encoding (Drop manual Canvas PNGs if possible):
+
+Instead of manually extracting heavy PNGs frame-by-frame, utilize the browser's native hardware-accelerated APIs.
+
+Use MediaRecorder API with a small timeslice (e.g., 100ms) to generate lightweight webm chunks, OR use the WebCodecs API to encode frames efficiently before sending them to the server.
+
+Ensure the backend stream-runner.ts is updated to accept this natively encoded stream instead of raw base64/PNGs, significantly reducing network payload and mobile battery drain.
+
+3. React Render Optimization (Zero Unnecessary Renders):
+
+Strictly prevent React from re-rendering the DOM while the stream is active.
+
+Do NOT store rapidly changing values (like frame counts, buffer sizes, or current time) in useState. Use useRef for all stream states, canvas references, and interval IDs.
+
+Wrap expensive UI components (like the video preview or chat box) in React.memo with strict equality checks.
+
+4. Resilient Networking (No HTTP Overhead):
+
+Do not make a new HTTP POST request for every frame.
+
+Use a persistent, long-lived ReadableStream passed into a single fetch request, OR use a binary WebSocket connection from the Web Worker to stream the chunks continuously.
+
+Implement adaptive quality: If the network drops packets (detected via WebSocket backpressure or fetch buffer limits), dynamically drop video frames before encoding to prevent memory leaks and browser crashes on low-end phones.
+
+Task:
+Rewrite the webcam and audio capture logic in the React frontend. Provide the exact code for the Web Worker script that uses OffscreenCanvas (or MediaRecorder) and the updated React hook that initializes it without blocking the main thread.
+
+इस प्रॉम्प्ट से आपको क्या मिलेगा?
+No Lag on Mobile: भारी काम बैकग्राउंड (Web Worker) में होगा, इसलिए आपका UI और बटन बिल्कुल तुरंत रिस्पॉन्स देंगे, कोई फोन हैंग नहीं होगा।
+
+Less Network Usage: एक-एक फोटो भेजने की बजाय ब्राउज़र नेटिव वीडियो चंक्स (MediaRecorder/WebCodecs) भेजेगा, जिससे डेटा कम लगेगा और इंटरनेट खराब होने पर भी स्मूथ चलेगा।
+
+No Frame Drops: React बार-बार पेज को रिफ्रेश नहीं करेगा (No Re-renders), जिससे 60 FPS की स्मूथनेस मिलेगी।

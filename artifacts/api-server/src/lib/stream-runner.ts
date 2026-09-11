@@ -325,7 +325,7 @@ const liveMediaJitterMs = 200;
 const liveWebcamMaxQueueFrames = 8;
 const liveWebcamFrameIntervalMs = 100;
 const transparentWebcamFrame = Buffer.from(
-  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=",
+  "/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAP//////////////////////////////////////////////////////////////////////////////////////2wBDAf//////////////////////////////////////////////////////////////////////////////////////wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAX/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIQAxAAAAH/AP/EABQQAQAAAAAAAAAAAAAAAAAAACD/2gAIAQEAAQUCqf/EABQRAQAAAAAAAAAAAAAAAAAAABD/2gAIAQMBAT8BP//EABQRAQAAAAAAAAAAAAAAAAAAABD/2gAIAQIBAT8BP//EABQQAQAAAAAAAAAAAAAAAAAAACD/2gAIAQEABj8Cf//Z",
   "base64",
 );
 
@@ -756,7 +756,7 @@ function buildFfmpegArgs(
       "-f",
       "image2pipe",
       "-vcodec",
-      "png",
+      "mjpeg",
       "-i",
       "pipe:4",
     );
