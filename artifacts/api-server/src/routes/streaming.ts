@@ -10,6 +10,7 @@ import {
 } from "@workspace/api-zod";
 import {
   getStreamStatus,
+  getStreamPreviewFile,
   appendVoiceAudio,
   attachLiveWebcam,
   detachLiveWebcam,
@@ -180,6 +181,18 @@ router.get("/stream/status/:streamId", (req, res): void => {
     return;
   }
   res.json(GetStreamStatusResponse.parse(getStreamStatus(parsed.data.streamId)));
+});
+
+router.get("/stream/preview/:streamId/:filename", (req, res): void => {
+  const streamId = typeof req.params.streamId === "string" ? req.params.streamId : "";
+  const filename = typeof req.params.filename === "string" ? req.params.filename : "";
+  const filePath = getStreamPreviewFile(streamId, filename);
+  if (!filePath) {
+    res.status(404).end();
+    return;
+  }
+  res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
+  res.sendFile(filePath);
 });
 
 export default router;

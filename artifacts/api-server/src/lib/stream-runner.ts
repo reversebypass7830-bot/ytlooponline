@@ -1,6 +1,6 @@
 import { spawn, spawnSync, type ChildProcess } from "node:child_process";
-import { existsSync, unlinkSync, writeFileSync } from "node:fs";
-import { randomUUID } from "node:crypto";
+import { existsSync, mkdirSync, rmSync, unlinkSync, writeFileSync } from "node:fs";
+import { createHash, randomUUID } from "node:crypto";
 import path from "node:path";
 import { PassThrough, type Writable } from "node:stream";
 import { logger } from "./logger";
@@ -88,6 +88,8 @@ export type StreamRunnerResult = {
 type StreamProcess = {
   child: ChildProcess | null;
   renderer?: ChildProcess;
+  preview?: ChildProcess;
+  previewDir?: string;
   startedAt: string;
   status: StreamRunnerStatus;
   input: StreamRunnerInput;
@@ -112,6 +114,7 @@ const assetNamesByCategory: Record<string, string> = {
   gtv5face: "WhatsApp Video 2026-09-04 at 11.30.43 PM.mp4",
 };
 const processes = new Map<string, StreamProcess>();
+const previewRoot = path.resolve(process.cwd(), ".signal-desk-live-previews");
 
 function findAsset(assetName: string): string | null {
   const candidates = [
@@ -183,6 +186,82 @@ function prepareInput(paths: string[]): { path: string; playlistPath?: string; p
 function cleanupPlaylists(process: StreamProcess): void {
   process.playlistPaths?.forEach((playlistPath) => unlinkSync(playlistPath));
   process.playlistPaths = undefined;
+}
+
+function previewDirectory(streamId: string): string {
+  const key = createHash("sha256").update(streamId).digest("hex");
+  return path.join(previewRoot, key);
+}
+
+function stopPreview(process: StreamProcess, clearFiles = true): void {
+  process.preview?.kill("SIGTERM");
+  process.preview = undefined;
+  if (clearFiles && process.previewDir) {
+    rmSync(process.previewDir, { recursive: true, force: true });
+    process.previewDir = undefined;
+  }
+}
+
+export function getStreamPreviewFile(streamId: string, filename: string): string | null {
+  const previewDir = processes.get(streamId)?.previewDir;
+  if (!previewDir || !/^(signal\.m3u8|signal_\d{5}\.ts)$/.test(filename)) return null;
+  const candidate = path.resolve(previewDir, filename);
+  if (!candidate.startsWith(`${path.resolve(previewDir)}${path.sep}`) || !existsSync(candidate)) return null;
+  return candidate;
+}
+
+function startPreview(process: StreamProcess, renderer: ChildProcess): void {
+  stopPreview(process);
+  const directory = previewDirectory(process.input.streamId);
+  rmSync(directory, { recursive: true, force: true });
+  mkdirSync(directory, { recursive: true });
+  const preview = spawn("ffmpeg", [
+    "-hide_banner",
+    "-loglevel",
+    "warning",
+    "-thread_queue_size",
+    "1024",
+    "-f",
+    "mpegts",
+    "-i",
+    "pipe:0",
+    "-map",
+    "0:v:0",
+    "-map",
+    "0:a:0?",
+    "-c",
+    "copy",
+    "-f",
+    "hls",
+    "-hls_time",
+    "1",
+    "-hls_list_size",
+    "6",
+    "-hls_flags",
+    "delete_segments+append_list+independent_segments",
+    "-hls_delete_threshold",
+    "2",
+    "-hls_segment_filename",
+    path.join(directory, "signal_%05d.ts"),
+    path.join(directory, "signal.m3u8"),
+  ], {
+    stdio: ["pipe", "ignore", "pipe"],
+  });
+  process.preview = preview;
+  process.previewDir = directory;
+  preview.stdin?.on("error", (error) => {
+    logger.warn({ streamId: process.input.streamId, error: error.message }, "Live preview input pipe closed");
+  });
+  preview.once("error", (error) => {
+    logger.warn({ streamId: process.input.streamId, error: error.message }, "Live preview process error");
+  });
+  preview.once("exit", (code, signal) => {
+    if (process.preview === preview) process.preview = undefined;
+    if (process.status === "running" && code !== 0) {
+      logger.warn({ streamId: process.input.streamId, code, signal }, "Live preview process exited");
+    }
+  });
+  renderer.stdout?.pipe(preview.stdin!, { end: false });
 }
 
 const voiceFrameBytes = 1920;
@@ -685,6 +764,7 @@ function resultFor(streamId: string, process: StreamProcess, message: string): S
 function launchProcess(process: StreamProcess): void {
   stopVoicePipe(process, false);
   cleanupPlaylists(process);
+  stopPreview(process);
   startWebcamPipe(process);
   const videoPaths = getVideoPaths(process.input.category, process.input.videoSources, process.input.videoSource);
   const facePaths = process.input.composition?.webcamSource
@@ -723,7 +803,10 @@ function launchProcess(process: StreamProcess): void {
   process.renderer = renderer;
   process.startedAt = new Date().toISOString();
   process.renderStartedAtMs = Date.now();
-  renderer.stdout?.pipe(publisher.stdin!, { end: false });
+  startPreview(process, renderer);
+  const outputTee = new PassThrough({ highWaterMark: 2 * 1024 * 1024 });
+  renderer.stdout?.pipe(outputTee);
+  outputTee.pipe(publisher.stdin!, { end: false });
   renderer.stdout?.on("error", (error) => {
     logger.warn({ streamId: process.input.streamId, error: error.message }, "Renderer output pipe closed");
   });
@@ -804,6 +887,7 @@ function launchProcess(process: StreamProcess): void {
       return;
     }
 
+    stopPreview(process);
     process.status = code === 0 ? "stopped" : "failed";
     logger.info(
       { streamId: process.input.streamId, code, signal, status: process.status },
@@ -890,6 +974,7 @@ export function stopStream(streamId: string): StreamRunnerResult | null {
 
   streamProcess.status = "stopped";
   streamProcess.playlistUpdateRequested = false;
+  stopPreview(streamProcess);
   stopVoicePipe(streamProcess);
   stopWebcamPipe(streamProcess);
   if (streamProcess.durationTimer) clearTimeout(streamProcess.durationTimer);
@@ -915,6 +1000,8 @@ export function attachLiveWebcam(
   process.webcamUpload?.destroy();
   process.webcamUpload = webcamInput;
   process.input = { ...process.input, liveWebcam: settings };
+  process.playlistUpdateRequested = true;
+  process.renderer?.kill("SIGTERM");
   webcamInput.on("error", (error) => {
     logger.warn({ streamId, error: error.message }, "Live webcam input closed");
   });

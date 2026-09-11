@@ -224,6 +224,10 @@ importers:
         version: 3.1.0
 
   artifacts/live:
+    dependencies:
+      hls.js:
+        specifier: ^1.7.2
+        version: 1.7.2
     devDependencies:
       '@hookform/resolvers':
         specifier: ^3.10.0
@@ -2318,6 +2322,9 @@ packages:
 
   help-me@5.0.0:
     resolution: {integrity: sha512-7xgomUX6ADmcYzFik0HzAxh/73YlKR9bmFzf51CZwR+b6YtzU2m0u49hQCqV6SvlqIqsaxovfwdvbnsw3b/zpg==}
+
+  hls.js@1.7.2:
+    resolution: {integrity: sha512-CW/pPvSOFIRsosbwxrYaE9ERmpTo5fbTqL7wCvuCFlqW1Bmb1K5fXsY7yiH95rmlr4rVuA7UXHbM/cIXQ6AXwg==}
 
   hoist-non-react-statics@3.3.2:
     resolution: {integrity: sha512-/gGivxi8JPKWNm/W0jSmzcMPpfpPLc3dY/6GxhX2hQ9iGj3aDfklV4ET7NjKpSinLpJ5vafa9iiGIEZg10SfBw==}
@@ -4970,6 +4977,8 @@ snapshots:
       function-bind: 1.1.2
 
   help-me@5.0.0: {}
+
+  hls.js@1.7.2: {}
 
   hoist-non-react-statics@3.3.2:
     dependencies:

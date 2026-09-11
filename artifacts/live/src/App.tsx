@@ -7,6 +7,7 @@ import {
   Mic, ShieldCheck, Sparkles, Square, Trash2, Type, Upload, Video, Wand2, X, Youtube,
 } from "lucide-react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import Hls from "hls.js";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/toaster";
 import NotFound from "@/pages/not-found";
@@ -1886,6 +1887,7 @@ function useLivePreviewDevices({
     if (!webcamStream || !streamId || !webcamEnabled) return;
     let uploadClosed = false;
     let uploadController: ReadableStreamDefaultController<Uint8Array> | null = null;
+    let captureInFlight = false;
     const uploadBody = new ReadableStream<Uint8Array>({
       start(controller) {
         uploadController = controller;
@@ -1911,7 +1913,9 @@ function useLivePreviewDevices({
     const context = canvas.getContext("2d");
     let captureTimer: number | undefined;
     const captureFrame = async () => {
-      if (uploadClosed || !uploadController || !context || preview.readyState < HTMLMediaElement.HAVE_CURRENT_DATA) return;
+      if (captureInFlight || uploadClosed || !uploadController || !context || preview.readyState < HTMLMediaElement.HAVE_CURRENT_DATA) return;
+      captureInFlight = true;
+      try {
       const width = preview.videoWidth || 640;
       const height = preview.videoHeight || 480;
       if (canvas.width !== width || canvas.height !== height) {
@@ -1926,7 +1930,17 @@ function useLivePreviewDevices({
       const packet = new Uint8Array(4 + bytes.length);
       new DataView(packet.buffer).setUint32(0, bytes.length);
       packet.set(bytes, 4);
-      uploadController.enqueue(packet);
+      const controller = uploadController;
+      if (!controller || uploadClosed || controller.desiredSize === null) return;
+      try {
+        controller.enqueue(packet);
+      } catch {
+        uploadClosed = true;
+        uploadController = null;
+      }
+      } finally {
+        captureInFlight = false;
+      }
     };
     void preview.play().catch(() => undefined);
     const startCapture = () => {
@@ -1939,7 +1953,9 @@ function useLivePreviewDevices({
       if (captureTimer !== undefined) window.clearInterval(captureTimer);
       preview.pause();
       preview.srcObject = null;
-      uploadController?.close();
+      const controller = uploadController;
+      uploadController = null;
+      try { controller?.close(); } catch { /* The fetch body may already be closed. */ }
       void upload;
     };
   }, [webcamEnabled, webcamPosition, webcamScale, streamId, webcamStream]);
@@ -1996,7 +2012,18 @@ function useLivePreviewDevices({
           pcm[index] = Math.max(-32768, Math.min(32767, Math.round(pendingSamples[index] * 32767)));
         }
         pendingSamples = pendingSamples.slice(960);
-        uploadController.enqueue(new Uint8Array(pcm.buffer));
+         const controller = uploadController;
+         if (!controller || controller.desiredSize === null) {
+           uploadClosed = true;
+           return;
+         }
+         try {
+           controller.enqueue(new Uint8Array(pcm.buffer));
+         } catch {
+           uploadClosed = true;
+           uploadController = null;
+           return;
+         }
       }
     };
     void context.resume().catch(() => undefined);
@@ -2004,7 +2031,9 @@ function useLivePreviewDevices({
     return () => {
       window.cancelAnimationFrame(frame);
       uploadClosed = true;
-      uploadController?.close();
+      const controller = uploadController;
+      uploadController = null;
+      try { controller?.close(); } catch { /* The fetch body may already be closed. */ }
       processor.disconnect();
       silentOutput.disconnect();
       source.disconnect();
@@ -2025,6 +2054,50 @@ function useLivePreviewDevices({
     enableVoice,
     disableVoice,
   };
+}
+
+function LiveOutputPreview({ src }: { src: string }) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || !src) return;
+    setError("");
+    let player: Hls | undefined;
+    const play = () => { void video.play().catch(() => undefined); };
+    if (video.canPlayType("application/vnd.apple.mpegurl")) {
+      video.src = src;
+      video.addEventListener("loadedmetadata", play);
+    } else if (Hls.isSupported()) {
+      player = new Hls({
+        enableWorker: true,
+        lowLatencyMode: true,
+        liveSyncDurationCount: 2,
+        backBufferLength: 30,
+      });
+      player.loadSource(src);
+      player.attachMedia(video);
+      player.on(Hls.Events.MANIFEST_PARSED, play);
+      player.on(Hls.Events.ERROR, (_event, data) => {
+        if (data.fatal) setError("Live output reconnecting…");
+      });
+    } else {
+      setError("This browser cannot play the live preview stream.");
+    }
+    return () => {
+      video.pause();
+      video.removeAttribute("src");
+      video.load();
+      player?.destroy();
+    };
+  }, [src]);
+
+  return <div className="live-output-preview">
+    {src ? <video ref={videoRef} muted autoPlay playsInline controls={false} aria-label="Actual live output preview" /> : <div className="live-preview-empty"><MonitorPlay size={22}/><span>Start the channel to see the encoded live output.</span></div>}
+    <span className="live-output-badge"><span className="status-dot"/>ACTUAL OUTPUT</span>
+    {error && <span className="live-output-error">{error}</span>}
+  </div>;
 }
 
 function LivePage({workspace}:{workspace:ReturnType<typeof useWorkspace>}) {
@@ -2096,6 +2169,9 @@ function LivePreviewPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}
   const [webcamScale, setWebcamScale] = useState(0.25);
   const [webcamEnabled, setWebcamEnabled] = useState(false);
   const selectedChannel = data.channels.find((channel) => channel.id === selectedChannelId);
+  const livePreviewUrl = selectedChannel?.status === "live"
+    ? `/api/stream/preview/${encodeURIComponent(streamIdFor(workspace.clientId, selectedChannel.id))}/signal.m3u8`
+    : "";
    const devices = useLivePreviewDevices({
      streamId: selectedChannel?.status === "live" ? streamIdFor(workspace.clientId, selectedChannel.id) : undefined,
      webcamEnabled,
@@ -2194,6 +2270,11 @@ function LivePreviewPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}
       </div>
 
       {!selectedChannel ? <div className="card live-preview-empty"><Radio size={26}/><h2>No live channel configured</h2><p>Create a channel and select a playlist before opening the live preview.</p><Link className="button" href="/live">Open live channels <ArrowRight size={14}/></Link></div> : <div className="live-preview-stack">
+         <section className="card live-output-card">
+           <div className="section-head"><div><h2 className="section-title">Actual live output</h2><p className="subtle">This is the same encoded composition sent to the live destination, including playlist, camera, animation, and voice.</p></div><Radio size={17} color="#b0d84a"/></div>
+           <LiveOutputPreview src={livePreviewUrl}/>
+           <p className="live-output-note">The preview follows the broadcast buffer, so it is intentionally a few seconds behind the source.</p>
+         </section>
         <LiveAnimationControl
           channel={selectedChannel}
           data={data}
