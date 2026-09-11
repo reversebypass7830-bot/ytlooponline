@@ -3331,6 +3331,16 @@ function EditorCanvas({
     if (document.fullscreenElement) void document.exitFullscreen();
     else void canvasRef.current?.requestFullscreen();
   };
+  const zoomLayer = selectedLayer === "webcam" && webcamUrl
+    ? "webcam"
+    : selectedLayer === "animation" && animationUrl
+      ? "animation"
+      : "main";
+  const zoomPercent = Math.round(getTransform(zoomLayer).scale * 100);
+  const adjustZoom = (delta: number) => {
+    const current = getTransform(zoomLayer);
+    updateTransform(zoomLayer, clampTransform(zoomLayer, { ...current, scale: current.scale + delta }));
+  };
   const animationCopy = {
     none: "",
     subscribe: "SUBSCRIBE",
@@ -3426,11 +3436,15 @@ function EditorCanvas({
        style={{ left: `${50 + animationTransform.x}%`, top: `${50 + animationTransform.y}%`, width: `${animationTransform.scale * 100}%` }}
      ><span className="editor-selection-label">Animation · {Math.round(animationTransform.scale * 100)}%</span><button type="button" data-editor-resize="animation" aria-label="Resize animation" className="editor-resize-handle" /></div>}
      {(reverseVideo || anyChromaEnabled || colorAdjustments.brightness !== 0 || colorAdjustments.contrast !== 1 || colorAdjustments.saturation !== 1 || colorAdjustments.hue !== 0) && <div className="editor-effect-badges"><span>{reverseVideo ? "Reverse" : "Effects"}</span>{anyChromaEnabled && <span>Green screen removed</span>}{colorAdjustments.brightness !== 0 || colorAdjustments.contrast !== 1 || colorAdjustments.saturation !== 1 || colorAdjustments.hue !== 0 ? <span>Color grade</span> : null}</div>}
-    <div className="editor-canvas-toolbar">
-      <span className="editor-canvas-hint">{isFullscreen ? "Fullscreen preview" : "Drag to move · wheel or pinch to zoom"}</span>
-       {expanded && onCloseExpanded && <button type="button" className="editor-canvas-button" onPointerDown={(event) => event.stopPropagation()} onClick={onCloseExpanded} title="Close large preview">Close editor</button>}
-       {!expanded && <button type="button" className="editor-canvas-button" onPointerDown={(event) => event.stopPropagation()} onClick={toggleFullscreen} title={isFullscreen ? "Exit fullscreen" : "Open fullscreen"}>{isFullscreen ? "Exit" : "Fullscreen"}</button>}
-    </div>
+     <div className="editor-canvas-toolbar" onPointerDown={(event) => event.stopPropagation()}>
+       <div className="editor-canvas-zoom" aria-label="Preview zoom controls">
+         <button type="button" onClick={() => adjustZoom(-0.1)} aria-label="Zoom out">−</button>
+         <span>{zoomPercent}%</span>
+         <button type="button" onClick={() => adjustZoom(0.1)} aria-label="Zoom in">+</button>
+       </div>
+       {expanded && onCloseExpanded && <button type="button" className="editor-canvas-button" onClick={onCloseExpanded} title="Close large preview">Close editor</button>}
+       {!expanded && <button type="button" className="editor-canvas-button" onClick={toggleFullscreen} title={isFullscreen ? "Exit fullscreen" : "Open fullscreen"}>{isFullscreen ? "Exit" : "Fullscreen"}</button>}
+     </div>
   </div>;
 }
 

@@ -439,6 +439,10 @@ input:focus, textarea:focus, select:focus { border-color:#5fa49d; box-shadow:0 0
 .editor-chroma-preview > canvas { display:block; width:100%; height:100%; object-fit:cover; }
 .editor-canvas-toolbar { position:absolute; z-index:8; top:12px; left:12px; right:12px; display:flex; justify-content:space-between; align-items:center; pointer-events:none; }
 .editor-canvas-hint { padding:6px 8px; border-radius:5px; color:#c8ded4; background:rgba(5,24,26,.72); font:9px var(--app-font-mono); letter-spacing:.05em; }
+.editor-canvas-zoom { display:flex; align-items:center; gap:3px; padding:3px; border:1px solid rgba(215,243,109,.28); border-radius:7px; color:#e9f7e9; background:rgba(5,24,26,.82); font:10px var(--app-font-mono); pointer-events:auto; }
+.editor-canvas-zoom button { display:grid; width:25px; height:25px; place-items:center; padding:0; border:0; border-radius:4px; color:#e9f7e9; background:transparent; font:700 16px/1 var(--app-font-sans); cursor:pointer; }
+.editor-canvas-zoom button:hover { color:#d7f36d; background:rgba(215,243,109,.12); }
+.editor-canvas-zoom span { min-width:38px; text-align:center; }
 .editor-canvas-button { pointer-events:auto; padding:7px 9px; border:1px solid rgba(215,243,109,.35); border-radius:6px; color:#e9f7e9; background:rgba(5,24,26,.82); font:10px var(--app-font-mono); cursor:pointer; }
 .editor-canvas-button:hover { border-color:#d7f36d; color:#d7f36d; }
 .editor-preview-actions { display:flex; align-items:center; justify-content:space-between; gap:14px; margin-top:13px; padding:12px 13px; border:1px solid rgba(177,219,204,.15); border-radius:9px; background:rgba(5,24,26,.34); }
@@ -2379,16 +2383,22 @@ select { height: 41px; }
     box-shadow: 0 14px 28px rgba(7,32,33,.2);
     scroll-margin-top: 76px;
   }
+  .editor-stage-head,
+  .editor-preview-actions,
+  .editor-stage-foot {
+    display: none;
+  }
   .editor-stage-head { gap: 8px; }
   .editor-stage-head strong { max-width: 56vw; font-size: 13px; }
   .editor-stage-status { font-size: 8px; text-align: right; }
   .editor-canvas:not(.editor-canvas-shorts):not(.editor-canvas-square) {
     width: 100%;
-    height: clamp(210px, 58vw, 260px);
+    height: clamp(180px, 48vw, 220px);
     min-height: 0;
     aspect-ratio: 16 / 10;
   }
   .editor-canvas-toolbar { top: 7px; left: 7px; right: 7px; }
+  .editor-canvas-button { display: none; }
   .editor-canvas-button { min-height: 32px; padding-inline: 8px; }
   .editor-preview-actions { align-items: stretch; }
   .editor-preview-actions > div { min-width: 0; }
