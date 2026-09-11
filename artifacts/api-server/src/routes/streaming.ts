@@ -1,3 +1,4 @@
+import { PassThrough } from "node:stream";
 import { Router, type IRouter } from "express";
 import {
   GetStreamStatusParams,
@@ -10,6 +11,8 @@ import {
 import {
   getStreamStatus,
   appendVoiceAudio,
+  attachLiveWebcam,
+  detachLiveWebcam,
   startStream,
   stopStream,
   updateStream,
@@ -121,11 +124,53 @@ router.post("/stream/voice/:streamId", (req, res): void => {
     res.status(400).json({ error: "A stream id is required." });
     return;
   }
+  // A browser MediaStream upload can end abruptly when the user toggles the
+  // microphone or navigates away. Consume socket errors so that a normal
+  // client disconnect cannot crash the API process.
+  req.socket?.on("error", () => undefined);
   req.on("data", (chunk: Buffer) => appendVoiceAudio(streamId, chunk));
   req.on("end", () => res.status(204).end());
-  req.on("error", () => {
-    if (!res.headersSent) res.status(499).end();
+  req.on("aborted", () => {
+    if (!res.headersSent && !res.writableEnded && !req.destroyed) res.status(499).end();
   });
+  req.on("error", () => {
+    if (!res.headersSent && !res.writableEnded && !req.destroyed) res.status(499).end();
+  });
+});
+
+router.post("/stream/webcam/:streamId", (req, res): void => {
+  const streamId = typeof req.params.streamId === "string" ? req.params.streamId : "";
+  if (!streamId) {
+    res.status(400).json({ error: "A stream id is required." });
+    return;
+  }
+  const allowedPositions = new Set(["top-left", "top-right", "bottom-left", "bottom-right", "center"]);
+  const requestedPosition = typeof req.query.position === "string" ? req.query.position : "bottom-right";
+  const position = allowedPositions.has(requestedPosition)
+    ? requestedPosition as "top-left" | "top-right" | "bottom-left" | "bottom-right" | "center"
+    : "bottom-right";
+  const parsedScale = Number(req.query.scale);
+  const scale = Number.isFinite(parsedScale) ? Math.min(0.8, Math.max(0.1, parsedScale)) : 0.25;
+  const webcamInput = new PassThrough();
+  let detached = false;
+  const detach = () => {
+    if (detached) return;
+    detached = true;
+    detachLiveWebcam(streamId, webcamInput);
+    if (!res.headersSent && !res.writableEnded && !req.destroyed) res.status(204).end();
+  };
+  webcamInput.on("error", () => undefined);
+  req.socket?.on("error", detach);
+  req.on("aborted", detach);
+  req.on("error", detach);
+  req.on("end", detach);
+  try {
+    attachLiveWebcam(streamId, webcamInput, { position, scale });
+    req.pipe(webcamInput);
+  } catch (error) {
+    webcamInput.destroy();
+    res.status(409).json({ error: error instanceof Error ? error.message : "The live webcam could not be attached." });
+  }
 });
 
 router.get("/stream/status/:streamId", (req, res): void => {

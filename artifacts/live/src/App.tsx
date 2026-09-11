@@ -1773,7 +1773,17 @@ function LiveAnimationControl({
   </section>;
 }
 
-function useLivePreviewDevices(streamId?: string) {
+function useLivePreviewDevices({
+  streamId,
+  webcamEnabled,
+  webcamPosition,
+  webcamScale,
+}: {
+  streamId?: string;
+  webcamEnabled: boolean;
+  webcamPosition: FacePosition;
+  webcamScale: number;
+}) {
   const [webcamStream, setWebcamStream] = useState<MediaStream | null>(null);
   const [voiceStream, setVoiceStream] = useState<MediaStream | null>(null);
   const [webcamError, setWebcamError] = useState("");
@@ -1832,6 +1842,52 @@ function useLivePreviewDevices(streamId?: string) {
   useEffect(() => () => {
     stopTracks(voiceStream);
   }, [voiceStream]);
+
+  useEffect(() => {
+    if (!webcamStream || !streamId || !webcamEnabled) return;
+    const Recorder = window.MediaRecorder;
+    if (!Recorder) {
+      setWebcamError("This browser cannot send the camera into the live stream.");
+      return;
+    }
+    const mimeType = ["video/webm;codecs=vp8", "video/webm"].find((candidate) => Recorder.isTypeSupported(candidate)) || "";
+    let uploadClosed = false;
+    let uploadController: ReadableStreamDefaultController<Uint8Array> | null = null;
+    const uploadBody = new ReadableStream<Uint8Array>({
+      start(controller) {
+        uploadController = controller;
+      },
+      cancel() {
+        uploadClosed = true;
+      },
+    });
+    const upload = fetch(
+      `/api/stream/webcam/${encodeURIComponent(streamId)}?position=${encodeURIComponent(webcamPosition)}&scale=${encodeURIComponent(webcamScale)}`,
+      {
+        method: "POST",
+        headers: { "content-type": mimeType || "video/webm" },
+        body: uploadBody,
+        duplex: "half",
+      } as RequestInit & { duplex: "half" },
+    ).catch(() => undefined);
+    const recorder = new Recorder(webcamStream, mimeType ? { mimeType } : undefined);
+    recorder.ondataavailable = (event) => {
+      if (uploadClosed || !event.data.size || !uploadController) return;
+      void event.data.arrayBuffer().then((buffer) => {
+        if (!uploadClosed) uploadController?.enqueue(new Uint8Array(buffer));
+      }).catch(() => undefined);
+    };
+    recorder.onerror = () => {
+      setWebcamError("The camera could not be sent to the live stream.");
+    };
+    recorder.start(250);
+    return () => {
+      uploadClosed = true;
+      if (recorder.state !== "inactive") recorder.stop();
+      uploadController?.close();
+      void upload;
+    };
+  }, [webcamEnabled, webcamPosition, webcamScale, streamId, webcamStream]);
 
   useEffect(() => {
     if (!voiceStream) return;
@@ -1984,7 +2040,12 @@ function LivePreviewPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}
   const [webcamPosition, setWebcamPosition] = useState<FacePosition>("bottom-right");
   const [webcamScale, setWebcamScale] = useState(0.25);
   const [webcamEnabled, setWebcamEnabled] = useState(false);
-  const devices = useLivePreviewDevices(selectedChannelId ? streamIdFor(workspace.clientId, selectedChannelId) : undefined);
+   const devices = useLivePreviewDevices({
+     streamId: selectedChannelId ? streamIdFor(workspace.clientId, selectedChannelId) : undefined,
+     webcamEnabled,
+     webcamPosition,
+     webcamScale,
+   });
   const selectedChannel = data.channels.find((channel) => channel.id === selectedChannelId);
 
   useEffect(() => {
@@ -2090,11 +2151,11 @@ function LivePreviewPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}
           webcamScale={webcamScale}
         />
         <section className="card live-device-panel">
-          <div className="section-head"><div><h2 className="section-title">Camera and voice over</h2><p className="subtle">Give this browser permission to preview your camera and microphone on top of the live composition.</p></div><Mic size={17} color="#6c8b83"/></div>
+           <div className="section-head"><div><h2 className="section-title">Camera and voice over</h2><p className="subtle">Give this browser permission to send your camera and microphone into the selected live channel.</p></div><Mic size={17} color="#6c8b83"/></div>
           <div className="live-device-grid">
             <div className={`live-device-card ${webcamEnabled && devices.webcamStream ? "ready" : ""}`}>
               <div className="live-device-icon"><Camera size={18}/></div>
-              <div><strong>Direct webcam</strong><p>{devices.webcamStream ? "Camera permission granted for this preview." : "Use your camera directly in the browser preview."}</p></div>
+               <div><strong>Direct webcam</strong><p>{devices.webcamStream ? "Camera is connected to the selected live channel." : "Send your camera directly into the live composition."}</p></div>
               <button className={`button small ${webcamEnabled && devices.webcamStream ? "ghost" : "secondary"}`} onClick={() => { if (devices.webcamStream) { setWebcamEnabled((enabled) => !enabled); } else { void devices.enableWebcam().then((enabled) => setWebcamEnabled(enabled)); } }} data-testid="button-toggle-live-webcam">{webcamEnabled && devices.webcamStream ? "Hide camera" : "Enable camera"}</button>
             </div>
             <div className={`live-device-card ${devices.voiceStream ? "ready" : ""}`}>
@@ -2107,7 +2168,7 @@ function LivePreviewPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}
           <div className="live-device-adjustments">
             <div className="field"><label>Webcam position</label><select value={webcamPosition} onChange={(event) => setWebcamPosition(event.target.value as FacePosition)} disabled={!webcamEnabled}><option value="top-left">Top left</option><option value="top-right">Top right</option><option value="bottom-left">Bottom left</option><option value="bottom-right">Bottom right</option><option value="center">Center</option></select></div>
             <div className="field"><label>Webcam size · {Math.round(webcamScale * 100)}%</label><input type="range" min="10" max="60" value={Math.round(webcamScale * 100)} onChange={(event) => setWebcamScale(Number(event.target.value) / 100)} disabled={!webcamEnabled}/></div>
-            <div className="live-preview-note"><ShieldCheck size={14}/><span>The camera stays a local preview. Microphone audio is sent to the selected running channel and mixed into the live broadcast without stopping it.</span></div>
+             <div className="live-preview-note"><ShieldCheck size={14}/><span>Camera video and microphone audio are sent to the selected running channel. Turning either device on or off keeps the main broadcast process alive.</span></div>
           </div>
         </section>
       </div>}
