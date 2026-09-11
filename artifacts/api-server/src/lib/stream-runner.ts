@@ -106,6 +106,7 @@ type StreamProcess = {
   webcamQueue: Array<{ data: Buffer; receivedAt: number }>;
   webcamTimer?: NodeJS.Timeout;
   voiceQueue: Array<{ data: Buffer; receivedAt: number }>;
+  voiceBufferedBytes: number;
   voiceTimer?: NodeJS.Timeout;
   playbackOffsetSeconds: number;
   renderStartedAtMs: number;
@@ -267,8 +268,11 @@ function startPreview(process: StreamProcess, renderer: ChildProcess): void {
 }
 
 const voiceFrameBytes = 1920;
+const voiceJitterFrames = 8;
+const maxVoiceBufferBytes = voiceFrameBytes * 50;
 const silenceFrame = Buffer.alloc(voiceFrameBytes);
-const liveWebcamDelayMs = 10_000;
+const liveMediaJitterMs = 200;
+const liveWebcamMaxQueueFrames = 8;
 const liveWebcamFrameIntervalMs = 100;
 const transparentWebcamFrame = Buffer.from(
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=",
@@ -277,6 +281,30 @@ const transparentWebcamFrame = Buffer.from(
 
 function resetVoicePipe(process: StreamProcess): void {
   process.voiceOutput = undefined;
+}
+
+function takeVoiceFrame(process: StreamProcess): Buffer {
+  const frame = Buffer.alloc(voiceFrameBytes);
+  let frameOffset = 0;
+
+  while (frameOffset < voiceFrameBytes && process.voiceQueue.length) {
+    const queued = process.voiceQueue[0];
+    const bytesToCopy = Math.min(voiceFrameBytes - frameOffset, queued.data.length);
+    queued.data.copy(frame, frameOffset, 0, bytesToCopy);
+    frameOffset += bytesToCopy;
+    process.voiceBufferedBytes -= bytesToCopy;
+
+    if (bytesToCopy === queued.data.length) {
+      process.voiceQueue.shift();
+    } else {
+      queued.data = queued.data.subarray(bytesToCopy);
+    }
+  }
+
+  if (frameOffset < voiceFrameBytes) {
+    silenceFrame.copy(frame, frameOffset, 0, voiceFrameBytes - frameOffset);
+  }
+  return frame;
 }
 
 function startVoicePipe(process: StreamProcess, child: ChildProcess): void {
@@ -293,9 +321,8 @@ function startVoicePipe(process: StreamProcess, child: ChildProcess): void {
       const current = processes.get(process.input.streamId);
       const voiceOutput = current?.voiceOutput;
       if (!current || current.status !== "running" || !voiceOutput || voiceOutput.destroyed || voiceOutput.writableEnded) return;
-      const delayed = current.voiceQueue[0];
-      const next = delayed && delayed.receivedAt <= Date.now() - liveWebcamDelayMs
-        ? current.voiceQueue.shift()?.data || silenceFrame
+      const next = current.voiceBufferedBytes >= voiceFrameBytes * voiceJitterFrames
+        ? takeVoiceFrame(current)
         : silenceFrame;
       try {
         voiceOutput.write(next);
@@ -311,7 +338,10 @@ function stopVoicePipe(process: StreamProcess, clearQueue = true): void {
   if (process.voiceTimer) clearInterval(process.voiceTimer);
   process.voiceTimer = undefined;
   resetVoicePipe(process);
-  if (clearQueue) process.voiceQueue.length = 0;
+  if (clearQueue) {
+    process.voiceQueue.length = 0;
+    process.voiceBufferedBytes = 0;
+  }
 }
 
 function stopWebcamPipe(process: StreamProcess): void {
@@ -382,9 +412,17 @@ function startWebcamPipe(process: StreamProcess): PassThrough {
   process.webcamTimer = setInterval(() => {
     const current = processes.get(process.input.streamId);
     if (!current || current.status !== "running" || !current.webcamOutput || current.webcamOutput.destroyed) return;
-    const delayed = current.webcamQueue[0];
-    const frame = delayed && delayed.receivedAt <= Date.now() - liveWebcamDelayMs
-      ? current.webcamQueue.shift()?.data || transparentWebcamFrame
+    const cutoff = Date.now() - liveMediaJitterMs;
+    let newestReadyIndex = -1;
+    for (let index = 0; index < current.webcamQueue.length; index += 1) {
+      if (current.webcamQueue[index].receivedAt > cutoff) break;
+      newestReadyIndex = index;
+    }
+    const readyFrames = newestReadyIndex >= 0
+      ? current.webcamQueue.splice(0, newestReadyIndex + 1)
+      : [];
+    const frame = readyFrames.length
+      ? readyFrames[readyFrames.length - 1].data
       : transparentWebcamFrame;
     try {
       current.webcamOutput.write(frame);
@@ -411,7 +449,9 @@ function appendWebcamPacket(process: StreamProcess, chunk: Buffer): void {
     const frame = Buffer.from(process.webcamPacketBuffer.subarray(4, frameLength + 4));
     process.webcamPacketBuffer = process.webcamPacketBuffer.subarray(frameLength + 4);
     process.webcamQueue.push({ data: frame, receivedAt: Date.now() });
-    if (process.webcamQueue.length > 720) process.webcamQueue.splice(0, process.webcamQueue.length - 720);
+    if (process.webcamQueue.length > liveWebcamMaxQueueFrames) {
+      process.webcamQueue.splice(0, process.webcamQueue.length - liveWebcamMaxQueueFrames);
+    }
   }
 }
 
@@ -613,7 +653,7 @@ function buildFfmpegArgs(
   if (liveWebcamInput) {
     inputArgs.push(
       "-thread_queue_size",
-      "512",
+      "16",
       "-framerate",
       "10",
       "-f",
@@ -627,7 +667,7 @@ function buildFfmpegArgs(
   if (voiceAudio) {
     inputArgs.push(
       "-thread_queue_size",
-      "512",
+      "32",
       "-f",
       "s16le",
       "-ar",
@@ -959,6 +999,7 @@ export function startStream(input: StreamRunnerInput): StreamRunnerResult {
     status: "running",
     input,
     voiceQueue: [],
+    voiceBufferedBytes: 0,
     webcamPacketBuffer: Buffer.alloc(0),
     webcamQueue: [],
     playbackOffsetSeconds: 0,
@@ -1072,9 +1113,19 @@ export function appendVoiceAudio(streamId: string, chunk: Buffer): void {
   const streamProcess = processes.get(streamId);
   if (!streamProcess || streamProcess.status !== "running" || streamProcess.input.voiceAudio !== true) return;
   if (chunk.length === 0) return;
-  streamProcess.voiceQueue.push({ data: Buffer.from(chunk), receivedAt: Date.now() });
-  if (streamProcess.voiceQueue.length > 720) {
-    streamProcess.voiceQueue.splice(0, streamProcess.voiceQueue.length - 720);
+  const data = Buffer.from(chunk);
+  streamProcess.voiceQueue.push({ data, receivedAt: Date.now() });
+  streamProcess.voiceBufferedBytes += data.length;
+
+  while (streamProcess.voiceBufferedBytes > maxVoiceBufferBytes && streamProcess.voiceQueue.length) {
+    const queued = streamProcess.voiceQueue[0];
+    const bytesToDrop = Math.min(streamProcess.voiceBufferedBytes - maxVoiceBufferBytes, queued.data.length);
+    streamProcess.voiceBufferedBytes -= bytesToDrop;
+    if (bytesToDrop === queued.data.length) {
+      streamProcess.voiceQueue.shift();
+    } else {
+      queued.data = queued.data.subarray(bytesToDrop);
+    }
   }
 }
 

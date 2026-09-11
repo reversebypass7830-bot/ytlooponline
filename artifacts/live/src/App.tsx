@@ -1895,7 +1895,7 @@ function useLivePreviewDevices({
       cancel() {
         uploadClosed = true;
       },
-    });
+    }, { highWaterMark: 1, size: () => 1 });
     const upload = fetch(
       `/api/stream/webcam/${encodeURIComponent(streamId)}?position=${encodeURIComponent(webcamPosition)}&scale=${encodeURIComponent(webcamScale)}`,
       {
@@ -1916,8 +1916,10 @@ function useLivePreviewDevices({
       if (captureInFlight || uploadClosed || !uploadController || !context || preview.readyState < HTMLMediaElement.HAVE_CURRENT_DATA) return;
       captureInFlight = true;
       try {
-      const width = preview.videoWidth || 640;
-      const height = preview.videoHeight || 480;
+      const sourceWidth = preview.videoWidth || 640;
+      const sourceHeight = preview.videoHeight || 480;
+      const width = Math.min(sourceWidth, 640);
+      const height = Math.max(1, Math.round(sourceHeight * (width / sourceWidth)));
       if (canvas.width !== width || canvas.height !== height) {
         canvas.width = width;
         canvas.height = height;
@@ -1931,7 +1933,7 @@ function useLivePreviewDevices({
       new DataView(packet.buffer).setUint32(0, bytes.length);
       packet.set(bytes, 4);
       const controller = uploadController;
-      if (!controller || uploadClosed || controller.desiredSize === null) return;
+      if (!controller || uploadClosed || controller.desiredSize === null || controller.desiredSize <= 0) return;
       try {
         controller.enqueue(packet);
       } catch {
@@ -1978,6 +1980,9 @@ function useLivePreviewDevices({
     let uploadController: ReadableStreamDefaultController<Uint8Array> | null = null;
     let uploadClosed = false;
     let pendingSamples: number[] = [];
+    const pcmBytes = 1920;
+    const pcmSamples = 960;
+    const maxPendingSamples = 4800;
     const uploadBody = new ReadableStream<Uint8Array>({
       start(controller) {
         uploadController = controller;
@@ -1985,7 +1990,7 @@ function useLivePreviewDevices({
       cancel() {
         uploadClosed = true;
       },
-    });
+    }, { highWaterMark: pcmBytes * 10, size: (chunk) => chunk.byteLength });
     const upload = streamId
       ? fetch(`/api/stream/voice/${encodeURIComponent(streamId)}`, {
           method: "POST",
@@ -2006,25 +2011,26 @@ function useLivePreviewDevices({
       if (!uploadController || uploadClosed) return;
       const input = event.inputBuffer.getChannelData(0);
       for (let index = 0; index < input.length; index += 1) pendingSamples.push(input[index]);
-      while (pendingSamples.length >= 960) {
-        const pcm = new Int16Array(960);
+      while (pendingSamples.length >= pcmSamples) {
+        const controller = uploadController;
+        if (!controller || controller.desiredSize === null || controller.desiredSize < pcmBytes) {
+          if (pendingSamples.length > maxPendingSamples) pendingSamples = pendingSamples.slice(-maxPendingSamples);
+          return;
+        }
+        const pcm = new Int16Array(pcmSamples);
         for (let index = 0; index < pcm.length; index += 1) {
           pcm[index] = Math.max(-32768, Math.min(32767, Math.round(pendingSamples[index] * 32767)));
         }
-        pendingSamples = pendingSamples.slice(960);
-         const controller = uploadController;
-         if (!controller || controller.desiredSize === null) {
-           uploadClosed = true;
-           return;
-         }
          try {
            controller.enqueue(new Uint8Array(pcm.buffer));
+           pendingSamples = pendingSamples.slice(pcmSamples);
          } catch {
            uploadClosed = true;
            uploadController = null;
            return;
          }
       }
+      if (pendingSamples.length > maxPendingSamples) pendingSamples = pendingSamples.slice(-maxPendingSamples);
     };
     void context.resume().catch(() => undefined);
     measure();
