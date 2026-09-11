@@ -398,10 +398,24 @@ function decodeHeaderValue(value: string | undefined): string {
   }
 }
 
-function runFfmpeg(args: string[]): Promise<void> {
+function runFfmpeg(args: string[], onProgress?: (seconds: number) => void): Promise<void> {
   return new Promise((resolve, reject) => {
-    const child = spawn(ffmpegPath ?? "ffmpeg", args, { stdio: ["ignore", "ignore", "pipe"] });
+    const child = spawn(ffmpegPath ?? "ffmpeg", args, { stdio: ["ignore", "pipe", "pipe"] });
     let stderr = "";
+    let stdoutBuffer = "";
+    const parseProgress = (chunk: Buffer) => {
+      if (!onProgress) return;
+      stdoutBuffer += chunk.toString();
+      const lines = stdoutBuffer.split(/\r?\n/);
+      stdoutBuffer = lines.pop() || "";
+      for (const line of lines) {
+        const [key, rawValue] = line.split("=", 2);
+        if (key !== "out_time_ms" && key !== "out_time_us") continue;
+        const value = Number(rawValue);
+        if (Number.isFinite(value) && value >= 0) onProgress(value / 1_000_000);
+      }
+    };
+    child.stdout?.on("data", parseProgress);
     child.stderr?.on("data", (chunk: Buffer) => { stderr += chunk.toString(); });
     child.on("error", reject);
     child.on("close", (code) => {
@@ -1094,10 +1108,28 @@ router.post("/media/compose", async (req, res): Promise<void> => {
     .join("\n");
   const estimatedDuration = repeatedSources.reduce((total, record) => total + parseDurationText(record.duration), 0);
   const context = { licenseId, licenseName, folderName };
+  const wantsProgress = req.header("accept")?.includes("application/x-ndjson") === true;
+  let streamStarted = false;
+  const writeEvent = (event: unknown) => {
+    if (!wantsProgress) return;
+    if (!streamStarted) {
+      streamStarted = true;
+      res.status(200);
+      res.setHeader("Content-Type", "application/x-ndjson; charset=utf-8");
+      res.setHeader("Cache-Control", "no-cache, no-transform");
+      res.setHeader("X-Accel-Buffering", "no");
+    }
+    res.write(`${JSON.stringify(event)}\n`);
+  };
+  const writeProgress = (progress: number, phase: string) => {
+    writeEvent({ type: "progress", progress: Math.max(0, Math.min(100, Math.round(progress))), phase });
+  };
 
   try {
+    writeProgress(2, "Preparing source playlist");
     await mkdir(mediaDir, { recursive: true });
     await writeFile(listPath, `${concatLines}\n`);
+    const progressArgs = wantsProgress ? ["-progress", "pipe:1", "-nostats"] : [];
     await runFfmpeg([
       "-y",
       "-f", "concat",
@@ -1108,11 +1140,15 @@ router.post("/media/compose", async (req, res): Promise<void> => {
       "-c:v", "libx264",
       "-preset", "veryfast",
       "-crf", "18",
+      "-pix_fmt", "yuv420p",
       "-c:a", "aac",
       "-b:a", "192k",
       "-movflags", "+faststart",
+      ...progressArgs,
       basePath,
-    ]);
+    ], (seconds) => {
+      if (estimatedDuration > 0) writeProgress(4 + (seconds / estimatedDuration) * 30, "Building the main video");
+    });
 
     const [width, height] = outputDimensions;
     const overlayInputs = [
@@ -1177,14 +1213,19 @@ router.post("/media/compose", async (req, res): Promise<void> => {
       "-c:v", "libx264",
       "-preset", "veryfast",
       "-crf", "18",
+      "-pix_fmt", "yuv420p",
       "-c:a", "aac",
       "-b:a", "192k",
       "-shortest",
       ...(estimatedDuration > 0 ? ["-t", String(estimatedDuration)] : []),
       "-movflags", "+faststart",
+      ...progressArgs,
       destination,
     );
-    await runFfmpeg(ffmpegArgs);
+    writeProgress(36, "Composing overlays and encoding final video");
+    await runFfmpeg(ffmpegArgs, (seconds) => {
+      if (estimatedDuration > 0) writeProgress(36 + (seconds / estimatedDuration) * 62, "Composing overlays and encoding final video");
+    });
     await unlink(basePath).catch(() => undefined);
 
     const finalPath = await finalizeMediaFile(fileId, destination, `${title}.mp4`, context);
@@ -1203,18 +1244,30 @@ router.post("/media/compose", async (req, res): Promise<void> => {
       createdAt: new Date().toISOString(),
       sizeBytes: fileStats.size,
     });
-    res.status(201).json({
+    const result = {
       fileId,
       filename: path.basename(finalPath),
       sourcePath: finalPath,
       playbackUrl: `/api/media/files/${fileId}`,
       duration: formatDuration(estimatedDuration),
-    });
+    };
+    if (wantsProgress) {
+      writeProgress(100, "Render complete");
+      writeEvent({ type: "complete", result });
+      res.end();
+      return;
+    }
+    res.status(201).json(result);
   } catch (error) {
     await unlink(listPath).catch(() => undefined);
     await unlink(basePath).catch(() => undefined);
     await unlink(destination).catch(() => undefined);
     req.log.warn({ error: error instanceof Error ? error.message : "unknown error" }, "Media compose failed");
+    if (wantsProgress) {
+      writeEvent({ type: "error", error: error instanceof Error ? error.message : "The edited video could not be created." });
+      res.end();
+      return;
+    }
     res.status(400).json({ error: error instanceof Error ? error.message : "The edited video could not be created." });
   } finally {
     await unlink(listPath).catch(() => undefined);

@@ -2272,7 +2272,7 @@ function VideoEditorPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}
   const [previewExpanded, setPreviewExpanded] = useState(false);
   const [busy, setBusy] = useState(false);
   const [renderProgress, setRenderProgress] = useState(0);
-  const renderTimerRef = useRef<number | undefined>(undefined);
+  const [renderPhase, setRenderPhase] = useState("");
   const [error, setError] = useState("");
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [draftHydrated, setDraftHydrated] = useState(false);
@@ -2517,19 +2517,19 @@ function VideoEditorPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}
       return;
     }
     setBusy(true);
-    setRenderProgress(4);
-    window.clearInterval(renderTimerRef.current);
-    renderTimerRef.current = window.setInterval(() => {
-      setRenderProgress((current) => Math.min(88, current + Math.max(1, Math.round((88 - current) / 18))));
-    }, 450);
+    setRenderProgress(0);
+    setRenderPhase("Preparing source playlist");
     setError("");
+    let renderedResult: { fileId: string; sourcePath: string; playbackUrl: string; duration: string } | undefined;
     try {
-      const result = await apiJson<{ fileId: string; sourcePath: string; playbackUrl: string; duration: string }>("/api/media/compose", {
+      const response = await fetch("/api/media/compose", {
         method: "POST",
         headers: {
           "X-License-Id": workspace.licenseId,
           "X-License-Name": workspace.user,
-            "X-Folder-Name": folderPathForGroup(editedGroup?.id, data.groups) || editedVideosFolderName,
+          "X-Folder-Name": folderPathForGroup(editedGroup?.id, data.groups) || editedVideosFolderName,
+          "Accept": "application/x-ndjson",
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           fileIds: selectedVideos.map((video) => getMediaFileId(video)).filter((id): id is string => Boolean(id)),
@@ -2564,6 +2564,41 @@ function VideoEditorPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}
            chromaBlend,
         }),
       });
+      if (!response.ok) {
+        const payload = await response.json().catch(() => undefined) as { error?: string } | undefined;
+        throw new Error(payload?.error || `Render failed with status ${response.status}.`);
+      }
+      if (!response.body) throw new Error("The render connection closed before returning progress.");
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      while (true) {
+        const chunk = await reader.read();
+        buffer += decoder.decode(chunk.value || new Uint8Array(), { stream: !chunk.done });
+        const lines = buffer.split(/\r?\n/);
+        buffer = lines.pop() || "";
+        for (const line of lines) {
+          if (!line.trim()) continue;
+          const event = JSON.parse(line) as {
+            type: "progress" | "complete" | "error";
+            progress?: number;
+            phase?: string;
+            result?: { fileId: string; sourcePath: string; playbackUrl: string; duration: string };
+            error?: string;
+          };
+          if (event.type === "progress") {
+            setRenderProgress(Math.max(0, Math.min(100, event.progress || 0)));
+            setRenderPhase(event.phase || "Rendering final video");
+          } else if (event.type === "error") {
+            throw new Error(event.error || "The edited video could not be created.");
+          } else if (event.type === "complete" && event.result) {
+            renderedResult = event.result;
+          }
+        }
+        if (chunk.done) break;
+      }
+      if (!renderedResult) throw new Error("The render ended without producing a video file.");
+      const result = renderedResult;
       const output: VideoItem = {
         id: uid("vid"),
         title: title.trim() || `${selectedGroup?.name || "Library"} · edited`,
@@ -2586,12 +2621,17 @@ function VideoEditorPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}
       setToast("Edited video is ready in the protected Edited Videos folder.");
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "The edited video could not be created.");
+      setRenderProgress(0);
+      setRenderPhase("");
     } finally {
-      window.clearInterval(renderTimerRef.current);
-      renderTimerRef.current = undefined;
       setBusy(false);
-      setRenderProgress(100);
-      window.setTimeout(() => setRenderProgress(0), 700);
+      if (renderedResult) {
+        setRenderProgress(100);
+        window.setTimeout(() => {
+          setRenderProgress(0);
+          setRenderPhase("");
+        }, 1200);
+      }
     }
   };
   return <AppShell title="Video editor" workspace={workspace}>
@@ -2678,7 +2718,7 @@ function VideoEditorPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}
              <div className="form-note"><Sparkles size={14} style={{verticalAlign:"-3px",marginRight:6}}/>These effects are shown in the preview and applied to the saved MP4 during render.</div>
            </section>
            {error && <div className="error-note" style={{whiteSpace:"pre-line"}}>{error}</div>}
-           {busy && <div className="render-progress" role="status" aria-live="polite"><div className="render-progress-head"><span><Wand2 size={13}/> Rendering to Edited Videos</span><strong>{renderProgress}%</strong></div><div className="render-progress-track"><span style={{width:`${renderProgress}%`}}/></div><small>Fast high-quality render is running on the server. Keep this page open until it finishes.</small></div>}
+           {(busy || renderProgress > 0) && <div className="render-progress" role="status" aria-live="polite"><div className="render-progress-head"><span><Wand2 size={13}/> {renderPhase || "Rendering to Edited Videos"}</span><strong>{renderProgress}%</strong></div><div className="render-progress-track"><span style={{width:`${renderProgress}%`}}/></div><small>Progress is connected to FFmpeg’s encoded duration. Face cam and animation overlays loop until the main video ends.</small></div>}
             <button className="button editor-render-button" type="submit" disabled={busy || !selectedVideos.length}>{busy ? `Rendering ${outputAspectRatio === "shorts" ? "Short" : outputAspectRatio === "square" ? "Square" : "Long"} video…` : "Render & save to library"} <ArrowRight size={15}/></button>
            <div className="form-note"><Sparkles size={14} style={{verticalAlign:"-3px",marginRight:6}}/>Source clips stay untouched. Every rendered result is added to the protected Edited Videos folder.</div>
         </aside>
