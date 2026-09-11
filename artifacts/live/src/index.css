@@ -434,6 +434,9 @@ input:focus, textarea:focus, select:focus { border-color:#5fa49d; box-shadow:0 0
 .editor-face-layer { position:absolute; z-index:3; max-width:none; aspect-ratio:16 / 9; object-fit:cover; transform:translate(-50%,-50%); border-radius:10px; box-shadow:0 7px 22px rgba(0,0,0,.4); cursor:grab; touch-action:none; }
 .editor-face-layer.active { outline:2px solid #d7f36d; outline-offset:2px; }
 .editor-face-layer:active { cursor:grabbing; }
+.editor-chroma-preview { overflow:hidden; background:transparent; }
+.editor-chroma-preview > video { display:none; }
+.editor-chroma-preview > canvas { display:block; width:100%; height:100%; object-fit:cover; }
 .editor-canvas-toolbar { position:absolute; z-index:8; top:12px; left:12px; right:12px; display:flex; justify-content:space-between; align-items:center; pointer-events:none; }
 .editor-canvas-hint { padding:6px 8px; border-radius:5px; color:#c8ded4; background:rgba(5,24,26,.72); font:9px var(--app-font-mono); letter-spacing:.05em; }
 .editor-canvas-button { pointer-events:auto; padding:7px 9px; border:1px solid rgba(215,243,109,.35); border-radius:6px; color:#e9f7e9; background:rgba(5,24,26,.82); font:10px var(--app-font-mono); cursor:pointer; }

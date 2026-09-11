@@ -16,4 +16,5 @@
 - [VidKraken token rotation](vidkraken-token-rotation.md) — owner-managed TOKEN entries must rotate on quota errors and keep cooldown state outside the process.
 - [Async download job recovery](async-download-job-recovery.md) — browser polling must recover once when an in-memory job disappears after an API restart.
 - [Editor composition coordinates](editor-composition-coordinates.md) — keep layer translation normalized so canvas preview and FFmpeg output stay aligned.
+- [Editor chroma preview](editor-chroma-preview.md) — preview green-screen removal with a transparent canvas and export it with matching FFmpeg chromakey settings.
 - [Browser live media bridge](browser-live-media-bridge.md) — browser camera/mic preview needs a real-time bridge before it can enter the server FFmpeg broadcast.

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type FormEvent, type PointerEvent as ReactPointerEvent, type ReactNode, type SyntheticEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type FormEvent, type PointerEvent as ReactPointerEvent, type ReactNode, type SyntheticEvent } from "react";
 import { Link, Route, Switch, useLocation, Router as WouterRouter } from "wouter";
 import {
   Activity as ActivityIcon, ArrowRight, BookOpen, Camera, Check, CircleHelp, Clipboard,
@@ -2914,32 +2914,42 @@ function EditorCanvas({
          filter: `brightness(${1 + colorAdjustments.brightness}) contrast(${colorAdjustments.contrast}) saturate(${colorAdjustments.saturation}) hue-rotate(${colorAdjustments.hue}deg)`,
        }}
     /> : <div className="editor-empty"><Layers size={27}/><strong>Your composition appears here</strong><span>Choose a category and tick the clips you want to merge.</span></div>}
-      {webcamUrl && <video
-       src={webcamUrl}
-       muted
-       autoPlay
-       loop
-       playsInline
-        className={`editor-face-layer ${selectedLayer === "webcam" ? "active" : ""} ${chromaKeyEnabled && chromaKeyTarget === "webcam" ? "editor-face-layer-keyed" : ""}`}
-       data-editor-layer="webcam"
-        data-key-color={chromaKeyColor}
-        data-key-similarity={chromaSimilarity}
-        data-key-blend={chromaBlend}
-       style={{ left: `${50 + webcamTransform.x}%`, top: `${50 + webcamTransform.y}%`, width: `${webcamTransform.scale * 100}%` }}
-     />}
-     {animationUrl && <video
-       src={animationUrl}
-       muted
-       autoPlay
-       loop
-       playsInline
-        className={`editor-face-layer editor-animation-layer ${selectedLayer === "animation" ? "active" : ""} ${chromaKeyEnabled && chromaKeyTarget === "animation" ? "editor-face-layer-keyed" : ""}`}
-       data-editor-layer="animation"
-        data-key-color={chromaKeyColor}
-        data-key-similarity={chromaSimilarity}
-        data-key-blend={chromaBlend}
-       style={{ left: `${50 + animationTransform.x}%`, top: `${50 + animationTransform.y}%`, width: `${animationTransform.scale * 100}%` }}
-     />}
+      {webcamUrl && (chromaKeyEnabled && chromaKeyTarget === "webcam" ? <ChromaKeyPreview
+        src={webcamUrl}
+        className={`editor-face-layer ${selectedLayer === "webcam" ? "active" : ""}`}
+        style={{ left: `${50 + webcamTransform.x}%`, top: `${50 + webcamTransform.y}%`, width: `${webcamTransform.scale * 100}%` }}
+        layer="webcam"
+        keyColor={chromaKeyColor}
+        similarity={chromaSimilarity}
+        blend={chromaBlend}
+      /> : <video
+        src={webcamUrl}
+        muted
+        autoPlay
+        loop
+        playsInline
+        className={`editor-face-layer ${selectedLayer === "webcam" ? "active" : ""}`}
+        data-editor-layer="webcam"
+        style={{ left: `${50 + webcamTransform.x}%`, top: `${50 + webcamTransform.y}%`, width: `${webcamTransform.scale * 100}%` }}
+      />)}
+      {animationUrl && (chromaKeyEnabled && chromaKeyTarget === "animation" ? <ChromaKeyPreview
+        src={animationUrl}
+        className={`editor-face-layer editor-animation-layer ${selectedLayer === "animation" ? "active" : ""}`}
+        style={{ left: `${50 + animationTransform.x}%`, top: `${50 + animationTransform.y}%`, width: `${animationTransform.scale * 100}%` }}
+        layer="animation"
+        keyColor={chromaKeyColor}
+        similarity={chromaSimilarity}
+        blend={chromaBlend}
+      /> : <video
+        src={animationUrl}
+        muted
+        autoPlay
+        loop
+        playsInline
+        className={`editor-face-layer editor-animation-layer ${selectedLayer === "animation" ? "active" : ""}`}
+        data-editor-layer="animation"
+        style={{ left: `${50 + animationTransform.x}%`, top: `${50 + animationTransform.y}%`, width: `${animationTransform.scale * 100}%` }}
+      />)}
     {logo && <img src={logo.playbackUrl} alt="Logo overlay preview" className={`editor-overlay logo-${logoPosition}`}/>}
     {logo && <span className={`editor-watermark-label logo-${logoPosition}`}>BRANDED</span>}
     {animationCopy && <div className={`editor-animation-preview editor-animation-${animationPreset}`}><strong>{animationCopy}</strong><span>{animationPreset === "subscribe" ? "New drop live" : animationPreset === "like" ? "Show some love" : "Stay with us"}</span></div>}
@@ -2960,6 +2970,81 @@ function EditorCanvas({
        {expanded && onCloseExpanded && <button type="button" className="editor-canvas-button" onPointerDown={(event) => event.stopPropagation()} onClick={onCloseExpanded} title="Close large preview">Close editor</button>}
        {!expanded && <button type="button" className="editor-canvas-button" onPointerDown={(event) => event.stopPropagation()} onClick={toggleFullscreen} title={isFullscreen ? "Exit fullscreen" : "Open fullscreen"}>{isFullscreen ? "Exit" : "Fullscreen"}</button>}
     </div>
+  </div>;
+}
+
+type ChromaKeyPreviewProps = {
+  src: string;
+  className: string;
+  style: CSSProperties;
+  layer: EditorLayer;
+  keyColor: string;
+  similarity: number;
+  blend: number;
+};
+
+function ChromaKeyPreview({ src, className, style, layer, keyColor, similarity, blend }: ChromaKeyPreviewProps) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    if (!video || !canvas) return;
+    const context = canvas.getContext("2d", { willReadFrequently: true });
+    if (!context) return;
+
+    const normalizedColor = keyColor.replace("#", "");
+    const red = Number.parseInt(normalizedColor.slice(0, 2), 16);
+    const green = Number.parseInt(normalizedColor.slice(2, 4), 16);
+    const blue = Number.parseInt(normalizedColor.slice(4, 6), 16);
+    const targetRed = Number.isFinite(red) ? red : 0;
+    const targetGreen = Number.isFinite(green) ? green : 255;
+    const targetBlue = Number.isFinite(blue) ? blue : 0;
+    const threshold = Math.max(0.01, similarity * 0.72);
+    const feather = Math.max(0.01, blend);
+    let frame = 0;
+    let width = 0;
+    let height = 0;
+
+    const draw = () => {
+      if (video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA && video.videoWidth > 0 && video.videoHeight > 0) {
+        const scale = Math.min(1, 640 / video.videoWidth);
+        const nextWidth = Math.max(1, Math.round(video.videoWidth * scale));
+        const nextHeight = Math.max(1, Math.round(video.videoHeight * scale));
+        if (nextWidth !== width || nextHeight !== height) {
+          width = nextWidth;
+          height = nextHeight;
+          canvas.width = width;
+          canvas.height = height;
+        }
+        context.drawImage(video, 0, 0, width, height);
+        const pixels = context.getImageData(0, 0, width, height);
+        for (let index = 0; index < pixels.data.length; index += 4) {
+          const pixelRed = pixels.data[index];
+          const pixelGreen = pixels.data[index + 1];
+          const pixelBlue = pixels.data[index + 2];
+          const colorDistance = Math.hypot(pixelRed - targetRed, pixelGreen - targetGreen, pixelBlue - targetBlue) / 441.673;
+          if (colorDistance <= threshold) {
+            pixels.data[index + 3] = 0;
+          } else if (colorDistance < threshold + feather) {
+            pixels.data[index + 3] = Math.round(((colorDistance - threshold) / feather) * 255);
+          }
+        }
+        context.putImageData(pixels, 0, 0);
+      }
+      frame = window.requestAnimationFrame(draw);
+    };
+
+    video.load();
+    void video.play().catch(() => undefined);
+    frame = window.requestAnimationFrame(draw);
+    return () => window.cancelAnimationFrame(frame);
+  }, [src, keyColor, similarity, blend]);
+
+  return <div className={`${className} editor-chroma-preview`} data-editor-layer={layer} style={style}>
+    <video ref={videoRef} src={src} muted autoPlay loop playsInline aria-hidden="true" />
+    <canvas ref={canvasRef} aria-label={`${layer === "webcam" ? "Face cam" : "Animation"} with green screen removed`} />
   </div>;
 }
 
