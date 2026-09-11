@@ -1726,7 +1726,7 @@ function LiveAnimationControl({
     <div className="live-animation-layout">
       <div
         ref={previewRef}
-        className="live-animation-preview"
+         className={`live-animation-preview live-preview-ratio-${channel.aspectRatio || "full"}`}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={stopDragging}
@@ -1845,12 +1845,6 @@ function useLivePreviewDevices({
 
   useEffect(() => {
     if (!webcamStream || !streamId || !webcamEnabled) return;
-    const Recorder = window.MediaRecorder;
-    if (!Recorder) {
-      setWebcamError("This browser cannot send the camera into the live stream.");
-      return;
-    }
-    const mimeType = ["video/webm;codecs=vp8", "video/webm"].find((candidate) => Recorder.isTypeSupported(candidate)) || "";
     let uploadClosed = false;
     let uploadController: ReadableStreamDefaultController<Uint8Array> | null = null;
     const uploadBody = new ReadableStream<Uint8Array>({
@@ -1865,25 +1859,47 @@ function useLivePreviewDevices({
       `/api/stream/webcam/${encodeURIComponent(streamId)}?position=${encodeURIComponent(webcamPosition)}&scale=${encodeURIComponent(webcamScale)}`,
       {
         method: "POST",
-        headers: { "content-type": mimeType || "video/webm" },
+        headers: { "content-type": "application/x-live-webcam-frames" },
         body: uploadBody,
         duplex: "half",
       } as RequestInit & { duplex: "half" },
     ).catch(() => undefined);
-    const recorder = new Recorder(webcamStream, mimeType ? { mimeType } : undefined);
-    recorder.ondataavailable = (event) => {
-      if (uploadClosed || !event.data.size || !uploadController) return;
-      void event.data.arrayBuffer().then((buffer) => {
-        if (!uploadClosed) uploadController?.enqueue(new Uint8Array(buffer));
-      }).catch(() => undefined);
+    const preview = document.createElement("video");
+    preview.muted = true;
+    preview.playsInline = true;
+    preview.srcObject = webcamStream;
+    const canvas = document.createElement("canvas");
+    const context = canvas.getContext("2d");
+    let captureTimer: number | undefined;
+    const captureFrame = async () => {
+      if (uploadClosed || !uploadController || !context || preview.readyState < HTMLMediaElement.HAVE_CURRENT_DATA) return;
+      const width = preview.videoWidth || 640;
+      const height = preview.videoHeight || 480;
+      if (canvas.width !== width || canvas.height !== height) {
+        canvas.width = width;
+        canvas.height = height;
+      }
+      context.clearRect(0, 0, width, height);
+      context.drawImage(preview, 0, 0, width, height);
+      const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/png"));
+      if (!blob || uploadClosed || !uploadController) return;
+      const bytes = new Uint8Array(await blob.arrayBuffer());
+      const packet = new Uint8Array(4 + bytes.length);
+      new DataView(packet.buffer).setUint32(0, bytes.length);
+      packet.set(bytes, 4);
+      uploadController.enqueue(packet);
     };
-    recorder.onerror = () => {
-      setWebcamError("The camera could not be sent to the live stream.");
+    void preview.play().catch(() => undefined);
+    const startCapture = () => {
+      captureTimer = window.setInterval(() => { void captureFrame(); }, 100);
     };
-    recorder.start(250);
+    if (preview.readyState >= HTMLMediaElement.HAVE_METADATA) startCapture();
+    else preview.addEventListener("loadedmetadata", startCapture, { once: true });
     return () => {
       uploadClosed = true;
-      if (recorder.state !== "inactive") recorder.stop();
+      if (captureTimer !== undefined) window.clearInterval(captureTimer);
+      preview.pause();
+      preview.srcObject = null;
       uploadController?.close();
       void upload;
     };
@@ -2155,7 +2171,7 @@ function LivePreviewPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}
           <div className="live-device-grid">
             <div className={`live-device-card ${webcamEnabled && devices.webcamStream ? "ready" : ""}`}>
               <div className="live-device-icon"><Camera size={18}/></div>
-               <div><strong>Direct webcam</strong><p>{devices.webcamStream ? "Camera is connected to the selected live channel." : "Send your camera directly into the live composition."}</p></div>
+                <div><strong>Direct webcam</strong><p>{devices.webcamStream ? "Camera is connected. Broadcast output is delayed by 10 seconds." : "Send your camera directly into the live composition."}</p></div>
               <button className={`button small ${webcamEnabled && devices.webcamStream ? "ghost" : "secondary"}`} onClick={() => { if (devices.webcamStream) { setWebcamEnabled((enabled) => !enabled); } else { void devices.enableWebcam().then((enabled) => setWebcamEnabled(enabled)); } }} data-testid="button-toggle-live-webcam">{webcamEnabled && devices.webcamStream ? "Hide camera" : "Enable camera"}</button>
             </div>
             <div className={`live-device-card ${devices.voiceStream ? "ready" : ""}`}>
@@ -2168,7 +2184,7 @@ function LivePreviewPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}
           <div className="live-device-adjustments">
             <div className="field"><label>Webcam position</label><select value={webcamPosition} onChange={(event) => setWebcamPosition(event.target.value as FacePosition)} disabled={!webcamEnabled}><option value="top-left">Top left</option><option value="top-right">Top right</option><option value="bottom-left">Bottom left</option><option value="bottom-right">Bottom right</option><option value="center">Center</option></select></div>
             <div className="field"><label>Webcam size · {Math.round(webcamScale * 100)}%</label><input type="range" min="10" max="60" value={Math.round(webcamScale * 100)} onChange={(event) => setWebcamScale(Number(event.target.value) / 100)} disabled={!webcamEnabled}/></div>
-             <div className="live-preview-note"><ShieldCheck size={14}/><span>Camera video and microphone audio are sent to the selected running channel. Turning either device on or off keeps the main broadcast process alive.</span></div>
+              <div className="live-preview-note"><ShieldCheck size={14}/><span>Camera and microphone use a coordinated 10-second broadcast buffer. Turning either device on or off keeps the main broadcast process alive without replaying the playlist.</span></div>
           </div>
         </section>
       </div>}

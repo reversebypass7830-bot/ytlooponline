@@ -62,6 +62,7 @@ export type StreamRunnerInput = {
     position?: "top-left" | "top-right" | "bottom-left" | "bottom-right" | "center";
     scale?: number;
   };
+  renderOffsetSeconds?: number;
 };
 
 export type StreamRunnerResult = {
@@ -82,9 +83,15 @@ type StreamProcess = {
   playlistPaths?: string[];
   playlistUpdateRequested?: boolean;
   voiceOutput?: Writable;
-  webcamInput?: PassThrough;
-  voiceQueue: Buffer[];
+  webcamUpload?: PassThrough;
+  webcamOutput?: PassThrough;
+  webcamPacketBuffer: Buffer;
+  webcamQueue: Array<{ data: Buffer; receivedAt: number }>;
+  webcamTimer?: NodeJS.Timeout;
+  voiceQueue: Array<{ data: Buffer; receivedAt: number }>;
   voiceTimer?: NodeJS.Timeout;
+  playbackOffsetSeconds: number;
+  renderStartedAtMs: number;
 };
 
 const assetNamesByCategory: Record<string, string> = {
@@ -167,6 +174,12 @@ function cleanupPlaylists(process: StreamProcess): void {
 
 const voiceFrameBytes = 1920;
 const silenceFrame = Buffer.alloc(voiceFrameBytes);
+const liveWebcamDelayMs = 10_000;
+const liveWebcamFrameIntervalMs = 100;
+const transparentWebcamFrame = Buffer.from(
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=",
+  "base64",
+);
 
 function resetVoicePipe(process: StreamProcess): void {
   process.voiceOutput = undefined;
@@ -186,7 +199,10 @@ function startVoicePipe(process: StreamProcess, child: ChildProcess): void {
       const current = processes.get(process.input.streamId);
       const voiceOutput = current?.voiceOutput;
       if (!current || current.status !== "running" || !voiceOutput || voiceOutput.destroyed || voiceOutput.writableEnded) return;
-      const next = current.voiceQueue.shift() || silenceFrame;
+      const delayed = current.voiceQueue[0];
+      const next = delayed && delayed.receivedAt <= Date.now() - liveWebcamDelayMs
+        ? current.voiceQueue.shift()?.data || silenceFrame
+        : silenceFrame;
       try {
         voiceOutput.write(next);
       } catch (error) {
@@ -197,11 +213,62 @@ function startVoicePipe(process: StreamProcess, child: ChildProcess): void {
   }
 }
 
-function stopVoicePipe(process: StreamProcess): void {
+function stopVoicePipe(process: StreamProcess, clearQueue = true): void {
   if (process.voiceTimer) clearInterval(process.voiceTimer);
   process.voiceTimer = undefined;
   resetVoicePipe(process);
-  process.voiceQueue.length = 0;
+  if (clearQueue) process.voiceQueue.length = 0;
+}
+
+function stopWebcamPipe(process: StreamProcess): void {
+  if (process.webcamTimer) clearInterval(process.webcamTimer);
+  process.webcamTimer = undefined;
+  process.webcamUpload?.destroy();
+  process.webcamUpload = undefined;
+  process.webcamOutput?.destroy();
+  process.webcamOutput = undefined;
+  process.webcamQueue.length = 0;
+  process.webcamPacketBuffer = Buffer.alloc(0);
+}
+
+function startWebcamPipe(process: StreamProcess): PassThrough {
+  if (process.webcamOutput) return process.webcamOutput;
+  const output = new PassThrough({ highWaterMark: 1024 * 1024 });
+  process.webcamOutput = output;
+  process.webcamTimer = setInterval(() => {
+    const current = processes.get(process.input.streamId);
+    if (!current || current.status !== "running" || !current.webcamOutput || current.webcamOutput.destroyed) return;
+    const delayed = current.webcamQueue[0];
+    const frame = delayed && delayed.receivedAt <= Date.now() - liveWebcamDelayMs
+      ? current.webcamQueue.shift()?.data || transparentWebcamFrame
+      : transparentWebcamFrame;
+    try {
+      current.webcamOutput.write(frame);
+    } catch (error) {
+      logger.warn(
+        { streamId: process.input.streamId, error: error instanceof Error ? error.message : "unknown error" },
+        "Live webcam frame write skipped",
+      );
+    }
+  }, liveWebcamFrameIntervalMs);
+  return output;
+}
+
+function appendWebcamPacket(process: StreamProcess, chunk: Buffer): void {
+  process.webcamPacketBuffer = Buffer.concat([process.webcamPacketBuffer, chunk]);
+  while (process.webcamPacketBuffer.length >= 4) {
+    const frameLength = process.webcamPacketBuffer.readUInt32BE(0);
+    if (frameLength <= 0 || frameLength > 4 * 1024 * 1024) {
+      process.webcamPacketBuffer = Buffer.alloc(0);
+      logger.warn({ streamId: process.input.streamId }, "Discarded malformed live webcam packet");
+      return;
+    }
+    if (process.webcamPacketBuffer.length < frameLength + 4) return;
+    const frame = Buffer.from(process.webcamPacketBuffer.subarray(4, frameLength + 4));
+    process.webcamPacketBuffer = process.webcamPacketBuffer.subarray(frameLength + 4);
+    process.webcamQueue.push({ data: frame, receivedAt: Date.now() });
+    if (process.webcamQueue.length > 720) process.webcamQueue.splice(0, process.webcamQueue.length - 720);
+  }
 }
 
 function hasAudioStream(input: { path: string; playlistPath?: string }): boolean {
@@ -298,6 +365,9 @@ function buildFfmpegArgs(
     "-re",
     "-stream_loop",
     "-1",
+    ...(input.renderOffsetSeconds && input.renderOffsetSeconds > 0
+      ? ["-ss", input.renderOffsetSeconds.toFixed(3)]
+      : []),
     ...(videoInput.playlistPath ? ["-f", "concat", "-safe", "0"] : []),
     "-i",
     videoInput.path,
@@ -345,8 +415,12 @@ function buildFfmpegArgs(
     inputArgs.push(
       "-thread_queue_size",
       "512",
+      "-framerate",
+      "10",
       "-f",
-      "webm",
+      "image2pipe",
+      "-vcodec",
+      "png",
       "-i",
       "pipe:4",
     );
@@ -402,7 +476,7 @@ function buildFfmpegArgs(
             : []),
           ...(liveWebcamInput
             ? [
-                `[${liveWebcamInputIndex}:v]scale=iw*${liveWebcamScale}:-2[live_webcam]`,
+                `[${liveWebcamInputIndex}:v]format=rgba,scale=iw*${liveWebcamScale}:-2:flags=lanczos[live_webcam]`,
                 `[${facePath ? "with_face" : "base"}][live_webcam]overlay=${
                   input.liveWebcam?.position === "top-left" || input.liveWebcam?.position === "bottom-left"
                     ? "24"
@@ -541,8 +615,9 @@ function resultFor(streamId: string, process: StreamProcess, message: string): S
 }
 
 function launchProcess(process: StreamProcess): void {
-  stopVoicePipe(process);
+  stopVoicePipe(process, false);
   cleanupPlaylists(process);
+  startWebcamPipe(process);
   const videoPaths = getVideoPaths(process.input.category, process.input.videoSources, process.input.videoSource);
   const facePaths = process.input.composition?.webcamSource
     ? [getVideoPath("editor face cam", process.input.composition.webcamSource)]
@@ -569,7 +644,8 @@ function launchProcess(process: StreamProcess): void {
   const rendererInput = {
     ...process.input,
     baseAudioAvailable: hasAudioStream(videoInput),
-    liveWebcam: process.webcamInput ? process.input.liveWebcam : undefined,
+    liveWebcam: process.input.liveWebcam ?? { position: "bottom-right" as const, scale: 0.25 },
+    renderOffsetSeconds: process.playbackOffsetSeconds,
   };
   const renderer = spawn("ffmpeg", buildFfmpegArgs(rendererInput, videoInput, faceInput, preparedAnimationInput, logoInput), {
     stdio: ["ignore", "pipe", "pipe", "pipe", "pipe"],
@@ -578,6 +654,7 @@ function launchProcess(process: StreamProcess): void {
   process.child = publisher;
   process.renderer = renderer;
   process.startedAt = new Date().toISOString();
+  process.renderStartedAtMs = Date.now();
   renderer.stdout?.pipe(publisher.stdin!, { end: false });
   renderer.stdout?.on("error", (error) => {
     logger.warn({ streamId: process.input.streamId, error: error.message }, "Renderer output pipe closed");
@@ -585,8 +662,8 @@ function launchProcess(process: StreamProcess): void {
   publisher.stdin?.on("error", (error) => {
     logger.warn({ streamId: process.input.streamId, error: error.message }, "Publisher input pipe closed");
   });
-  if (process.webcamInput) {
-    process.webcamInput.pipe(renderer.stdio[4] as Writable, { end: false });
+  if (process.webcamOutput) {
+    process.webcamOutput.pipe(renderer.stdio[4] as Writable, { end: false });
     renderer.stdio[4]?.on("error", (error) => {
       logger.warn({ streamId: process.input.streamId, error: error.message }, "Webcam input pipe closed");
     });
@@ -686,7 +763,12 @@ export function startStream(input: StreamRunnerInput): StreamRunnerResult {
     status: "running",
     input,
     voiceQueue: [],
+    webcamPacketBuffer: Buffer.alloc(0),
+    webcamQueue: [],
+    playbackOffsetSeconds: 0,
+    renderStartedAtMs: Date.now(),
   };
+  startWebcamPipe(streamProcess);
   processes.set(input.streamId, streamProcess);
   launchProcess(streamProcess);
 
@@ -714,7 +796,17 @@ export function updateStream(input: StreamRunnerInput): StreamRunnerResult {
     clearTimeout(current.restartTimer);
     current.restartTimer = undefined;
   }
-  current.input = input;
+  current.playbackOffsetSeconds += Math.max(
+    0,
+    (Date.now() - current.renderStartedAtMs) / 1000,
+  ) * Math.min(2, Math.max(0.5, current.input.playbackSpeed ?? 1));
+  current.input = {
+    ...input,
+    // Keep the hot camera overlay attached when a normal stream update arrives
+    // from the control room. Detaching it is handled explicitly by the webcam
+    // endpoint instead of as a side effect of playlist/composition updates.
+    liveWebcam: input.liveWebcam ?? current.input.liveWebcam,
+  };
   current.playlistUpdateRequested = true;
   current.renderer?.kill("SIGTERM");
   if (!current.renderer) {
@@ -731,8 +823,7 @@ export function stopStream(streamId: string): StreamRunnerResult | null {
   streamProcess.status = "stopped";
   streamProcess.playlistUpdateRequested = false;
   stopVoicePipe(streamProcess);
-  streamProcess.webcamInput?.destroy();
-  streamProcess.webcamInput = undefined;
+  stopWebcamPipe(streamProcess);
   if (streamProcess.durationTimer) clearTimeout(streamProcess.durationTimer);
   if (streamProcess.restartTimer) clearTimeout(streamProcess.restartTimer);
   streamProcess.renderer?.kill("SIGTERM");
@@ -741,15 +832,6 @@ export function stopStream(streamId: string): StreamRunnerResult | null {
     if (streamProcess.child && !streamProcess.child.killed) streamProcess.child.kill("SIGKILL");
   }, 5000).unref();
   return resultFor(streamId, streamProcess, "FFmpeg stream process stopped.");
-}
-
-function restartWithWebcam(process: StreamProcess): void {
-  process.playlistUpdateRequested = true;
-  process.renderer?.kill("SIGTERM");
-  if (!process.renderer) {
-    process.playlistUpdateRequested = false;
-    launchProcess(process);
-  }
 }
 
 export function attachLiveWebcam(
@@ -762,31 +844,30 @@ export function attachLiveWebcam(
     webcamInput.destroy();
     throw new Error("This channel is not currently streaming.");
   }
-  process.webcamInput?.destroy();
-  process.webcamInput = webcamInput;
+  process.webcamUpload?.destroy();
+  process.webcamUpload = webcamInput;
   process.input = { ...process.input, liveWebcam: settings };
   webcamInput.on("error", (error) => {
     logger.warn({ streamId, error: error.message }, "Live webcam input closed");
   });
-  restartWithWebcam(process);
+  webcamInput.on("data", (chunk: Buffer) => appendWebcamPacket(process, chunk));
 }
 
 export function detachLiveWebcam(streamId: string, webcamInput: PassThrough): void {
   const process = processes.get(streamId);
-  if (!process || process.webcamInput !== webcamInput) return;
-  process.webcamInput.destroy();
-  process.webcamInput = undefined;
+  if (!process || process.webcamUpload !== webcamInput) return;
+  process.webcamUpload.destroy();
+  process.webcamUpload = undefined;
   process.input = { ...process.input, liveWebcam: undefined };
-  restartWithWebcam(process);
 }
 
 export function appendVoiceAudio(streamId: string, chunk: Buffer): void {
   const streamProcess = processes.get(streamId);
   if (!streamProcess || streamProcess.status !== "running" || streamProcess.input.voiceAudio !== true) return;
   if (chunk.length === 0) return;
-  streamProcess.voiceQueue.push(Buffer.from(chunk));
-  if (streamProcess.voiceQueue.length > 150) {
-    streamProcess.voiceQueue.splice(0, streamProcess.voiceQueue.length - 150);
+  streamProcess.voiceQueue.push({ data: Buffer.from(chunk), receivedAt: Date.now() });
+  if (streamProcess.voiceQueue.length > 720) {
+    streamProcess.voiceQueue.splice(0, streamProcess.voiceQueue.length - 720);
   }
 }
 
