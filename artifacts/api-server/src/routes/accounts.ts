@@ -1,7 +1,7 @@
 import { randomBytes, randomUUID } from "node:crypto";
 import { Router, type IRouter, type Request, type Response } from "express";
 import { firebaseGet, firebasePut } from "../lib/firebase-rest";
-import { clerkSessionClaims, clerkUserId, requireClerkAuth } from "../middlewares/requireClerkAuth";
+import { accountUserId, clerkSessionClaims, requireAccountAuth, requireClerkAuth } from "../middlewares/requireClerkAuth";
 import { clerkOwnerAuthorized, ownerAuthorized } from "./licenses";
 
 const router: IRouter = Router();
@@ -136,6 +136,7 @@ function publicAccount(account: AccountRecord, plans: PlanMap) {
     id: account.id,
     displayName: account.displayName,
     email: account.email,
+    phone: account.phone,
     role: account.role,
     licenseId: account.licenseId,
     licenseKey: account.licenseKey,
@@ -151,7 +152,7 @@ function publicAccount(account: AccountRecord, plans: PlanMap) {
 }
 
 async function ensureAccount(req: Request): Promise<{ account: AccountRecord; plans: PlanMap }> {
-  const userId = clerkUserId(req);
+  const userId = accountUserId(req);
   if (!userId) throw new Error("Sign in is required.");
   const claims = clerkSessionClaims(req);
   const claimEmail = typeof claims.email === "string" ? claims.email : typeof claims.email_address === "string" ? claims.email_address : "";
@@ -212,7 +213,7 @@ async function ensureAccount(req: Request): Promise<{ account: AccountRecord; pl
 
 async function accountOwnerAuthorized(req: Request): Promise<boolean> {
   if (ownerAuthorized(req) || clerkOwnerAuthorized(req)) return true;
-  const userId = clerkUserId(req);
+  const userId = accountUserId(req);
   if (!userId) return false;
   const account = await loadAccount(userId);
   return account?.role === "owner";
@@ -234,7 +235,7 @@ function sendError(req: Request, res: Response, error: unknown, message: string)
   res.status(502).json({ error: message });
 }
 
-router.get("/account", requireClerkAuth, async (req, res): Promise<void> => {
+router.get("/account", requireAccountAuth, async (req, res): Promise<void> => {
   try {
     const { account, plans } = await ensureAccount(req);
     res.json({ account: publicAccount(account, plans), plans: Object.values(plans).filter((plan) => plan.active) });
@@ -243,13 +244,23 @@ router.get("/account", requireClerkAuth, async (req, res): Promise<void> => {
   }
 });
 
-router.put("/account/profile", requireClerkAuth, async (req, res): Promise<void> => {
+router.put("/account/profile", requireAccountAuth, async (req, res): Promise<void> => {
   try {
     const { account, plans } = await ensureAccount(req);
     const phone = typeof req.body?.phone === "string" ? req.body.phone.trim() : "";
-    if (phone && !/^\+?[0-9 ()-]{7,24}$/.test(phone)) {
-      res.status(400).json({ error: "Enter a valid mobile number." });
+    const normalizedPhoneDigits = phone.replace(/\D/g, "");
+    if (phone && (!/^\+?[0-9 ()-]{10,24}$/.test(phone) || normalizedPhoneDigits.length < 10)) {
+      res.status(400).json({ error: "Enter a valid 10-digit mobile number." });
       return;
+    }
+    if (phone) {
+      const accounts = (await firebaseGet<AccountMap | null>("accounts")) ?? {};
+      const normalizedPhone = normalizedPhoneDigits.slice(-10);
+      const alreadyLinked = Object.values(accounts).some((candidate) => candidate.id !== account.id && candidate.phone && candidate.phone.replace(/\D/g, "").slice(-10) === normalizedPhone);
+      if (alreadyLinked) {
+        res.status(409).json({ error: "This mobile number is already linked to another account." });
+        return;
+      }
     }
     const next = { ...account, phone: phone || undefined };
     await firebasePut(accountPath(account.id), next);

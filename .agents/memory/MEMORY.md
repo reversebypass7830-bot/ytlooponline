@@ -22,3 +22,4 @@
 - [VPS stream lifecycle](vps-stream-lifecycle.md) — PM2 keeps the API alive, but in-memory stream sessions need a credential-safe durable store for restart recovery.
 - [FFmpeg live input indices](ffmpeg-live-input-indices.md) — dynamic silence, webcam, and microphone inputs must be mapped from the complete FFmpeg input order.
 - [Live preview handoff](live-preview-handoff.md) — preserve the HLS preview path during renderer handoffs so a healthy publisher does not look stopped.
+- [Mobile OTP account binding](mobile-otp-account-binding.md) — verify OTP through the provider, then create a local session only for a Firebase account already linked to that normalized phone.

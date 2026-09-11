@@ -385,6 +385,11 @@ input:focus, textarea:focus, select:focus { border-color:#5fa49d; box-shadow:0 0
 .access-google-button { display:flex; align-items:center; justify-content:center; gap:10px; width:100%; min-height:49px; padding:14px 18px; border:1px solid rgba(215,243,109,.35); border-radius:9px; color:#eef8ee; background:rgba(215,243,109,.08); cursor:pointer; transition:transform .2s,background .2s,border-color .2s; }
 .access-google-button:hover { transform:translateY(-2px); border-color:var(--access-signal); background:rgba(215,243,109,.14); }
 .google-mark { width:22px; height:22px; display:grid; place-items:center; border-radius:50%; color:#173737; background:#fff; font:700 13px Arial,sans-serif; }
+.access-mobile-toggle { display:flex; align-items:center; justify-content:center; gap:8px; width:100%; margin-top:10px; padding:8px; border:0; color:#c8e76d; background:transparent; font:10px var(--app-font-mono); cursor:pointer; }
+.access-mobile-toggle:hover,.access-mobile-back:hover { color:#f0ffa9; }
+.mobile-login-box { padding:2px 0 3px; }
+.mobile-error { margin-top:12px; }
+.access-mobile-back { display:block; margin:1px auto 0; border:0; color:#a9c9bd; background:transparent; font:10px var(--app-font-mono); cursor:pointer; }
 .access-divider { display:flex; align-items:center; gap:10px; margin:17px 0 1px; color:#6f9188; font:9px var(--app-font-mono); text-transform:uppercase; letter-spacing:.08em; }
 .access-divider:before,.access-divider:after { content:""; height:1px; flex:1; background:rgba(159,214,190,.18); }
 .access-footer { position:relative; z-index:1; display:flex; align-items:center; justify-content:space-between; padding:20px clamp(22px,6vw,90px); border-top:1px solid var(--access-line); color:#6f9188; font:9px var(--app-font-mono); letter-spacing:.05em; }

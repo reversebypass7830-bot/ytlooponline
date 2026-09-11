@@ -4,7 +4,7 @@ import {
   Activity as ActivityIcon, ArrowRight, BookOpen, Camera, Check, CircleHelp, Clipboard,
   Download, FileVideo, FolderOpen, Gauge, Instagram, LayoutDashboard,
   Image, Layers, Link2, Menu, MessageCircle, MonitorPlay, Pencil, Play, Plus, Radio, Scissors, Search, Send, Settings,
-  Mic, ShieldCheck, Sparkles, Square, Trash2, Type, Upload, Video, Wand2, X, Youtube,
+  Mic, ShieldCheck, Smartphone, Sparkles, Square, Trash2, Type, Upload, Video, Wand2, X, Youtube,
 } from "lucide-react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ClerkProvider, SignIn, SignUp, useClerk, useUser } from "@clerk/react";
@@ -829,35 +829,36 @@ function useLicense() {
 function useAccountSession(isSignedIn: boolean, userId?: string) {
   const [account, setAccount] = useState<AccountSummary | null>(null);
   const [plans, setPlans] = useState<AccountPlan[]>([]);
-  const [loading, setLoading] = useState(isSignedIn);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   const load = async () => {
-    if (!isSignedIn || !userId) {
-      setAccount(null);
-      setPlans([]);
-      setLoading(false);
-      return;
-    }
     try {
       const result = await apiJson<AccountResponse>("/api/account");
       setAccount(result.account);
       setPlans(result.plans || []);
       setError("");
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : "Could not load your account.");
+      const status = (reason as Error & { status?: number }).status;
+      if (status === 401) {
+        setAccount(null);
+        setPlans([]);
+        setError("");
+      } else {
+        setError(reason instanceof Error ? reason.message : "Could not load your account.");
+      }
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    setLoading(isSignedIn);
+    setLoading(Boolean(isSignedIn));
     void load();
-    if (!isSignedIn || !userId) return;
+    if (!isSignedIn && !account) return;
     const timer = window.setInterval(() => void load(), 60_000);
     return () => window.clearInterval(timer);
-  }, [isSignedIn, userId]);
+  }, [isSignedIn, userId, Boolean(account)]);
 
   const savePhone = async (phone: string) => {
     const result = await apiJson<AccountResponse>("/api/account/profile", {
@@ -877,7 +878,13 @@ function useAccountSession(isSignedIn: boolean, userId?: string) {
     setPlans(result.plans || []);
   };
 
-  return { account, plans, loading, error, reload: load, savePhone, claimOwner };
+  const clear = () => {
+    setAccount(null);
+    setPlans([]);
+    setError("");
+  };
+
+  return { account, plans, loading, error, reload: load, savePhone, claimOwner, clear };
 }
 
 function useWorkspace(license: LicenseSession | null, clearLicense: () => void) {
@@ -1148,11 +1155,51 @@ function AppShell({ children, title, workspace }: { children:ReactNode; title:st
 
 function LicenseGate({ license, busy, error, signedIn, onActivate, onRenew, onGoogleLogin }: { license:LicenseSession|null; busy:boolean; error:string; signedIn:boolean; onActivate:(key:string)=>Promise<void>; onRenew:()=>Promise<void>; onGoogleLogin:()=>void }) {
   const [key, setKey] = useState(license?.key || "");
+  const [mobilePhone, setMobilePhone] = useState("");
+  const [mobileOtp, setMobileOtp] = useState("");
+  const [mobileRequestId, setMobileRequestId] = useState("");
+  const [mobileStep, setMobileStep] = useState<"phone" | "otp">("phone");
+  const [mobileBusy, setMobileBusy] = useState(false);
+  const [mobileError, setMobileError] = useState("");
+  const [mobileOpen, setMobileOpen] = useState(false);
   useEffect(() => { setKey(license?.key || ""); }, [license?.key]);
   const expired = Boolean(license && !isLicenseActive(license));
   const submit = (event:FormEvent) => {
     event.preventDefault();
     if (key.trim()) void onActivate(key).catch(() => undefined);
+  };
+  const sendMobileOtp = async (event: FormEvent) => {
+    event.preventDefault();
+    setMobileBusy(true);
+    setMobileError("");
+    try {
+      const result = await apiJson<{ requestId: string; message: string }>("/api/mobile-auth/send-otp", {
+        method: "POST",
+        body: JSON.stringify({ phone: mobilePhone }),
+      });
+      setMobileRequestId(result.requestId);
+      setMobileStep("otp");
+    } catch (reason) {
+      setMobileError(reason instanceof Error ? reason.message : "Could not send the OTP.");
+    } finally {
+      setMobileBusy(false);
+    }
+  };
+  const verifyMobileOtp = async (event: FormEvent) => {
+    event.preventDefault();
+    setMobileBusy(true);
+    setMobileError("");
+    try {
+      await apiJson("/api/mobile-auth/verify-otp", {
+        method: "POST",
+        body: JSON.stringify({ requestId: mobileRequestId, otp: mobileOtp }),
+      });
+      window.location.assign(`${basePath || ""}/dashboard`);
+    } catch (reason) {
+      setMobileError(reason instanceof Error ? reason.message : "Could not verify the OTP.");
+    } finally {
+      setMobileBusy(false);
+    }
   };
   return <div className="access-page">
     <header className="access-nav">
@@ -1191,6 +1238,12 @@ function LicenseGate({ license, busy, error, signedIn, onActivate, onRenew, onGo
           <p className="access-card-copy">{expired ? "Your workspace is waiting. Renew this same key for 30 more days, or choose a plan below." : "Sign in to create your account, or use an existing license key to open the room."}</p>
           {error && <div className="access-error" data-testid="status-license-error">{error}</div>}
           {!signedIn && <button type="button" className="access-google-button" onClick={onGoogleLogin} data-testid="button-login-google"><span className="google-mark">G</span><strong>Login with Google</strong><ArrowRight size={16}/></button>}
+          {!signedIn && <button type="button" className="access-mobile-toggle" onClick={() => { setMobileOpen((value) => !value); setMobileError(""); }} data-testid="button-login-mobile">{mobileOpen ? "Hide mobile login" : "Login with mobile number"} <Smartphone size={14}/></button>}
+          {!signedIn && mobileOpen && <div className="mobile-login-box">
+            <div className="access-divider"><span>{mobileStep === "phone" ? "send OTP" : "enter 4-digit OTP"}</span></div>
+            {mobileError && <div className="access-error mobile-error">{mobileError}</div>}
+            {mobileStep === "phone" ? <form className="access-form" onSubmit={sendMobileOtp}><div className="access-field"><label htmlFor="mobile-phone">Mobile number</label><input id="mobile-phone" type="tel" value={mobilePhone} onChange={(event) => setMobilePhone(event.target.value)} placeholder="9876543210" autoComplete="tel" inputMode="numeric" maxLength={16} data-testid="input-mobile-phone"/></div><button className="access-submit" type="submit" disabled={mobileBusy || !mobilePhone.trim()}><strong>{mobileBusy ? "Sending…" : "Send OTP"}</strong><ArrowRight size={16}/></button></form> : <form className="access-form" onSubmit={verifyMobileOtp}><div className="access-field"><label htmlFor="mobile-otp">4-digit OTP</label><input id="mobile-otp" type="text" value={mobileOtp} onChange={(event) => setMobileOtp(event.target.value.replace(/\D/g, "").slice(0, 4))} placeholder="••••" autoComplete="one-time-code" inputMode="numeric" maxLength={4} data-testid="input-mobile-otp"/></div><button className="access-submit" type="submit" disabled={mobileBusy || mobileOtp.length !== 4}><strong>{mobileBusy ? "Verifying…" : "Verify & open workspace"}</strong><Check size={16}/></button><button type="button" className="access-mobile-back" onClick={() => { setMobileStep("phone"); setMobileOtp(""); setMobileError(""); }}>Use a different number</button></form>}
+          </div>}
           {!signedIn && <div className="access-divider"><span>or use a license key</span></div>}
           <form className="access-form" onSubmit={submit}>
             <div className="access-field"><label htmlFor="license-key">License key</label><input id="license-key" value={key} onChange={e=>setKey(e.target.value)} placeholder="SD-XXXXXXXXXXXX" autoComplete="off" data-testid="input-license-key"/></div>
@@ -1198,7 +1251,7 @@ function LicenseGate({ license, busy, error, signedIn, onActivate, onRenew, onGo
           </form>
           {expired && <button className="access-renew" onClick={()=>void onRenew()} disabled={busy} data-testid="button-renew-license">{busy ? "Renewing…" : "Renew your key · 30 days"} <Check size={14}/></button>}
           {license && <div className="access-license-status"><strong>{license.name}</strong><span>Key: <span className="mono">{license.key}</span></span><span>Expired {new Date(license.expiresAt).toLocaleDateString()}</span></div>}
-          <div className="access-card-foot"><ShieldCheck size={14} /><span>Google accounts get a trial automatically. Mobile number support can be added to the same account.</span></div>
+          <div className="access-card-foot"><ShieldCheck size={14} /><span>Google accounts get a trial automatically. Mobile login verifies the number before opening its linked account.</span></div>
         </div>
       </section>
     </main>
@@ -3766,6 +3819,7 @@ function App() {
   const { signOut } = useClerk();
   const license = useLicense();
   const accountSession = useAccountSession(Boolean(isSignedIn), user?.id);
+  const hasAccountSession = Boolean(accountSession.account);
   const accountLicense = accountSession.account ? {
     licenseId: accountSession.account.licenseId,
     key: accountSession.account.licenseKey,
@@ -3773,26 +3827,28 @@ function App() {
     expiresAt: accountSession.account.accessEndsAt,
     active: accountSession.account.active,
   } satisfies LicenseSession : null;
-  const activeLicense = isSignedIn ? accountLicense : license.license;
+  const activeLicense = hasAccountSession ? accountLicense : license.license;
   const workspace = useWorkspace(activeLicense, () => {
     license.clear();
-    void signOut({ redirectUrl: basePath || "/" });
+    accountSession.clear();
+    void apiJson("/api/mobile-auth/logout", { method: "POST" }).catch(() => undefined);
+    if (isSignedIn) void signOut({ redirectUrl: basePath || "/" });
   });
   const [location, setLocation] = useLocation();
   useEffect(() => {
-    if (!clerkLoaded || accountSession.loading) return;
-    if (isSignedIn && accountSession.account && !accountSession.account.active && ![purchasePath, "/gateway", "/sign-in", "/sign-up"].some((path) => location.startsWith(path))) {
+    if (!clerkLoaded || (isSignedIn && accountSession.loading)) return;
+    if (hasAccountSession && accountSession.account && !accountSession.account.active && ![purchasePath, "/gateway", "/sign-in", "/sign-up"].some((path) => location.startsWith(path))) {
       setLocation(purchasePath);
       return;
     }
-    if (isSignedIn && accountSession.account?.active && (location === "/" || location === "/access" || location.startsWith("/sign-in") || location.startsWith("/sign-up"))) {
+    if (hasAccountSession && accountSession.account?.active && (location === "/" || location === "/access" || location.startsWith("/sign-in") || location.startsWith("/sign-up"))) {
       setLocation(accountSession.account.role === "owner" ? "/owner" : "/dashboard");
       return;
     }
     if (!isSignedIn && isLicenseActive(license.license) && (location === "/" || location === "/access")) {
       setLocation("/dashboard");
     }
-  }, [accountSession.account, accountSession.loading, clerkLoaded, isSignedIn, license.license, location, setLocation]);
+  }, [accountSession.account, accountSession.loading, clerkLoaded, hasAccountSession, isSignedIn, license.license, location, setLocation]);
   if (!clerkLoaded) return <div className="workspace-loading"><Radio size={20}/><span>Connecting secure sign-in…</span></div>;
   if (location.startsWith("/sign-in")) return <ClerkAuthPage mode="sign-in"/>;
   if (location.startsWith("/sign-up")) return <ClerkAuthPage mode="sign-up"/>;
@@ -3805,8 +3861,8 @@ function App() {
     return <OwnerPage/>;
   }
   if (location === "/" && !isLicenseActive(activeLicense)) return <LandingPage />;
-  if (location === "/access") return <LicenseGate license={activeLicense} busy={license.busy} error={license.error} signedIn={Boolean(isSignedIn)} onActivate={license.activate} onRenew={license.renew} onGoogleLogin={() => setLocation("/sign-in")}/>;
-  if (!activeLicense || !isLicenseActive(activeLicense)) return <LicenseGate license={activeLicense} busy={license.busy} error={license.error} signedIn={Boolean(isSignedIn)} onActivate={license.activate} onRenew={license.renew} onGoogleLogin={() => setLocation("/sign-in")}/>;
+  if (location === "/access") return <LicenseGate license={activeLicense} busy={license.busy} error={license.error} signedIn={Boolean(isSignedIn || hasAccountSession)} onActivate={license.activate} onRenew={license.renew} onGoogleLogin={() => setLocation("/sign-in")}/>;
+  if (!activeLicense || !isLicenseActive(activeLicense)) return <LicenseGate license={activeLicense} busy={license.busy} error={license.error} signedIn={Boolean(isSignedIn || hasAccountSession)} onActivate={license.activate} onRenew={license.renew} onGoogleLogin={() => setLocation("/sign-in")}/>;
   if (!workspace.ready) return <div className="workspace-loading"><Radio size={20}/><span>Loading your private workspace…</span></div>;
   return <Routed workspace={workspace} account={accountSession.account} onSavePhone={accountSession.savePhone} onClaimOwner={async (password) => { await accountSession.claimOwner(password); setLocation("/owner"); }}/>;
 }
