@@ -3957,15 +3957,15 @@ function EditorTransformControls({ selectedLayer, hasWebcam, hasAnimation, mainT
 function ProfilePage({ workspace, account, firebaseUser, plans, profilePhoto, onProfilePhotoChange, onSaveProfile, onLogout }: {
   workspace: ReturnType<typeof useWorkspace>;
   account: AccountSummary;
-  firebaseUser: FirebaseUser;
+  firebaseUser: FirebaseUser | null;
   plans: AccountPlan[];
   profilePhoto: string;
   onProfilePhotoChange: (photo: string) => void;
-  onSaveProfile: (profile: { displayName: string; email: string; phone?: string }) => Promise<void>;
+  onSaveProfile?: (profile: { displayName: string; email: string; phone?: string }) => Promise<void>;
   onLogout: () => Promise<void>;
 }) {
   const [name, setName] = useState(account.displayName || "");
-  const [email, setEmail] = useState(account.email || firebaseUser.email || "");
+  const [email, setEmail] = useState(account.email || firebaseUser?.email || "");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [currentPassword, setCurrentPassword] = useState("");
@@ -3975,28 +3975,34 @@ function ProfilePage({ workspace, account, firebaseUser, plans, profilePhoto, on
   const [passwordNotice, setPasswordNotice] = useState("");
   const [photoIndex, setPhotoIndex] = useState(0);
   const photoChoices = [12, 27, 36, 45, 58, 67].map((image) => `https://i.pravatar.cc/200?img=${image}`);
-  const hasPasswordProvider = firebaseUser.providerData.some((provider) => provider.providerId === "password");
+  const hasPasswordProvider = Boolean(firebaseUser?.providerData.some((provider) => provider.providerId === "password"));
 
   useEffect(() => {
     setName(account.displayName || "");
-    setEmail(account.email || firebaseUser.email || "");
-  }, [account.displayName, account.email, firebaseUser.email]);
+    setEmail(account.email || firebaseUser?.email || "");
+  }, [account.displayName, account.email, firebaseUser?.email]);
 
   const choosePhoto = (photo: string) => {
     onProfilePhotoChange(photo);
-    if (!photo.startsWith("data:")) void updateProfile(firebaseUser, { photoURL: photo }).catch(() => undefined);
+    if (firebaseUser && !photo.startsWith("data:")) void updateProfile(firebaseUser, { photoURL: photo }).catch(() => undefined);
     setNotice("Profile photo updated.");
   };
 
   const saveDetails = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!name.trim() || !email.trim()) return;
+    if (!name.trim() || (firebaseUser && !email.trim())) return;
     setSaving(true);
     setNotice("");
     try {
-      if (email.trim() !== (firebaseUser.email || "")) await updateEmail(firebaseUser, email.trim());
-      await updateProfile(firebaseUser, { displayName: name.trim() });
-      await onSaveProfile({ displayName: name.trim(), email: email.trim(), phone: account.phone });
+      if (firebaseUser) {
+        if (email.trim() !== (firebaseUser.email || "")) await updateEmail(firebaseUser, email.trim());
+        await updateProfile(firebaseUser, { displayName: name.trim() });
+      }
+      if (onSaveProfile) {
+        await onSaveProfile({ displayName: name.trim(), email: email.trim(), phone: account.phone });
+      } else {
+        localStorage.setItem(`reverse-bypass-profile:${workspace.licenseId}`, JSON.stringify({ displayName: name.trim(), email: email.trim() }));
+      }
       setNotice("Your profile details were saved.");
     } catch (reason) {
       setNotice(reason instanceof Error ? reason.message : "Could not save your profile details.");
@@ -4019,10 +4025,10 @@ function ProfilePage({ workspace, account, firebaseUser, plans, profilePhoto, on
     setPasswordBusy(true);
     try {
       if (currentPassword) {
-        const credential = EmailAuthProvider.credential(firebaseUser.email || email, currentPassword);
-        await reauthenticateWithCredential(firebaseUser, credential);
+        const credential = EmailAuthProvider.credential(firebaseUser?.email || email, currentPassword);
+        if (firebaseUser) await reauthenticateWithCredential(firebaseUser, credential);
       }
-      await updatePassword(firebaseUser, newPassword);
+      if (firebaseUser) await updatePassword(firebaseUser, newPassword);
       setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
@@ -4038,6 +4044,10 @@ function ProfilePage({ workspace, account, firebaseUser, plans, profilePhoto, on
     setPasswordBusy(true);
     setPasswordNotice("");
     try {
+      if (!firebaseUser) {
+        setPasswordNotice("Password reset is available after you connect a Google account.");
+        return;
+      }
       await sendPasswordResetEmail(firebaseAuth, email);
       setPasswordNotice("Password reset instructions were sent to your email.");
     } catch (reason) {
@@ -4071,7 +4081,7 @@ function ProfilePage({ workspace, account, firebaseUser, plans, profilePhoto, on
           <form className="profile-form" onSubmit={saveDetails}>
             <div className="field"><label htmlFor="profile-name">Name</label><input id="profile-name" value={name} onChange={(event) => setName(event.target.value)} placeholder="Your name" data-testid="input-profile-name" /></div>
             <div className="field"><label htmlFor="profile-email">Email</label><input id="profile-email" type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="you@example.com" data-testid="input-profile-email" /></div>
-            <button className="button" type="submit" disabled={saving || !name.trim() || !email.trim()}>{saving ? "Saving…" : "Save changes"} <Check size={14}/></button>
+            <button className="button" type="submit" disabled={saving || !name.trim() || Boolean(firebaseUser && !email.trim())}>{saving ? "Saving…" : "Save changes"} <Check size={14}/></button>
             {notice && <p className="profile-message">{notice}</p>}
           </form>
         </section>
@@ -4113,7 +4123,28 @@ function SettingsPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}) {
 }
 
 function Routed({workspace, account, firebaseUser, plans, profilePhoto, onProfilePhotoChange, onSaveProfile, onSavePhone, onLogout}:{workspace:ReturnType<typeof useWorkspace>; account:AccountSummary|null; firebaseUser:FirebaseUser|null; plans:AccountPlan[]; profilePhoto:string; onProfilePhotoChange:(photo:string)=>void; onSaveProfile:(profile:{displayName:string; email:string; phone?:string})=>Promise<void>; onSavePhone:(phone:string)=>Promise<void>; onLogout:()=>Promise<void>}) {
-  return <Switch><Route path="/dashboard"><Dashboard workspace={workspace} account={account} onSavePhone={onSavePhone}/></Route><Route path="/live"><LivePage workspace={workspace}/></Route><Route path="/live-preview"><LivePreviewPage workspace={workspace}/></Route><Route path="/videos"><VideosPage workspace={workspace}/></Route><Route path="/editor"><VideoEditorPage workspace={workspace}/></Route><Route path="/profile">{account && firebaseUser ? <ProfilePage workspace={workspace} account={account} firebaseUser={firebaseUser} plans={plans} profilePhoto={profilePhoto} onProfilePhotoChange={onProfilePhotoChange} onSaveProfile={onSaveProfile} onLogout={onLogout}/> : <Redirect to="/dashboard"/>}</Route><Route path="/settings"><Redirect to="/profile"/></Route><Route><NotFound/></Route></Switch>;
+  let localProfile: { displayName?: string; email?: string } = {};
+  try {
+    localProfile = JSON.parse(localStorage.getItem(`reverse-bypass-profile:${workspace.licenseId}`) || "{}") as { displayName?: string; email?: string };
+  } catch {
+    localProfile = {};
+  }
+  const profileAccount = account || {
+    id: `local-${workspace.licenseId || "profile"}`,
+    displayName: localProfile.displayName || workspace.user || "Workspace user",
+    email: localProfile.email || "",
+    role: "user" as const,
+    licenseId: workspace.licenseId,
+    licenseKey: "",
+    trialStartedAt: "",
+    trialEndsAt: "",
+    activePlanId: "",
+    activePlan: null,
+    accessEndsAt: "",
+    active: true,
+    history: [],
+  };
+  return <Switch><Route path="/dashboard"><Dashboard workspace={workspace} account={account} onSavePhone={onSavePhone}/></Route><Route path="/live"><LivePage workspace={workspace}/></Route><Route path="/live-preview"><LivePreviewPage workspace={workspace}/></Route><Route path="/videos"><VideosPage workspace={workspace}/></Route><Route path="/editor"><VideoEditorPage workspace={workspace}/></Route><Route path="/profile"><ProfilePage workspace={workspace} account={profileAccount} firebaseUser={firebaseUser} plans={plans} profilePhoto={profilePhoto} onProfilePhotoChange={onProfilePhotoChange} onSaveProfile={account ? onSaveProfile : undefined} onLogout={onLogout}/></Route><Route path="/settings"><Redirect to="/profile"/></Route><Route><NotFound/></Route></Switch>;
 }
 
 function App() {
@@ -4123,16 +4154,17 @@ function App() {
   const accountSession = useAccountSession(isSignedIn, user?.uid, !firebaseLoading);
   const hasAccountSession = Boolean(accountSession.account);
   const [profilePhoto, setProfilePhoto] = useState("");
+  const profileOwnerId = user?.uid || license.license?.licenseId || "";
   useEffect(() => {
-    if (!user) {
+    if (!profileOwnerId) {
       setProfilePhoto("");
       return;
     }
-    setProfilePhoto(localStorage.getItem(profilePhotoKey(user.uid)) || user.photoURL || defaultProfilePhoto(user.uid));
-  }, [user?.uid, user?.photoURL]);
+    setProfilePhoto(localStorage.getItem(profilePhotoKey(profileOwnerId)) || user?.photoURL || defaultProfilePhoto(profileOwnerId));
+  }, [profileOwnerId, user?.photoURL]);
   const handleProfilePhotoChange = (photo: string) => {
-    if (!user) return;
-    localStorage.setItem(profilePhotoKey(user.uid), photo);
+    if (!profileOwnerId) return;
+    localStorage.setItem(profilePhotoKey(profileOwnerId), photo);
     setProfilePhoto(photo);
   };
   const [mobileGiftKey, setMobileGiftKey] = useState("");
@@ -4198,7 +4230,14 @@ function App() {
   if (location === "/access") return <LicenseGate license={activeLicense} busy={license.busy} error={license.error || firebaseError} signedIn={Boolean(isSignedIn || hasAccountSession)} onActivate={license.activate} onRenew={license.renew} onGoogleLogin={() => setLocation("/sign-in")} onGiftReady={setMobileGiftKey} onOpenRoom={openMobileRoom}/>;
   if (!activeLicense || !isLicenseActive(activeLicense)) return <LicenseGate license={activeLicense} busy={license.busy} error={license.error || firebaseError} signedIn={Boolean(isSignedIn || hasAccountSession)} onActivate={license.activate} onRenew={license.renew} onGoogleLogin={() => setLocation("/sign-in")} onGiftReady={setMobileGiftKey} onOpenRoom={openMobileRoom}/>;
   if (!workspace.ready) return <div className="workspace-loading"><Radio size={20}/><span>Loading your private workspace…</span></div>;
-  return <><Routed workspace={workspace} account={accountSession.account} firebaseUser={user} plans={accountSession.plans} profilePhoto={profilePhoto} onProfilePhotoChange={handleProfilePhotoChange} onSaveProfile={accountSession.saveProfile} onSavePhone={accountSession.savePhone} onLogout={signOut}/>{accountSession.account && profileGateId === accountSession.account.id && <AccountCompletionDialog account={accountSession.account} onSave={accountSession.saveProfile} onClose={() => setProfileGateId(null)} />}</>;
+  const handleLogout = async () => {
+    if (user) {
+      await signOut();
+      return;
+    }
+    workspace.logout();
+  };
+  return <><Routed workspace={workspace} account={accountSession.account} firebaseUser={user} plans={accountSession.plans} profilePhoto={profilePhoto} onProfilePhotoChange={handleProfilePhotoChange} onSaveProfile={accountSession.saveProfile} onSavePhone={accountSession.savePhone} onLogout={handleLogout}/>{accountSession.account && profileGateId === accountSession.account.id && <AccountCompletionDialog account={accountSession.account} onSave={accountSession.saveProfile} onClose={() => setProfileGateId(null)} />}</>;
 }
 
 export default function RootApp() {
