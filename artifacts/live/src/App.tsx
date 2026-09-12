@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type FormEvent, type PointerEvent as ReactPointerEvent, type ReactNode, type SyntheticEvent } from "react";
-import { Link, Route, Switch, useLocation, Router as WouterRouter } from "wouter";
+import { Link, Redirect, Route, Switch, useLocation, Router as WouterRouter } from "wouter";
 import {
   Activity as ActivityIcon, ArrowRight, BookOpen, Camera, Check, CircleHelp, Clipboard,
   Download, FileVideo, FolderOpen, Gauge, Gift, Instagram, LayoutDashboard,
@@ -4004,9 +4004,20 @@ function App() {
     }
   }, [accountSession.account, accountSession.loading, firebaseLoading, hasAccountSession, isSignedIn, license.license, location, mobileGiftKey, setLocation]);
   if (firebaseLoading) return <div className="workspace-loading"><Radio size={20}/><span>Connecting secure sign-in…</span></div>;
-  if (location.startsWith("/sign-in")) return <FirebaseAuthPage mode="sign-in" onGoogleLogin={signInWithGoogle} busy={firebaseBusy} error={firebaseError}/>;
-  if (location.startsWith("/sign-up")) return <FirebaseAuthPage mode="sign-up" onGoogleLogin={signInWithGoogle} busy={firebaseBusy} error={firebaseError}/>;
-  if (location === "/pricing") return <PricingPage />;
+  if (location.startsWith("/sign-in") || location.startsWith("/sign-up")) {
+    return <LicenseGate
+      license={activeLicense}
+      busy={license.busy || firebaseBusy}
+      error={license.error || firebaseError}
+      signedIn={Boolean(isSignedIn || hasAccountSession)}
+      onActivate={license.activate}
+      onRenew={license.renew}
+      onGoogleLogin={signInWithGoogle}
+      onGiftReady={setMobileGiftKey}
+      onOpenRoom={() => { setMobileGiftKey(""); setLocation("/dashboard"); }}
+    />;
+  }
+  if (location === "/pricing") return isSignedIn ? <PricingPage /> : <Redirect to="/sign-in" />;
   if (location === "/gateway") return <GatewayPage />;
   if (isSignedIn && accountSession.loading) return <div className="workspace-loading"><Radio size={20}/><span>Preparing your account…</span></div>;
   if (isSignedIn && accountSession.error && !accountSession.account) return <div className="workspace-loading"><span>{accountSession.error}</span></div>;

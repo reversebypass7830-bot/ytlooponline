@@ -135,7 +135,7 @@ function PublicNav() {
     { label: "How it works", href: "#how-it-works" },
     { label: "Capabilities", href: "#capabilities" },
     { label: "Use cases", href: "#use-cases" },
-    { label: "Pricing", href: "/pricing" },
+    { label: "Pricing", href: "/sign-in" },
   ];
   return (
     <header className={`streamly-nav ${menuOpen ? "is-open" : ""}`}>
@@ -145,7 +145,7 @@ function PublicNav() {
       </nav>
       <div className="streamly-nav-actions">
         <Link href="/access" className="streamly-nav-login" data-testid="link-access-workspace">Log in</Link>
-        <Link href="/pricing" className="streamly-nav-trial" data-testid="link-start-free-trial">Start free trial <ArrowRight size={15} weight="bold" /></Link>
+        <Link href="/sign-in" className="streamly-nav-trial" data-testid="link-start-free-trial">Start free trial <ArrowRight size={15} weight="bold" /></Link>
         <button type="button" className="streamly-menu-button" aria-label={menuOpen ? "Close navigation" : "Open navigation"} aria-expanded={menuOpen} onClick={() => setMenuOpen((open) => !open)}>{menuOpen ? <X size={20} /> : <List size={20} />}</button>
       </div>
       <AnimatePresence>
@@ -153,7 +153,7 @@ function PublicNav() {
           <motion.div className="streamly-mobile-menu" initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}>
             {nav.map((item) => <button type="button" key={item.label} onClick={() => go(item.href)}>{item.label}<ArrowRight size={15} /></button>)}
             <Link href="/access" onClick={() => setMenuOpen(false)}>Log in <ArrowRight size={15} /></Link>
-            <Link href="/pricing" onClick={() => setMenuOpen(false)}>Start free trial <ArrowRight size={15} /></Link>
+            <Link href="/sign-in" onClick={() => setMenuOpen(false)}>Start free trial <ArrowRight size={15} /></Link>
           </motion.div>
         )}
       </AnimatePresence>
@@ -236,10 +236,16 @@ export function LandingPage() {
   const [currency, setCurrency] = useState<"INR" | "USD">("INR");
   const [billing, setBilling] = useState<"Day" | "Month" | "Year">("Day");
   const [duration, setDuration] = useState(1);
+  const [streamCounts, setStreamCounts] = useState({ standard: 6, premium: 1 });
   const [heroTilt, setHeroTilt] = useState("none");
   const shouldReduceMotion = useReducedMotion();
   const comparisonRef = useRef<HTMLDivElement>(null);
   const scrollTo = (selector: string) => document.querySelector(selector)?.scrollIntoView({ behavior: "smooth" });
+  useEffect(() => {
+    if (window.location.hash !== "#loop-pricing") return undefined;
+    const frame = window.requestAnimationFrame(() => document.querySelector("#loop-pricing")?.scrollIntoView({ block: "start" }));
+    return () => window.cancelAnimationFrame(frame);
+  }, []);
   const updateComparisonFromPointer = (clientX: number) => {
     const bounds = comparisonRef.current?.getBoundingClientRect();
     if (!bounds) return;
@@ -273,6 +279,13 @@ export function LandingPage() {
   const formatPrice = (value: number) => currency === "INR"
     ? `₹${Math.round(value * currencyRate).toLocaleString("en-IN")}`
     : `$${(value * currencyRate).toFixed(2)}`;
+  const discountFor = (price: number, compare: number) => Math.round((1 - price / compare) * 100);
+  const adjustStreamCount = (plan: "standard" | "premium", change: number) => {
+    setStreamCounts((current) => ({
+      ...current,
+      [plan]: Math.min(10, Math.max(1, current[plan] + change)),
+    }));
+  };
   const selectedDurationLabel = `${duration} ${selectedPricing.unit}${duration === 1 ? "" : "s"}`;
   const faqs = [
     "What is Loop Stream?",
@@ -337,7 +350,7 @@ export function LandingPage() {
           </div>
           <div className="loop-clone-wordmark"><span>Stream</span><i /> <span>Loop</span><i /> <span>Grow</span></div>
           <h1>Go live without going live, 24/7 Pre-Recorded Streaming</h1>
-          <div className="loop-clone-hero-actions"><Link href="/pricing">Get Started</Link><button type="button" onClick={() => scrollTo("#loop-pricing")}>Start Free Loop</button></div>
+          <div className="loop-clone-hero-actions"><Link href="/sign-in">Get Started</Link><button type="button" onClick={() => scrollTo("#loop-pricing")}>Start Free Loop</button></div>
           <img className="loop-clone-hero-visual" style={{ transform: heroTilt }} onPointerMove={updateHeroTilt} onPointerLeave={() => setHeroTilt("none")} src="/images/loopstream/landing/Hero_Two_Screen.webp" alt="Loop Stream dashboard showing scheduled 24/7 pre-recorded video loops" />
         </section>
 
@@ -383,7 +396,7 @@ export function LandingPage() {
               <div className="loop-clone-creator-gallery" aria-label={`${creators[creator].label} streaming examples`}>
                 {creators[creator].images.map((image, index) => <img key={image} src={`/images/loopstream/creators/${image}`} alt={`${creators[creator].label} streaming example ${index + 1}`} />)}
               </div>
-              <div><h3>{creators[creator].label}</h3><p>{creators[creator].copy}</p><Link href="/pricing">Start streaming <ArrowRight size={16} /></Link></div>
+              <div><h3>{creators[creator].label}</h3><p>{creators[creator].copy}</p><Link href="/sign-in">Start streaming <ArrowRight size={16} /></Link></div>
             </div>
           </div>
         </section>
@@ -427,9 +440,70 @@ export function LandingPage() {
               <button type="button" aria-label="Next duration" disabled={duration === durationLimit} onClick={() => setDuration((value) => Math.min(durationLimit, value + 1))}><ArrowRight size={17} /></button>
             </div>
             <div className="loop-clone-plan-grid">
-              <article className="loop-clone-plan trial"><span className="loop-clone-plan-badge">FREE TO TRY</span><h3>Try 24hrs Trial</h3><p>Explore Loop Stream risk-free</p><strong>{formatPrice(0)} <small>/24 hours</small></strong><div><b>Best For</b>Creators who want to try Loop Stream before choosing a plan</div><span className="loop-clone-plan-note">No card required</span><Link href="/pricing">Apply Free Trial <ArrowRight size={15} /></Link></article>
-              <article className="loop-clone-plan"><h3>1080p Standard</h3><p>Simple. Stable. Reliable</p><strong>{formatPrice(selectedPricing.standard * duration)} <del>{formatPrice(selectedPricing.standardCompare * duration)}</del> <small>/{selectedPricing.unit}</small></strong><div><b>Best For</b>Casual creators easing into live before going all-in</div><Link href="/pricing">Choose Plan <ArrowRight size={15} /></Link></article>
-              <article className="loop-clone-plan featured"><span className="loop-clone-plan-badge">MOST POPULAR</span><h3>1080p Premium</h3><p>Professional quality. Total control</p><strong>{formatPrice(selectedPricing.premium * duration)} <del>{formatPrice(selectedPricing.premiumCompare * duration)}</del> <small>/{selectedPricing.unit}</small></strong><div><b>Best For</b>Always-on channels like news, devotional, games or lofi</div><Link href="/pricing">Choose Plan <ArrowRight size={15} /></Link></article>
+              <article className="loop-clone-plan loop-clone-plan-trial">
+                <span className="loop-clone-plan-badge">FREE TRIAL</span>
+                <h3>Try 24hrs Trial</h3>
+                <p>Explore Loop Stream risk-free</p>
+                <div className="loop-clone-plan-price"><strong>{formatPrice(0)}</strong><small>/24 hours</small></div>
+                <div className="loop-clone-plan-feature-tiles">
+                  <span><Broadcast size={16} /><b>Stream your<br />videos as live</b></span>
+                  <span><Lightning size={16} /><b>Premium<br />broadcast quality</b></span>
+                  <span><SquaresFour size={16} /><b>20 GB video<br />storage/stream</b></span>
+                </div>
+                <ul className="loop-clone-plan-features">
+                  <li><Check size={12} />Create/loop<br />playlists endlessly</li>
+                  <li><Check size={12} />Premium audio<br />clarity</li>
+                  <li><Check size={12} />Schedule in<br />Advance</li>
+                  <li><Check size={12} />Add &amp; remove<br />videos</li>
+                  <li><Check size={12} />Upload from cloud</li>
+                </ul>
+                <div className="loop-clone-plan-best"><span>BEST FOR</span><p>Creators who want to try Loop Stream before choosing a plan</p></div>
+                <span className="loop-clone-plan-note">No card required</span>
+                <Link className="loop-clone-plan-cta" href="/sign-in">Apply Free Trial <ArrowRight size={15} /></Link>
+              </article>
+
+              <article className="loop-clone-plan loop-clone-plan-standard">
+                <span className="loop-clone-plan-badge">STANDARD</span>
+                <h3>1080p Standard</h3>
+                <p>Simple. Stable. Reliable</p>
+                <div className="loop-clone-plan-price"><strong>{formatPrice(selectedPricing.standard * duration)}</strong><del>{formatPrice(selectedPricing.standardCompare * duration)}</del><small>/{selectedPricing.unit}</small><em>{discountFor(selectedPricing.standard, selectedPricing.standardCompare)}%<br />OFF</em></div>
+                <div className="loop-clone-plan-feature-tiles">
+                  <span><Broadcast size={16} /><b>Stream your<br />videos as live</b></span>
+                  <span><Lightning size={16} /><b>Standard<br />broadcast quality</b></span>
+                  <span><SquaresFour size={16} /><b>10 GB video<br />storage/stream</b></span>
+                </div>
+                <ul className="loop-clone-plan-features">
+                  <li><Check size={12} />Loop your videos<br />endlessly</li>
+                  <li><Check size={12} />Standard audio<br />quality</li>
+                  <li><Check size={12} />Add &amp; remove<br />videos</li>
+                  <li><Check size={12} />Upload from cloud</li>
+                </ul>
+                <div className="loop-clone-plan-best"><span>BEST FOR</span><p>Casual creators easing into live before going all-in</p></div>
+                <div className="loop-clone-plan-streams"><span>Stream count</span><div><button type="button" aria-label="Decrease standard stream count" onClick={() => adjustStreamCount("standard", -1)}>−</button><b>{streamCounts.standard}</b><button type="button" aria-label="Increase standard stream count" onClick={() => adjustStreamCount("standard", 1)}>+</button></div></div>
+                <Link className="loop-clone-plan-cta" href="/sign-in">Choose Plan <ArrowRight size={15} /></Link>
+              </article>
+
+              <article className="loop-clone-plan loop-clone-plan-premium featured">
+                <span className="loop-clone-plan-badge">PREMIUM</span>
+                <h3>1080p Premium</h3>
+                <p>Professional quality. Total control</p>
+                <div className="loop-clone-plan-price"><strong>{formatPrice(selectedPricing.premium * duration)}</strong><del>{formatPrice(selectedPricing.premiumCompare * duration)}</del><small>/{selectedPricing.unit}</small><em>{discountFor(selectedPricing.premium, selectedPricing.premiumCompare)}%<br />OFF</em></div>
+                <div className="loop-clone-plan-feature-tiles">
+                  <span><Broadcast size={16} /><b>Stream your<br />videos as live</b></span>
+                  <span><Lightning size={16} /><b>Premium<br />broadcast quality</b></span>
+                  <span><SquaresFour size={16} /><b>20 GB video<br />storage/stream</b></span>
+                </div>
+                <ul className="loop-clone-plan-features">
+                  <li><Check size={12} />Create/loop<br />playlists endlessly</li>
+                  <li><Check size={12} />Premium audio<br />clarity</li>
+                  <li><Check size={12} />Schedule in<br />Advance</li>
+                  <li><Check size={12} />Add &amp; remove<br />videos</li>
+                  <li><Check size={12} />Upload from cloud</li>
+                </ul>
+                <div className="loop-clone-plan-best"><span>BEST FOR</span><p>Always-on channels like news, devotional, games or lofi</p></div>
+                <div className="loop-clone-plan-streams"><span>Stream count</span><div><button type="button" aria-label="Decrease premium stream count" onClick={() => adjustStreamCount("premium", -1)}>−</button><b>{streamCounts.premium}</b><button type="button" aria-label="Increase premium stream count" onClick={() => adjustStreamCount("premium", 1)}>+</button></div></div>
+                <Link className="loop-clone-plan-cta" href="/sign-in">Choose Plan <ArrowRight size={15} /></Link>
+              </article>
             </div>
             <button type="button" className="loop-clone-waitlist" onClick={() => scrollTo("#loop-faq")}>Join the 4K waitlist <ArrowRight size={15} /></button>
           </div>
@@ -445,7 +519,7 @@ export function LandingPage() {
         </section>
 
         <section className="loop-clone-final-cta">
-          <div className="loop-clone-section-inner"><h2>Ready to stream like a pro?</h2><p>Start your free trial today - no card required</p><div><Link href="/pricing">Start Free Trial <ArrowRight size={16} /></Link><Link className="secondary" href="/pricing">Choose Plans <ArrowRight size={16} /></Link></div></div>
+          <div className="loop-clone-section-inner"><h2>Ready to stream like a pro?</h2><p>Start your free trial today - no card required</p><div><Link href="/sign-in">Start Free Trial <ArrowRight size={16} /></Link><Link className="secondary" href="/sign-in">Choose Plans <ArrowRight size={16} /></Link></div></div>
         </section>
       </main>
       <footer className="loop-clone-footer"><div className="loop-clone-section-inner"><div className="loop-clone-footer-brand"><img src="/images/logo/loop-logo.webp" alt="Loop Stream" /><p>Go Live Without Going Live</p></div><div><h3>Important Links</h3><a href="#loop-home">Home</a><a href="#loop-pricing">Pricing</a><a href="#loop-faq">Contact us</a></div><div><h3>Company</h3><a href="#loop-creators">Articles</a><a href="#loop-steps">Tutorials</a><a href="/access">Dashboard</a></div><div className="loop-clone-footer-socials"><a href="https://www.youtube.com/" target="_blank" rel="noreferrer"><img src="/images/youtube-logo.webp" alt="YouTube" /></a><a href="https://x.com/" target="_blank" rel="noreferrer"><img src="/images/x-logo.webp" alt="X" /></a><a href="https://www.instagram.com/" target="_blank" rel="noreferrer"><img src="/images/instagram-logo.webp" alt="Instagram" /></a><a href="https://www.facebook.com/" target="_blank" rel="noreferrer"><img src="/images/facebook-icon.webp" alt="Facebook" /></a></div><small>© 2026 Loop Stream: All rights reserved • Made with ❤️ for creators around the World</small></div></footer>
@@ -454,7 +528,7 @@ export function LandingPage() {
 }
 
 function PublicFooter() {
-  return <footer className="streamly-footer" style={{ backgroundImage: "url('/images/footer-texture.webp')" }}><div className="streamly-container footer-inner"><div><Link href="/" className="streamly-brand"><BrandMark /><span>Streamly</span></Link><span className="footer-note">Broadcast continuity for creators.</span></div><div className="footer-links"><span>Product</span><Link href="#capabilities">Capabilities</Link><Link href="/pricing">Pricing</Link></div><div className="footer-links"><span>Access</span><Link href="/access">Log in</Link></div><div className="footer-socials" aria-label="Social links"><a href="https://twitter.com/" target="_blank" rel="noreferrer" aria-label="Streamly on X"><TwitterLogo size={17} /></a><a href="https://discord.com/" target="_blank" rel="noreferrer" aria-label="Streamly on Discord"><DiscordLogo size={17} /></a><a href="https://www.youtube.com/" target="_blank" rel="noreferrer" aria-label="Streamly on YouTube"><YoutubeLogo size={17} /></a></div><span className="footer-copyright">© 2026 Streamly</span></div></footer>;
+  return <footer className="streamly-footer" style={{ backgroundImage: "url('/images/footer-texture.webp')" }}><div className="streamly-container footer-inner"><div><Link href="/" className="streamly-brand"><BrandMark /><span>Streamly</span></Link><span className="footer-note">Broadcast continuity for creators.</span></div><div className="footer-links"><span>Product</span><Link href="#capabilities">Capabilities</Link><Link href="/sign-in">Pricing</Link></div><div className="footer-links"><span>Access</span><Link href="/access">Log in</Link></div><div className="footer-socials" aria-label="Social links"><a href="https://twitter.com/" target="_blank" rel="noreferrer" aria-label="Streamly on X"><TwitterLogo size={17} /></a><a href="https://discord.com/" target="_blank" rel="noreferrer" aria-label="Streamly on Discord"><DiscordLogo size={17} /></a><a href="https://www.youtube.com/" target="_blank" rel="noreferrer" aria-label="Streamly on YouTube"><YoutubeLogo size={17} /></a></div><span className="footer-copyright">© 2026 Streamly</span></div></footer>;
 }
 
 function ContactDialog({ plan, onClose }: { plan: { term: string } | null; onClose: () => void }) {
@@ -473,5 +547,5 @@ export function PricingPage() {
 export function GatewayPage() {
   const [, setLocation] = useLocation();
   const plan = new URLSearchParams(window.location.search).get("plan") || "1 month";
-  return <div className="streamly-public"><PublicNav /><main className="gateway-page-main"><div className="gateway-card"><span className="section-label">PAYMENT GATEWAY / READY</span><h1>Continue with<br /><em>{plan}.</em></h1><p>Your selected access window is ready. Connect the payment gateway here when checkout is enabled for your workspace.</p><div className="gateway-selection"><span className="gateway-selection-icon"><Check size={17} weight="bold" /></span><span><b>{plan}</b><small>Selected access window</small></span></div><button type="button" className="streamly-button streamly-button-primary" onClick={() => setLocation("/pricing")}>Back to pricing <ArrowRight size={16} /></button></div></main><PublicFooter /></div>;
+  return <div className="streamly-public"><PublicNav /><main className="gateway-page-main"><div className="gateway-card"><span className="section-label">PAYMENT GATEWAY / READY</span><h1>Continue with<br /><em>{plan}.</em></h1><p>Your selected access window is ready. Connect the payment gateway here when checkout is enabled for your workspace.</p><div className="gateway-selection"><span className="gateway-selection-icon"><Check size={17} weight="bold" /></span><span><b>{plan}</b><small>Selected access window</small></span></div><button type="button" className="streamly-button streamly-button-primary" onClick={() => setLocation("/sign-in")}>Back to sign in <ArrowRight size={16} /></button></div></main><PublicFooter /></div>;
 }

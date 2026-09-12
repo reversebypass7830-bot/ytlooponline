@@ -9,7 +9,6 @@ import {
   ShieldCheck,
   WarningCircle,
 } from "@phosphor-icons/react";
-import { Link } from "wouter";
 
 type LoginMethod = "phone" | "google" | "license";
 
@@ -151,11 +150,9 @@ export default function LoginPage({
       <div className="streamly-login-page">
         <div className="streamly-login-orb streamly-login-orb-one" />
         <div className="streamly-login-orb streamly-login-orb-two" />
-        <img className="streamly-login-visual" src="/images/login-side-visual.webp" alt="" aria-hidden="true" loading="lazy" />
-        <Link href="/" className="streamly-login-brand"><span className="streamly-mark"><img className="streamly-logo-image" src="/images/streamly-mark.png" alt="" /><i /></span><span>Streamly</span></Link>
         <main className="streamly-login-main">
           <section className="streamly-login-card" aria-labelledby="profile-title">
-            <div className="streamly-login-card-top"><span><i /> ACCESS / 02</span><span>PROFILE</span></div>
+            <img className="streamly-login-card-logo" src="/images/logo/loop-logo.webp" alt="Loop Stream" />
             <div className="streamly-login-icon"><CheckCircle size={25} weight="duotone" /></div>
             <span className="streamly-login-eyebrow">Phone verified</span>
             <h1 id="profile-title">Finish your<br /><em>workspace.</em></h1>
@@ -176,16 +173,14 @@ export default function LoginPage({
     <div className="streamly-login-page">
       <div className="streamly-login-orb streamly-login-orb-one" />
       <div className="streamly-login-orb streamly-login-orb-two" />
-      <img className="streamly-login-visual" src="/images/login-side-visual.webp" alt="" aria-hidden="true" loading="lazy" />
-      <Link href="/" className="streamly-login-brand"><span className="streamly-mark"><img className="streamly-logo-image" src="/images/streamly-mark.png" alt="" /><i /></span><span>Streamly</span></Link>
       <main className="streamly-login-main">
         <section className="streamly-login-card" aria-labelledby="login-title">
-          <div className="streamly-login-card-top"><span><i /> PRIVATE ACCESS</span><span>01 / 01</span></div>
+          <img className="streamly-login-card-logo" src="/images/logo/loop-logo.webp" alt="Loop Stream" />
           <div className="streamly-login-heading">
             <div className="streamly-login-icon"><Lightning size={25} weight="duotone" /></div>
-            <div><span className="streamly-login-eyebrow">{expired ? "License needs attention" : signedIn ? "Account connected" : "Welcome back"}</span><h1 id="login-title">{expired ? "Renew your room." : "Open your room."}</h1></div>
+            <div><span className="streamly-login-eyebrow">{expired ? "License needs attention" : "Private access"}</span><h1 id="login-title">{expired ? "Renew your room." : "Welcome back."}</h1></div>
           </div>
-          <p className="streamly-login-copy">{expired ? "Renew your current license to keep your channels, videos, and settings exactly as you left them." : "Sign in to keep your channel moving. Your broadcast room stays private to you."}</p>
+          <p className="streamly-login-copy">{expired ? "Renew your current license to keep your channels, videos, and settings exactly as you left them." : "Sign in to your account and start your broadcast."}</p>
           {shownError && <div className="streamly-login-error" role="alert"><WarningCircle size={17} weight="duotone" /><span>{shownError}</span></div>}
           <div className="streamly-login-tabs" role="tablist" aria-label="Sign-in methods">
             {([["phone", Phone, "Phone"], ["google", GoogleLogo, "Google"], ["license", Key, "License key"]] as const).map(([key, Icon, label]) => (
@@ -215,9 +210,6 @@ export default function LoginPage({
 
           {method === "license" && <form className="streamly-login-form" onSubmit={activateLicense}><label>License key<div className={`streamly-key-field ${licenseError ? "has-error" : ""}`}><Key size={17} weight="duotone" /><input value={licenseKey} onChange={(event) => { setLicenseKey(event.target.value.toUpperCase()); setLicenseError(""); }} placeholder="XXXX-XXXX-XXXX-XXXX" autoComplete="off" /></div><small>Find your license key in your purchase confirmation email.</small></label><button className="streamly-login-primary" type="submit" disabled={busy || !licenseKey.trim()}>{busy ? "Activating…" : expired ? "Renew & login" : "Activate & login"} <ArrowRight size={17} weight="bold" /></button></form>}
 
-          <div className="streamly-login-divider"><span>secure broadcast access</span></div>
-          <p className="streamly-login-footer">Need an account? <Link href="/pricing">Start your free day</Link></p>
-          <div className="streamly-login-trust"><ShieldCheck size={15} weight="duotone" /><span>Private by default · ready in seconds</span></div>
         </section>
       </main>
     </div>
