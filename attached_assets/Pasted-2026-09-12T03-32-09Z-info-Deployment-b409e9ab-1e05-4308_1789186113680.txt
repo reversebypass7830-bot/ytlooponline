@@ -1,0 +1,92 @@
+2026-09-12T03:32:09Z info: Deployment: b409e9ab-1e05-4308-9c57-37c5e30bed81
+2026-09-12T03:32:09Z info: Build: 8c5993c8-f62c-465f-a7eb-9b9e064302f6
+2026-09-12T03:32:14Z info: Running Security Scan
+2026-09-12T03:32:20Z info: Installing packages
+2026-09-12T03:32:23Z info: Starting Build
+
+> @workspace/api-server@0.0.0 build /home/runner/workspace/artifacts/api-server
+> node ./build.mjs
+
+
+
+  dist/index.mjs                       2.1mb ⚠️
+  dist/pino-worker.mjs               153.4kb
+  dist/pino-file.mjs                 142.1kb
+  dist/pino-pretty.mjs               114.4kb
+  dist/thread-stream-worker.mjs        7.3kb
+  dist/index.mjs.map                   3.7mb
+  dist/pino-worker.mjs.map           256.9kb
+  dist/pino-file.mjs.map             229.0kb
+  dist/pino-pretty.mjs.map           203.6kb
+  dist/thread-stream-worker.mjs.map   12.0kb
+
+⚡ Done in 671ms
+
+
+> @workspace/live@0.0.0 build /home/runner/workspace/artifacts/live
+> vite build --config vite.config.ts
+
+
+vite v7.3.6 building client environment for production...
+
+transforming...
+
+src/components/ui/tooltip.tsx (2:0): Error when using sourcemap for reporting an error: Can't resolve original location of error.
+
+✓ 2253 modules transformed.
+
+rendering chunks...
+
+computing gzip size...
+
+dist/public/index.html                                             1.57 kB │ gzip:   0.61 kB
+
+dist/public/assets/webcam-capture.worker-BtEX0TeN.js               2.13 kB
+dist/public/assets/feature-1080p-4k-B-LvZ62x.jpeg                  4.21 kB
+dist/public/assets/feature-advanced-scheduler-F2PGl7UB.jpeg        5.00 kB
+dist/public/assets/feature-loop-control-DzJm6v72.jpeg              5.26 kB
+dist/public/assets/feature-playlist-builder-BDWgrYlj.jpeg          5.76 kB
+dist/public/assets/feature-24x7-streaming-C1-GPIOQ.jpeg            5.77 kB
+dist/public/assets/schedule-stream-CJghWeMv.jpeg                  14.12 kB
+dist/public/assets/news-DNzHqNrI.webp                             15.27 kB
+dist/public/assets/hero-two-screen-Ca8muRej.webp                  45.24 kB
+dist/public/assets/image_1788788255512-DxJKk4Xm.png              104.15 kB
+dist/public/assets/use-case-education_2-BFK2cldM.jpg             109.03 kB
+dist/public/assets/use-case-product-showcase-IGQ1lgIq.jpg        125.24 kB
+dist/public/assets/use-case-devotional-broadcast-CzDPYAFi.jpg    130.37 kB
+dist/public/assets/use-case-kids-entertainment_2-Zhsi9xQS.jpg    136.35 kB
+dist/public/assets/use-case-music-live-vR1-RzkH.jpg              143.70 kB
+dist/public/assets/comparison-connection-lost-4UvZIhrd.png     1,561.19 kB
+dist/public/assets/comparison-loop-running-j6nk8xZv.png        2,402.13 kB
+dist/public/assets/index-DE-i6Sd1.css                            272.10 kB │ gzip:  52.53 kB
+dist/public/assets/index-t_LcRzxS.js                           1,400.26 kB │ gzip: 422.35 kB
+
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+
+✓ built in 4.76s
+
+Removed all cached metadata files
+
+Removed 37765 files
+
+2026-09-12T03:32:36Z info: Security Scan Complete
+Removed 663 packages
+
+2026-09-12T03:32:39Z info: Pushing pid1 binary layer...
+2026-09-12T03:32:45Z info: Pushing hosting layer...
+2026-09-12T03:32:45Z info: Pushing Repl layer...
+2026-09-12T03:32:45Z info: Nix layers for this Repl are uncached.: not found
+2026-09-12T03:32:45Z info: verifying nix store path integrity before caching layer
+2026-09-12T03:32:47Z info: Created hosting layer
+2026-09-12T03:32:50Z info: Created pid1 binary layer
+2026-09-12T03:33:46Z info: Pushing nix-0 layer...
+2026-09-12T03:36:23Z info: Created nix-0 layer
+2026-09-12T03:36:23Z info: uploading image for cached layer
+2026-09-12T03:36:26Z info: pushed cache image manifest
+2026-09-12T03:36:28Z info: pushed cache soci index manifest
+2026-09-12T03:36:28Z info: uploading cached layer
+2026-09-12T03:36:28Z info: successfully uploaded cached layer
