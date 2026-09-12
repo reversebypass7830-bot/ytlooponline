@@ -4796,3 +4796,198 @@ select { height: 41px; }
 .shell .playlist-empty {
   color: #c1aecb;
 }
+
+/* Editor control surfaces: carry the same Loop palette into every nested tool. */
+.shell .editor-head-badge {
+  border-color: #6b3b7b;
+  color: #ffd2e8;
+  background: linear-gradient(145deg, #35183f, #281536);
+}
+
+.shell .editor-panel .section-head > svg {
+  color: #ff83bd;
+}
+
+.shell .editor-panel .field label,
+.shell .editor-control-row label {
+  color: #c1aecb;
+}
+
+.shell .editor-library-tabs button,
+.shell .editor-layer-tabs button {
+  border-color: #4b2d5e;
+  color: #cbb5d5;
+  background: #21132f;
+}
+
+.shell .editor-library-tabs button:hover,
+.shell .editor-layer-tabs button:hover {
+  border-color: #b43791;
+  color: #ffe1f1;
+  background: #351847;
+}
+
+.shell .editor-library-tabs button.active,
+.shell .editor-layer-tabs button.active {
+  border-color: #ef55ad;
+  color: #fff;
+  background: linear-gradient(135deg, rgba(240, 24, 125, .3), rgba(169, 42, 231, .28));
+  box-shadow: inset 0 -2px #f0187d, 0 5px 14px rgba(225, 25, 129, .12);
+}
+
+.shell .editor-layer-note,
+.shell .editor-control-actions,
+.shell .editor-reset-row {
+  color: #b09dbb;
+}
+
+.shell .editor-transform-controls {
+  border-color: #4b2d5e;
+  background: #24132f;
+}
+
+.shell .editor-reset-row {
+  border-top-color: #4b2d5e;
+}
+
+.shell .editor-control-row label strong {
+  color: #ff83bd;
+}
+
+.shell .editor-control-row input[type="range"],
+.shell .editor-panel input[type="range"] {
+  accent-color: #f0187d;
+}
+
+.shell .editor-clip {
+  border-color: #4a2b5d;
+  background: #24132f;
+}
+
+.shell .editor-clip:hover,
+.shell .editor-clip.previewing,
+.shell .editor-clip.selected {
+  border-color: #db3b9a;
+  background: rgba(232, 35, 143, .14);
+  box-shadow: inset 0 0 0 1px rgba(240, 24, 125, .4), 0 8px 18px rgba(0, 0, 0, .22);
+}
+
+.shell .editor-clip-copy strong {
+  color: #f8eafa;
+}
+
+.shell .editor-clip-copy small,
+.shell .editor-clip-number,
+.shell .editor-clip-grip {
+  color: #b09dbb;
+}
+
+.shell .editor-mini-empty,
+.shell .editor-readonly,
+.shell .editor-selected-folder {
+  border-color: #4b2d5e;
+  color: #c1aecb;
+  background: #21132f;
+}
+
+.shell .editor-selected-folder {
+  border-left-color: #f0187d;
+}
+
+.shell .editor-selected-folder strong {
+  color: #ff9bc9;
+}
+
+.shell .editor-category-lock {
+  border-color: #6b3b7b;
+  color: #ffd2e8;
+  background: linear-gradient(145deg, #35183f, #281536);
+}
+
+.shell .editor-category-lock span,
+.shell .editor-animation-folder small {
+  color: #b09dbb;
+}
+
+.shell .editor-animation-folder {
+  border-color: #4b2d5e;
+  color: #e8d8ef;
+  background: #24132f;
+}
+
+.shell .editor-animation-folder:hover,
+.shell .editor-animation-folder.selected {
+  border-color: #db3b9a;
+  color: #fff;
+  background: rgba(232, 35, 143, .14);
+  box-shadow: inset 3px 0 #f0187d;
+}
+
+.shell .editor-preview-actions {
+  border-color: #4a2b5d;
+  background: rgba(25, 10, 36, .72);
+}
+
+.shell .editor-preview-actions strong {
+  color: #f8eafa;
+}
+
+.shell .editor-preview-actions span {
+  color: #b09dbb;
+}
+
+.shell .mobile-editor-tabs {
+  border-color: #4b2d5e;
+  background: rgba(33, 19, 47, .96);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, .24);
+}
+
+.shell .mobile-editor-tabs button {
+  color: #b09dbb;
+}
+
+.shell .mobile-editor-tabs button.active {
+  color: #fff;
+  background: linear-gradient(135deg, rgba(240, 24, 125, .3), rgba(169, 42, 231, .28));
+  box-shadow: inset 0 -2px #f0187d;
+}
+
+.shell .editor-focus-window {
+  border-color: #4c2d5f;
+  background: #21122e;
+}
+
+.shell .editor-focus-head,
+.shell .editor-focus-controls {
+  border-color: #3c2550;
+}
+
+.shell .editor-focus-head strong {
+  color: #fff;
+}
+
+.shell .editor-focus-head > div > span:last-child {
+  color: #b09dbb;
+}
+
+.shell .editor-focus-close {
+  border-color: #6b3b7b;
+  color: #ffd2e8;
+  background: #2b193c;
+}
+
+.shell .editor-focus-close:hover {
+  border-color: #ef55ad;
+  color: #fff;
+}
+
+.shell .editor-selection {
+  border-color: rgba(255, 98, 173, .8);
+}
+
+.shell .editor-selection-label,
+.shell .editor-resize-handle {
+  border-color: #3b173f;
+  background: #f0187d;
+  color: #fff;
+}
