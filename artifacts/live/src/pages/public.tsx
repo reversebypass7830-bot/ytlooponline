@@ -234,7 +234,7 @@ export function LandingPage() {
   const [faq, setFaq] = useState<number | null>(null);
   const [compare, setCompare] = useState(50);
   const [currency, setCurrency] = useState<"INR" | "USD">("INR");
-  const [billing, setBilling] = useState<"Day" | "Month" | "Year">("Month");
+  const [billing, setBilling] = useState<"Day" | "Month" | "Year">("Day");
   const [duration, setDuration] = useState(1);
   const [heroTilt, setHeroTilt] = useState("none");
   const shouldReduceMotion = useReducedMotion();
@@ -268,6 +268,7 @@ export function LandingPage() {
     Year: { unit: "year", standard: 8999, standardCompare: 11999, premium: 12999, premiumCompare: 16999 },
   } as const;
   const selectedPricing = pricingByBilling[billing];
+  const durationLimit = billing === "Day" ? 30 : billing === "Month" ? 12 : 5;
   const currencyRate = currency === "INR" ? 1 : 0.012;
   const formatPrice = (value: number) => currency === "INR"
     ? `₹${Math.round(value * currencyRate).toLocaleString("en-IN")}`
@@ -421,9 +422,9 @@ export function LandingPage() {
             </div>
             <div className="loop-clone-pricing-stepper" aria-label="Choose plan duration">
               <button type="button" aria-label="Previous duration" disabled={duration === 1} onClick={() => setDuration((value) => Math.max(1, value - 1))}><ArrowLeft size={17} /></button>
-              <div className="loop-clone-pricing-track" aria-hidden="true"><i className={duration >= 1 ? "active" : ""} /><i className={duration >= 2 ? "active" : ""} /><i className={duration >= 3 ? "active" : ""} /></div>
+              <div className={`loop-clone-pricing-track ${durationLimit > 5 ? "dense" : ""}`} aria-hidden="true">{Array.from({ length: durationLimit }, (_, index) => <i className={duration >= index + 1 ? "active" : ""} key={index} />)}</div>
               <strong>{selectedDurationLabel}</strong>
-              <button type="button" aria-label="Next duration" disabled={duration === 3} onClick={() => setDuration((value) => Math.min(3, value + 1))}><ArrowRight size={17} /></button>
+              <button type="button" aria-label="Next duration" disabled={duration === durationLimit} onClick={() => setDuration((value) => Math.min(durationLimit, value + 1))}><ArrowRight size={17} /></button>
             </div>
             <div className="loop-clone-plan-grid">
               <article className="loop-clone-plan trial"><span className="loop-clone-plan-badge">FREE TO TRY</span><h3>Try 24hrs Trial</h3><p>Explore Loop Stream risk-free</p><strong>{formatPrice(0)} <small>/24 hours</small></strong><div><b>Best For</b>Creators who want to try Loop Stream before choosing a plan</div><span className="loop-clone-plan-note">No card required</span><Link href="/pricing">Apply Free Trial <ArrowRight size={15} /></Link></article>
