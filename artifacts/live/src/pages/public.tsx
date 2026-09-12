@@ -228,70 +228,172 @@ function StepCard({ number, Icon, title, copy }: { number: string; Icon: typeof 
 }
 
 export function LandingPage() {
-  const [activeFeature, setActiveFeature] = useState(0);
-  const reducedMotion = useReducedMotion();
-  const ActiveFeatureIcon = features[activeFeature].Icon;
-  const scrollTo = (selector: string) => document.querySelector(selector)?.scrollIntoView({ behavior: reducedMotion ? "auto" : "smooth" });
+  const [creator, setCreator] = useState(0);
+  const [faq, setFaq] = useState<number | null>(null);
+  const [compare, setCompare] = useState(50);
+  const [billing, setBilling] = useState<"Day" | "Month" | "Year">("Month");
+  const scrollTo = (selector: string) => document.querySelector(selector)?.scrollIntoView({ behavior: "smooth" });
+  const creators = [
+    { label: "News", image: "channel1.webp", copy: "Stay updated with 24/7 news streaming" },
+    { label: "Devotional", image: "channel2.webp", copy: "Share devotion with your community" },
+    { label: "Music", image: "channel3.webp", copy: "Keep the music going all day" },
+    { label: "Cartoons", image: "channel4.webp", copy: "Entertainment that never stops" },
+    { label: "Educators", image: "channel5.webp", copy: "Make learning available around the clock" },
+    { label: "Affiliates", image: "channel6.webp", copy: "Grow your audience while you sleep" },
+  ];
+  const faqs = [
+    "What is Loop Stream?",
+    "Can I stream to multiple platforms at once?",
+    "Do I need to share my channel access?",
+    "What video formats and resolutions are supported?",
+    "Will my videos stay safe?",
+    "What happens if my internet disconnects during a stream?",
+    "Can I cancel or change my plan anytime?",
+    "What if I face issues or need help?",
+    "Why choose Loop Stream over others?",
+    "Why does Loop Stream review free trial applications?",
+    "How do I claim my trial if it's approved?",
+    "Why wasn't my Loop Stream trial approved?",
+  ];
+  const answers = [
+    "Loop Stream lets you upload pre-recorded videos and broadcast them live 24/7 without keeping your computer or studio online.",
+    "Loop Stream is designed for reliable always-on streaming. Connect the destinations you use and manage your broadcast from one place.",
+    "No. You keep control of your channel. Loop Stream only needs the permissions required to publish and manage your live stream.",
+    "Upload common video formats and stream in up to 1080p, with 4K output available as the platform expands.",
+    "Your videos are stored securely and used only to power the streams you schedule.",
+    "The cloud keeps your stream running, so a local internet interruption does not stop an active broadcast.",
+    "Yes. You can change your plan or stop whenever you need to.",
+    "Reach out through the support links in the footer and the Loop Stream team will help you get moving.",
+    "It is built specifically for pre-recorded, always-on streaming: upload once, schedule your playlist, and let it run.",
+    "Free trials are reviewed to keep the service stable and make sure every approved channel is a good fit for the platform.",
+    "If your application is approved, follow the trial instructions sent to your contact details.",
+    "You can apply again with more information about your channel and the kind of content you plan to stream.",
+  ];
+  const features = [
+    ["Loop Control", "Stream videos once, repeat N times, or loop endlessly", "Loop_Control.webp"],
+    ["24x7 Streaming", "Stay live around the clock - without staying online", "24x7_streaming.webp"],
+    ["Playlist Builder", "Line up multiple videos and go live in sequence", "Playlist_Builder.webp"],
+    ["1080p & 4K Output", "Crystal-clear live streams up to 2160p", "1080p_4K_output.webp"],
+    ["Advanced Scheduler", "Plan your streams for days, weeks, or months ahead", "advanced_scheduler.webp"],
+  ];
   return (
-    <div className="streamly-public">
-      <PublicNav />
+    <div className="loop-clone">
+      <header className="loop-clone-nav">
+        <Link href="/" className="loop-clone-logo"><img src="/images/logo/loop-logo.webp" alt="Loop Stream" /></Link>
+        <nav className="loop-clone-links" aria-label="Main navigation">
+          <button type="button" onClick={() => scrollTo("#loop-home")}>Home</button>
+          <button type="button" onClick={() => scrollTo("#loop-pricing")}>Pricing</button>
+          <button type="button" onClick={() => scrollTo("#loop-creators")}>Articles</button>
+          <button type="button" onClick={() => scrollTo("#loop-steps")}>Tutorials</button>
+          <button type="button" onClick={() => scrollTo("#loop-faq")}>Contact us</button>
+        </nav>
+        <Link href="/access" className="loop-clone-dashboard"><Gauge size={15} /> Dashboard</Link>
+        <button type="button" className="loop-clone-menu" aria-label="Open menu" onClick={() => document.querySelector(".loop-clone-links")?.classList.toggle("is-mobile-open")}><List size={20} /></button>
+      </header>
+
       <main>
-        <section className="streamly-hero" style={{ backgroundImage: "url('/images/hero-bg-glow.webp')" }}>
-          <div className="hero-grid" />
-          <div className="hero-orb hero-orb-blue" />
-          <div className="hero-orb hero-orb-violet" />
-          <div className="streamly-container hero-layout">
-            <div className="hero-copy">
-              <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: .65, ease }}><SignalBadge><Lightning size={13} weight="fill" /> POWERED BY 24/7 CLOUD INFRASTRUCTURE</SignalBadge></motion.div>
-              <motion.h1 initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: .08, duration: .75, ease }}>Stream 24/7 on YouTube,<br /><em>even while you sleep.</em></motion.h1>
-              <motion.p initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: .17, duration: .65, ease }}>Keep your channel live continuously without leaving your device on. Upload once, press play, and let cloud infrastructure carry the signal through the night.</motion.p>
-              <motion.div className="hero-actions" initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: .27, duration: .65, ease }}>
-                <Link href="/pricing" className="streamly-button streamly-button-primary" data-testid="link-hero-offer">Start streaming <ArrowRight size={17} weight="bold" /></Link>
-                <button type="button" className="streamly-button streamly-button-quiet" onClick={() => scrollTo("#how-it-works")} data-testid="button-explore-product"><Play size={15} weight="fill" /> See how it works</button>
-              </motion.div>
-              <motion.div className="hero-proof" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: .42, duration: .6 }}><span><Check size={14} weight="bold" /> 1080p and 4K output</span><span><Check size={14} weight="bold" /> YouTube ready</span><span><Check size={14} weight="bold" /> Automatic recovery</span></motion.div>
-            </div>
+        <section id="loop-home" className="loop-clone-hero">
+          <div className="loop-clone-platforms" aria-label="Streaming platforms">
+            <img src="/images/loopstream/platforms/youtube.webp" alt="YouTube" />
+            <img src="/images/loopstream/platforms/facebook.webp" alt="Facebook" />
+            <img src="/images/loopstream/platforms/twitch.webp" alt="Twitch" />
+            <img src="/images/loopstream/platforms/kick.webp" alt="Kick" />
+            <span className="loop-clone-coming"><img src="/images/loopstream/platforms/instagram.webp" alt="" /><b>Coming<br />Soon</b></span>
+            <span className="loop-clone-coming loop-clone-coming-dark"><img src="/images/loopstream/platforms/x.webp" alt="" /><b>Coming<br />Soon</b></span>
           </div>
-          <button type="button" className="hero-scroll-cue" onClick={() => scrollTo("#how-it-works")}><span>Explore the signal</span><ArrowDown size={15} /></button>
+          <div className="loop-clone-wordmark"><span>Stream</span><i /> <span>Loop</span><i /> <span>Grow</span></div>
+          <h1>Go live without going live, 24/7 Pre-Recorded Streaming</h1>
+          <div className="loop-clone-hero-actions"><Link href="/pricing">Get Started</Link><button type="button" onClick={() => scrollTo("#loop-steps")}>Start Free Loop</button></div>
+          <img className="loop-clone-hero-visual" src="/images/loopstream/landing/Hero_Two_Screen.webp" alt="Loop Stream dashboard showing scheduled 24/7 pre-recorded video loops" />
         </section>
 
-        <div className="streamly-ticker" aria-label="Streamly product highlights"><div><span>24 / 7 BROADCAST</span><i /> <span>CLOUD RELAY</span><i /> <span>PLAYLIST LOOPING</span><i /> <span>REAL-TIME ANALYTICS</span><i /> <span>24 / 7 BROADCAST</span><i /> <span>CLOUD RELAY</span></div></div>
-
-        <Reveal id="how-it-works" className="streamly-section how-section" style={{ backgroundImage: "url('/images/steps-bg-pattern.webp')" }}>
-          <div className="streamly-container">
-            <div className="section-heading section-heading-split"><div><span className="section-label">01 / HOW IT WORKS</span><h2>Set the signal.<br /><em>Leave the room.</em></h2></div><p>Everything you need to turn a folder of videos into a channel people can return to. No encoder to babysit. No laptop left awake.</p></div>
-            <div className="steps-grid"><StepCard number="01" Icon={ListChecks} title="Build your playlist" copy="Add your videos, arrange the order, and choose how often the sequence should repeat." /><StepCard number="02" Icon={Broadcast} title="Choose your destination" copy="Connect YouTube and set your stream details. Streamly handles the cloud broadcast layer." /><StepCard number="03" Icon={RocketLaunch} title="Go live, then go live" copy="Your channel keeps its rhythm while you sleep, work, or make the next thing." /></div>
+        <section className="loop-clone-trust">
+          <div className="loop-clone-section-inner">
+            <h2>Trusted by creators of<br /><strong>65M+ global community</strong></h2>
+            <p>Empowering 24/7 live streams of music, devotional, kids, education &amp; news channels</p>
+            <div className="loop-clone-channel-row">
+              {["channel1.webp", "channel2.webp", "channel3.webp", "channel4.webp", "channel5.webp", "channel6.webp", "channel7.webp"].map((name) => <img key={name} src={`/images/appImage/channel-logo/${name}`} alt="" />)}
+            </div>
+            <span className="loop-clone-small-label">Examples of 24/7 live streaming channels</span>
           </div>
-        </Reveal>
+        </section>
 
-        <Reveal id="capabilities" className="streamly-section capability-section">
-          <div className="streamly-container capability-layout">
-            <div className="section-heading"><span className="section-label">02 / CAPABILITIES</span><h2>Less dashboard.<br /><em>More broadcast.</em></h2><p>Streamly is opinionated about the work that should happen automatically, so you can stay focused on what is worth making.</p></div>
-            <div className="capability-panel">
-              <div className="capability-tabs" role="tablist" aria-label="Streamly capabilities">{features.map((feature, index) => <button type="button" key={feature.title} className={activeFeature === index ? "active" : ""} onClick={() => setActiveFeature(index)} role="tab" aria-selected={activeFeature === index}><span>0{index + 1}</span>{feature.title}<ArrowRight size={15} /></button>)}</div>
-              <AnimatePresence mode="wait"><motion.div key={features[activeFeature].title} className="capability-detail" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: .34, ease }}><div className="capability-detail-icon"><ActiveFeatureIcon size={32} weight="duotone" /></div><span className="section-label">{features[activeFeature].eyebrow}</span><h3>{features[activeFeature].title}</h3><p>{features[activeFeature].description}</p><div className="capability-visual"><div className="visual-line visual-line-a" /><div className="visual-line visual-line-b" /><div className="visual-pulse"><i /><i /><i /></div><span>signal stable</span></div></motion.div></AnimatePresence>
+        <section className="loop-clone-compare">
+          <div className="loop-clone-section-inner">
+            <div className="loop-clone-section-kicker">SEE THE DIFFERENCE</div>
+            <h2>Regular Live <span>vs</span> Loop Stream Live</h2>
+            <p>Drag the slider to compare</p>
+            <div className="loop-clone-comparison">
+              <img src="/images/loopstream/landing/after-loop-stream.webp" alt="Loop Stream live broadcast" />
+              <div className="loop-clone-comparison-before" style={{ width: `${compare}%` }}><img src="/images/loopstream/landing/before-loop-stream.webp" alt="Regular live streaming setup" /></div>
+              <input aria-label="Compare regular live and Loop Stream live" type="range" min="0" max="100" value={compare} onChange={(event) => setCompare(Number(event.target.value))} />
+              <div className="loop-clone-comparison-handle" style={{ left: `${compare}%` }}><span>↔</span></div>
+              <strong className="loop-clone-comparison-label before">Regular Live</strong><strong className="loop-clone-comparison-label after">Loop Stream Live</strong>
             </div>
           </div>
-        </Reveal>
+        </section>
 
-        <Reveal id="use-cases" className="streamly-section use-case-section">
-          <div className="streamly-container">
-            <div className="section-heading section-heading-split"><div><span className="section-label">03 / MADE FOR MOMENTUM</span><h2>One engine.<br /><em>Many rhythms.</em></h2></div><p>A calm overnight radio station, a daily devotional, a rolling news feed, or an education loop — the format is yours.</p></div>
-             <div className="use-case-grid"><div className="use-case-primary"><img className="use-case-live-visual" src="/images/live-signal-visual.webp" alt="Glowing live-stream signal orb" loading="lazy" /><div className="use-case-bars"><i /><i /><i /><i /><i /><i /><i /></div><div className="use-case-primary-copy"><span className="signal-badge signal-badge-violet"><i /> PROGRAMMING MODE</span><h3>Build a channel people can leave on.</h3><p>Give your archive a living schedule. Streamly keeps the handoff smooth from one video to the next.</p></div><div className="use-case-quote">“The best broadcast is the one that keeps its promise.”</div></div><div className="use-case-list"><div><span className="use-case-number">01</span><strong>Ambient & focus</strong><small>Long-form loops for deep work</small><ArrowRight size={16} /></div><div><span className="use-case-number">02</span><strong>News & updates</strong><small>Keep the daily signal moving</small><ArrowRight size={16} /></div><div><span className="use-case-number">03</span><strong>Classes & devotion</strong><small>A dependable rhythm for learners</small><ArrowRight size={16} /></div><div><span className="use-case-number">04</span><strong>Product showcases</strong><small>Let your best work stay visible</small><ArrowRight size={16} /></div></div></div>
+        <section id="loop-creators" className="loop-clone-creators">
+          <div className="loop-clone-section-inner">
+            <div className="loop-clone-section-kicker">MADE FOR EVERY CREATOR</div>
+            <h2>Built for Every Type of Creator</h2>
+            <p>Select your type — we've got you covered.</p>
+            <div className="loop-clone-creator-tabs">{creators.map((item, index) => <button type="button" key={item.label} className={creator === index ? "active" : ""} onClick={() => setCreator(index)}>{item.label}</button>)}</div>
+            <div className="loop-clone-creator-showcase">
+              <img src={`/images/appImage/channel-logo/${creators[creator].image}`} alt="" />
+              <div><h3>{creators[creator].label}</h3><p>{creators[creator].copy}</p><Link href="/pricing">Start streaming <ArrowRight size={16} /></Link></div>
+            </div>
           </div>
-        </Reveal>
+        </section>
 
-        <Reveal className="streamly-section analytics-section">
-          <div className="streamly-container analytics-layout"><div className="analytics-copy"><span className="section-label">04 / SIGNAL INTELLIGENCE</span><h2>Know what keeps<br /><em>people watching.</em></h2><p>Streamly gives you the useful readout without burying the signal in a spreadsheet. Watch the shape of your channel over time and make the next loop smarter.</p><Link href="/access" className="streamly-inline-link">Open the control room <ArrowRight size={16} weight="bold" /></Link></div><div className="analytics-card"><div className="analytics-card-top"><div><span>LIVE CHANNEL / 24 HOURS</span><strong>Audience momentum</strong></div><SignalBadge tone="green">Healthy</SignalBadge></div><div className="analytics-big-number">1,284 <small>average viewers</small></div><div className="analytics-bars">{[42, 57, 49, 68, 61, 76, 71, 84, 78, 91, 88, 96, 85, 92].map((height, index) => <i key={index} style={{ height: `${height}%` }} />)}</div><div className="analytics-axis"><span>00:00</span><span>06:00</span><span>12:00</span><span>18:00</span><span>NOW</span></div><div className="analytics-footer"><span><i className="legend-violet" /> Watch time <b>18.6k hrs</b></span><span><i className="legend-blue" /> Peak <b>2,041</b></span></div></div></div>
-        </Reveal>
+        <section id="loop-steps" className="loop-clone-steps">
+          <div className="loop-clone-section-inner">
+            <div className="loop-clone-section-kicker">SIMPLE SETUP</div>
+            <h2>Go Live in 3 Simple Steps</h2>
+            <p>No software, no studio. Just upload, schedule, and relax</p>
+            <div className="loop-clone-step-grid">
+              {[["Upload your video", "Upload_Video.webp", "Add your content in a few clicks"], ["Schedule or stream instantly", "Schedule_Stream.webp", "Choose when you want to go live"], ["Loop & Go Live", "Loop_Go_Live.webp", "Let Loop Stream handle the rest"]].map(([title, image, copy], index) => <article key={title}><span>0{index + 1}</span><img src={`/images/appImage/landing-page/${image}`} alt={title} /><h3>{title}</h3><p>{copy}</p></article>)}
+            </div>
+          </div>
+        </section>
 
-        <Reveal className="streamly-section pricing-preview">
-          <div className="streamly-container"><div className="pricing-preview-head"><div><span className="section-label">05 / SIMPLE ACCESS</span><h2>Start small.<br /><em>Stay live.</em></h2></div><Link href="/pricing" className="streamly-button streamly-button-quiet">See all access windows <ArrowRight size={16} /></Link></div><div className="preview-plans">{pricingPlans.map((plan, index) => <article key={plan.term} className={`preview-plan ${plan.featured ? "featured" : ""}`}><div className="preview-plan-top"><span>{plan.featured ? "RECOMMENDED" : `0${index + 1} / ACCESS`}</span>{plan.featured && <Sparkle size={15} />}</div><h3>{plan.term}</h3><p>{plan.detail}</p><div className="preview-price"><strong>{plan.price}</strong><span>/ {plan.period}</span></div><div className="preview-bonus"><Check size={14} weight="bold" /> {plan.bonus}</div><Link href="/pricing" className="preview-plan-link">Choose this window <ArrowRight size={15} /></Link></article>)}</div></div>
-        </Reveal>
+        <section className="loop-clone-features">
+          <div className="loop-clone-section-inner">
+            <div className="loop-clone-section-kicker">EVERYTHING INCLUDED</div>
+            <h2>Powerful Features. Minimal Effort.</h2>
+            <div className="loop-clone-feature-grid">{features.map(([title, copy, image]) => <article key={title}><img src={`/images/appImage/landing-page/${image}`} alt="" /><h3>{title}</h3><p>{copy}</p></article>)}</div>
+          </div>
+        </section>
 
-        <section className="streamly-cta" style={{ backgroundImage: "url('/images/cta-bg.webp')" }}><div className="cta-grid" /><div className="streamly-container cta-inner"><span className="section-label">THE CHANNEL IS YOURS</span><h2>Make the next<br /><em>broadcast automatic.</em></h2><p>Start with one playlist. Let Streamly handle the hours you cannot.</p><Link href="/pricing" className="streamly-button streamly-button-primary">Start your free day <ArrowRight size={17} weight="bold" /></Link></div></section>
+        <section id="loop-pricing" className="loop-clone-pricing">
+          <div className="loop-clone-section-inner">
+            <div className="loop-clone-section-kicker">SIMPLE, TRANSPARENT PRICING</div>
+            <h2>Choose the Plan That Fits You</h2>
+            <p>Flexible plans for every stage — from free to pro.</p>
+            <div className="loop-clone-pricing-controls"><div><button type="button" className="active">🇮🇳 ₹ INR</button><button type="button">🇺🇸 $ USD</button></div><div>{(["Day", "Month", "Year"] as const).map((term) => <button type="button" key={term} className={billing === term ? "active" : ""} onClick={() => setBilling(term)}>{term}</button>)}</div></div>
+            <div className="loop-clone-plan-grid">
+              <article className="loop-clone-plan trial"><span className="loop-clone-plan-badge">FREE TO TRY</span><h3>Try 24hrs Trial</h3><p>Explore Loop Stream risk-free</p><strong>₹0 <small>/24 hours</small></strong><div><b>Best For</b>Creators who want to try Loop Stream before choosing a plan</div><span className="loop-clone-plan-note">No card required</span><Link href="/pricing">Apply Free Trial <ArrowRight size={15} /></Link></article>
+              <article className="loop-clone-plan"><h3>1080p Standard</h3><p>Simple. Stable. Reliable</p><strong>₹35 <del>₹50</del> <small>/stream</small></strong><div><b>Best For</b>Casual creators easing into live before going all-in</div><Link href="/pricing">Choose Plan <ArrowRight size={15} /></Link></article>
+              <article className="loop-clone-plan featured"><span className="loop-clone-plan-badge">MOST POPULAR</span><h3>1080p Premium</h3><p>Professional quality. Total control</p><strong>₹51 <del>₹76</del> <small>/stream</small></strong><div><b>Best For</b>Always-on channels like news, devotional, games or lofi</div><Link href="/pricing">Choose Plan <ArrowRight size={15} /></Link></article>
+            </div>
+            <button type="button" className="loop-clone-waitlist" onClick={() => scrollTo("#loop-faq")}>Join the 4K waitlist <ArrowRight size={15} /></button>
+          </div>
+        </section>
+
+        <section id="loop-faq" className="loop-clone-faq">
+          <div className="loop-clone-section-inner">
+            <div className="loop-clone-section-kicker">NEED TO KNOW</div>
+            <h2>Frequently Asked Questions</h2>
+            <p>Got questions? We've got you covered</p>
+            <div className="loop-clone-faq-list">{faqs.map((question, index) => <div className={`loop-clone-faq-item ${faq === index ? "open" : ""}`} key={question}><button type="button" onClick={() => setFaq(faq === index ? null : index)}><span>{question}</span><b>{faq === index ? "−" : "+"}</b></button>{faq === index && <p>{answers[index]}</p>}</div>)}</div>
+          </div>
+        </section>
+
+        <section className="loop-clone-final-cta">
+          <div className="loop-clone-section-inner"><h2>Ready to stream like a pro?</h2><p>Start your free trial today - no card required</p><div><Link href="/pricing">Start Free Trial <ArrowRight size={16} /></Link><Link className="secondary" href="/pricing">Choose Plans <ArrowRight size={16} /></Link></div></div>
+        </section>
       </main>
-      <PublicFooter />
+      <footer className="loop-clone-footer"><div className="loop-clone-section-inner"><div className="loop-clone-footer-brand"><img src="/images/logo/loop-logo.webp" alt="Loop Stream" /><p>Go Live Without Going Live</p></div><div><h3>Important Links</h3><a href="#loop-home">Home</a><a href="#loop-pricing">Pricing</a><a href="#loop-faq">Contact us</a></div><div><h3>Company</h3><a href="#loop-creators">Articles</a><a href="#loop-steps">Tutorials</a><a href="/access">Dashboard</a></div><div className="loop-clone-footer-socials"><a href="https://www.youtube.com/" target="_blank" rel="noreferrer"><img src="/images/youtube-logo.webp" alt="YouTube" /></a><a href="https://x.com/" target="_blank" rel="noreferrer"><img src="/images/x-logo.webp" alt="X" /></a><a href="https://www.instagram.com/" target="_blank" rel="noreferrer"><img src="/images/instagram-logo.webp" alt="Instagram" /></a><a href="https://www.facebook.com/" target="_blank" rel="noreferrer"><img src="/images/facebook-icon.webp" alt="Facebook" /></a></div><small>© 2026 Loop Stream: All rights reserved • Made with ❤️ for creators around the World</small></div></footer>
     </div>
   );
 }
