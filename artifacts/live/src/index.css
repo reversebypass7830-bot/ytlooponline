@@ -3050,6 +3050,7 @@ select { height: 41px; }
 .streamly-login-card-top i { width: 6px; height: 6px; border-radius: 50%; background: var(--sl-green); box-shadow: 0 0 0 4px rgba(16,185,129,.12); }
 .streamly-login-heading { display: flex; align-items: center; gap: 13px; margin-top: 27px; }
 .streamly-login-icon { display: grid; place-items: center; width: 46px; height: 46px; flex: 0 0 46px; border: 1px solid rgba(37,99,235,.35); border-radius: 13px; color: #8EB3FF; background: rgba(37,99,235,.11); }
+.streamly-login-card > .streamly-login-icon { margin-inline: auto; }
 .streamly-login-eyebrow { display: block; margin-bottom: 7px; color: #8EB3FF; font: 9px 'Space Mono', monospace; letter-spacing: .12em; text-transform: uppercase; }
 .streamly-login-card h1 { margin: 0; color: var(--sl-text); font: 700 30px/1.04 'Plus Jakarta Sans', sans-serif; letter-spacing: -.07em; }
 .streamly-login-card h1 em { color: #A78BFA; font-style: normal; }
