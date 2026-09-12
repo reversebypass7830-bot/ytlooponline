@@ -56,6 +56,14 @@ function providerSucceeded(payload: ProviderResponse): boolean {
   return payload.status === 200 || /sent|success|valid/i.test(payload.message || "");
 }
 
+function providerOtpSucceeded(payload: ProviderResponse): boolean {
+  const message = payload.message || "";
+  if (/invalid|incorrect|wrong|expired|not\s+valid|failed|failure|error|mismatch|does\s+not\s+match|rejected/i.test(message)) {
+    return false;
+  }
+  return payload.status === 200 || /verified|success|valid|authenticated/i.test(message);
+}
+
 function providerMessage(payload: ProviderResponse): string {
   return payload.message || "The OTP provider rejected the request.";
 }
@@ -115,7 +123,7 @@ router.post("/mobile-auth/verify-otp", async (req: Request, res: Response): Prom
       mydeviceid: "",
       mydeviceid2: "",
     });
-    if (!providerSucceeded(payload)) {
+    if (!providerOtpSucceeded(payload)) {
       const remaining = maxAttempts - challenge.attempts;
       res.status(401).json({ error: providerMessage(payload), attemptsRemaining: remaining });
       return;

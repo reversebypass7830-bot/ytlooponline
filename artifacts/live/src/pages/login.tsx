@@ -28,16 +28,20 @@ export type LoginPageProps = {
 
 const otpLength = 4;
 
-function OtpBoxes({ value, onChange }: { value: string; onChange: (value: string) => void }) {
+function OtpBoxes({ value, onChange, onComplete }: { value: string; onChange: (value: string) => void; onComplete: (value: string) => void }) {
   const refs = useRef<Array<HTMLInputElement | null>>([]);
   const digits = value.padEnd(otpLength, " ").slice(0, otpLength).split("");
 
   const updateDigit = (index: number, next: string) => {
-    const clean = next.replace(/\D/g, "").slice(-1);
+    const clean = next.replace(/\D/g, "");
     const nextDigits = digits.map((digit) => (digit === " " ? "" : digit));
-    nextDigits[index] = clean;
-    onChange(nextDigits.join("").slice(0, otpLength));
-    if (clean && index < otpLength - 1) refs.current[index + 1]?.focus();
+    clean.slice(0, otpLength - index).split("").forEach((digit, offset) => {
+      nextDigits[index + offset] = digit;
+    });
+    const nextValue = nextDigits.join("").slice(0, otpLength);
+    onChange(nextValue);
+    if (clean && index < otpLength - 1) refs.current[Math.min(index + clean.length, otpLength - 1)]?.focus();
+    if (nextValue.length === otpLength) onComplete(nextValue);
   };
 
   return (
@@ -52,8 +56,16 @@ function OtpBoxes({ value, onChange }: { value: string; onChange: (value: string
           value={digit === " " ? "" : digit}
           onChange={(event) => updateDigit(index, event.target.value)}
           onKeyDown={(event) => {
-            if (event.key === "Backspace" && !digits[index] && index > 0) {
-              refs.current[index - 1]?.focus();
+            if (event.key === "Backspace" || event.key === "Delete") {
+              event.preventDefault();
+              const nextDigits = digits.map((current) => (current === " " ? "" : current));
+              if (digits[index]) {
+                nextDigits[index] = "";
+              } else if (index > 0) {
+                nextDigits[index - 1] = "";
+                refs.current[index - 1]?.focus();
+              }
+              onChange(nextDigits.join("").slice(0, otpLength));
             }
           }}
         />
@@ -109,12 +121,13 @@ export default function LoginPage({
     }
   };
 
-  const verifyOtp = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    if (otp.length !== otpLength || busy) return;
+  const verifyOtp = async (eventOrCode?: FormEvent<HTMLFormElement> | string) => {
+    if (typeof eventOrCode !== "string") eventOrCode?.preventDefault();
+    const code = typeof eventOrCode === "string" ? eventOrCode : otp;
+    if (code.length !== otpLength || busy) return;
     setLocalError("");
     try {
-      const needsProfile = await onVerifyMobileOtp(`+91${cleanPhone}`, otp);
+      const needsProfile = await onVerifyMobileOtp(`+91${cleanPhone}`, code);
       if (needsProfile) setProfileNeeded(true);
     } catch (reason) {
       setLocalError(reason instanceof Error ? reason.message : "That code could not be verified.");
@@ -194,7 +207,7 @@ export default function LoginPage({
             otpSent ? (
               <form className="streamly-login-form" onSubmit={verifyOtp}>
                 <div className="streamly-login-form-heading"><div><label htmlFor="otp-code">Verification code</label><p>Enter the code sent to +91 {cleanPhone}</p></div></div>
-                <OtpBoxes value={otp} onChange={setOtp} />
+                <OtpBoxes value={otp} onChange={(next) => { setOtp(next); setLocalError(""); }} onComplete={(code) => { void verifyOtp(code); }} />
                 <button className="streamly-login-primary" type="submit" disabled={busy || otp.length !== otpLength}>{busy ? "Verifying…" : "Verify & login"} <ArrowRight size={17} weight="bold" /></button>
                 <div className="streamly-login-inline-actions"><button type="button" onClick={() => { setOtpSent(false); setOtp(""); }}>Change number</button><button type="button" disabled={cooldown > 0 || busy} onClick={(event) => { void sendOtp(event as unknown as FormEvent<HTMLFormElement>); }}>{cooldown > 0 ? `Resend in 00:${String(cooldown).padStart(2, "0")}` : "Resend code"}</button></div>
               </form>
