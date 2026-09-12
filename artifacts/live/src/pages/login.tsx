@@ -193,7 +193,7 @@ export default function LoginPage({
           {method === "phone" && (
             otpSent ? (
               <form className="streamly-login-form" onSubmit={verifyOtp}>
-                <div className="streamly-login-form-heading"><div><label htmlFor="otp-code">Verification code</label><p>Enter the code sent to +91 {cleanPhone}</p></div><Phone size={19} weight="duotone" /></div>
+                <div className="streamly-login-form-heading"><div><label htmlFor="otp-code">Verification code</label><p>Enter the code sent to +91 {cleanPhone}</p></div></div>
                 <OtpBoxes value={otp} onChange={setOtp} />
                 <button className="streamly-login-primary" type="submit" disabled={busy || otp.length !== otpLength}>{busy ? "Verifying…" : "Verify & login"} <ArrowRight size={17} weight="bold" /></button>
                 <div className="streamly-login-inline-actions"><button type="button" onClick={() => { setOtpSent(false); setOtp(""); }}>Change number</button><button type="button" disabled={cooldown > 0 || busy} onClick={(event) => { void sendOtp(event as unknown as FormEvent<HTMLFormElement>); }}>{cooldown > 0 ? `Resend in 00:${String(cooldown).padStart(2, "0")}` : "Resend code"}</button></div>
