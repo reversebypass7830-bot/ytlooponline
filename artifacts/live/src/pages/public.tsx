@@ -232,7 +232,36 @@ export function LandingPage() {
   const [faq, setFaq] = useState<number | null>(null);
   const [compare, setCompare] = useState(50);
   const [billing, setBilling] = useState<"Day" | "Month" | "Year">("Month");
+  const [heroTilt, setHeroTilt] = useState("none");
+  const comparisonRef = useRef<HTMLDivElement>(null);
   const scrollTo = (selector: string) => document.querySelector(selector)?.scrollIntoView({ behavior: "smooth" });
+  const updateComparisonFromPointer = (clientX: number) => {
+    const bounds = comparisonRef.current?.getBoundingClientRect();
+    if (!bounds) return;
+    setCompare(Math.max(0, Math.min(100, ((clientX - bounds.left) / bounds.width) * 100)));
+  };
+  useEffect(() => {
+    const desktopQuery = window.matchMedia("(min-width: 1200px)");
+    const reducedMotionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const updateTilt = (event: MouseEvent) => {
+      if (!desktopQuery.matches || reducedMotionQuery.matches) return;
+      const rotateX = Math.max(-20, (window.innerHeight - 2 * event.clientY) / 100);
+      const rotateY = (window.innerWidth - 2 * event.clientX) / 100;
+      setHeroTilt(`perspective(1200px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale3d(1, 1, 1)`);
+    };
+    const resetTilt = () => setHeroTilt("none");
+    const syncMode = () => {
+      if (!desktopQuery.matches || reducedMotionQuery.matches) resetTilt();
+    };
+    window.addEventListener("mousemove", updateTilt, { passive: true });
+    desktopQuery.addEventListener("change", syncMode);
+    reducedMotionQuery.addEventListener("change", syncMode);
+    return () => {
+      window.removeEventListener("mousemove", updateTilt);
+      desktopQuery.removeEventListener("change", syncMode);
+      reducedMotionQuery.removeEventListener("change", syncMode);
+    };
+  }, []);
   const creators = [
     { label: "News", image: "channel1.webp", copy: "Stay updated with 24/7 news streaming" },
     { label: "Devotional", image: "channel2.webp", copy: "Share devotion with your community" },
@@ -303,8 +332,8 @@ export function LandingPage() {
           </div>
           <div className="loop-clone-wordmark"><span>Stream</span><i /> <span>Loop</span><i /> <span>Grow</span></div>
           <h1>Go live without going live, 24/7 Pre-Recorded Streaming</h1>
-          <div className="loop-clone-hero-actions"><Link href="/pricing">Get Started</Link><button type="button" onClick={() => scrollTo("#loop-steps")}>Start Free Loop</button></div>
-          <img className="loop-clone-hero-visual" src="/images/loopstream/landing/Hero_Two_Screen.webp" alt="Loop Stream dashboard showing scheduled 24/7 pre-recorded video loops" />
+          <div className="loop-clone-hero-actions"><Link href="/pricing">Get Started</Link><button type="button" onClick={() => scrollTo("#loop-pricing")}>Start Free Loop</button></div>
+          <img className="loop-clone-hero-visual" style={{ transform: heroTilt }} src="/images/loopstream/landing/Hero_Two_Screen.webp" alt="Loop Stream dashboard showing scheduled 24/7 pre-recorded video loops" />
         </section>
 
         <section className="loop-clone-trust">
@@ -323,7 +352,7 @@ export function LandingPage() {
             <div className="loop-clone-section-kicker">SEE THE DIFFERENCE</div>
             <h2>Regular Live <span>vs</span> Loop Stream Live</h2>
             <p>Drag the slider to compare</p>
-            <div className="loop-clone-comparison">
+            <div ref={comparisonRef} className="loop-clone-comparison" onMouseMove={(event) => updateComparisonFromPointer(event.clientX)} onTouchStart={(event) => updateComparisonFromPointer(event.touches[0].clientX)} onTouchMove={(event) => updateComparisonFromPointer(event.touches[0].clientX)}>
               <img src="/images/loopstream/landing/after-loop-stream.webp" alt="Loop Stream live broadcast" />
               <div className="loop-clone-comparison-before" style={{ width: `${compare}%` }}><img src="/images/loopstream/landing/before-loop-stream.webp" alt="Regular live streaming setup" /></div>
               <input aria-label="Compare regular live and Loop Stream live" type="range" min="0" max="100" value={compare} onChange={(event) => setCompare(Number(event.target.value))} />
