@@ -3954,11 +3954,10 @@ function EditorTransformControls({ selectedLayer, hasWebcam, hasAnimation, mainT
   </div>;
 }
 
-function ProfilePage({ workspace, account, firebaseUser, plans, profilePhoto, onProfilePhotoChange, onSaveProfile, onLogout }: {
+function ProfilePage({ workspace, account, firebaseUser, profilePhoto, onProfilePhotoChange, onSaveProfile, onLogout }: {
   workspace: ReturnType<typeof useWorkspace>;
   account: AccountSummary;
   firebaseUser: FirebaseUser | null;
-  plans: AccountPlan[];
   profilePhoto: string;
   onProfilePhotoChange: (photo: string) => void;
   onSaveProfile?: (profile: { displayName: string; email: string; phone?: string }) => Promise<void>;
@@ -3973,9 +3972,8 @@ function ProfilePage({ workspace, account, firebaseUser, plans, profilePhoto, on
   const [passwordBusy, setPasswordBusy] = useState(false);
   const [notice, setNotice] = useState("");
   const [passwordNotice, setPasswordNotice] = useState("");
-  const [photoIndex, setPhotoIndex] = useState(0);
-  const photoChoices = [12, 27, 36, 45, 58, 67].map((image) => `https://i.pravatar.cc/200?img=${image}`);
   const hasPasswordProvider = Boolean(firebaseUser?.providerData.some((provider) => provider.providerId === "password"));
+  const displayPhoto = profilePhoto || defaultProfilePhoto(firebaseUser?.uid || workspace.licenseId || "profile");
 
   useEffect(() => {
     setName(account.displayName || "");
@@ -4070,11 +4068,11 @@ function ProfilePage({ workspace, account, firebaseUser, plans, profilePhoto, on
 
   return <AppShell title="Profile" account={account} profilePhoto={profilePhoto} workspace={workspace}>
     <div className="page profile-page">
-      <div className="page-head"><div><p className="eyebrow">Your workspace identity</p><h1>Profile</h1><p className="subtle">Update how your account appears across Reverse Bypass.</p></div><button className="button danger-button" onClick={() => void onLogout()} data-testid="button-profile-logout"><ShieldCheck size={15}/> Log out</button></div>
+      <div className="page-head"><div><h1>Profile</h1></div><button className="button danger-button" onClick={() => void onLogout()} data-testid="button-profile-logout"><ShieldCheck size={15}/> Log out</button></div>
       <div className="profile-layout">
         <section className="card profile-identity-card">
-          <div className="profile-avatar-wrap"><img className="profile-avatar" src={profilePhoto} alt={`${name || "Your"} profile`} /><label className="profile-upload-button"><Upload size={14}/> Change photo<input type="file" accept="image/*" onChange={uploadPhoto} /></label></div>
-          <div className="profile-identity-copy"><p className="eyebrow">Account profile</p><h2>{name || "Workspace user"}</h2><p>{email}</p><button className="profile-random-button" onClick={() => { const nextIndex = (photoIndex + 1) % photoChoices.length; setPhotoIndex(nextIndex); choosePhoto(photoChoices[nextIndex]); }}><Sparkles size={14}/> Use a random photo</button></div>
+          <div className="profile-avatar-wrap"><img className="profile-avatar" src={displayPhoto} alt={`${name || "Your"} profile`} /><label className="profile-upload-button"><Upload size={14}/> Change photo<input type="file" accept="image/*" onChange={uploadPhoto} /></label></div>
+          <div className="profile-identity-copy"><h2>{name || "Workspace user"}</h2>{email && <p>{email}</p>}</div>
         </section>
         <section className="card profile-card">
           <div className="section-head"><div><h2 className="section-title">Personal details</h2><p className="subtle">These details are used for your workspace account.</p></div><UserRound size={18} /></div>
@@ -4103,7 +4101,6 @@ function ProfilePage({ workspace, account, firebaseUser, plans, profilePhoto, on
           <Link href="/pricing" className="button secondary" data-testid="link-profile-billing"><CreditCard size={14}/> View billing & plans <ArrowRight size={14}/></Link>
         </section>
       </div>
-      <section className="card profile-card profile-security-note"><ShieldCheck size={17}/><div><strong>{plans.length ? `${plans.length} plans available` : "Your plan is active"}</strong><p>Your account and billing details are protected by secure sign-in.</p></div></section>
     </div>
   </AppShell>;
 }
@@ -4122,7 +4119,7 @@ function SettingsPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}) {
    </AppShell>;
 }
 
-function Routed({workspace, account, firebaseUser, plans, profilePhoto, onProfilePhotoChange, onSaveProfile, onSavePhone, onLogout}:{workspace:ReturnType<typeof useWorkspace>; account:AccountSummary|null; firebaseUser:FirebaseUser|null; plans:AccountPlan[]; profilePhoto:string; onProfilePhotoChange:(photo:string)=>void; onSaveProfile:(profile:{displayName:string; email:string; phone?:string})=>Promise<void>; onSavePhone:(phone:string)=>Promise<void>; onLogout:()=>Promise<void>}) {
+function Routed({workspace, account, firebaseUser, profilePhoto, onProfilePhotoChange, onSaveProfile, onSavePhone, onLogout}:{workspace:ReturnType<typeof useWorkspace>; account:AccountSummary|null; firebaseUser:FirebaseUser|null; profilePhoto:string; onProfilePhotoChange:(photo:string)=>void; onSaveProfile:(profile:{displayName:string; email:string; phone?:string})=>Promise<void>; onSavePhone:(phone:string)=>Promise<void>; onLogout:()=>Promise<void>}) {
   let localProfile: { displayName?: string; email?: string } = {};
   try {
     localProfile = JSON.parse(localStorage.getItem(`reverse-bypass-profile:${workspace.licenseId}`) || "{}") as { displayName?: string; email?: string };
@@ -4144,7 +4141,7 @@ function Routed({workspace, account, firebaseUser, plans, profilePhoto, onProfil
     active: true,
     history: [],
   };
-  return <Switch><Route path="/dashboard"><Dashboard workspace={workspace} account={account} onSavePhone={onSavePhone}/></Route><Route path="/live"><LivePage workspace={workspace}/></Route><Route path="/live-preview"><LivePreviewPage workspace={workspace}/></Route><Route path="/videos"><VideosPage workspace={workspace}/></Route><Route path="/editor"><VideoEditorPage workspace={workspace}/></Route><Route path="/profile"><ProfilePage workspace={workspace} account={profileAccount} firebaseUser={firebaseUser} plans={plans} profilePhoto={profilePhoto} onProfilePhotoChange={onProfilePhotoChange} onSaveProfile={account ? onSaveProfile : undefined} onLogout={onLogout}/></Route><Route path="/settings"><Redirect to="/profile"/></Route><Route><NotFound/></Route></Switch>;
+  return <Switch><Route path="/dashboard"><Dashboard workspace={workspace} account={account} onSavePhone={onSavePhone}/></Route><Route path="/live"><LivePage workspace={workspace}/></Route><Route path="/live-preview"><LivePreviewPage workspace={workspace}/></Route><Route path="/videos"><VideosPage workspace={workspace}/></Route><Route path="/editor"><VideoEditorPage workspace={workspace}/></Route><Route path="/profile"><ProfilePage workspace={workspace} account={profileAccount} firebaseUser={firebaseUser} profilePhoto={profilePhoto} onProfilePhotoChange={onProfilePhotoChange} onSaveProfile={account ? onSaveProfile : undefined} onLogout={onLogout}/></Route><Route path="/settings"><Redirect to="/profile"/></Route><Route><NotFound/></Route></Switch>;
 }
 
 function App() {
@@ -4237,7 +4234,7 @@ function App() {
     }
     workspace.logout();
   };
-  return <><Routed workspace={workspace} account={accountSession.account} firebaseUser={user} plans={accountSession.plans} profilePhoto={profilePhoto} onProfilePhotoChange={handleProfilePhotoChange} onSaveProfile={accountSession.saveProfile} onSavePhone={accountSession.savePhone} onLogout={handleLogout}/>{accountSession.account && profileGateId === accountSession.account.id && <AccountCompletionDialog account={accountSession.account} onSave={accountSession.saveProfile} onClose={() => setProfileGateId(null)} />}</>;
+  return <><Routed workspace={workspace} account={accountSession.account} firebaseUser={user} profilePhoto={profilePhoto} onProfilePhotoChange={handleProfilePhotoChange} onSaveProfile={accountSession.saveProfile} onSavePhone={accountSession.savePhone} onLogout={handleLogout}/>{accountSession.account && profileGateId === accountSession.account.id && <AccountCompletionDialog account={accountSession.account} onSave={accountSession.saveProfile} onClose={() => setProfileGateId(null)} />}</>;
 }
 
 export default function RootApp() {
