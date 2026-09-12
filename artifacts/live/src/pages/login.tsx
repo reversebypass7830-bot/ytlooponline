@@ -61,6 +61,7 @@ function OtpBoxes({ value, onChange, onComplete }: { value: string; onChange: (v
               const nextDigits = digits.map((current) => (current === " " ? "" : current));
               if (digits[index]) {
                 nextDigits[index] = "";
+                if (index > 0) refs.current[index - 1]?.focus();
               } else if (index > 0) {
                 nextDigits[index - 1] = "";
                 refs.current[index - 1]?.focus();
