@@ -8,3 +8,9 @@ Firebase Google sign-in should be handled in the browser, then exchanged once at
 **Why:** The app already stores account, license, and workspace data in Firebase, while the previous visible Google flow was owned by Clerk. A server-side token exchange removes Clerk from the user-facing Google path without exposing Firebase tokens to every API request or rewriting workspace semantics.
 
 **How to apply:** Validate the Firebase ID token with Firebase's Identity Toolkit lookup endpoint, map the Firebase UID (or matching verified email) to the existing account, then sign the resolved account ID into the session cookie. Keep the legacy Clerk middleware only where backward compatibility requires it.
+
+When Clerk is not configured, its global middleware must be skipped rather than installed with an empty secret. Clerk-dependent helpers should also fail closed as unauthenticated so Firebase and mobile auth routes can operate independently.
+
+**Why:** A missing optional Clerk secret previously converted every Firebase/mobile request into a server-side 500 before those routes ran.
+
+**How to apply:** Gate the app-level Clerk middleware on `CLERK_SECRET_KEY`; keep mobile/Firebase session cookies as the active auth boundary when Clerk is unavailable.

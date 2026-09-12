@@ -13,8 +13,16 @@ export type FirebaseSessionIdentity = {
   name: string;
 };
 
+function safeGetAuth(req: Request): ReturnType<typeof getAuth> | null {
+  try {
+    return getAuth(req);
+  } catch {
+    return null;
+  }
+}
+
 export function clerkUserId(req: Request): string | null {
-  return getAuth(req).userId || null;
+  return safeGetAuth(req)?.userId || null;
 }
 
 function sessionSecret(): string {
@@ -129,7 +137,7 @@ export function clearMobileSession(res: Response): void {
 }
 
 export function clerkSessionClaims(req: Request): Record<string, unknown> {
-  return (getAuth(req).sessionClaims || {}) as Record<string, unknown>;
+  return (safeGetAuth(req)?.sessionClaims || {}) as Record<string, unknown>;
 }
 
 export function requireClerkAuth(req: Request, res: Response, next: NextFunction): void {
