@@ -152,7 +152,7 @@ export default function LoginPage({
         <div className="streamly-login-orb streamly-login-orb-one" />
         <div className="streamly-login-orb streamly-login-orb-two" />
         <img className="streamly-login-visual" src="/images/login-side-visual.webp" alt="" aria-hidden="true" loading="lazy" />
-        <Link href="/" className="streamly-login-brand"><span className="streamly-mark"><span>S</span><i /></span><span>Streamly</span></Link>
+        <Link href="/" className="streamly-login-brand"><span className="streamly-mark"><img className="streamly-logo-image" src="/images/streamly-mark.png" alt="" /><i /></span><span>Streamly</span></Link>
         <main className="streamly-login-main">
           <section className="streamly-login-card" aria-labelledby="profile-title">
             <div className="streamly-login-card-top"><span><i /> ACCESS / 02</span><span>PROFILE</span></div>
@@ -177,7 +177,7 @@ export default function LoginPage({
       <div className="streamly-login-orb streamly-login-orb-one" />
       <div className="streamly-login-orb streamly-login-orb-two" />
       <img className="streamly-login-visual" src="/images/login-side-visual.webp" alt="" aria-hidden="true" loading="lazy" />
-      <Link href="/" className="streamly-login-brand"><span className="streamly-mark"><span>S</span><i /></span><span>Streamly</span></Link>
+      <Link href="/" className="streamly-login-brand"><span className="streamly-mark"><img className="streamly-logo-image" src="/images/streamly-mark.png" alt="" /><i /></span><span>Streamly</span></Link>
       <main className="streamly-login-main">
         <section className="streamly-login-card" aria-labelledby="login-title">
           <div className="streamly-login-card-top"><span><i /> PRIVATE ACCESS</span><span>01 / 01</span></div>

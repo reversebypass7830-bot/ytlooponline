@@ -100,7 +100,7 @@ const accessPlans = [
 const planFeatures = ["Unlimited storage", "2 live monitor bots", "24-hour live streams", "YouTube + Facebook + RTMP", "VPS + direct downloads"];
 
 function BrandMark() {
-  return <span className="streamly-mark" aria-hidden="true"><span>S</span><i /></span>;
+  return <span className="streamly-mark" aria-hidden="true"><img className="streamly-logo-image" src="/images/streamly-mark.png" alt="" /><i /></span>;
 }
 
 function Reveal({ children, className = "", id, style }: { children: ReactNode; className?: string; id?: string; style?: CSSProperties }) {
@@ -251,10 +251,6 @@ export function LandingPage() {
               </motion.div>
               <motion.div className="hero-proof" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: .42, duration: .6 }}><span><Check size={14} weight="bold" /> 1080p and 4K output</span><span><Check size={14} weight="bold" /> YouTube ready</span><span><Check size={14} weight="bold" /> Automatic recovery</span></motion.div>
             </div>
-            <motion.div className="hero-product" initial={{ opacity: 0, x: 28 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: .16, duration: .9, ease }}>
-              <img className="hero-visual-image" src="/images/hero-visual.webp" alt="Abstract glowing cloud relay visual" loading="lazy" />
-              <DashboardMock />
-            </motion.div>
           </div>
           <button type="button" className="hero-scroll-cue" onClick={() => scrollTo("#how-it-works")}><span>Explore the signal</span><ArrowDown size={15} /></button>
         </section>
@@ -281,7 +277,7 @@ export function LandingPage() {
         <Reveal id="use-cases" className="streamly-section use-case-section">
           <div className="streamly-container">
             <div className="section-heading section-heading-split"><div><span className="section-label">03 / MADE FOR MOMENTUM</span><h2>One engine.<br /><em>Many rhythms.</em></h2></div><p>A calm overnight radio station, a daily devotional, a rolling news feed, or an education loop — the format is yours.</p></div>
-            <div className="use-case-grid"><div className="use-case-primary"><div className="use-case-bars"><i /><i /><i /><i /><i /><i /><i /></div><div className="use-case-primary-copy"><span className="signal-badge signal-badge-violet"><i /> PROGRAMMING MODE</span><h3>Build a channel people can leave on.</h3><p>Give your archive a living schedule. Streamly keeps the handoff smooth from one video to the next.</p></div><div className="use-case-quote">“The best broadcast is the one that keeps its promise.”</div></div><div className="use-case-list"><div><span className="use-case-number">01</span><strong>Ambient & focus</strong><small>Long-form loops for deep work</small><ArrowRight size={16} /></div><div><span className="use-case-number">02</span><strong>News & updates</strong><small>Keep the daily signal moving</small><ArrowRight size={16} /></div><div><span className="use-case-number">03</span><strong>Classes & devotion</strong><small>A dependable rhythm for learners</small><ArrowRight size={16} /></div><div><span className="use-case-number">04</span><strong>Product showcases</strong><small>Let your best work stay visible</small><ArrowRight size={16} /></div></div></div>
+             <div className="use-case-grid"><div className="use-case-primary"><img className="use-case-live-visual" src="/images/live-signal-visual.webp" alt="Glowing live-stream signal orb" loading="lazy" /><div className="use-case-bars"><i /><i /><i /><i /><i /><i /><i /></div><div className="use-case-primary-copy"><span className="signal-badge signal-badge-violet"><i /> PROGRAMMING MODE</span><h3>Build a channel people can leave on.</h3><p>Give your archive a living schedule. Streamly keeps the handoff smooth from one video to the next.</p></div><div className="use-case-quote">“The best broadcast is the one that keeps its promise.”</div></div><div className="use-case-list"><div><span className="use-case-number">01</span><strong>Ambient & focus</strong><small>Long-form loops for deep work</small><ArrowRight size={16} /></div><div><span className="use-case-number">02</span><strong>News & updates</strong><small>Keep the daily signal moving</small><ArrowRight size={16} /></div><div><span className="use-case-number">03</span><strong>Classes & devotion</strong><small>A dependable rhythm for learners</small><ArrowRight size={16} /></div><div><span className="use-case-number">04</span><strong>Product showcases</strong><small>Let your best work stay visible</small><ArrowRight size={16} /></div></div></div>
           </div>
         </Reveal>
 
@@ -301,7 +297,7 @@ export function LandingPage() {
 }
 
 function PublicFooter() {
-  return <footer className="streamly-footer" style={{ backgroundImage: "url('/images/footer-texture.webp')" }}><div className="streamly-container footer-inner"><div><Link href="/" className="streamly-brand"><BrandMark /><span>Streamly</span></Link><span className="footer-note">Broadcast continuity for creators.</span></div><div className="footer-links"><span>Product</span><Link href="#capabilities">Capabilities</Link><Link href="/pricing">Pricing</Link></div><div className="footer-links"><span>Access</span><Link href="/access">Log in</Link><Link href="/gateway">Gateway</Link></div><div className="footer-socials" aria-label="Social links"><a href="https://twitter.com/" target="_blank" rel="noreferrer" aria-label="Streamly on X"><TwitterLogo size={17} /></a><a href="https://discord.com/" target="_blank" rel="noreferrer" aria-label="Streamly on Discord"><DiscordLogo size={17} /></a><a href="https://www.youtube.com/" target="_blank" rel="noreferrer" aria-label="Streamly on YouTube"><YoutubeLogo size={17} /></a></div><span className="footer-copyright">© 2026 Streamly</span></div></footer>;
+  return <footer className="streamly-footer" style={{ backgroundImage: "url('/images/footer-texture.webp')" }}><div className="streamly-container footer-inner"><div><Link href="/" className="streamly-brand"><BrandMark /><span>Streamly</span></Link><span className="footer-note">Broadcast continuity for creators.</span></div><div className="footer-links"><span>Product</span><Link href="#capabilities">Capabilities</Link><Link href="/pricing">Pricing</Link></div><div className="footer-links"><span>Access</span><Link href="/access">Log in</Link></div><div className="footer-socials" aria-label="Social links"><a href="https://twitter.com/" target="_blank" rel="noreferrer" aria-label="Streamly on X"><TwitterLogo size={17} /></a><a href="https://discord.com/" target="_blank" rel="noreferrer" aria-label="Streamly on Discord"><DiscordLogo size={17} /></a><a href="https://www.youtube.com/" target="_blank" rel="noreferrer" aria-label="Streamly on YouTube"><YoutubeLogo size={17} /></a></div><span className="footer-copyright">© 2026 Streamly</span></div></footer>;
 }
 
 function ContactDialog({ plan, onClose }: { plan: { term: string } | null; onClose: () => void }) {

@@ -3118,7 +3118,12 @@ select { height: 41px; }
 .full-plan { position: relative; }
 .popular-badge { position: absolute; top: -28px; right: 16px; width: 52px; height: 52px; object-fit: contain; filter: drop-shadow(0 10px 18px rgba(139,92,246,.28)); transform: rotate(8deg); }
 .streamly-login-visual { position: absolute; z-index: 0; top: 50%; right: max(5vw, calc((100vw - 1180px) / 2)); width: min(31vw, 430px); max-height: 78vh; object-fit: contain; opacity: .42; transform: translateY(-50%); filter: saturate(1.12) drop-shadow(0 0 48px rgba(74,83,246,.24)); mix-blend-mode: screen; pointer-events: none; }
+.streamly-logo-image { display: block; width: 100%; height: 100%; padding: 4px; object-fit: contain; border-radius: inherit; }
+.use-case-live-visual { position: absolute; right: 24px; bottom: 28px; width: 205px; max-height: 205px; object-fit: contain; opacity: .62; filter: saturate(1.12) drop-shadow(0 0 28px rgba(74,83,246,.28)); mix-blend-mode: screen; pointer-events: none; }
+.hero-layout { grid-template-columns: minmax(0, 1fr); }
+.hero-copy { max-width: 680px; }
 @media (max-width: 760px) {
   .hero-visual-image { top: -22px; right: -30px; width: 76%; opacity: .46; }
   .streamly-login-visual { right: -14%; width: 58vw; opacity: .2; }
+  .use-case-live-visual { right: -18px; bottom: 20px; width: 170px; opacity: .44; }
 }
