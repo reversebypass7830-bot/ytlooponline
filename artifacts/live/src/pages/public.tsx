@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
+import { Fragment, useEffect, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
 import { AnimatePresence, motion, useInView, useReducedMotion } from "framer-motion";
 import {
   ArrowDown,
@@ -252,12 +252,12 @@ export function LandingPage() {
     setHeroTilt(`perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale3d(1.015, 1.015, 1.015)`);
   };
   const creators = [
-    { label: "News", image: "channel1.webp", copy: "Stay updated with 24/7 news streaming" },
-    { label: "Devotional", image: "channel2.webp", copy: "Share devotion with your community" },
-    { label: "Music", image: "channel3.webp", copy: "Keep the music going all day" },
-    { label: "Cartoons", image: "channel4.webp", copy: "Entertainment that never stops" },
-    { label: "Educators", image: "channel5.webp", copy: "Make learning available around the clock" },
-    { label: "Affiliates", image: "channel6.webp", copy: "Grow your audience while you sleep" },
+    { label: "News", images: ["news-01.png", "news-02.png"], copy: "Stay updated with 24/7 news streaming" },
+    { label: "Devotional", images: ["devotional-01.png", "devotional-02.png"], copy: "Share devotion with your community" },
+    { label: "Music", images: ["music-01.png", "music-02.png"], copy: "Keep the music going all day" },
+    { label: "Cartoons", images: ["cartoons-01.png", "cartoons-02.png"], copy: "Entertainment that never stops" },
+    { label: "Educators", images: ["educators-01.png", "educators-02.png"], copy: "Make learning available around the clock" },
+    { label: "Affiliates", images: ["affiliates-01.png", "affiliates-02.png"], copy: "Grow your audience while you sleep" },
   ];
   const faqs = [
     "What is Loop Stream?",
@@ -365,7 +365,9 @@ export function LandingPage() {
             <p>Select your type — we've got you covered.</p>
             <div className="loop-clone-creator-tabs">{creators.map((item, index) => <button type="button" key={item.label} className={creator === index ? "active" : ""} onClick={() => setCreator(index)}>{item.label}</button>)}</div>
             <div className="loop-clone-creator-showcase">
-              <img src={`/images/appImage/channel-logo/${creators[creator].image}`} alt="" />
+              <div className="loop-clone-creator-gallery" aria-label={`${creators[creator].label} streaming examples`}>
+                {creators[creator].images.map((image, index) => <img key={image} src={`/images/loopstream/creators/${image}`} alt={`${creators[creator].label} streaming example ${index + 1}`} />)}
+              </div>
               <div><h3>{creators[creator].label}</h3><p>{creators[creator].copy}</p><Link href="/pricing">Start streaming <ArrowRight size={16} /></Link></div>
             </div>
           </div>
@@ -377,7 +379,7 @@ export function LandingPage() {
             <h2>Go Live in 3 Simple Steps</h2>
             <p>No software, no studio. Just upload, schedule, and relax</p>
             <div className="loop-clone-step-grid">
-              {[["Upload your video", "Upload_Video.webp", "Add your content in a few clicks"], ["Schedule or stream instantly", "Schedule_Stream.webp", "Choose when you want to go live"], ["Loop & Go Live", "Loop_Go_Live.webp", "Let Loop Stream handle the rest"]].map(([title, image, copy], index) => <article key={title}><span>0{index + 1}</span><img src={`/images/appImage/landing-page/${image}`} alt={title} /><h3>{title}</h3><p>{copy}</p></article>)}
+              {[["Upload your video", "Upload_Video.webp", "Add your content in a few clicks"], ["Schedule or stream instantly", "Schedule_Stream.webp", "Choose when you want to go live"], ["Loop & Go Live", "Loop_Go_Live.webp", "Let Loop Stream handle the rest"]].map(([title, image, copy], index) => <Fragment key={title}><article><span>0{index + 1}</span><img src={`/images/appImage/landing-page/${image}`} alt={title} /><h3>{title}</h3><p>{copy}</p></article>{index < 2 && <img className="loop-clone-step-arrow" src="/images/loopstream/step-arrow.png" alt="" aria-hidden="true" />}</Fragment>)}
             </div>
           </div>
         </section>
