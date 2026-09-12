@@ -11,6 +11,7 @@ import {
   CloudArrowUp,
   DotsThree,
   Gauge,
+  SquaresFour,
   Lightning,
   ListChecks,
   MagnifyingGlass,
@@ -305,7 +306,7 @@ export function LandingPage() {
           <button type="button" onClick={() => scrollTo("#loop-steps")}>Tutorials</button>
           <button type="button" onClick={() => scrollTo("#loop-faq")}>Contact us</button>
         </nav>
-        <Link href="/access" className="loop-clone-dashboard"><Gauge size={15} /> Dashboard</Link>
+        <Link href="/access" className="loop-clone-dashboard"><SquaresFour size={14} weight="regular" /> <span>Dashboard</span></Link>
         <button type="button" className="loop-clone-menu" aria-label="Open menu" onClick={() => document.querySelector(".loop-clone-links")?.classList.toggle("is-mobile-open")}><List size={20} /></button>
       </header>
 
@@ -331,7 +332,7 @@ export function LandingPage() {
             <p>Empowering 24/7 live streams of music, devotional, kids, education &amp; news channels</p>
             <div className="loop-clone-channel-marquee" aria-label="Examples of 24/7 live streaming channels">
               <div className="loop-clone-channel-row">
-                {[0, 1].map((setIndex) => (
+                {[0, 1, 2].map((setIndex) => (
                   <div className="loop-clone-channel-set" key={setIndex} aria-hidden={setIndex === 1}>
                     {channelLogos.map((name) => <img key={`${setIndex}-${name}`} src={`/images/appImage/channel-logo/${name}`} alt="" />)}
                   </div>
