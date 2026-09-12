@@ -1883,25 +1883,10 @@ function PhoneProfileCard({ onSave }: { onSave: (phone: string) => Promise<void>
   return <section className="account-profile-card"><div><p className="eyebrow">Account profile</p><h2>Add a mobile number</h2><p className="subtle">Keep it linked to this Google account. OTP login can use this same account when mobile sign-in is enabled.</p></div><form onSubmit={save}><input type="tel" value={phone} onChange={(event) => setPhone(event.target.value)} placeholder="+91 98765 43210" aria-label="Mobile number"/><button className="button" type="submit" disabled={busy || !phone.trim()}>{busy ? "Saving…" : "Save number"} <Check size={14}/></button></form>{message && <span className="form-hint">{message}</span>}</section>;
 }
 
-function OwnerClaimCard({ onClaimOwner }: { onClaimOwner: (password: string) => Promise<void> }) {
-  const [password, setPassword] = useState("");
-  const [busy, setBusy] = useState(false);
-  const [message, setMessage] = useState("");
-  const claim = async (event: FormEvent) => {
-    event.preventDefault();
-    if (!password) return;
-    setBusy(true); setMessage("");
-    try { await onClaimOwner(password); setMessage("Owner access linked. Your owner console will open next."); }
-    catch (reason) { setMessage(reason instanceof Error ? reason.message : "Owner access could not be linked."); }
-    finally { setBusy(false); }
-  };
-  return <section className="account-profile-card owner-claim-card"><div><p className="eyebrow">Owner controls</p><h2>Link owner access</h2><p className="subtle">If this Google account owns the service, link it once with the existing owner password. Future sign-ins will open the owner panel automatically.</p></div><form onSubmit={claim}><input type="password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Existing owner password" aria-label="Existing owner password"/><button className="button secondary" type="submit" disabled={busy || !password}>{busy ? "Linking…" : "Link owner account"} <ArrowRight size={14}/></button></form>{message && <span className="form-hint">{message}</span>}</section>;
-}
-
-function Dashboard({ workspace, account, onSavePhone, onClaimOwner }: { workspace:ReturnType<typeof useWorkspace>; account?: AccountSummary | null; onSavePhone?: (phone: string) => Promise<void>; onClaimOwner?: (password: string) => Promise<void> }) {
+function Dashboard({ workspace, account, onSavePhone }: { workspace:ReturnType<typeof useWorkspace>; account?: AccountSummary | null; onSavePhone?: (phone: string) => Promise<void> }) {
   const {data, update} = workspace;
   const live = data.channels.filter(c=>c.status==="live");
-  return <AppShell title="Overview" workspace={workspace}><div className="page"><div className="page-head"><div><p className="eyebrow">Account workspace</p><h1>Good morning, {workspace.user.split("@")[0]}.</h1><p className="subtle">The room is quiet. One channel is currently on air.</p></div><div className="dashboard-head-actions"><AccountAccessTimer account={account}/><Link href="/live" className="button" data-testid="link-go-live"><Radio size={15}/> Manage live room</Link></div></div>{account && !account.phone && onSavePhone && <PhoneProfileCard onSave={onSavePhone} />}{account?.role !== "owner" && onClaimOwner && <OwnerClaimCard onClaimOwner={onClaimOwner}/>}
+  return <AppShell title="Overview" workspace={workspace}><div className="page"><div className="page-head"><div><p className="eyebrow">Account workspace</p><h1>Good morning, {workspace.user.split("@")[0]}.</h1><p className="subtle">The room is quiet. One channel is currently on air.</p></div><div className="dashboard-head-actions"><AccountAccessTimer account={account}/><Link href="/live" className="button" data-testid="link-go-live"><Radio size={15}/> Manage live room</Link></div></div>{account && !account.phone && onSavePhone && <PhoneProfileCard onSave={onSavePhone} />}
     <div className="metric-grid"><Metric label="On air now" value={live.length} detail={live.length ? "Signal is healthy" : "Nothing is live"} /><Metric label="Library videos" value={data.videos.length} detail={`${data.videos.filter(v=>v.status==="published").length} published`} /><Metric label="Categories" value={data.groups.length} detail="Playlist folders" /> </div>
     <div className="split-grid"><section className="card section-card"><div className="section-head"><div><h2 className="section-title">Live channels</h2><p className="subtle" style={{margin: "5px 0 0", fontSize:11}}>Your broadcast surface, at a glance.</p></div><Link href="/live" className="section-link" data-testid="link-view-all-live">View all <ArrowRight size={12} style={{verticalAlign:"-2px"}}/></Link></div>{live.length ? <div className="live-list">{live.map(c=><div className="live-row" key={c.id} data-testid={`live-row-${c.id}`}><div className="thumb" style={{background:c.thumbnailColor}}><Radio size={16}/></div><div><div className="row-title">{c.title}</div><div className="row-meta">{c.platform} · live for {fmtTime(c.startedAt)}</div></div><div className="status live"><span className="status-dot"/>Live</div></div>)}</div> : <EmptyState icon={<Radio size={21}/>} title="Nothing is live" copy="Start a channel when the room is ready." action="Open live room" href="/live"/>}<div className="quick-actions"><Link href="/live" className="quick" data-testid="quick-new-channel"><Plus size={15}/> New channel</Link><Link href="/videos" className="quick" data-testid="quick-add-video"><Upload size={15}/> Add to library</Link></div></section>
       <section className="card section-card"><div className="section-head"><div><h2 className="section-title">Recent activity</h2><p className="subtle" style={{margin:"5px 0 0",fontSize:11}}>A small paper trail for the room.</p></div><ActivityIcon size={17} color="#6c8b83"/></div><ActivityList activities={data.activities}/></section></div>
@@ -3957,8 +3942,8 @@ function SettingsPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}) {
    </AppShell>;
 }
 
-function Routed({workspace, account, onSavePhone, onClaimOwner}:{workspace:ReturnType<typeof useWorkspace>; account:AccountSummary|null; onSavePhone:(phone:string)=>Promise<void>; onClaimOwner:(password:string)=>Promise<void>}) {
-  return <Switch><Route path="/dashboard"><Dashboard workspace={workspace} account={account} onSavePhone={onSavePhone} onClaimOwner={onClaimOwner}/></Route><Route path="/live"><LivePage workspace={workspace}/></Route><Route path="/live-preview"><LivePreviewPage workspace={workspace}/></Route><Route path="/videos"><VideosPage workspace={workspace}/></Route><Route path="/editor"><VideoEditorPage workspace={workspace}/></Route><Route path="/settings"><SettingsPage workspace={workspace}/></Route><Route><NotFound/></Route></Switch>;
+function Routed({workspace, account, onSavePhone}:{workspace:ReturnType<typeof useWorkspace>; account:AccountSummary|null; onSavePhone:(phone:string)=>Promise<void>}) {
+  return <Switch><Route path="/dashboard"><Dashboard workspace={workspace} account={account} onSavePhone={onSavePhone}/></Route><Route path="/live"><LivePage workspace={workspace}/></Route><Route path="/live-preview"><LivePreviewPage workspace={workspace}/></Route><Route path="/videos"><VideosPage workspace={workspace}/></Route><Route path="/editor"><VideoEditorPage workspace={workspace}/></Route><Route path="/settings"><SettingsPage workspace={workspace}/></Route><Route><NotFound/></Route></Switch>;
 }
 
 function App() {
@@ -4030,7 +4015,7 @@ function App() {
   if (location === "/access") return <LicenseGate license={activeLicense} busy={license.busy} error={license.error || firebaseError} signedIn={Boolean(isSignedIn || hasAccountSession)} onActivate={license.activate} onRenew={license.renew} onGoogleLogin={() => setLocation("/sign-in")} onGiftReady={setMobileGiftKey} onOpenRoom={openMobileRoom}/>;
   if (!activeLicense || !isLicenseActive(activeLicense)) return <LicenseGate license={activeLicense} busy={license.busy} error={license.error || firebaseError} signedIn={Boolean(isSignedIn || hasAccountSession)} onActivate={license.activate} onRenew={license.renew} onGoogleLogin={() => setLocation("/sign-in")} onGiftReady={setMobileGiftKey} onOpenRoom={openMobileRoom}/>;
   if (!workspace.ready) return <div className="workspace-loading"><Radio size={20}/><span>Loading your private workspace…</span></div>;
-  return <><Routed workspace={workspace} account={accountSession.account} onSavePhone={accountSession.savePhone} onClaimOwner={async (password) => { await accountSession.claimOwner(password); setLocation("/owner"); }}/>{accountSession.account && profileGateId === accountSession.account.id && <AccountCompletionDialog account={accountSession.account} onSave={accountSession.saveProfile} onClose={() => setProfileGateId(null)} />}</>;
+  return <><Routed workspace={workspace} account={accountSession.account} onSavePhone={accountSession.savePhone}/>{accountSession.account && profileGateId === accountSession.account.id && <AccountCompletionDialog account={accountSession.account} onSave={accountSession.saveProfile} onClose={() => setProfileGateId(null)} />}</>;
 }
 
 export default function RootApp() {
