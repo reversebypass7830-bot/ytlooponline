@@ -17,7 +17,6 @@ import {
   TrimMediaFileBody,
   TrimMediaFileResponse,
 } from "@workspace/api-zod";
-import ffmpegPath from "ffmpeg-static";
 import { cleanupVidKrakenDownload, downloadVidKraken, getVidKrakenInfo } from "../lib/vidkraken";
 
 const router: IRouter = Router();
@@ -401,7 +400,7 @@ function decodeHeaderValue(value: string | undefined): string {
 
 function runFfmpeg(args: string[], onProgress?: (seconds: number) => void): Promise<void> {
   return new Promise((resolve, reject) => {
-    const child = spawn(ffmpegPath ?? "ffmpeg", args, { stdio: ["ignore", "pipe", "pipe"] });
+    const child = spawn(process.env.FFMPEG_PATH?.trim() || "ffmpeg", args, { stdio: ["ignore", "pipe", "pipe"] });
     let stderr = "";
     let stdoutBuffer = "";
     const parseProgress = (chunk: Buffer) => {
