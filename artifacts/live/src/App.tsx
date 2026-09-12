@@ -1162,8 +1162,7 @@ function useWorkspace(license: LicenseSession | null, clearLicense: () => void) 
 
 function Brand({ compact = false }: { compact?: boolean }) {
   return <div className="brand" data-testid="brand">
-    <div className="brand-mark"><img src={logoImage} alt="Reverse Bypass logo" /></div>
-    {!compact && <div><div className="brand-name">Reverse Bypass</div><div className="brand-note">reverse access console</div></div>}
+    <div className="brand-mark"><img src="/images/logo/loop-logo.webp" alt="Loop Stream" /></div>
   </div>;
 }
 
