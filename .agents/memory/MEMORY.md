@@ -26,3 +26,4 @@
 - [Access onboarding architecture](access-onboarding.md) — unlinked mobile OTP uses a short-lived server token; profile, trial license, and workspace creation stay server-side.
 - [Firebase Google auth bridge](firebase-google-auth-bridge.md) — exchange Firebase Google ID tokens for a server-signed session so Firebase auth can preserve existing account and workspace semantics.
 - [Firebase Vite configuration](firebase-vite-config.md) — this workflow needs explicit Vite injection when browser config comes from existing non-VITE Firebase environment variables.
+- [Publish image size](publish-image-size.md) — large local runtime media can bypass gitignore during publishing; use root .replitignore for deployment-only exclusions.

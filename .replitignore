@@ -1,5 +1,27 @@
 # The format of this file is identical to `.dockerignore`.
 # It is used to reduce the size of deployed images to make the process of publishing faster.
 
-# No need to store the pnpm store twice.
+# No need to store local tooling, package caches, or git metadata twice.
+.git
 .local
+.cache
+.pythonlibs
+node_modules
+scripts/node_modules
+
+# Unrelated source trees and local screenshots are not part of Streamly.
+Arroxy
+homepage
+screenshots
+cloudflared
+
+# Large generated/downloaded media is local runtime state. Keep the small
+# included-animation library below, but do not ship user/test render copies.
+artifacts/api-server/attached_assets/live-media/edited-videos
+artifacts/api-server/attached_assets/live-media/media
+artifacts/api-server/attached_assets/live-media/gtv
+artifacts/api-server/attached_assets/live-media/m
+artifacts/api-server/attached_assets/live-media/youtube-proxy-test
+artifacts/api-server/attached_assets/live-media/face
+artifacts/api-server/attached_assets/live-media/maq
+artifacts/api-server/attached_assets/live-media/*.base.mp4
