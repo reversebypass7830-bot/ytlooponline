@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { useEffect, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
 import { AnimatePresence, motion, useInView, useReducedMotion } from "framer-motion";
 import {
   ArrowDown,
@@ -233,6 +233,7 @@ export function LandingPage() {
   const [compare, setCompare] = useState(50);
   const [billing, setBilling] = useState<"Day" | "Month" | "Year">("Month");
   const [heroTilt, setHeroTilt] = useState("none");
+  const shouldReduceMotion = useReducedMotion();
   const comparisonRef = useRef<HTMLDivElement>(null);
   const scrollTo = (selector: string) => document.querySelector(selector)?.scrollIntoView({ behavior: "smooth" });
   const updateComparisonFromPointer = (clientX: number) => {
@@ -240,28 +241,15 @@ export function LandingPage() {
     if (!bounds) return;
     setCompare(Math.max(0, Math.min(100, ((clientX - bounds.left) / bounds.width) * 100)));
   };
-  useEffect(() => {
-    const desktopQuery = window.matchMedia("(min-width: 1200px)");
-    const reducedMotionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
-    const updateTilt = (event: MouseEvent) => {
-      if (!desktopQuery.matches || reducedMotionQuery.matches) return;
-      const rotateX = Math.max(-20, (window.innerHeight - 2 * event.clientY) / 100);
-      const rotateY = (window.innerWidth - 2 * event.clientX) / 100;
-      setHeroTilt(`perspective(1200px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale3d(1, 1, 1)`);
-    };
-    const resetTilt = () => setHeroTilt("none");
-    const syncMode = () => {
-      if (!desktopQuery.matches || reducedMotionQuery.matches) resetTilt();
-    };
-    window.addEventListener("mousemove", updateTilt, { passive: true });
-    desktopQuery.addEventListener("change", syncMode);
-    reducedMotionQuery.addEventListener("change", syncMode);
-    return () => {
-      window.removeEventListener("mousemove", updateTilt);
-      desktopQuery.removeEventListener("change", syncMode);
-      reducedMotionQuery.removeEventListener("change", syncMode);
-    };
-  }, []);
+  const updateHeroTilt = (event: ReactPointerEvent<HTMLImageElement>) => {
+    if (shouldReduceMotion || event.pointerType !== "mouse" || window.innerWidth < 1200) return;
+    const bounds = event.currentTarget.getBoundingClientRect();
+    const x = (event.clientX - bounds.left) / bounds.width - 0.5;
+    const y = (event.clientY - bounds.top) / bounds.height - 0.5;
+    const rotateX = Math.max(-2.5, Math.min(2.5, -y * 5));
+    const rotateY = Math.max(-3.5, Math.min(3.5, x * 7));
+    setHeroTilt(`perspective(1200px) rotateX(${rotateX}deg) rotateY(${rotateY}deg)`);
+  };
   const creators = [
     { label: "News", image: "channel1.webp", copy: "Stay updated with 24/7 news streaming" },
     { label: "Devotional", image: "channel2.webp", copy: "Share devotion with your community" },
@@ -333,7 +321,7 @@ export function LandingPage() {
           <div className="loop-clone-wordmark"><span>Stream</span><i /> <span>Loop</span><i /> <span>Grow</span></div>
           <h1>Go live without going live, 24/7 Pre-Recorded Streaming</h1>
           <div className="loop-clone-hero-actions"><Link href="/pricing">Get Started</Link><button type="button" onClick={() => scrollTo("#loop-pricing")}>Start Free Loop</button></div>
-          <img className="loop-clone-hero-visual" style={{ transform: heroTilt }} src="/images/loopstream/landing/Hero_Two_Screen.webp" alt="Loop Stream dashboard showing scheduled 24/7 pre-recorded video loops" />
+          <img className="loop-clone-hero-visual" style={{ transform: heroTilt }} onPointerMove={updateHeroTilt} onPointerLeave={() => setHeroTilt("none")} src="/images/loopstream/landing/Hero_Two_Screen.webp" alt="Loop Stream dashboard showing scheduled 24/7 pre-recorded video loops" />
         </section>
 
         <section className="loop-clone-trust">
