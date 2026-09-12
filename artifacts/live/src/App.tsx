@@ -1193,10 +1193,10 @@ function Sidebar({ path, open, onClose, user, onLogout, data }: { path:string; o
   </aside>;
 }
 
-function Header({ title, onMenu }: { title:string; onMenu:()=>void }) {
+function Header({ title, account, onMenu }: { title:string; account?: AccountSummary | null; onMenu:()=>void }) {
   return <header className="topbar">
     <div className="crumb"><button className="icon-button mobile-menu" onClick={onMenu} data-testid="button-open-menu"><Menu size={18}/></button><span className="crumb-label">Reverse Bypass /</span><span className="crumb-title">{title}</span></div>
-    <div className="top-actions"><div className="live-pulse"><span className="pulse"/><span>Broadcast monitor</span></div><button className="icon-button" data-testid="button-help" title="Help"><CircleHelp size={17}/></button></div>
+    <div className="top-actions"><AccountAccessTimer account={account}/><div className="live-pulse"><span className="pulse"/><span>Broadcast monitor</span></div><button className="icon-button" data-testid="button-help" title="Help"><CircleHelp size={17}/></button></div>
   </header>;
 }
 
@@ -1228,13 +1228,13 @@ function DownloadActivity({ downloads, onDismiss }: { downloads: YoutubeDownload
   </div>;
 }
 
-function AppShell({ children, title, workspace }: { children:ReactNode; title:string; workspace:ReturnType<typeof useWorkspace> }) {
+function AppShell({ children, title, account, workspace }: { children:ReactNode; title:string; account?: AccountSummary | null; workspace:ReturnType<typeof useWorkspace> }) {
   const [path] = useLocation();
   const [menu, setMenu] = useState(false);
   return <div className="shell">
     {menu && <button className="sidebar-scrim" aria-label="Close navigation" onClick={() => setMenu(false)} data-testid="button-close-menu" />}
     <Sidebar path={path} open={menu} onClose={()=>setMenu(false)} user={workspace.user} onLogout={workspace.logout} data={workspace.data}/>
-    <main className="main"><Header title={title} onMenu={()=>setMenu(true)}/><DownloadActivity downloads={workspace.youtubeDownloads} onDismiss={workspace.dismissYoutubeDownload}/>{children}</main>
+     <main className="main"><Header title={title} account={account} onMenu={()=>setMenu(true)}/><DownloadActivity downloads={workspace.youtubeDownloads} onDismiss={workspace.dismissYoutubeDownload}/>{children}</main>
     {workspace.toast && <div className="toast" data-testid="status-toast"><Check size={14} style={{verticalAlign:"-2px", marginRight:7}}/>{workspace.toast}</div>}
   </div>;
 }
@@ -1886,7 +1886,7 @@ function PhoneProfileCard({ onSave }: { onSave: (phone: string) => Promise<void>
 function Dashboard({ workspace, account, onSavePhone }: { workspace:ReturnType<typeof useWorkspace>; account?: AccountSummary | null; onSavePhone?: (phone: string) => Promise<void> }) {
   const {data, update} = workspace;
   const live = data.channels.filter(c=>c.status==="live");
-  return <AppShell title="Overview" workspace={workspace}><div className="page"><div className="page-head"><div><p className="eyebrow">Account workspace</p><h1>Good morning, {workspace.user.split("@")[0]}.</h1><p className="subtle">The room is quiet. One channel is currently on air.</p></div><div className="dashboard-head-actions"><AccountAccessTimer account={account}/><Link href="/live" className="button" data-testid="link-go-live"><Radio size={15}/> Manage live room</Link></div></div>{account && !account.phone && onSavePhone && <PhoneProfileCard onSave={onSavePhone} />}
+  return <AppShell title="Overview" account={account} workspace={workspace}><div className="page"><div className="page-head"><div><p className="eyebrow">Account workspace</p><h1>Good morning, {workspace.user.split("@")[0]}.</h1><p className="subtle">The room is quiet. One channel is currently on air.</p></div><div className="dashboard-head-actions"><Link href="/live" className="button" data-testid="link-go-live"><Radio size={15}/> Manage live room</Link></div></div>{account && !account.phone && onSavePhone && <PhoneProfileCard onSave={onSavePhone} />}
     <div className="metric-grid"><Metric label="On air now" value={live.length} detail={live.length ? "Signal is healthy" : "Nothing is live"} /><Metric label="Library videos" value={data.videos.length} detail={`${data.videos.filter(v=>v.status==="published").length} published`} /><Metric label="Categories" value={data.groups.length} detail="Playlist folders" /> </div>
     <div className="split-grid"><section className="card section-card"><div className="section-head"><div><h2 className="section-title">Live channels</h2><p className="subtle" style={{margin: "5px 0 0", fontSize:11}}>Your broadcast surface, at a glance.</p></div><Link href="/live" className="section-link" data-testid="link-view-all-live">View all <ArrowRight size={12} style={{verticalAlign:"-2px"}}/></Link></div>{live.length ? <div className="live-list">{live.map(c=><div className="live-row" key={c.id} data-testid={`live-row-${c.id}`}><div className="thumb" style={{background:c.thumbnailColor}}><Radio size={16}/></div><div><div className="row-title">{c.title}</div><div className="row-meta">{c.platform} · live for {fmtTime(c.startedAt)}</div></div><div className="status live"><span className="status-dot"/>Live</div></div>)}</div> : <EmptyState icon={<Radio size={21}/>} title="Nothing is live" copy="Start a channel when the room is ready." action="Open live room" href="/live"/>}<div className="quick-actions"><Link href="/live" className="quick" data-testid="quick-new-channel"><Plus size={15}/> New channel</Link><Link href="/videos" className="quick" data-testid="quick-add-video"><Upload size={15}/> Add to library</Link></div></section>
       <section className="card section-card"><div className="section-head"><div><h2 className="section-title">Recent activity</h2><p className="subtle" style={{margin:"5px 0 0",fontSize:11}}>A small paper trail for the room.</p></div><ActivityIcon size={17} color="#6c8b83"/></div><ActivityList activities={data.activities}/></section></div>
