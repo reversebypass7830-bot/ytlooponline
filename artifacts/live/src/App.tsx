@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type CSSProperties, type ChangeEvent, type FormEvent, type PointerEvent as ReactPointerEvent, type ReactNode, type SyntheticEvent } from "react";
+import { useEffect, useId, useMemo, useRef, useState, type CSSProperties, type ChangeEvent, type FormEvent, type PointerEvent as ReactPointerEvent, type ReactNode, type SyntheticEvent } from "react";
 import { Link, Redirect, Route, Switch, useLocation, Router as WouterRouter } from "wouter";
 import {
   Activity as ActivityIcon, ArrowRight, BookOpen, Camera, Check, CircleHelp, Clipboard,
@@ -121,7 +121,7 @@ type LicenseSession = { licenseId: string; key: string; name: string; expiresAt:
 type AccountPlan = { id: string; name: string; description: string; durationDays: number; price: string; isTrial?: boolean; active: boolean; createdAt: string; updatedAt: string };
 type AccountHistoryItem = { id: string; type: "trial_started" | "purchase" | "grant" | "login"; message: string; at: string; planId?: string; days?: number };
 type AccountSummary = {
-  id: string; displayName: string; email: string; phone?: string; profileCompleted?: boolean; role: "owner" | "user";
+  id: string; displayName: string; email: string; phone?: string; profileImagePath?: string; profileCompleted?: boolean; role: "owner" | "user";
   licenseId: string; licenseKey: string; trialStartedAt: string; trialEndsAt: string;
   activePlanId: string; activePlan: AccountPlan | null; accessEndsAt: string; active: boolean;
   history: AccountHistoryItem[];
@@ -167,6 +167,7 @@ const uid = (prefix: string) => `${prefix}-${Math.random().toString(36).slice(2,
 const isLicenseActive = (license: LicenseSession | null) => Boolean(license && license.active && new Date(license.expiresAt).getTime() > Date.now());
 const profilePhotoKey = (userId: string) => `reverse-bypass-profile-photo:${userId}`;
 const defaultProfilePhoto = (userId: string) => `https://i.pravatar.cc/200?img=${(Array.from(userId).reduce((sum, char) => sum + char.charCodeAt(0), 0) % 70) + 1}`;
+const profileImageUrl = (path?: string) => path ? `/api/storage${path}` : "";
 const getClientId = () => {
   const existing = localStorage.getItem("signal-desk-client-id");
   if (existing) return existing;
@@ -941,7 +942,7 @@ function useAccountSession(isSignedIn: boolean, userId?: string, authReady = tru
     return () => window.clearInterval(timer);
   }, [authReady, isSignedIn, userId, Boolean(account)]);
 
-  const saveProfile = async (profile: { displayName: string; email: string; phone?: string }) => {
+  const saveProfile = async (profile: { displayName: string; email: string; phone?: string; profileImagePath?: string }) => {
     const result = await apiJson<AccountResponse>("/api/account/profile", {
       method: "PUT",
       body: JSON.stringify(profile),
@@ -1265,6 +1266,39 @@ function AppShell({ children, title, account, profilePhoto, workspace }: { child
   </div>;
 }
 
+function WaterFillAvatar({ src, alt, animate, animationKey }: { src: string; alt: string; animate: boolean; animationKey: number }) {
+  const id = useId().replace(/:/g, "");
+  const clipId = `profile-avatar-clip-${id}`;
+  const maskId = `profile-avatar-mask-${id}-${animationKey}`;
+  const gradientId = `profile-avatar-water-${id}`;
+  return <svg className="profile-avatar profile-avatar-svg" viewBox="0 0 112 112" role="img" aria-label={alt} key={animationKey}>
+    <defs>
+      <clipPath id={clipId}><circle cx="56" cy="56" r="56" /></clipPath>
+      <mask id={maskId} maskUnits="userSpaceOnUse" x="0" y="0" width="112" height="112">
+        <rect width="112" height="112" fill="black" />
+        <rect className="profile-avatar-reveal" x="0" y={animate ? 112 : 0} width="112" height="112" fill="white">
+          {animate && <animate attributeName="y" from="112" to="0" dur="1.2s" calcMode="spline" keyTimes="0;1" keySplines="0.22 1 0.36 1" fill="freeze" />}
+        </rect>
+      </mask>
+      <linearGradient id={gradientId} x1="0" x2="1" y1="0" y2="1">
+        <stop offset="0" stopColor="#ff63ae" stopOpacity=".36" />
+        <stop offset="1" stopColor="#a35bd7" stopOpacity=".24" />
+      </linearGradient>
+    </defs>
+    <circle className="profile-avatar-backdrop" cx="56" cy="56" r="56" />
+    <image href={src} x="0" y="0" width="112" height="112" preserveAspectRatio="xMidYMid slice" clipPath={`url(#${clipId})`} mask={animate ? `url(#${maskId})` : undefined} />
+    {animate && <g clipPath={`url(#${clipId})`} pointerEvents="none">
+      <path className="profile-avatar-water" fill={`url(#${gradientId})`} d="M-12 112 C 10 104, 25 119, 48 112 S 86 105, 124 112 V0 H-12 Z">
+        <animateTransform attributeName="transform" type="translate" from="0 112" to="0 0" dur="1.2s" calcMode="spline" keyTimes="0;1" keySplines="0.22 1 0.36 1" fill="freeze" />
+      </path>
+      <path className="profile-avatar-wave" d="M-12 0 C 10 -7, 25 7, 48 0 S 86 -7, 124 0" fill="none">
+        <animateTransform attributeName="transform" type="translate" from="0 112" to="0 0" dur="1.2s" calcMode="spline" keyTimes="0;1" keySplines="0.22 1 0.36 1" fill="freeze" />
+      </path>
+    </g>}
+    <circle className="profile-avatar-border" cx="56" cy="56" r="54.5" />
+  </svg>;
+}
+
 function LicenseGate({ license, busy, error, signedIn, onActivate, onRenew, onGoogleLogin, onGiftReady, onOpenRoom }: {
   license: LicenseSession | null;
   busy: boolean;
@@ -1284,15 +1318,16 @@ function LicenseGate({ license, busy, error, signedIn, onActivate, onRenew, onGo
   const [mobileError, setMobileError] = useState("");
   const expired = Boolean(license && !isLicenseActive(license));
 
-  const sendMobileOtp = async (phone: string) => {
+  const sendMobileOtp = async (phone: string): Promise<{ expiresAt: string; expiresInSeconds: number }> => {
     setMobileBusy(true);
     setMobileError("");
     try {
-      const result = await apiJson<{ requestId: string }>("/api/mobile-auth/send-otp", {
+      const result = await apiJson<{ requestId: string; expiresAt: string; expiresInSeconds: number }>("/api/mobile-auth/send-otp", {
         method: "POST",
         body: JSON.stringify({ phone }),
       });
       setMobileRequestId(result.requestId);
+      return { expiresAt: result.expiresAt, expiresInSeconds: result.expiresInSeconds };
     } catch (reason) {
       const message = reason instanceof Error ? reason.message : "Could not send the OTP.";
       setMobileError(message);
@@ -1308,7 +1343,7 @@ function LicenseGate({ license, busy, error, signedIn, onActivate, onRenew, onGo
     try {
       const result = await apiJson<{ code?: string; onboardingToken?: string }>("/api/mobile-auth/verify-otp", {
         method: "POST",
-        body: JSON.stringify({ requestId: mobileRequestId, otp }),
+        body: JSON.stringify({ requestId: mobileRequestId, phone, otp }),
       });
       if (result.code === "PROFILE_REQUIRED" && result.onboardingToken) {
         setMobileOnboardingToken(result.onboardingToken);
@@ -3960,7 +3995,7 @@ function ProfilePage({ workspace, account, firebaseUser, profilePhoto, onProfile
   firebaseUser: FirebaseUser | null;
   profilePhoto: string;
   onProfilePhotoChange: (photo: string) => void;
-  onSaveProfile?: (profile: { displayName: string; email: string; phone?: string }) => Promise<void>;
+  onSaveProfile?: (profile: { displayName: string; email: string; phone?: string; profileImagePath?: string }) => Promise<void>;
   onLogout: () => Promise<void>;
 }) {
   const [name, setName] = useState(account.displayName || "");
@@ -3972,6 +4007,8 @@ function ProfilePage({ workspace, account, firebaseUser, profilePhoto, onProfile
   const [passwordBusy, setPasswordBusy] = useState(false);
   const [notice, setNotice] = useState("");
   const [passwordNotice, setPasswordNotice] = useState("");
+  const [photoBusy, setPhotoBusy] = useState(false);
+  const [photoAnimationKey, setPhotoAnimationKey] = useState(0);
   const hasPasswordProvider = Boolean(firebaseUser?.providerData.some((provider) => provider.providerId === "password"));
   const displayPhoto = profilePhoto || defaultProfilePhoto(firebaseUser?.uid || workspace.licenseId || "profile");
 
@@ -3979,12 +4016,6 @@ function ProfilePage({ workspace, account, firebaseUser, profilePhoto, onProfile
     setName(account.displayName || "");
     setEmail(account.email || firebaseUser?.email || "");
   }, [account.displayName, account.email, firebaseUser?.email]);
-
-  const choosePhoto = (photo: string) => {
-    onProfilePhotoChange(photo);
-    if (firebaseUser && !photo.startsWith("data:")) void updateProfile(firebaseUser, { photoURL: photo }).catch(() => undefined);
-    setNotice("Profile photo updated.");
-  };
 
   const saveDetails = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -4055,15 +4086,37 @@ function ProfilePage({ workspace, account, firebaseUser, profilePhoto, onProfile
     }
   };
 
-  const uploadPhoto = (event: ChangeEvent<HTMLInputElement>) => {
+  const uploadPhoto = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      if (typeof reader.result === "string") choosePhoto(reader.result);
-    };
-    reader.readAsDataURL(file);
     event.target.value = "";
+    if (!onSaveProfile) {
+      setNotice("Sign in before uploading a profile image.");
+      return;
+    }
+    setPhotoBusy(true);
+    setNotice("");
+    try {
+      const upload = await apiJson<{ uploadURL: string; objectPath: string }>("/api/account/profile-image/upload-url", {
+        method: "POST",
+        body: JSON.stringify({ name: file.name, size: file.size, contentType: file.type }),
+      });
+      const response = await fetch(upload.uploadURL, { method: "PUT", headers: { "Content-Type": file.type }, body: file });
+      if (!response.ok) throw new Error("The image could not be stored.");
+      await onSaveProfile({ displayName: name.trim(), email: email.trim(), phone: account.phone, profileImagePath: upload.objectPath });
+      const photo = profileImageUrl(upload.objectPath);
+      onProfilePhotoChange(photo);
+      setPhotoAnimationKey((value) => value + 1);
+      if (firebaseUser) {
+        const authenticatedFirebaseUser = firebaseUser;
+        await updateProfile(authenticatedFirebaseUser, { photoURL: photo });
+      }
+      setNotice("Profile photo updated.");
+    } catch (reason) {
+      setNotice(reason instanceof Error ? reason.message : "Could not upload your profile photo.");
+    } finally {
+      setPhotoBusy(false);
+    }
   };
 
   return <AppShell title="Profile" account={account} profilePhoto={profilePhoto} workspace={workspace}>
@@ -4071,7 +4124,7 @@ function ProfilePage({ workspace, account, firebaseUser, profilePhoto, onProfile
       <div className="page-head"><div><h1>Profile</h1></div></div>
       <div className="profile-layout">
         <section className="card profile-identity-card">
-          <div className="profile-avatar-wrap"><img className="profile-avatar" src={displayPhoto} alt={`${name || "Your"} profile`} /><label className="profile-avatar-edit" title="Change profile photo" aria-label="Change profile photo"><Pencil size={13}/><input type="file" accept="image/*" onChange={uploadPhoto} /></label></div>
+          <div className="profile-avatar-wrap"><WaterFillAvatar src={displayPhoto} alt={`${name || "Your"} profile`} animate={photoAnimationKey > 0} animationKey={photoAnimationKey} /><label className={`profile-avatar-edit ${photoBusy ? "is-busy" : ""}`} title="Change profile photo" aria-label="Change profile photo"><Pencil size={13}/><input type="file" accept="image/jpeg,image/png,image/webp,image/gif" onChange={(event) => void uploadPhoto(event)} disabled={photoBusy} /></label></div>
           <div className="profile-identity-copy">{email && <p>{email}</p>}</div>
           <button className="button danger-button profile-logout-button" onClick={() => void onLogout()} data-testid="button-profile-logout"><ShieldCheck size={15}/> Log out</button>
         </section>
@@ -4120,7 +4173,7 @@ function SettingsPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}) {
    </AppShell>;
 }
 
-function Routed({workspace, account, firebaseUser, profilePhoto, onProfilePhotoChange, onSaveProfile, onSavePhone, onLogout}:{workspace:ReturnType<typeof useWorkspace>; account:AccountSummary|null; firebaseUser:FirebaseUser|null; profilePhoto:string; onProfilePhotoChange:(photo:string)=>void; onSaveProfile:(profile:{displayName:string; email:string; phone?:string})=>Promise<void>; onSavePhone:(phone:string)=>Promise<void>; onLogout:()=>Promise<void>}) {
+function Routed({workspace, account, firebaseUser, profilePhoto, onProfilePhotoChange, onSaveProfile, onSavePhone, onLogout}:{workspace:ReturnType<typeof useWorkspace>; account:AccountSummary|null; firebaseUser:FirebaseUser|null; profilePhoto:string; onProfilePhotoChange:(photo:string)=>void; onSaveProfile:(profile:{displayName:string; email:string; phone?:string; profileImagePath?:string})=>Promise<void>; onSavePhone:(phone:string)=>Promise<void>; onLogout:()=>Promise<void>}) {
   let localProfile: { displayName?: string; email?: string } = {};
   try {
     localProfile = JSON.parse(localStorage.getItem(`reverse-bypass-profile:${workspace.licenseId}`) || "{}") as { displayName?: string; email?: string };
@@ -4158,11 +4211,10 @@ function App() {
       setProfilePhoto("");
       return;
     }
-    setProfilePhoto(localStorage.getItem(profilePhotoKey(profileOwnerId)) || user?.photoURL || defaultProfilePhoto(profileOwnerId));
-  }, [profileOwnerId, user?.photoURL]);
+    setProfilePhoto(profileImageUrl(accountSession.account?.profileImagePath) || user?.photoURL || localStorage.getItem(profilePhotoKey(profileOwnerId)) || defaultProfilePhoto(profileOwnerId));
+  }, [profileOwnerId, user?.photoURL, accountSession.account?.profileImagePath]);
   const handleProfilePhotoChange = (photo: string) => {
     if (!profileOwnerId) return;
-    localStorage.setItem(profilePhotoKey(profileOwnerId), photo);
     setProfilePhoto(photo);
   };
   const [mobileGiftKey, setMobileGiftKey] = useState("");

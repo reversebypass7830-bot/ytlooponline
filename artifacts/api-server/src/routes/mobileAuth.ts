@@ -1,6 +1,6 @@
-import { randomBytes, randomUUID } from "node:crypto";
+import { createHash, randomBytes, randomUUID } from "node:crypto";
 import { Router, type IRouter, type Request, type Response } from "express";
-import { firebaseGet } from "../lib/firebase-rest";
+import { firebaseDelete, firebaseGet, firebasePut } from "../lib/firebase-rest";
 import { clearMobileSession, setMobileSession } from "../middlewares/requireClerkAuth";
 import { createMobileAccount } from "./accounts";
 
@@ -10,20 +10,34 @@ const providerOrigin = process.env.MOBILE_OTP_ORIGIN || "https://rojgarwithankit
 const providerAuthKey = process.env.MOBILE_OTP_AUTH_KEY || "appxapi";
 const providerClientService = process.env.MOBILE_OTP_CLIENT_SERVICE || "Appx";
 const challengeTtlMs = 5 * 60 * 1000;
+const challengeTtlSeconds = challengeTtlMs / 1000;
 const maxAttempts = 5;
 
 type AccountRecord = { id: string; phone?: string; displayName: string; email: string; role: "owner" | "user"; licenseId: string; licenseKey: string; trialStartedAt: string; trialEndsAt: string; activePlanId: string; accessEndsAt: string; createdAt: string; lastLoginAt: string; history: Array<{ id: string; type: string; message: string; at: string; planId?: string; days?: number }> };
 type AccountMap = Record<string, AccountRecord>;
-type Challenge = { phone: string; deviceId: string; expiresAt: number; attempts: number };
+type Challenge = { requestId: string; phone: string; deviceId: string; issuedAt: string; expiresAt: string; attempts: number };
 type VerifiedMobileChallenge = { phone: string; expiresAt: number };
 type ProviderResponse = { status?: number; message?: string; user?: { phone?: string } };
 
-const challenges = new Map<string, Challenge>();
 const verifiedChallenges = new Map<string, VerifiedMobileChallenge>();
 
 function normalizePhone(value: string): string {
   const digits = value.replace(/\D/g, "");
   return digits.length > 10 && digits.endsWith(digits.slice(-10)) ? digits.slice(-10) : digits;
+}
+
+function challengePath(phone: string): string {
+  const phoneHash = createHash("sha256").update(normalizePhone(phone)).digest("hex");
+  return `otpChallenges/${phoneHash}`;
+}
+
+function isChallengeExpired(challenge: Challenge, nowMs = Date.now()): boolean {
+  const expiryMs = Date.parse(challenge.expiresAt);
+  return !Number.isFinite(expiryMs) || expiryMs <= nowMs;
+}
+
+function staleOtpError(res: Response): void {
+  res.status(400).json({ error: "This OTP is no longer current. Request the latest OTP." });
 }
 
 function validPhone(value: string): boolean {
@@ -88,8 +102,19 @@ router.post("/mobile-auth/send-otp", async (req: Request, res: Response): Promis
       return;
     }
     const requestId = randomUUID();
-    challenges.set(requestId, { phone, deviceId, expiresAt: Date.now() + challengeTtlMs, attempts: 0 });
-    res.json({ requestId, message: providerMessage(payload), expiresInSeconds: challengeTtlMs / 1000 });
+    const issuedAtMs = Date.now();
+    const challenge: Challenge = {
+      requestId,
+      phone,
+      deviceId,
+      issuedAt: new Date(issuedAtMs).toISOString(),
+      expiresAt: new Date(issuedAtMs + challengeTtlMs).toISOString(),
+      attempts: 0,
+    };
+    // This single record is keyed by the normalized phone, so a new OTP
+    // atomically replaces the previous request id and expiry.
+    await firebasePut(challengePath(phone), challenge);
+    res.json({ requestId, message: providerMessage(payload), expiresAt: challenge.expiresAt, expiresInSeconds: challengeTtlSeconds });
   } catch (error) {
     req.log.error({ error: error instanceof Error ? error.message : "unknown" }, "Mobile OTP send failed");
     res.status(502).json({ error: "Could not send the OTP. Please try again." });
@@ -97,50 +122,78 @@ router.post("/mobile-auth/send-otp", async (req: Request, res: Response): Promis
 });
 
 router.post("/mobile-auth/verify-otp", async (req: Request, res: Response): Promise<void> => {
-  const requestId = typeof req.body?.requestId === "string" ? req.body.requestId : "";
-  const otp = typeof req.body?.otp === "string" ? req.body.otp.trim() : "";
-  const challenge = challenges.get(requestId);
-  if (!challenge || challenge.expiresAt < Date.now()) {
-    challenges.delete(requestId);
-    res.status(400).json({ error: "This OTP has expired. Request a new one." });
-    return;
-  }
-  if (!/^\d{4}$/.test(otp)) {
-    res.status(400).json({ error: "Enter the 4-digit OTP." });
-    return;
-  }
-  if (challenge.attempts >= maxAttempts) {
-    challenges.delete(requestId);
-    res.status(429).json({ error: "Too many incorrect attempts. Request a new OTP." });
-    return;
-  }
-  challenge.attempts += 1;
   try {
-    const payload = await callProvider("/get/otpverify", {
-      useremail: challenge.phone,
-      otp,
-      device_id: challenge.deviceId,
-      mydeviceid: "",
-      mydeviceid2: "",
-    });
-    if (!providerOtpSucceeded(payload)) {
-      const remaining = maxAttempts - challenge.attempts;
-      res.status(401).json({ error: providerMessage(payload), attemptsRemaining: remaining });
+    const requestId = typeof req.body?.requestId === "string" ? req.body.requestId : "";
+    const phone = typeof req.body?.phone === "string" ? normalizePhone(req.body.phone) : "";
+    const otp = typeof req.body?.otp === "string" ? req.body.otp.trim() : "";
+    if (!validPhone(phone) || !requestId) {
+      staleOtpError(res);
       return;
     }
-    const account = await findAccountByPhone(challenge.phone);
-    challenges.delete(requestId);
-    if (!account) {
-      const onboardingToken = randomUUID();
-      verifiedChallenges.set(onboardingToken, { phone: challenge.phone, expiresAt: Date.now() + challengeTtlMs });
-      res.json({ code: "PROFILE_REQUIRED", onboardingToken, phone: challenge.phone, message: "Mobile number verified. Complete your profile to create your workspace." });
+    const path = challengePath(phone);
+    const challenge = await firebaseGet<Challenge | null>(path);
+    if (!challenge || challenge.requestId !== requestId || challenge.phone !== phone) {
+      staleOtpError(res);
       return;
     }
-    setMobileSession(res, account.id);
-    res.json({ message: "OTP verified.", account: { id: account.id, displayName: account.displayName, email: account.email, phone: account.phone, role: account.role } });
+    if (isChallengeExpired(challenge)) {
+      await firebaseDelete(path);
+      res.status(400).json({ error: "This OTP has expired. Request a new one." });
+      return;
+    }
+    if (!/^\d{4}$/.test(otp)) {
+      res.status(400).json({ error: "Enter the 4-digit OTP." });
+      return;
+    }
+    if (challenge.attempts >= maxAttempts) {
+      await firebaseDelete(path);
+      res.status(429).json({ error: "Too many incorrect attempts. Request a new OTP." });
+      return;
+    }
+    const attempt = { ...challenge, attempts: challenge.attempts + 1 };
+    await firebasePut(path, attempt);
+    try {
+      const payload = await callProvider("/get/otpverify", {
+        useremail: phone,
+        otp,
+        device_id: attempt.deviceId,
+        mydeviceid: "",
+        mydeviceid2: "",
+      });
+      if (!providerOtpSucceeded(payload)) {
+        const remaining = maxAttempts - attempt.attempts;
+        res.status(401).json({ error: providerMessage(payload), attemptsRemaining: remaining });
+        return;
+      }
+      // A resend may have replaced this request while the provider call was
+      // in flight. Read the current record again before granting access.
+      const latest = await firebaseGet<Challenge | null>(path);
+      if (!latest || latest.requestId !== requestId || latest.phone !== phone) {
+        staleOtpError(res);
+        return;
+      }
+      if (isChallengeExpired(latest)) {
+        await firebaseDelete(path);
+        res.status(400).json({ error: "This OTP has expired. Request a new one." });
+        return;
+      }
+      const account = await findAccountByPhone(phone);
+      await firebaseDelete(path);
+      if (!account) {
+        const onboardingToken = randomUUID();
+        verifiedChallenges.set(onboardingToken, { phone, expiresAt: Date.now() + challengeTtlMs });
+        res.json({ code: "PROFILE_REQUIRED", onboardingToken, phone, message: "Mobile number verified. Complete your profile to create your workspace." });
+        return;
+      }
+      setMobileSession(res, account.id);
+      res.json({ message: "OTP verified.", account: { id: account.id, displayName: account.displayName, email: account.email, phone: account.phone, role: account.role } });
+    } catch (error) {
+      req.log.error({ error: error instanceof Error ? error.message : "unknown" }, "Mobile OTP verification failed");
+      res.status(502).json({ error: "Could not verify the OTP. Please try again." });
+    }
   } catch (error) {
-    req.log.error({ error: error instanceof Error ? error.message : "unknown" }, "Mobile OTP verification failed");
-    res.status(502).json({ error: "Could not verify the OTP. Please try again." });
+    req.log.error({ error: error instanceof Error ? error.message : "unknown" }, "Mobile OTP challenge lookup failed");
+    if (!res.headersSent) res.status(502).json({ error: "Could not verify the OTP. Please try again." });
   }
 });
 

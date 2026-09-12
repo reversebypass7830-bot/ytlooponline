@@ -9,6 +9,7 @@ import {
   ShieldCheck,
   WarningCircle,
 } from "@phosphor-icons/react";
+import "./login.css";
 
 type LoginMethod = "phone" | "google" | "license";
 
@@ -20,7 +21,7 @@ export type LoginPageProps = {
   onActivate: (key: string) => void | Promise<void>;
   onRenew: () => void | Promise<void>;
   onGoogleLogin: () => void | Promise<void>;
-  onSendMobileOtp: (phone: string) => void | Promise<void>;
+  onSendMobileOtp: (phone: string) => Promise<{ expiresAt: string; expiresInSeconds: number }>;
   onVerifyMobileOtp: (phone: string, otp: string) => boolean | void | Promise<boolean | void>;
   onCompleteProfile: (profile: { displayName: string; email: string }) => void | Promise<void>;
   onOpenRoom?: () => void;
@@ -92,7 +93,9 @@ export default function LoginPage({
   const [phone, setPhone] = useState("");
   const [otp, setOtp] = useState("");
   const [otpSent, setOtpSent] = useState(false);
-  const [cooldown, setCooldown] = useState(30);
+  const [resendCooldown, setResendCooldown] = useState(30);
+  const [otpExpiresAt, setOtpExpiresAt] = useState("");
+  const [otpRemainingSeconds, setOtpRemainingSeconds] = useState(0);
   const [licenseKey, setLicenseKey] = useState("");
   const [licenseError, setLicenseError] = useState("");
   const [profileNeeded, setProfileNeeded] = useState(false);
@@ -101,10 +104,21 @@ export default function LoginPage({
   const verifyingRef = useRef(false);
 
   useEffect(() => {
-    if (!otpSent || cooldown <= 0) return undefined;
-    const timer = window.setInterval(() => setCooldown((current) => Math.max(0, current - 1)), 1000);
+    if (!otpSent || !otpExpiresAt) return undefined;
+    const updateRemaining = () => {
+      const expiresAtMs = Date.parse(otpExpiresAt);
+      setOtpRemainingSeconds(Number.isFinite(expiresAtMs) ? Math.max(0, Math.ceil((expiresAtMs - Date.now()) / 1000)) : 0);
+    };
+    updateRemaining();
+    const timer = window.setInterval(updateRemaining, 1000);
     return () => window.clearInterval(timer);
-  }, [cooldown, otpSent]);
+  }, [otpExpiresAt, otpSent]);
+
+  useEffect(() => {
+    if (!otpSent || resendCooldown <= 0) return undefined;
+    const timer = window.setInterval(() => setResendCooldown((current) => Math.max(0, current - 1)), 1000);
+    return () => window.clearInterval(timer);
+  }, [resendCooldown, otpSent]);
 
   const shownError = error || localError || licenseError;
   const cleanPhone = phone.replace(/\D/g, "").slice(0, 10);
@@ -114,9 +128,11 @@ export default function LoginPage({
     if (cleanPhone.length !== 10 || busy) return;
     setLocalError("");
     try {
-      await onSendMobileOtp(`+91${cleanPhone}`);
+      const result = await onSendMobileOtp(`+91${cleanPhone}`);
       setOtpSent(true);
-      setCooldown(30);
+      setOtpExpiresAt(result?.expiresAt || "");
+      setOtpRemainingSeconds(result?.expiresInSeconds || 0);
+      setResendCooldown(30);
       setOtp("");
     } catch (reason) {
       setLocalError(reason instanceof Error ? reason.message : "We could not send that code.");
@@ -214,7 +230,8 @@ export default function LoginPage({
                 <div className="streamly-login-form-heading"><div><label htmlFor="otp-code">Verification code</label><p>Enter the code sent to +91 {cleanPhone}</p></div></div>
                 <OtpBoxes value={otp} onChange={(next) => { setOtp(next); setLocalError(""); }} onComplete={(code) => { void verifyOtp(code); }} />
                 <button className="streamly-login-primary" type="submit" disabled={busy || otp.length !== otpLength}>{busy ? "Verifying…" : "Verify & login"} <ArrowRight size={17} weight="bold" /></button>
-                <div className="streamly-login-inline-actions"><button type="button" onClick={() => { setOtpSent(false); setOtp(""); }}>Change number</button><button type="button" disabled={cooldown > 0 || busy} onClick={(event) => { void sendOtp(event as unknown as FormEvent<HTMLFormElement>); }}>{cooldown > 0 ? `Resend in 00:${String(cooldown).padStart(2, "0")}` : "Resend code"}</button></div>
+                  <div className="streamly-login-inline-actions"><button type="button" onClick={() => { setOtpSent(false); setOtp(""); setOtpExpiresAt(""); setOtpRemainingSeconds(0); }}>Change number</button><button type="button" disabled={resendCooldown > 0 || busy} onClick={(event) => { void sendOtp(event as unknown as FormEvent<HTMLFormElement>); }}>{resendCooldown > 0 ? `Resend in 00:${String(resendCooldown).padStart(2, "0")}` : "Resend code"}</button></div>
+                  <p className="streamly-login-otp-expiry" role="status">{otpRemainingSeconds > 0 ? `Code expires in ${Math.floor(otpRemainingSeconds / 60)}:${String(otpRemainingSeconds % 60).padStart(2, "0")}` : "This code has expired. Request a new one."}</p>
               </form>
             ) : (
               <form className="streamly-login-form" onSubmit={sendOtp}>

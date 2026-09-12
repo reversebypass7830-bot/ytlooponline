@@ -36,6 +36,7 @@ type AccountRecord = {
   displayName: string;
   email: string;
   phone?: string;
+  profileImagePath?: string;
   profileCompleted?: boolean;
   role: "owner" | "user";
   licenseId: string;
@@ -138,6 +139,7 @@ function publicAccount(account: AccountRecord, plans: PlanMap) {
     displayName: account.displayName,
     email: account.email,
     phone: account.phone,
+    profileImagePath: account.profileImagePath,
     profileCompleted: account.profileCompleted ?? true,
     role: account.role,
     licenseId: account.licenseId,
@@ -359,6 +361,7 @@ router.put("/account/profile", requireAccountAuth, async (req, res): Promise<voi
     const displayName = typeof req.body?.displayName === "string" ? req.body.displayName.trim() : account.displayName;
     const email = typeof req.body?.email === "string" ? req.body.email.trim() : account.email;
     const phone = typeof req.body?.phone === "string" ? req.body.phone.trim() : "";
+    const profileImagePath = typeof req.body?.profileImagePath === "string" ? req.body.profileImagePath.trim() : account.profileImagePath;
     if (!displayName || displayName.length < 2) {
       res.status(400).json({ error: "Enter your name to complete your profile." });
       return;
@@ -381,7 +384,11 @@ router.put("/account/profile", requireAccountAuth, async (req, res): Promise<voi
         return;
       }
     }
-    const next = { ...account, displayName, email, phone: phone || account.phone, profileCompleted: true };
+    if (profileImagePath && !profileImagePath.startsWith(`/objects/profile-images/${encodeURIComponent(account.id)}/`)) {
+      res.status(400).json({ error: "That profile image reference is not valid for this account." });
+      return;
+    }
+    const next = { ...account, displayName, email, phone: phone || account.phone, profileImagePath, profileCompleted: true };
     await firebasePut(accountPath(account.id), next);
     res.json({ account: publicAccount(next, plans), plans: Object.values(plans).filter((plan) => plan.active) });
   } catch (error) {

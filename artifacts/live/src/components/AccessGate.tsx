@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import {
   ArrowRight,
   BadgeCheck,
@@ -80,6 +80,7 @@ export function AccessGate({
   const [localError, setLocalError] = useState("");
   const [completedProfile, setCompletedProfile] = useState(false);
   const [giftClaimed, setGiftClaimed] = useState(false);
+  const verifyingOtpRef = useRef(false);
 
   const cleanPhone = phone.replace(/\D/g, "").slice(0, 10);
   const cleanOtp = otp.replace(/\D/g, "").slice(0, 4);
@@ -118,13 +119,16 @@ export function AccessGate({
 
   const verifyOtp = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!canVerifyOtp || busy) return;
+    if (!canVerifyOtp || busy || verifyingOtpRef.current) return;
+    verifyingOtpRef.current = true;
     setLocalError("");
     try {
       const profileRequired = await onVerifyMobileOtp(`+91${cleanPhone}`, cleanOtp);
       if (profileRequired !== false) setProfileOpen(true);
     } catch (reason) {
       setLocalError(reason instanceof Error ? reason.message : "That code could not be verified.");
+    } finally {
+      verifyingOtpRef.current = false;
     }
   };
 
