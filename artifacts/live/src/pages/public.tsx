@@ -334,7 +334,7 @@ export function LandingPage() {
           <button type="button" onClick={() => scrollTo("#loop-steps")}>Tutorials</button>
           <button type="button" onClick={() => scrollTo("#loop-faq")}>Contact us</button>
         </nav>
-        <Link href="/access" className="loop-clone-dashboard"><SquaresFour size={14} weight="regular" /> <span>Dashboard</span></Link>
+        <Link href="/access" className="loop-clone-dashboard"><SquaresFour size={14} weight="regular" aria-hidden="true" /> <span>Dashboard</span></Link>
         <button type="button" className="loop-clone-menu" aria-label="Open menu" onClick={() => document.querySelector(".loop-clone-links")?.classList.toggle("is-mobile-open")}><List size={20} /></button>
       </header>
 
@@ -466,7 +466,7 @@ export function LandingPage() {
                 <span className="loop-clone-plan-badge">STANDARD</span>
                 <h3>1080p Standard</h3>
                 <p>Simple. Stable. Reliable</p>
-                <div className="loop-clone-plan-price"><strong>{formatPrice(selectedPricing.standard * duration)}</strong><del>{formatPrice(selectedPricing.standardCompare * duration)}</del><small>/{selectedPricing.unit}</small><em>{discountFor(selectedPricing.standard, selectedPricing.standardCompare)}%<br />OFF</em></div>
+                <div className="loop-clone-plan-price"><strong>{formatPrice(selectedPricing.standard * duration * streamCounts.standard)}</strong><del>{formatPrice(selectedPricing.standardCompare * duration * streamCounts.standard)}</del><small>/{selectedPricing.unit}</small><em>{discountFor(selectedPricing.standard, selectedPricing.standardCompare)}%<br />OFF</em></div>
                 <div className="loop-clone-plan-feature-tiles">
                   <span><Broadcast size={16} /><b>Stream your<br />videos as live</b></span>
                   <span><Lightning size={16} /><b>Standard<br />broadcast quality</b></span>
@@ -487,7 +487,7 @@ export function LandingPage() {
                 <span className="loop-clone-plan-badge">PREMIUM</span>
                 <h3>1080p Premium</h3>
                 <p>Professional quality. Total control</p>
-                <div className="loop-clone-plan-price"><strong>{formatPrice(selectedPricing.premium * duration)}</strong><del>{formatPrice(selectedPricing.premiumCompare * duration)}</del><small>/{selectedPricing.unit}</small><em>{discountFor(selectedPricing.premium, selectedPricing.premiumCompare)}%<br />OFF</em></div>
+                <div className="loop-clone-plan-price"><strong>{formatPrice(selectedPricing.premium * duration * streamCounts.premium)}</strong><del>{formatPrice(selectedPricing.premiumCompare * duration * streamCounts.premium)}</del><small>/{selectedPricing.unit}</small><em>{discountFor(selectedPricing.premium, selectedPricing.premiumCompare)}%<br />OFF</em></div>
                 <div className="loop-clone-plan-feature-tiles">
                   <span><Broadcast size={16} /><b>Stream your<br />videos as live</b></span>
                   <span><Lightning size={16} /><b>Premium<br />broadcast quality</b></span>

@@ -3165,8 +3165,8 @@ select { height: 41px; }
 .loop-clone-links button { padding: 6px 0; border: 0; color: #e5dfe8; background: transparent; font-size: 11px; transition: color .2s, transform .2s; }
 .loop-clone-links button:first-child, .loop-clone-links button:hover { color: var(--loop-pink); }
 .loop-clone-links button:hover { transform: translateY(-1px); }
-.loop-clone-dashboard { display: inline-flex; align-items: center; justify-content: center; gap: 5px; width: 101px; height: 31px; flex: 0 0 101px; border-radius: 999px; color: #fff; background: linear-gradient(100deg, #f61a77, #ed35a3); font-size: 12px; font-weight: 600; line-height: 1; box-shadow: 0 7px 20px rgba(244, 24, 125, .25); transition: transform .2s, filter .2s; }
-.loop-clone-dashboard svg { display: block; flex: 0 0 auto; }
+.loop-clone-dashboard { display: inline-flex; align-items: center; justify-content: center; gap: 5px; width: 100px; height: 31px; flex: 0 0 100px; border-radius: 999px; color: #fff; background: linear-gradient(100deg, #f61a77, #ed35a3); font-size: 12px; font-weight: 600; line-height: 1; box-shadow: 0 7px 20px rgba(244, 24, 125, .25); transition: transform .2s, filter .2s; }
+.loop-clone-dashboard svg { display: block; width: 14px; height: 14px; flex: 0 0 14px; }
 .loop-clone-dashboard:hover { transform: translateY(-1px); filter: brightness(1.08); }
 .loop-clone-menu { display: none; margin-left: auto; padding: 4px; border: 0; color: #fff; background: transparent; }
 .loop-clone-hero { position: relative; min-height: 734px; padding: 82px 24px 0; scroll-margin-top: 78px; text-align: center; }
@@ -3602,8 +3602,14 @@ select { height: 41px; }
 
 .loop-clone-plan-price {
   position: relative;
-  display: flex;
-  align-items: baseline;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-rows: 13px 32px 14px;
+  grid-template-areas:
+    "compare discount"
+    "amount discount"
+    "unit discount";
+  column-gap: 8px;
   min-height: 76px;
   margin-top: 16px !important;
   padding: 0 !important;
@@ -3612,6 +3618,11 @@ select { height: 41px; }
 }
 
 .loop-clone-plan-price strong {
+  grid-area: amount;
+  display: block;
+  min-width: 0;
+  align-self: center;
+  white-space: nowrap;
   color: #ff248b;
   font-size: 27px;
   line-height: 1;
@@ -3623,24 +3634,29 @@ select { height: 41px; }
 }
 
 .loop-clone-plan-price del {
-  position: absolute;
-  top: -1px;
-  left: 1px;
+  grid-area: compare;
+  position: static;
+  align-self: end;
+  margin: 0 !important;
   color: #8f8198 !important;
   font-size: 8px !important;
   font-weight: 400;
+  line-height: 1;
 }
 
 .loop-clone-plan-price small {
-  margin-left: 5px;
+  grid-area: unit;
+  align-self: start;
+  margin: 2px 0 0 !important;
   color: #bdb0c5;
   font-size: 8px;
+  line-height: 1;
 }
 
 .loop-clone-plan-price em {
-  position: absolute;
-  top: 1px;
-  right: 0;
+  grid-area: discount;
+  position: static;
+  align-self: center;
   min-width: 42px;
   padding: 7px 5px;
   border-radius: 4px;

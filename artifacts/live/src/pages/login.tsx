@@ -200,7 +200,7 @@ export default function LoginPage({
               </form>
             ) : (
               <form className="streamly-login-form" onSubmit={sendOtp}>
-                <label>Mobile number<div className="streamly-phone-field"><span>+91</span><Phone size={17} weight="duotone" /><input value={phone} onChange={(event) => setPhone(event.target.value.replace(/\D/g, "").slice(0, 10))} placeholder="98765 43210" type="tel" inputMode="numeric" autoComplete="tel-national" /></div></label>
+                <label>Mobile number<div className="streamly-phone-field"><span>+91</span><input value={phone} onChange={(event) => setPhone(event.target.value.replace(/\D/g, "").slice(0, 10))} placeholder="98765 43210" type="tel" inputMode="numeric" autoComplete="tel-national" /></div></label>
                 <button className="streamly-login-primary" type="submit" disabled={busy || cleanPhone.length !== 10}>{busy ? "Sending code…" : "Send OTP"} <ArrowRight size={17} weight="bold" /></button>
               </form>
             )
