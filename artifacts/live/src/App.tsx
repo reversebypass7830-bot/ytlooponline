@@ -7,9 +7,7 @@ import {
   Mic, ShieldCheck, Smartphone, Sparkles, Square, Trash2, Type, Upload, Video, Wand2, X, Youtube,
 } from "lucide-react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { ClerkProvider, SignIn, SignUp, useClerk, useUser } from "@clerk/react";
-import { publishableKeyFromHost } from "@clerk/react/internal";
-import { shadcn } from "@clerk/themes";
+import { GoogleAuthProvider, onAuthStateChanged, signInWithPopup, signInWithRedirect, signOut as firebaseSignOut, type User as FirebaseUser } from "firebase/auth";
 import Hls from "hls.js";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/toaster";
@@ -18,6 +16,7 @@ import { GatewayPage, LandingPage, PricingPage } from "@/pages/public";
 import { extractYoutubeChannelLinks, getStreamStatus, startStream, stopStream, trimMediaFile, updateStream } from "@workspace/api-client-react";
 import logoImage from "@assets/image_1788788255512.png";
 import AccessGate, { type AccessGateProfile } from "./components/AccessGate";
+import { firebaseAuth } from "./lib/firebase-auth";
 import "./profile-completion.css";
 
 type LiveStatus = "live" | "scheduled" | "stopped";
@@ -159,8 +158,6 @@ type StartYoutubeDownloadsInput = {
 };
 
 const queryClient = new QueryClient();
-const clerkPubKey = publishableKeyFromHost(window.location.hostname, import.meta.env.VITE_CLERK_PUBLISHABLE_KEY);
-const clerkProxyUrl = import.meta.env.VITE_CLERK_PROXY_URL;
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
 const purchasePath = "/pricing";
 const now = () => new Date().toISOString();
@@ -828,7 +825,81 @@ function useLicense() {
   return { clientId, license, busy, error, activate, renew, clear, setError };
 }
 
-function useAccountSession(isSignedIn: boolean, userId?: string) {
+function useFirebaseAuth() {
+  const [user, setUser] = useState<FirebaseUser | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    let mounted = true;
+    const unsubscribe = onAuthStateChanged(firebaseAuth, (nextUser) => {
+      void (async () => {
+        if (!nextUser) {
+          await apiJson("/api/firebase-auth/logout", { method: "POST" }).catch(() => undefined);
+          if (mounted) {
+            setUser(null);
+            setError("");
+            setLoading(false);
+          }
+          return;
+        }
+
+        if (mounted) {
+          setLoading(true);
+          setError("");
+        }
+        try {
+          const idToken = await nextUser.getIdToken();
+          await apiJson("/api/firebase-auth/session", {
+            method: "POST",
+            body: JSON.stringify({ idToken }),
+          });
+          if (mounted) setUser(nextUser);
+        } catch (reason) {
+          if (mounted) {
+            setUser(null);
+            setError(reason instanceof Error ? reason.message : "Could not connect your Google account.");
+          }
+        } finally {
+          if (mounted) setLoading(false);
+        }
+      })();
+    });
+    return () => {
+      mounted = false;
+      unsubscribe();
+    };
+  }, []);
+
+  const signInWithGoogle = async () => {
+    setBusy(true);
+    setError("");
+    try {
+      await signInWithPopup(firebaseAuth, new GoogleAuthProvider());
+    } catch (reason) {
+      const code = typeof reason === "object" && reason && "code" in reason ? String((reason as { code?: unknown }).code) : "";
+      if (code === "auth/popup-blocked") {
+        await signInWithRedirect(firebaseAuth, new GoogleAuthProvider());
+        return;
+      }
+      const message = reason instanceof Error ? reason.message : "Google sign-in could not be completed.";
+      setError(message);
+      throw new Error(message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const signOut = async () => {
+    await firebaseSignOut(firebaseAuth);
+    await apiJson("/api/firebase-auth/logout", { method: "POST" }).catch(() => undefined);
+  };
+
+  return { user, loading, busy, error, signInWithGoogle, signOut };
+}
+
+function useAccountSession(isSignedIn: boolean, userId?: string, authReady = true) {
   const [account, setAccount] = useState<AccountSummary | null>(null);
   const [plans, setPlans] = useState<AccountPlan[]>([]);
   const [loading, setLoading] = useState(true);
@@ -855,12 +926,16 @@ function useAccountSession(isSignedIn: boolean, userId?: string) {
   };
 
   useEffect(() => {
+    if (!authReady) {
+      setLoading(true);
+      return;
+    }
     setLoading(Boolean(isSignedIn));
     void load();
     if (!isSignedIn && !account) return;
     const timer = window.setInterval(() => void load(), 60_000);
     return () => window.clearInterval(timer);
-  }, [isSignedIn, userId, Boolean(account)]);
+  }, [authReady, isSignedIn, userId, Boolean(account)]);
 
   const saveProfile = async (profile: { displayName: string; email: string; phone?: string }) => {
     const result = await apiJson<AccountResponse>("/api/account/profile", {
@@ -1260,20 +1335,36 @@ function LicenseGate({ license, busy, error, signedIn, onActivate, onRenew, onGo
   />;
 }
 
-function ClerkAuthPage({ mode }: { mode: "sign-in" | "sign-up" }) {
-  const fullPath = `${basePath}/${mode}`;
+function FirebaseAuthPage({ mode, onGoogleLogin, busy, error }: {
+  mode: "sign-in" | "sign-up";
+  onGoogleLogin: () => void | Promise<void>;
+  busy: boolean;
+  error: string;
+}) {
   return <div className="auth-page">
     <div className="auth-page-backdrop" />
     <div className="auth-page-intro">
       <Link href="/" className="access-brand"><span className="access-brand-mark" aria-hidden="true"><span>S</span><i /></span><span>Streamly</span></Link>
       <p className="eyebrow">STREAMLY / ACCOUNT ACCESS</p>
       <h1>{mode === "sign-in" ? <>Keep your<br /><em>signal moving.</em></> : <>Create your<br /><em>signal room.</em></>}</h1>
-      <p>{mode === "sign-in" ? "Login with Google to return to your workspace, trial, and active plan." : "Create an account and your trial workspace will be ready immediately."}</p>
+      <p>{mode === "sign-in" ? "Continue with Google to return to your workspace, trial, and active plan." : "Continue with Google and your trial workspace will be ready immediately."}</p>
     </div>
     <div className="auth-card">
-      {mode === "sign-in"
-        ? <SignIn routing="path" path={fullPath} signUpUrl={`${basePath}/sign-up`} />
-        : <SignUp routing="path" path={fullPath} signInUrl={`${basePath}/sign-in`} />}
+      <div className="firebase-auth-card">
+        <p className="eyebrow">FIREBASE / SECURE ACCESS</p>
+        <h2>{mode === "sign-in" ? "Welcome back." : "Start your room."}</h2>
+        <p className="subtle">Your Google account is used only to connect you to your private Streamly workspace.</p>
+        {error && <div className="error-note" role="alert">{error}</div>}
+        <button className="button login-submit firebase-google-submit" type="button" onClick={() => void onGoogleLogin()} disabled={busy}>
+          <span className="access-gate-google-mark" aria-hidden="true">G</span>
+          {busy ? "Connecting…" : "Continue with Google"}
+          <ArrowRight size={15}/>
+        </button>
+        <p className="form-note">New Google accounts receive a one-day trial workspace automatically.</p>
+        <Link href={mode === "sign-in" ? "/sign-up" : "/sign-in"} className="firebase-auth-switch">
+          {mode === "sign-in" ? "Need a new workspace? Create one" : "Already have a workspace? Sign in"}
+        </Link>
+      </div>
     </div>
   </div>;
 }
@@ -3872,35 +3963,35 @@ function Routed({workspace, account, onSavePhone, onClaimOwner}:{workspace:Retur
 }
 
 function App() {
-  const { isLoaded: clerkLoaded, isSignedIn, user } = useUser();
-  const { signOut } = useClerk();
+  const { user, loading: firebaseLoading, busy: firebaseBusy, error: firebaseError, signInWithGoogle, signOut } = useFirebaseAuth();
+  const isSignedIn = Boolean(user);
   const license = useLicense();
-  const accountSession = useAccountSession(Boolean(isSignedIn), user?.id);
+  const accountSession = useAccountSession(isSignedIn, user?.uid, !firebaseLoading);
   const hasAccountSession = Boolean(accountSession.account);
   const [mobileGiftKey, setMobileGiftKey] = useState("");
   const [profileGateId, setProfileGateId] = useState<string | null>(null);
   const accountLicense = accountSession.account ? {
     licenseId: accountSession.account.licenseId,
     key: accountSession.account.licenseKey,
-    name: accountSession.account.displayName || user?.primaryEmailAddress?.emailAddress || "Workspace",
+    name: accountSession.account.displayName || user?.email || "Workspace",
     expiresAt: accountSession.account.accessEndsAt,
     active: accountSession.account.active,
   } satisfies LicenseSession : null;
   const activeLicense = hasAccountSession ? accountLicense : license.license;
+  const [location, setLocation] = useLocation();
   const workspace = useWorkspace(activeLicense, () => {
     license.clear();
     accountSession.clear();
     void apiJson("/api/mobile-auth/logout", { method: "POST" }).catch(() => undefined);
-    if (isSignedIn) void signOut({ redirectUrl: basePath || "/" });
+    void signOut();
   });
-  const [location, setLocation] = useLocation();
   useEffect(() => {
     if (accountSession.account?.profileCompleted === false && !profileGateId) {
       setProfileGateId(accountSession.account.id);
     }
   }, [accountSession.account, profileGateId]);
   useEffect(() => {
-    if (!clerkLoaded || (isSignedIn && accountSession.loading)) return;
+    if (firebaseLoading || (isSignedIn && accountSession.loading)) return;
     if (hasAccountSession && accountSession.account && !accountSession.account.active && ![purchasePath, "/gateway", "/sign-in", "/sign-up"].some((path) => location.startsWith(path))) {
       setLocation(purchasePath);
       return;
@@ -3912,10 +4003,10 @@ function App() {
     if (!isSignedIn && isLicenseActive(license.license) && (location === "/" || location === "/access")) {
       setLocation("/dashboard");
     }
-  }, [accountSession.account, accountSession.loading, clerkLoaded, hasAccountSession, isSignedIn, license.license, location, mobileGiftKey, setLocation]);
-  if (!clerkLoaded) return <div className="workspace-loading"><Radio size={20}/><span>Connecting secure sign-in…</span></div>;
-  if (location.startsWith("/sign-in")) return <ClerkAuthPage mode="sign-in"/>;
-  if (location.startsWith("/sign-up")) return <ClerkAuthPage mode="sign-up"/>;
+  }, [accountSession.account, accountSession.loading, firebaseLoading, hasAccountSession, isSignedIn, license.license, location, mobileGiftKey, setLocation]);
+  if (firebaseLoading) return <div className="workspace-loading"><Radio size={20}/><span>Connecting secure sign-in…</span></div>;
+  if (location.startsWith("/sign-in")) return <FirebaseAuthPage mode="sign-in" onGoogleLogin={signInWithGoogle} busy={firebaseBusy} error={firebaseError}/>;
+  if (location.startsWith("/sign-up")) return <FirebaseAuthPage mode="sign-up" onGoogleLogin={signInWithGoogle} busy={firebaseBusy} error={firebaseError}/>;
   if (location === "/pricing") return <PricingPage />;
   if (location === "/gateway") return <GatewayPage />;
   if (isSignedIn && accountSession.loading) return <div className="workspace-loading"><Radio size={20}/><span>Preparing your account…</span></div>;
@@ -3926,33 +4017,12 @@ function App() {
   }
   if (location === "/" && !isLicenseActive(activeLicense)) return <LandingPage />;
   const openMobileRoom = () => { setMobileGiftKey(""); setLocation("/dashboard"); };
-  if (location === "/access") return <LicenseGate license={activeLicense} busy={license.busy} error={license.error} signedIn={Boolean(isSignedIn || hasAccountSession)} onActivate={license.activate} onRenew={license.renew} onGoogleLogin={() => setLocation("/sign-in")} onGiftReady={setMobileGiftKey} onOpenRoom={openMobileRoom}/>;
-  if (!activeLicense || !isLicenseActive(activeLicense)) return <LicenseGate license={activeLicense} busy={license.busy} error={license.error} signedIn={Boolean(isSignedIn || hasAccountSession)} onActivate={license.activate} onRenew={license.renew} onGoogleLogin={() => setLocation("/sign-in")} onGiftReady={setMobileGiftKey} onOpenRoom={openMobileRoom}/>;
+  if (location === "/access") return <LicenseGate license={activeLicense} busy={license.busy} error={license.error || firebaseError} signedIn={Boolean(isSignedIn || hasAccountSession)} onActivate={license.activate} onRenew={license.renew} onGoogleLogin={() => setLocation("/sign-in")} onGiftReady={setMobileGiftKey} onOpenRoom={openMobileRoom}/>;
+  if (!activeLicense || !isLicenseActive(activeLicense)) return <LicenseGate license={activeLicense} busy={license.busy} error={license.error || firebaseError} signedIn={Boolean(isSignedIn || hasAccountSession)} onActivate={license.activate} onRenew={license.renew} onGoogleLogin={() => setLocation("/sign-in")} onGiftReady={setMobileGiftKey} onOpenRoom={openMobileRoom}/>;
   if (!workspace.ready) return <div className="workspace-loading"><Radio size={20}/><span>Loading your private workspace…</span></div>;
   return <><Routed workspace={workspace} account={accountSession.account} onSavePhone={accountSession.savePhone} onClaimOwner={async (password) => { await accountSession.claimOwner(password); setLocation("/owner"); }}/>{accountSession.account && profileGateId === accountSession.account.id && <AccountCompletionDialog account={accountSession.account} onSave={accountSession.saveProfile} onClose={() => setProfileGateId(null)} />}</>;
 }
 
-function ClerkProviderWithRoutes() {
-  const [, setLocation] = useLocation();
-  const stripBase = (path: string) => basePath && path.startsWith(basePath) ? path.slice(basePath.length) || "/" : path;
-  if (!clerkPubKey) throw new Error("Missing VITE_CLERK_PUBLISHABLE_KEY.");
-  return <ClerkProvider
-    publishableKey={clerkPubKey}
-    proxyUrl={clerkProxyUrl}
-    appearance={{ theme: shadcn, variables: { colorPrimary: "#176446", colorForeground: "#173a2c", colorBackground: "#eef3e8", colorInput: "#fbfcf5", colorInputForeground: "#173a2c", colorNeutral: "#b8cfbd", borderRadius: "0.7rem", fontFamily: "Manrope, sans-serif" } }}
-    signInUrl={`${basePath}/sign-in`}
-    signUpUrl={`${basePath}/sign-up`}
-    localization={{
-      signIn: { start: { title: "Login with Google", subtitle: "Return to your Streamly workspace" } },
-      signUp: { start: { title: "Create your workspace", subtitle: "Start your account trial today" } },
-    }}
-    routerPush={(to) => setLocation(stripBase(to))}
-    routerReplace={(to) => setLocation(stripBase(to), { replace: true })}
-  >
-    <QueryClientProvider client={queryClient}><App/></QueryClientProvider>
-  </ClerkProvider>;
-}
-
 export default function RootApp() {
-  return <TooltipProvider><WouterRouter base={basePath}><ClerkProviderWithRoutes/></WouterRouter><Toaster/></TooltipProvider>;
+  return <TooltipProvider><WouterRouter base={basePath}><QueryClientProvider client={queryClient}><App/></QueryClientProvider></WouterRouter><Toaster/></TooltipProvider>;
 }

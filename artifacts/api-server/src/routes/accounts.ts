@@ -1,7 +1,7 @@
 import { randomBytes, randomUUID } from "node:crypto";
 import { Router, type IRouter, type Request, type Response } from "express";
 import { firebaseGet, firebasePut } from "../lib/firebase-rest";
-import { accountUserId, clerkSessionClaims, requireAccountAuth, requireClerkAuth } from "../middlewares/requireClerkAuth";
+import { accountIdentity, accountUserId, clerkSessionClaims, requireAccountAuth, requireClerkAuth } from "../middlewares/requireClerkAuth";
 import { clerkOwnerAuthorized, ownerAuthorized } from "./licenses";
 
 const router: IRouter = Router();
@@ -154,11 +154,11 @@ function publicAccount(account: AccountRecord, plans: PlanMap) {
 }
 
 async function ensureAccount(req: Request): Promise<{ account: AccountRecord; plans: PlanMap }> {
-  const userId = accountUserId(req);
-  if (!userId) throw new Error("Sign in is required.");
-  const claims = clerkSessionClaims(req);
-  const claimEmail = typeof claims.email === "string" ? claims.email : typeof claims.email_address === "string" ? claims.email_address : "";
-  const claimName = typeof claims.name === "string" ? claims.name : [claims.first_name, claims.last_name].filter((value): value is string => typeof value === "string" && Boolean(value)).join(" ");
+  const identity = accountIdentity(req);
+  if (!identity) throw new Error("Sign in is required.");
+  const userId = identity.userId;
+  const claimEmail = identity.email;
+  const claimName = identity.name;
   const plans = await loadPlans();
   const existing = await loadAccount(userId);
   const now = new Date();
@@ -210,6 +210,66 @@ async function ensureAccount(req: Request): Promise<{ account: AccountRecord; pl
       expiresAt: account.accessEndsAt,
       active: true,
       accountId: userId,
+    }),
+  ]);
+  return { account, plans };
+}
+
+export async function ensureFirebaseAccount(identity: { userId: string; email: string; name: string }): Promise<{ account: AccountRecord; plans: PlanMap }> {
+  const plans = await loadPlans();
+  const accounts = (await firebaseGet<AccountMap | null>("accounts")) ?? {};
+  const firebaseUserId = `firebase-${identity.userId}`;
+  const existing = accounts[firebaseUserId]
+    || (identity.email ? Object.values(accounts).find((candidate) => candidate.email.trim().toLowerCase() === identity.email.trim().toLowerCase()) : undefined);
+  const now = new Date();
+
+  if (existing) {
+    const next: AccountRecord = {
+      ...existing,
+      displayName: existing.displayName.startsWith("Workspace ") && identity.name ? identity.name : existing.displayName,
+      email: existing.email || identity.email,
+      profileCompleted: existing.profileCompleted ?? true,
+      lastLoginAt: now.toISOString(),
+      history: [
+        { id: randomUUID(), type: "login" as const, message: "Signed in with Google", at: now.toISOString() },
+        ...(existing.history || []),
+      ].slice(0, 50),
+    };
+    await firebasePut(accountPath(existing.id), next);
+    return { account: next, plans };
+  }
+
+  const trial = plans["trial-1-day"] || defaultPlans[0];
+  const trialEndsAt = new Date(now.getTime() + trial.durationDays * dayMs).toISOString();
+  const licenseId = `acct-${randomUUID()}`;
+  const licenseKey = `ACCT-${randomBytes(6).toString("hex").toUpperCase()}`;
+  const account: AccountRecord = {
+    id: firebaseUserId,
+    displayName: identity.name || `Workspace ${identity.userId.slice(-6)}`,
+    email: identity.email,
+    profileCompleted: false,
+    role: ownerIds().has(identity.userId) ? "owner" : "user",
+    licenseId,
+    licenseKey,
+    trialStartedAt: now.toISOString(),
+    trialEndsAt,
+    activePlanId: trial.id,
+    accessEndsAt: trialEndsAt,
+    createdAt: now.toISOString(),
+    lastLoginAt: now.toISOString(),
+    history: [
+      { id: randomUUID(), type: "trial_started", message: `${trial.name} started`, at: now.toISOString(), planId: trial.id, days: trial.durationDays },
+    ],
+  };
+  await Promise.all([
+    firebasePut(accountPath(account.id), account),
+    firebasePut(licensePath(licenseId), {
+      key: licenseKey,
+      name: account.displayName,
+      createdAt: account.createdAt,
+      expiresAt: account.accessEndsAt,
+      active: true,
+      accountId: account.id,
     }),
   ]);
   return { account, plans };

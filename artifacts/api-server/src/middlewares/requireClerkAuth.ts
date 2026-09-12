@@ -3,7 +3,15 @@ import type { NextFunction, Request, Response } from "express";
 import { getAuth } from "@clerk/express";
 
 const mobileSessionCookie = "rlb_mobile_session";
+const firebaseSessionCookie = "streamly_firebase_session";
 const mobileSessionTtlSeconds = 30 * 24 * 60 * 60;
+const firebaseSessionTtlSeconds = 30 * 24 * 60 * 60;
+
+export type FirebaseSessionIdentity = {
+  userId: string;
+  email: string;
+  name: string;
+};
 
 export function clerkUserId(req: Request): string | null {
   return getAuth(req).userId || null;
@@ -51,8 +59,64 @@ export function mobileSessionAccountId(req: Request): string | null {
   }
 }
 
+export function firebaseSessionIdentity(req: Request): FirebaseSessionIdentity | null {
+  const value = readCookie(req, firebaseSessionCookie);
+  if (!value) return null;
+  const [payload, signature] = value.split(".");
+  if (!payload || !signature) return null;
+  const expected = signMobilePayload(payload);
+  const actualBuffer = Buffer.from(signature);
+  const expectedBuffer = Buffer.from(expected);
+  if (actualBuffer.length !== expectedBuffer.length || !timingSafeEqual(actualBuffer, expectedBuffer)) return null;
+  try {
+    const parsed = JSON.parse(Buffer.from(payload, "base64url").toString("utf8")) as {
+      sub?: string;
+      email?: string;
+      name?: string;
+      exp?: number;
+      kind?: string;
+    };
+    if (parsed.kind !== "firebase" || typeof parsed.sub !== "string" || Number(parsed.exp) <= Math.floor(Date.now() / 1000)) return null;
+    return { userId: parsed.sub, email: typeof parsed.email === "string" ? parsed.email : "", name: typeof parsed.name === "string" ? parsed.name : "" };
+  } catch {
+    return null;
+  }
+}
+
+export function setFirebaseSession(res: Response, identity: FirebaseSessionIdentity): void {
+  const payload = Buffer.from(JSON.stringify({
+    sub: identity.userId,
+    email: identity.email,
+    name: identity.name,
+    exp: Math.floor(Date.now() / 1000) + firebaseSessionTtlSeconds,
+    kind: "firebase",
+  })).toString("base64url");
+  const value = `${payload}.${signMobilePayload(payload)}`;
+  res.setHeader("Set-Cookie", `${firebaseSessionCookie}=${encodeURIComponent(value)}; Max-Age=${firebaseSessionTtlSeconds}; Path=/; HttpOnly; SameSite=Lax${process.env.NODE_ENV === "production" ? "; Secure" : ""}`);
+}
+
+export function clearFirebaseSession(res: Response): void {
+  res.setHeader("Set-Cookie", `${firebaseSessionCookie}=; Max-Age=0; Path=/; HttpOnly; SameSite=Lax${process.env.NODE_ENV === "production" ? "; Secure" : ""}`);
+}
+
+export function accountIdentity(req: Request): FirebaseSessionIdentity | null {
+  const clerkId = clerkUserId(req);
+  if (clerkId) {
+    const claims = clerkSessionClaims(req);
+    return {
+      userId: clerkId,
+      email: typeof claims.email === "string" ? claims.email : typeof claims.email_address === "string" ? claims.email_address : "",
+      name: typeof claims.name === "string" ? claims.name : [claims.first_name, claims.last_name].filter((value): value is string => typeof value === "string" && Boolean(value)).join(" "),
+    };
+  }
+  const firebase = firebaseSessionIdentity(req);
+  if (firebase) return firebase;
+  const mobileId = mobileSessionAccountId(req);
+  return mobileId ? { userId: mobileId, email: "", name: "" } : null;
+}
+
 export function accountUserId(req: Request): string | null {
-  return clerkUserId(req) || mobileSessionAccountId(req);
+  return accountIdentity(req)?.userId || null;
 }
 
 export function setMobileSession(res: Response, accountId: string): void {

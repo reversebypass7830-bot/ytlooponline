@@ -1,0 +1,17 @@
+button.tool-button {
+  background-color: var(--scrim);
+  color: white;
+  padding: 12px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+button.tool-button:active {
+  background-color: var(--sheer);
+}
+
+@media screen and (max-width: 558px) {
+  .toolbar .tool-button {
+    display: none;
+  }
+}

@@ -407,6 +407,17 @@ input:focus, textarea:focus, select:focus { border-color:#5fa49d; box-shadow:0 0
 .auth-card { width:min(100%,440px); padding:10px; border:1px solid rgba(215,243,109,.25); border-radius:18px; background:#f5f7f0; box-shadow:0 30px 90px rgba(0,0,0,.3); }
 .auth-card > div { width:100%; }
 .auth-card [data-card] { width:100%; max-width:none; box-shadow:none; }
+.firebase-auth-card { padding:28px; color:#173a2c; }
+.firebase-auth-card .eyebrow { margin-bottom:14px; color:#2f7b61; }
+.firebase-auth-card h2 { margin:0 0 10px; color:#173a2c; font:400 34px/1 var(--app-font-serif); letter-spacing:-.06em; }
+.firebase-auth-card .subtle { margin-bottom:22px; color:#62746e; line-height:1.6; }
+.firebase-auth-card .error-note { margin-bottom:14px; }
+.firebase-google-submit { display:flex; align-items:center; gap:10px; color:#f6fff8; background:#176446; }
+.firebase-google-submit:hover { background:#0f5439; }
+.firebase-google-submit .access-gate-google-mark { margin-right:2px; }
+.firebase-auth-card .form-note { margin-top:18px; }
+.firebase-auth-switch { display:block; margin-top:18px; color:#2f7b61; font:600 10px var(--app-font-mono); text-align:center; text-decoration:none; }
+.firebase-auth-switch:hover { color:#173a2c; text-decoration:underline; }
 .dashboard-head-actions { display:flex; align-items:center; gap:12px; flex-wrap:wrap; justify-content:flex-end; }
 .account-access-timer { display:inline-flex; align-items:center; gap:8px; padding:10px 12px; border:1px solid #d7e7d3; border-radius:999px; color:#3c6c61; background:#f0f7e9; font:10px var(--app-font-mono); white-space:nowrap; }
 .account-access-timer .status-dot { background:#7ebc62; }

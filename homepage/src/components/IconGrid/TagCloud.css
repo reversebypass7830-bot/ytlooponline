@@ -1,0 +1,28 @@
+.tag-cloud {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  gap: 6px;
+}
+
+button.tag-button {
+  border-radius: 4px;
+  background-color: var(--background-card);
+  outline: none;
+  cursor: pointer;
+  transition: background-color 150ms ease, box-shadow 150ms ease;
+  color: var(--foreground);
+}
+
+button.tag-button:hover {
+  background-color: transparent;
+}
+
+button.tag-button:focus-visible {
+  box-shadow: 0 0 0 1px var(--foreground);
+}
+
+.tag-button code {
+  padding: 4px;
+  font-size: 12px;
+}

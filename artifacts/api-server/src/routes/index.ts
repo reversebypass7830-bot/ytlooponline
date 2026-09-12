@@ -5,6 +5,7 @@ import mediaRouter from "./media";
 import licensesRouter from "./licenses";
 import accountsRouter from "./accounts";
 import mobileAuthRouter from "./mobileAuth";
+import firebaseAuthRouter from "./firebaseAuth";
 
 const router: IRouter = Router();
 
@@ -14,5 +15,6 @@ router.use(mediaRouter);
 router.use(licensesRouter);
 router.use(accountsRouter);
 router.use(mobileAuthRouter);
+router.use(firebaseAuthRouter);
 
 export default router;
