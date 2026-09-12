@@ -4464,3 +4464,201 @@ select { height: 41px; }
   background: #3a1d4d;
   border-color: #ca3a99;
 }
+
+/* Dashboard surface cleanup: remove the remaining legacy green/cream cards. */
+.shell .section-card,
+.shell .setting-section,
+.shell .timeline-shell,
+.shell .live-preview-toolbar,
+.shell .live-output-card,
+.shell .live-device-panel,
+.shell .editor-panel {
+  border-color: #3c2550;
+  background: linear-gradient(145deg, #251631 0%, #1f122b 100%);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, .2);
+}
+
+.shell .live-row,
+.shell .group-card,
+.shell .editor-clip,
+.shell .live-device-card,
+.shell .timeline-button,
+.shell .stream-key-notice,
+.shell .render-progress {
+  border-color: #4a2b5d;
+  background: #281638;
+  color: #f4eafa;
+}
+
+.shell .live-row:hover,
+.shell .editor-clip:hover,
+.shell .editor-clip.selected {
+  border-color: #b43791;
+  background: rgba(232, 35, 143, .12);
+}
+
+.shell .group-card-parent > .folder-tree-children > .folder-tree-node > .group-card {
+  border-color: #45295a;
+  background: #24132f;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, .22);
+}
+
+.shell .group-card:before {
+  background: linear-gradient(180deg, #ff3f9e, #9d35e4);
+}
+
+.shell .group-card p,
+.shell .group-card .group-foot,
+.shell .folder-tree-label {
+  color: #b49fbd;
+}
+
+.shell .group-open-label,
+.shell .group-card .group-foot,
+.shell .file-picked {
+  color: #ff83bd;
+}
+
+.shell .table-wrap {
+  border-color: #3c2550;
+  background: #1d0f29;
+}
+
+.shell .data-table th {
+  background: #281638;
+}
+
+.shell .data-table td {
+  background: transparent;
+}
+
+.shell .data-table tr:hover td {
+  background: rgba(233, 34, 141, .1);
+}
+
+.shell .quick {
+  border-color: #5b356b;
+  background: linear-gradient(145deg, #2c183d, #24132f);
+}
+
+.shell .quick:hover {
+  border-color: #df3da0;
+  background: linear-gradient(145deg, #3b1b4e, #2e173e);
+}
+
+.shell .empty-art {
+  background: rgba(232, 32, 139, .14);
+}
+
+.shell .activity-icon,
+.shell .live-device-icon {
+  color: #ff83bd;
+  background: rgba(232, 32, 139, .14);
+}
+
+.shell .live-device-card.ready {
+  border-color: #b43791;
+  background: linear-gradient(145deg, #35183f, #281536);
+}
+
+.shell .live-device-card strong,
+.shell .live-device-card p,
+.shell .live-preview-toolbar-copy,
+.shell .live-preview-empty,
+.shell .live-preview-empty p,
+.shell .live-preview-note {
+  color: #c2aecb;
+}
+
+.shell .voice-meter,
+.shell .render-progress-track {
+  background: #4b2a5d;
+}
+
+.shell .voice-meter span,
+.shell .render-progress-track span {
+  background: linear-gradient(90deg, #f0187d, #a92ae7);
+}
+
+.shell .render-progress {
+  border-color: #6b3b7b;
+  background: #2c173d;
+}
+
+.shell .render-progress-head span,
+.shell .render-progress small,
+.shell .stream-key-notice p {
+  color: #c1aecb;
+}
+
+.shell .render-progress-head strong {
+  color: #ff83bd;
+}
+
+.shell .stream-key-notice {
+  border-color: #6b3b7b;
+  background: linear-gradient(145deg, #35183f, #281536);
+}
+
+.shell .stream-key-notice > svg {
+  color: #ff83bd;
+}
+
+.shell .stream-key-notice strong {
+  color: #ffe1f1;
+}
+
+.shell .check-control,
+.shell .playlist-picker,
+.shell .playlist-empty,
+.shell .included-youtube-import {
+  border-color: #4b2d5e;
+  background: #21132f;
+}
+
+.shell .check-control:hover,
+.shell .playlist-item:hover {
+  border-color: #6b3b7b;
+  background: #2b183b;
+}
+
+.shell .playlist-item.selected {
+  border-color: #db3b9a;
+  background: rgba(228, 35, 143, .14);
+}
+
+.shell .included-import-heading,
+.shell .included-import-heading strong,
+.shell .included-import-heading span,
+.shell .field-hint {
+  color: #c1aecb;
+}
+
+.shell .included-import-heading > svg {
+  color: #ff83bd;
+}
+
+.shell .included-upload-divider::before,
+.shell .included-upload-divider::after {
+  background: #4b2d5e;
+}
+
+.shell .timeline-button {
+  color: #e8d8ef;
+}
+
+.shell .timeline-button:hover {
+  border-color: #db3b9a;
+  background: #351847;
+}
+
+.shell .timeline-button.primary {
+  color: #fff;
+  background: linear-gradient(100deg, #f0187d, #a92ae7);
+  border-color: #ef55ad;
+}
+
+.shell .form-note,
+.shell .playlist-empty {
+  color: #c1aecb;
+}
