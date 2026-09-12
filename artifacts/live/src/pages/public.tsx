@@ -1,6 +1,7 @@
 import { Fragment, useEffect, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
 import { AnimatePresence, motion, useInView, useReducedMotion } from "framer-motion";
 import {
+  ArrowLeft,
   ArrowDown,
   ArrowRight,
   Broadcast,
@@ -232,7 +233,9 @@ export function LandingPage() {
   const [creator, setCreator] = useState(0);
   const [faq, setFaq] = useState<number | null>(null);
   const [compare, setCompare] = useState(50);
+  const [currency, setCurrency] = useState<"INR" | "USD">("INR");
   const [billing, setBilling] = useState<"Day" | "Month" | "Year">("Month");
+  const [duration, setDuration] = useState(1);
   const [heroTilt, setHeroTilt] = useState("none");
   const shouldReduceMotion = useReducedMotion();
   const comparisonRef = useRef<HTMLDivElement>(null);
@@ -259,6 +262,17 @@ export function LandingPage() {
     { label: "Educators", images: ["educators-01.png", "educators-02.png"], copy: "Make learning available around the clock" },
     { label: "Affiliates", images: ["affiliates-01.png", "affiliates-02.png"], copy: "Grow your audience while you sleep" },
   ];
+  const pricingByBilling = {
+    Day: { unit: "day", standard: 35, standardCompare: 50, premium: 51, premiumCompare: 76 },
+    Month: { unit: "month", standard: 899, standardCompare: 1199, premium: 1299, premiumCompare: 1699 },
+    Year: { unit: "year", standard: 8999, standardCompare: 11999, premium: 12999, premiumCompare: 16999 },
+  } as const;
+  const selectedPricing = pricingByBilling[billing];
+  const currencyRate = currency === "INR" ? 1 : 0.012;
+  const formatPrice = (value: number) => currency === "INR"
+    ? `₹${Math.round(value * currencyRate).toLocaleString("en-IN")}`
+    : `$${(value * currencyRate).toFixed(2)}`;
+  const selectedDurationLabel = `${duration} ${selectedPricing.unit}${duration === 1 ? "" : "s"}`;
   const faqs = [
     "What is Loop Stream?",
     "Can I stream to multiple platforms at once?",
@@ -397,11 +411,24 @@ export function LandingPage() {
             <div className="loop-clone-section-kicker">SIMPLE, TRANSPARENT PRICING</div>
             <h2>Choose the Plan That Fits You</h2>
             <p>Flexible plans for every stage — from free to pro.</p>
-            <div className="loop-clone-pricing-controls"><div><button type="button" className="active">🇮🇳 ₹ INR</button><button type="button">🇺🇸 $ USD</button></div><div>{(["Day", "Month", "Year"] as const).map((term) => <button type="button" key={term} className={billing === term ? "active" : ""} onClick={() => setBilling(term)}>{term}</button>)}</div></div>
+            <div className="loop-clone-pricing-controls">
+              <div aria-label="Currency">
+                {(["INR", "USD"] as const).map((option) => <button type="button" key={option} className={currency === option ? "active" : ""} onClick={() => setCurrency(option)}>{option === "INR" ? "₹ INR" : "$ USD"}</button>)}
+              </div>
+              <div aria-label="Billing period">
+                {(["Day", "Month", "Year"] as const).map((term) => <button type="button" key={term} className={billing === term ? "active" : ""} onClick={() => { setBilling(term); setDuration(1); }}>{term}</button>)}
+              </div>
+            </div>
+            <div className="loop-clone-pricing-stepper" aria-label="Choose plan duration">
+              <button type="button" aria-label="Previous duration" disabled={duration === 1} onClick={() => setDuration((value) => Math.max(1, value - 1))}><ArrowLeft size={17} /></button>
+              <div className="loop-clone-pricing-track" aria-hidden="true"><i className={duration >= 1 ? "active" : ""} /><i className={duration >= 2 ? "active" : ""} /><i className={duration >= 3 ? "active" : ""} /></div>
+              <strong>{selectedDurationLabel}</strong>
+              <button type="button" aria-label="Next duration" disabled={duration === 3} onClick={() => setDuration((value) => Math.min(3, value + 1))}><ArrowRight size={17} /></button>
+            </div>
             <div className="loop-clone-plan-grid">
-              <article className="loop-clone-plan trial"><span className="loop-clone-plan-badge">FREE TO TRY</span><h3>Try 24hrs Trial</h3><p>Explore Loop Stream risk-free</p><strong>₹0 <small>/24 hours</small></strong><div><b>Best For</b>Creators who want to try Loop Stream before choosing a plan</div><span className="loop-clone-plan-note">No card required</span><Link href="/pricing">Apply Free Trial <ArrowRight size={15} /></Link></article>
-              <article className="loop-clone-plan"><h3>1080p Standard</h3><p>Simple. Stable. Reliable</p><strong>₹35 <del>₹50</del> <small>/stream</small></strong><div><b>Best For</b>Casual creators easing into live before going all-in</div><Link href="/pricing">Choose Plan <ArrowRight size={15} /></Link></article>
-              <article className="loop-clone-plan featured"><span className="loop-clone-plan-badge">MOST POPULAR</span><h3>1080p Premium</h3><p>Professional quality. Total control</p><strong>₹51 <del>₹76</del> <small>/stream</small></strong><div><b>Best For</b>Always-on channels like news, devotional, games or lofi</div><Link href="/pricing">Choose Plan <ArrowRight size={15} /></Link></article>
+              <article className="loop-clone-plan trial"><span className="loop-clone-plan-badge">FREE TO TRY</span><h3>Try 24hrs Trial</h3><p>Explore Loop Stream risk-free</p><strong>{formatPrice(0)} <small>/24 hours</small></strong><div><b>Best For</b>Creators who want to try Loop Stream before choosing a plan</div><span className="loop-clone-plan-note">No card required</span><Link href="/pricing">Apply Free Trial <ArrowRight size={15} /></Link></article>
+              <article className="loop-clone-plan"><h3>1080p Standard</h3><p>Simple. Stable. Reliable</p><strong>{formatPrice(selectedPricing.standard * duration)} <del>{formatPrice(selectedPricing.standardCompare * duration)}</del> <small>/{selectedPricing.unit}</small></strong><div><b>Best For</b>Casual creators easing into live before going all-in</div><Link href="/pricing">Choose Plan <ArrowRight size={15} /></Link></article>
+              <article className="loop-clone-plan featured"><span className="loop-clone-plan-badge">MOST POPULAR</span><h3>1080p Premium</h3><p>Professional quality. Total control</p><strong>{formatPrice(selectedPricing.premium * duration)} <del>{formatPrice(selectedPricing.premiumCompare * duration)}</del> <small>/{selectedPricing.unit}</small></strong><div><b>Best For</b>Always-on channels like news, devotional, games or lofi</div><Link href="/pricing">Choose Plan <ArrowRight size={15} /></Link></article>
             </div>
             <button type="button" className="loop-clone-waitlist" onClick={() => scrollTo("#loop-faq")}>Join the 4K waitlist <ArrowRight size={15} /></button>
           </div>
