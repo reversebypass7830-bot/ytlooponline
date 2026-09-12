@@ -350,7 +350,7 @@ export function LandingPage() {
             <p>Drag the slider to compare</p>
             <div ref={comparisonRef} className="loop-clone-comparison" onMouseMove={(event) => updateComparisonFromPointer(event.clientX)} onTouchStart={(event) => updateComparisonFromPointer(event.touches[0].clientX)} onTouchMove={(event) => updateComparisonFromPointer(event.touches[0].clientX)}>
               <img src="/images/loopstream/landing/after-loop-stream.webp" alt="Loop Stream live broadcast" />
-              <div className="loop-clone-comparison-before" style={{ width: `${compare}%` }}><img src="/images/loopstream/landing/before-loop-stream.webp" alt="Regular live streaming setup" /></div>
+              <div className="loop-clone-comparison-before" style={{ clipPath: `inset(0 ${100 - compare}% 0 0)` }}><img src="/images/loopstream/landing/before-loop-stream.webp" alt="Regular live streaming setup" /></div>
               <input aria-label="Compare regular live and Loop Stream live" type="range" min="0" max="100" value={compare} onChange={(event) => setCompare(Number(event.target.value))} />
               <div className="loop-clone-comparison-handle" style={{ left: `${compare}%` }}><span>↔</span></div>
               <strong className="loop-clone-comparison-label before">Regular Live</strong><strong className="loop-clone-comparison-label after">Loop Stream Live</strong>
