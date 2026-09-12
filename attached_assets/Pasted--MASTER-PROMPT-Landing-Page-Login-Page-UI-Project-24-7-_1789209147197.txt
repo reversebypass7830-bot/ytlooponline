@@ -1,0 +1,216 @@
+# MASTER PROMPT — Landing Page + Login Page UI
+### Project: 24/7 YouTube Auto-Streamer SaaS
+
+Paste this entire document into Claude Code / Cursor / bolt.new / v0 as the build instruction. Do not summarize it — implement every section as written.
+
+---
+
+## 0. PROJECT CONTEXT (for the AI's understanding)
+
+This is a SaaS product that lets a YouTube creator keep their channel live-streaming 24/7 — even while their own device is off or they're asleep — instead of just looping an uploaded video locally. The backend (cloud server, FFmpeg re-streaming pipeline, YouTube RTMP integration, auth logic) is **already built and working**. This prompt covers **only the front-end UI** for two screens:
+
+1. **Landing Page** (public, marketing)
+2. **Login Page** (auth entry point, 3 methods)
+
+Do not invent backend logic, API routes, or database schema. Build UI components with clean props/state so they can be wired to existing APIs later. Where an API call would go, leave a clearly commented placeholder (`// TODO: connect to existing auth API`).
+
+---
+
+## 1. TECH STACK
+
+- **Framework:** React (functional components + hooks)
+- **Styling:** Tailwind CSS (utility classes only, no external CSS files)
+- **Icons:** `@phosphor-icons/react` npm package — **this is the only icon/sticker source**. Do NOT use image files, emoji, or external icon CDNs anywhere. Every icon in this spec is a Phosphor component imported like:
+  ```jsx
+  import { Airplay, Repeat, CloudArrowUp, Lightning, UserCircle, ChartLineUp } from "@phosphor-icons/react";
+  ```
+  Icons render as inline SVG — nothing to "generate" or fetch, they ship with the package. Use `weight="duotone"` as the default weight across the whole app for a premium look; use `weight="fill"` only for active/selected states (e.g. active nav icon, filled "LIVE" dot).
+- **Fonts:** Google Fonts — `Plus Jakarta Sans` for headings, `Inter` for body text. Load via `<link>` in index.html, reference in Tailwind config under `fontFamily`.
+- **Animation:** Framer Motion for entrance/hover animations (lightweight, install via npm).
+
+---
+
+## 2. DESIGN SYSTEM
+
+### 2.1 Color Palette (Dark mode — the only mode, no light theme toggle needed)
+
+| Token | Hex | Usage |
+|---|---|---|
+| `bg-base` | `#0B0F19` | Page background |
+| `bg-surface` | `#12172A` | Cards, panels, navbar |
+| `bg-surface-hover` | `#1A2138` | Hover state on cards |
+| `border-subtle` | `#232A45` | Card borders, dividers |
+| `accent-primary` | `#2563EB` | Primary buttons, links, active states |
+| `accent-secondary` | `#8B5CF6` | Gradients, secondary highlights |
+| `success-live` | `#10B981` | "LIVE" badge, success states |
+| `text-primary` | `#F8FAFC` | Headings, primary text |
+| `text-secondary` | `#94A3B8` | Body copy, muted text |
+| `text-tertiary` | `#64748B` | Placeholder text, captions |
+| `error` | `#EF4444` | Form validation errors |
+
+Use a subtle radial gradient blend of `accent-primary` → `accent-secondary` at low opacity (10-15%) behind the hero section for depth — don't make it flat black.
+
+### 2.2 Typography Scale
+
+- H1 (hero headline): `text-5xl md:text-6xl font-bold` — Plus Jakarta Sans
+- H2 (section headers): `text-3xl md:text-4xl font-semibold` — Plus Jakarta Sans
+- H3 (card titles): `text-xl font-semibold` — Plus Jakarta Sans
+- Body: `text-base text-slate-300` — Inter
+- Small/caption: `text-sm text-slate-400` — Inter
+
+### 2.3 Component Primitives (build these first, reuse everywhere)
+
+- `<Button>` — variants: `primary` (solid accent-primary, glow on hover), `secondary` (outline, border-subtle), `ghost` (text only)
+- `<Card>` — `bg-surface`, `border border-border-subtle`, `rounded-2xl`, subtle hover lift (`hover:-translate-y-1 transition`)
+- `<Badge>` — for "LIVE" (green dot pulse animation + `success-live` text) and "Beta"/"Popular" tags
+- `<IconBox>` — a rounded square (`bg-accent-primary/10`) that wraps a Phosphor icon at 24-28px, used consistently in feature cards and steps
+
+---
+
+## 3. LANDING PAGE — FULL SECTION-BY-SECTION SPEC
+
+Build as a single scrollable page, sections in this exact order. Each section = full-width container, inner content max-width `1280px`, generous vertical padding (`py-20 md:py-28`).
+
+### 3.1 Navbar (sticky, transparent → solid on scroll)
+- Left: Logo (text-based wordmark is fine, no image needed) — "Streamly" or leave placeholder `[LOGO]`
+- Center/right: Nav links — Features, Pricing, How it Works
+- Right: "Log In" (ghost button) + "Start Free Trial" (primary button)
+- Icon: none needed in navbar itself, keep it clean
+
+### 3.2 Hero Section
+- Small pill/badge above headline: `Lightning` icon (fill weight) + text "Powered by 24/7 Cloud Infrastructure"
+- H1: **"Stream 24/7 on YouTube, Even While You Sleep."**
+- Subheadline (text-secondary, max-w-2xl): one line explaining the value prop — no local device needed, channel stays live continuously
+- CTA row: Primary button "Start Free Trial" (with `Airplay` icon leading) + Secondary button "Watch Demo"
+- Below CTAs: small trust row — 3-4 stat chips like "500+ Channels Streaming" / "99.9% Uptime" — plain text, no icons needed here to avoid clutter
+- Visual: a mocked-up dashboard preview card (browser-chrome style frame) showing a fake "LIVE" stream card with pulsing green `Badge` — build this as a static styled div, not a real screenshot
+
+### 3.3 How It Works (3-step)
+Grid of 3 `<Card>`s, horizontal on desktop, stacked on mobile. Each card:
+1. **Connect Channel** — `IconBox` with `UserCircle` icon — "Link your YouTube account securely via Google OAuth"
+2. **Upload Video** — `IconBox` with `CloudArrowUp` icon — "Add your video file or paste a YouTube link to loop"
+3. **Go Live** — `IconBox` with `Repeat` icon — "Our servers handle the rest — your stream never stops"
+
+Connect the 3 cards with a subtle dashed line or arrow (`→`) between them on desktop.
+
+### 3.4 Features Grid
+6-item grid (`grid-cols-1 md:grid-cols-3`), each a `<Card>` with `IconBox` + heading + 1-line description:
+- `Lightning` — "Instant Setup" — stream goes live within minutes
+- `Repeat` — "Seamless Looping" — no visible restart/buffer between loops
+- `ChartLineUp` — "Live Analytics" — real-time viewer and bitrate tracking
+- `CloudArrowUp` — "Cloud Native" — nothing to install, runs entirely in the cloud
+- `Airplay` — "Multi-Stream Ready" — architecture description (keep generic, backend already decides scope)
+- `UserCircle` — "One-Click YouTube Auth" — OAuth 2.0 secure connection
+
+### 3.5 Pricing Section
+3-tier pricing cards (`Starter`, `Pro`, `Business`), middle one visually elevated (border in `accent-primary`, "Most Popular" `<Badge>` on top). Each card: plan name, price, 4-5 feature bullet lines (use a small `CheckCircle` Phosphor icon before each bullet, `success-live` color), CTA button.
+
+### 3.6 Final CTA Banner
+Full-width band with gradient background (accent-primary → accent-secondary, low opacity over `bg-surface`), centered headline "Ready to stream around the clock?" + primary button.
+
+### 3.7 Footer
+Simple: logo/wordmark, 3-4 column link groups (Product, Company, Legal), social icons row (use Phosphor `TwitterLogo`, `DiscordLogo`, `YoutubeLogo` — regular weight, muted color, hover to `text-primary`), copyright line.
+
+---
+
+## 4. LOGIN PAGE — FULL SPEC
+
+### 4.1 Layout
+Centered card (`max-w-md`) on the `bg-base` background, no navbar/footer distraction — optional small logo above the card linking back to landing page. Card uses `<Card>` primitive, generous padding (`p-8`).
+
+### 4.2 Method Switcher
+At the top of the card, a **segmented tab control** (3 tabs, equal width, pill-shaped container `bg-surface-hover rounded-full p-1`) to switch between the three login methods. Active tab: `bg-accent-primary text-white`. Inactive: `text-secondary`.
+
+Tabs (label + icon, icon leading, 20px, duotone):
+1. **Phone** — `Phone` icon
+2. **Google** — `GoogleLogo` icon
+3. **License Key** — `Key` icon
+
+### 4.3 Method 1 — Phone / Number Login
+- Input field: country code dropdown (default +91) + phone number input, `Phone` icon as leading adornment inside the input
+- Button: "Send OTP" (primary, full width)
+- On "OTP sent" state: swap to a 6-box OTP input (auto-focus next box on type), countdown timer text ("Resend in 00:30"), "Verify & Login" button
+- Small link below: "Change number"
+
+### 4.4 Method 2 — Google Login
+- Single centered button: white/light button (this is the one exception to dark-only — Google's brand button should keep its standard white background per Google's own brand guidelines, with the official multicolor "G" mark), text "Continue with Google"
+- Below it, one line of muted text: "We only access your basic profile and YouTube channel info"
+- Leave `// TODO: connect to existing Google OAuth flow` comment in code
+
+### 4.5 Method 3 — License Key Login
+- Single input field: monospace font, placeholder like `XXXX-XXXX-XXXX-XXXX`, `Key` icon leading adornment
+- Button: "Activate & Login" (primary, full width)
+- Small helper text below input: "Find your license key in your purchase confirmation email"
+- Error state: red border + `WarningCircle` icon + inline error text below field if key is invalid (visual only — actual validation wired to existing backend)
+
+### 4.6 Shared Footer of Card
+- Divider line with "or" text (only needs to appear between tab switch context if relevant, otherwise omit)
+- Bottom line: "Don't have an account? **Start Free Trial**" linking back to landing page pricing/signup
+
+---
+
+## 5. MICRO-INTERACTIONS & ANIMATION
+
+- Page load: hero content fades + slides up slightly (Framer Motion, `initial={{opacity:0, y:20}} animate={{opacity:1, y:0}}`)
+- Cards: `whileHover={{y: -4}}` lift
+- "LIVE" badge: green dot with CSS pulse animation (`animate-ping` ghost dot behind a solid dot)
+- Tab switcher: animate the active-tab background sliding between tabs (Framer Motion `layoutId` shared element)
+- OTP boxes: auto-advance focus, subtle scale-up on the box currently being typed into
+
+---
+
+## 6. RESPONSIVE RULES
+
+- Mobile-first. Landing page sections stack to single column below `md:` breakpoint.
+- Navbar collapses to a hamburger menu (`List` Phosphor icon) below `md:`, opens a full-screen mobile menu overlay.
+- Login card goes to near full-width with side margins (`mx-4`) on mobile, stays centered `max-w-md` from `md:` up.
+
+---
+
+## 7. ACCESSIBILITY
+
+- All interactive elements keyboard-navigable, visible focus rings (`focus:ring-2 focus:ring-accent-primary`)
+- Icons that convey meaning (not purely decorative) need `aria-label` on the wrapping element
+- Form inputs have associated `<label>` elements (can be visually hidden with `sr-only` if design calls for placeholder-only look, but must exist in DOM)
+
+---
+
+## 8. FILE/COMPONENT STRUCTURE
+
+```
+src/
+  components/
+    ui/
+      Button.jsx
+      Card.jsx
+      Badge.jsx
+      IconBox.jsx
+    landing/
+      Navbar.jsx
+      Hero.jsx
+      HowItWorks.jsx
+      Features.jsx
+      Pricing.jsx
+      CTABanner.jsx
+      Footer.jsx
+    login/
+      LoginCard.jsx
+      MethodSwitcher.jsx
+      PhoneLogin.jsx
+      GoogleLogin.jsx
+      LicenseKeyLogin.jsx
+  pages/
+    LandingPage.jsx
+    LoginPage.jsx
+```
+
+Build each component as a self-contained file, no prop-drilling more than one level — use local state within `LoginCard.jsx` to control which method tab is active and pass down as needed.
+
+---
+
+## 9. WHAT NOT TO DO
+
+- Do not fetch or reference any external image/sticker URLs — all visuals come from Phosphor icons, CSS gradients, and layout, nothing else.
+- Do not build or modify backend/auth logic — this is UI-only, backend already works.
+- Do not add a light-mode toggle — dark mode only.
+- Do not use any icon library other than Phosphor.

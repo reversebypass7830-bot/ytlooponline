@@ -15,7 +15,8 @@ import NotFound from "@/pages/not-found";
 import { GatewayPage, LandingPage, PricingPage } from "@/pages/public";
 import { extractYoutubeChannelLinks, getStreamStatus, startStream, stopStream, trimMediaFile, updateStream } from "@workspace/api-client-react";
 import logoImage from "@assets/image_1788788255512.png";
-import AccessGate, { type AccessGateProfile } from "./components/AccessGate";
+import { type AccessGateProfile } from "./components/AccessGate";
+import LoginPage from "./pages/login";
 import { firebaseAuth } from "./lib/firebase-auth";
 import "./profile-completion.css";
 
@@ -1318,7 +1319,7 @@ function LicenseGate({ license, busy, error, signedIn, onActivate, onRenew, onGo
     }
   };
 
-  return <AccessGate
+  return <LoginPage
     expired={expired}
     error={error || mobileError}
     busy={busy || mobileBusy}
@@ -1329,8 +1330,6 @@ function LicenseGate({ license, busy, error, signedIn, onActivate, onRenew, onGo
     onSendMobileOtp={sendMobileOtp}
     onVerifyMobileOtp={verifyMobileOtp}
     onCompleteProfile={completeMobileProfile}
-    onGiftClaim={async () => undefined}
-    giftKey={giftKey}
     onOpenRoom={onOpenRoom}
   />;
 }

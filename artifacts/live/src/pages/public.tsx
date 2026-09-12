@@ -1,70 +1,126 @@
-import { useEffect, useRef, useState, type KeyboardEvent, type PointerEvent, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { AnimatePresence, motion, useInView, useReducedMotion } from "framer-motion";
-import { ArrowDown, ArrowLeftRight, ArrowRight, Check, Menu, MessageCircle, Play, Radio, Send, Signal, X, Zap } from "lucide-react";
+import {
+  ArrowDown,
+  ArrowRight,
+  Broadcast,
+  ChartLineUp,
+  Check,
+  CheckCircle,
+  Clock,
+  CloudArrowUp,
+  DotsThree,
+  Gauge,
+  Lightning,
+  ListChecks,
+  MagnifyingGlass,
+  List,
+  MonitorPlay,
+  Pause,
+  Play,
+  Plus,
+  Radio,
+  Repeat,
+  RocketLaunch,
+  ShieldCheck,
+  Sparkle,
+  TrendUp,
+  TwitterLogo,
+  DiscordLogo,
+  UserCircle,
+  VideoCamera,
+  X,
+  YoutubeLogo,
+} from "@phosphor-icons/react";
 import { Link, useLocation } from "wouter";
-import GetOfferButton from "@/components/GetOfferButton";
-import loopControlArtwork from "@assets/loopstream_reference/feature-loop-control.jpeg";
-import streamingArtwork from "@assets/loopstream_reference/feature-24x7-streaming.jpeg";
-import playlistArtwork from "@assets/loopstream_reference/feature-playlist-builder.jpeg";
-import qualityArtwork from "@assets/loopstream_reference/feature-1080p-4k.jpeg";
-import schedulerArtwork from "@assets/loopstream_reference/feature-advanced-scheduler.jpeg";
-import scheduleStreamArtwork from "@assets/loopstream_reference/schedule-stream.jpeg";
-import heroTwoScreenImage from "@assets/loopstream_reference/hero-two-screen.webp";
-import connectionLostImage from "@assets/loopstream_reference/comparison-connection-lost.png";
-import loopRunningImage from "@assets/loopstream_reference/comparison-loop-running.png";
-import newsReferenceImage from "@assets/loopstream_reference/news.webp";
-import devotionalReferenceImage from "@assets/generated_images/use-case-devotional-broadcast.jpg";
-import musicReferenceImage from "@assets/generated_images/use-case-music-live.jpg";
-import cartoonsReferenceImage from "@assets/generated_images/use-case-kids-entertainment_2.jpg";
-import educationReferenceImage from "@assets/generated_images/use-case-education_2.jpg";
-import affiliateReferenceImage from "@assets/generated_images/use-case-product-showcase.jpg";
 
-const ease = [0.22, 1, 0.36, 1] as const;
+const ease = [0.16, 1, 0.3, 1] as const;
 
-const reveal = {
-  hidden: { opacity: 0, y: 24 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.7, ease } },
+type Feature = {
+  title: string;
+  description: string;
+  eyebrow: string;
+  Icon: typeof CloudArrowUp;
 };
 
-const useCases = [
-  { title: "News & live updates", note: "Keep the daily signal moving", image: newsReferenceImage },
-  { title: "Devotional programming", note: "Broadcast a calm daily rhythm", image: devotionalReferenceImage },
-  { title: "Music & live sessions", note: "Put every performance on air", image: musicReferenceImage },
-  { title: "Kids & entertainment", note: "Give every show a colorful channel", image: cartoonsReferenceImage },
-  { title: "Education & classes", note: "Turn lessons into a live classroom", image: educationReferenceImage },
-  { title: "Product showcases", note: "Keep product stories in motion", image: affiliateReferenceImage },
+const features: Feature[] = [
+  {
+    title: "Cloud relay",
+    description: "Your channel keeps running from Streamly’s cloud, not from the laptop you left behind.",
+    eyebrow: "01 / ALWAYS ON",
+    Icon: CloudArrowUp,
+  },
+  {
+    title: "Smart looping",
+    description: "Turn a playlist into a continuous broadcast with clean transitions and no manual restarts.",
+    eyebrow: "02 / PLAYLIST ENGINE",
+    Icon: Repeat,
+  },
+  {
+    title: "Stream analytics",
+    description: "See viewers, watch time, and stream health in one quiet control room built for decisions.",
+    eyebrow: "03 / SIGNAL DATA",
+    Icon: ChartLineUp,
+  },
+  {
+    title: "Recovery built in",
+    description: "When a connection wobbles, Streamly notices, reconnects, and gets the signal moving again.",
+    eyebrow: "04 / AUTO RECOVERY",
+    Icon: ShieldCheck,
+  },
+  {
+    title: "Multi-stream ready",
+    description: "Keep your broadcast architecture ready for the destinations your audience already uses.",
+    eyebrow: "05 / DESTINATIONS",
+    Icon: Broadcast,
+  },
+  {
+    title: "One-click YouTube auth",
+    description: "Connect your channel with a secure Google OAuth flow and get on air without friction.",
+    eyebrow: "06 / SECURE CONNECT",
+    Icon: UserCircle,
+  },
 ];
 
-const powerfulFeatures = [
-  { title: "Loop Control", description: "Stream videos once, repeat N times, or loop endlessly", artwork: loopControlArtwork },
-  { title: "24x7 Streaming", description: "Stay live around the clock - without staying online", artwork: streamingArtwork },
-  { title: "Playlist Builder", description: "Line up multiple videos and go live in sequence", artwork: playlistArtwork },
-  { title: "1080p & 4K Output", description: "Crystal-clear live streams up to 2160p", artwork: qualityArtwork },
-  { title: "Advanced Scheduler", description: "Plan your streams for days, weeks, or months ahead", artwork: schedulerArtwork },
+const pricingPlans = [
+  { term: "Free 1 day", price: "FREE", period: "24 hours", detail: "Full access to try the broadcast room", featured: true, bonus: "No payment to start" },
+  { term: "1 month", price: "₹799", period: "month", detail: "For a focused launch or campaign", bonus: "10 days extra" },
+  { term: "12 months", price: "₹7,999", period: "year", detail: "The clearest runway for a channel", featured: true, bonus: "Annual access" },
 ];
 
-const navItems = [
-  { label: "Capabilities", href: "#capabilities" },
-  { label: "Use cases", href: "#use-cases" },
-  { label: "Pricing", href: "/pricing" },
+const accessPlans = [
+  { term: "Free 1 day", price: "FREE", period: "24 hours", detail: "Try the complete broadcast room", featured: true, bonus: "No payment to start" },
+  { term: "1 month", price: "₹799", period: "month", detail: "A focused launch window", bonus: "10 days extra" },
+  { term: "3 months", price: "Contact us", period: "3 months", detail: "Time to build a repeat audience", bonus: "1 month extra" },
+  { term: "6 months", price: "Contact us", period: "6 months", detail: "A longer runway for growth", bonus: "2 months extra" },
+  { term: "12 months", price: "₹7,999", period: "year", detail: "Keep your channel moving", bonus: "Annual access" },
+  { term: "1 year", price: "Contact us", period: "1 year", detail: "Best value for serious channels", featured: true, bonus: "5 months extra" },
 ];
 
-const MONTHLY_OFFER_DURATION = 3 * 60 * 60 * 1000;
-const MONTHLY_OFFER_DEADLINE_KEY = "r-loop-bypass-monthly-offer-deadline";
+const planFeatures = ["Unlimited storage", "2 live monitor bots", "24-hour live streams", "YouTube + Facebook + RTMP", "VPS + direct downloads"];
 
 function BrandMark() {
-  return <span className="marketing-mark" aria-hidden="true"><span>S</span><i /></span>;
+  return <span className="streamly-mark" aria-hidden="true"><span>S</span><i /></span>;
 }
 
-function RollLabel({ children }: { children: string }) {
-  return <span className="roll-label"><span>{children}</span><span aria-hidden="true">{children}</span></span>;
+function Reveal({ children, className = "", id }: { children: ReactNode; className?: string; id?: string }) {
+  const ref = useRef<HTMLElement>(null);
+  const inView = useInView(ref, { once: true, margin: "-80px 0px" });
+  return (
+    <motion.section
+      ref={ref}
+      id={id}
+      className={className}
+      initial={{ opacity: 0, y: 22 }}
+      animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 22 }}
+      transition={{ duration: 0.7, ease }}
+    >
+      {children}
+    </motion.section>
+  );
 }
 
-function HeroRollText({ children }: { children: string }) {
-  return <span className="hero-roll-line"><span>{children}</span><span aria-hidden="true">{children}</span></span>;
-}
-
-function PublicNav({ onAccess }: { onAccess?: () => void }) {
+function PublicNav() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [, setLocation] = useLocation();
   const go = (href: string) => {
@@ -72,552 +128,193 @@ function PublicNav({ onAccess }: { onAccess?: () => void }) {
     if (href.startsWith("#")) document.querySelector(href)?.scrollIntoView({ behavior: "smooth" });
     else setLocation(href);
   };
-  return <header className={`marketing-nav ${menuOpen ? "is-open" : ""}`}>
-    <Link href="/" className="marketing-brand" data-testid="link-public-home"><BrandMark /><span>Streamly</span></Link>
-    <nav className="marketing-links" aria-label="Main navigation">
-      {navItems.map((item) => <button key={item.label} className="marketing-link" onClick={() => go(item.href)} data-testid={`link-${item.label.toLowerCase().replace(" ", "-")}`}><RollLabel>{item.label}</RollLabel></button>)}
-    </nav>
-    <div className="marketing-nav-actions">
-      <Link href="/access" className="nav-access" onClick={onAccess} data-testid="link-access-workspace"><RollLabel>Access workspace</RollLabel><ArrowRight size={14} /></Link>
-      <Link href="/access" className="mobile-nav-access" onClick={onAccess} data-testid="mobile-button-access-workspace">Access workspace<ArrowRight size={13} /></Link>
-      <button className="marketing-menu-button" onClick={() => setMenuOpen((value) => !value)} aria-label={menuOpen ? "Close navigation" : "Open navigation"} aria-expanded={menuOpen} data-testid="button-mobile-menu">{menuOpen ? <X size={19} /> : <Menu size={19} />}</button>
-    </div>
-    {menuOpen && <div className="mobile-marketing-menu">
-      {navItems.map((item) => <button key={item.label} onClick={() => go(item.href)} data-testid={`mobile-link-${item.label.toLowerCase().replace(" ", "-")}`}>{item.label}<ArrowRight size={14} /></button>)}
-      <Link href="/access" onClick={() => setMenuOpen(false)} data-testid="mobile-link-access">Access workspace<ArrowRight size={14} /></Link>
-    </div>}
-  </header>;
-}
-
-function IntroReveal({ onComplete }: { onComplete: () => void }) {
-  const [index, setIndex] = useState(0);
-  const greetings = ["Hello.", "नमस्ते.", "Bonjour.", "Ciao.", "Streamly."];
-  useEffect(() => {
-    const timer = window.setInterval(() => setIndex((current) => Math.min(current + 1, greetings.length - 1)), 470);
-    const done = window.setTimeout(onComplete, 2250);
-    return () => { window.clearInterval(timer); window.clearTimeout(done); };
-  }, [onComplete, greetings.length]);
-  return <motion.div className="intro-reveal" initial={{ opacity: 1 }} exit={{ opacity: 0, transition: { duration: 0.65, ease } }}>
-    <div className="intro-grid" />
-    <div className="intro-top"><span className="intro-kicker">Signal / 001</span><span>24:00:00</span></div>
-    <AnimatePresence mode="wait">
-      <motion.div key={greetings[index]} className="intro-word" initial={{ opacity: 0, y: 22 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -22 }} transition={{ duration: 0.34, ease }}>{greetings[index]}</motion.div>
-    </AnimatePresence>
-    <button className="intro-skip" onClick={onComplete} data-testid="button-skip-intro">Skip intro <ArrowRight size={13} /></button>
-    <div className="intro-bottom"><span>Broadcast control for the long signal</span><span className="intro-dot" /></div>
-  </motion.div>;
-}
-
-function SignalMonitor() {
-  const [state, setState] = useState(0);
-  const statuses = [
-    { label: "Signal locked", sub: "Broadcasting continuously", color: "lime", image: heroTwoScreenImage, alt: "Loop Stream dashboard and YouTube live screen" },
-    { label: "Offline / connection lost", sub: "Automatic recovery is standing by", color: "amber", image: connectionLostImage, alt: "Creator facing a connection lost screen" },
-    { label: "Reconnecting", sub: "Automatic recovery engaged", color: "coral", image: loopRunningImage, alt: "Loop Stream running continuously while the creator rests" },
+  const nav = [
+    { label: "How it works", href: "#how-it-works" },
+    { label: "Capabilities", href: "#capabilities" },
+    { label: "Use cases", href: "#use-cases" },
+    { label: "Pricing", href: "/pricing" },
   ];
-  useEffect(() => {
-    const timer = window.setInterval(() => setState((value) => (value + 1) % statuses.length), 4200);
-    return () => window.clearInterval(timer);
-  }, [statuses.length]);
-  const current = statuses[state];
-  return <div className={`signal-monitor signal-${current.color}`} data-testid="status-broadcast-signal">
-    <div className="monitor-head"><span className="monitor-title"><span className="monitor-led" /> Broadcast monitor</span><span className="monitor-time">00:24:08:17</span></div>
-      <div className="monitor-stage">
-        <img key={current.image} className="monitor-slide-image" src={current.image} alt={current.alt} />
-      <div className="stage-wash" />
-      <div className="scan-lines" />
-      <div className="monitor-center"><AnimatePresence mode="wait"><motion.div key={current.label} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: .35 }}><div className="monitor-state"><span className="monitor-state-dot" />{current.label}</div><p>{current.sub}</p></motion.div></AnimatePresence></div>
-       <div className="monitor-corner monitor-corner-left">STL / CH.01</div><div className="monitor-corner monitor-corner-right">4K · 60 FPS</div>
-       <div className="monitor-hud" aria-label="Broadcast cues"><span className="is-live"><i />LIVE</span><span>CHAT 24</span><span>SCHEDULED 06:30</span></div>
-    </div>
-    <div className="monitor-wave"><span /><span /><span /><span /><span /><span /><span /><span /><span /><span /><span /><span /><span /><span /><span /><span /></div>
-    <div className="monitor-foot"><span><Signal size={13} /> YouTube</span><span><Signal size={13} /> Facebook</span><strong>Auto-restart <i /></strong></div>
-  </div>;
-}
-
-function ComparisonSlider() {
-  const frameRef = useRef<HTMLDivElement>(null);
-  const [position, setPosition] = useState(50);
-  const [dragging, setDragging] = useState(false);
-  const [autoPaused, setAutoPaused] = useState(false);
-  const autoDirectionRef = useRef(1);
-  const resumeTimerRef = useRef<number | null>(null);
-  const reducedMotion = useReducedMotion();
-
-  const updatePosition = (clientX: number) => {
-    const frame = frameRef.current;
-    if (!frame) return;
-    const bounds = frame.getBoundingClientRect();
-    const next = ((clientX - bounds.left) / bounds.width) * 100;
-    setPosition(Math.min(100, Math.max(0, next)));
-  };
-
-  useEffect(() => {
-    if (reducedMotion) return;
-
-    let frameId = 0;
-    let previousTime = 0;
-    const moveHandle = (time: number) => {
-      if (!previousTime) previousTime = time;
-      const delta = Math.min(time - previousTime, 64);
-      previousTime = time;
-
-      if (!autoPaused && !dragging) {
-        setPosition((value) => {
-          const next = value + autoDirectionRef.current * delta * 0.009;
-          if (next >= 76) {
-            autoDirectionRef.current = -1;
-            return 76;
-          }
-          if (next <= 24) {
-            autoDirectionRef.current = 1;
-            return 24;
-          }
-          return next;
-        });
-      }
-
-      frameId = window.requestAnimationFrame(moveHandle);
-    };
-
-    frameId = window.requestAnimationFrame(moveHandle);
-    return () => window.cancelAnimationFrame(frameId);
-  }, [autoPaused, dragging, reducedMotion]);
-
-  useEffect(() => () => {
-    if (resumeTimerRef.current !== null) window.clearTimeout(resumeTimerRef.current);
-  }, []);
-
-  const pauseAuto = () => {
-    setAutoPaused(true);
-    if (resumeTimerRef.current !== null) window.clearTimeout(resumeTimerRef.current);
-    resumeTimerRef.current = window.setTimeout(() => {
-      setAutoPaused(false);
-      resumeTimerRef.current = null;
-    }, 2200);
-  };
-
-  const handlePointerDown = (event: PointerEvent<HTMLButtonElement>) => {
-    event.preventDefault();
-    pauseAuto();
-    event.currentTarget.setPointerCapture(event.pointerId);
-    setDragging(true);
-  };
-
-  const handlePointerMove = (event: PointerEvent<HTMLButtonElement>) => {
-    if (dragging) updatePosition(event.clientX);
-  };
-
-  const handlePointerUp = (event: PointerEvent<HTMLButtonElement>) => {
-    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
-      event.currentTarget.releasePointerCapture(event.pointerId);
-    }
-    setDragging(false);
-    pauseAuto();
-  };
-
-  const handleKeyDown = (event: KeyboardEvent<HTMLButtonElement>) => {
-    const step = event.shiftKey ? 10 : 5;
-    if (event.key === "ArrowLeft") {
-      event.preventDefault();
-      pauseAuto();
-      setPosition((value) => Math.max(0, value - step));
-    }
-    if (event.key === "ArrowRight") {
-      event.preventDefault();
-      pauseAuto();
-      setPosition((value) => Math.min(100, value + step));
-    }
-    if (event.key === "Home") {
-      event.preventDefault();
-      pauseAuto();
-      setPosition(0);
-    }
-    if (event.key === "End") {
-      event.preventDefault();
-      pauseAuto();
-      setPosition(100);
-    }
-  };
-
-  return <MarketingSection className="comparison-section">
-    <div className="comparison-copy">
-      <span className="section-index">04 / THE DIFFERENCE</span>
-      <h2>Don’t let your<br /><em>channel go dark.</em></h2>
-      <p>Drag the signal across the frame. See the difference between waiting for viewers and keeping a 24-hour stream earning for you.</p>
-       <div className="comparison-hint"><ArrowLeftRight size={15} /><span>It keeps moving — grab the handle anytime</span></div>
-    </div>
-    <div
-      ref={frameRef}
-      className={`comparison-frame ${dragging ? "is-dragging" : ""}`}
-      onPointerDown={(event) => updatePosition(event.clientX)}
-      data-testid="comparison-slider"
-    >
-        <img className="comparison-image comparison-image-live" src={loopRunningImage} alt="Loop Stream 24-hour live broadcast running while the creator rests" />
-      <div className="comparison-offline" style={{ clipPath: `inset(0 ${100 - position}% 0 0)` }}>
-         <img className="comparison-image comparison-image-offline" src={connectionLostImage} alt="Connection lost screen stopping a regular live stream" />
+  return (
+    <header className={`streamly-nav ${menuOpen ? "is-open" : ""}`}>
+      <Link href="/" className="streamly-brand" data-testid="link-public-home"><BrandMark /><span>Streamly</span></Link>
+      <nav className="streamly-nav-links" aria-label="Main navigation">
+        {nav.map((item) => <button key={item.label} type="button" onClick={() => go(item.href)}>{item.label}</button>)}
+      </nav>
+      <div className="streamly-nav-actions">
+        <Link href="/access" className="streamly-nav-login" data-testid="link-access-workspace">Log in</Link>
+        <Link href="/pricing" className="streamly-nav-trial" data-testid="link-start-free-trial">Start free trial <ArrowRight size={15} weight="bold" /></Link>
+        <button type="button" className="streamly-menu-button" aria-label={menuOpen ? "Close navigation" : "Open navigation"} aria-expanded={menuOpen} onClick={() => setMenuOpen((open) => !open)}>{menuOpen ? <X size={20} /> : <List size={20} />}</button>
       </div>
-      <div className="comparison-tint comparison-tint-offline" style={{ clipPath: `inset(0 ${100 - position}% 0 0)` }} />
-      <div className="comparison-label comparison-label-offline"><span className="comparison-label-dot" /> STREAM OFFLINE <strong>₹0 earned</strong></div>
-      <div className="comparison-label comparison-label-live"><span className="comparison-label-dot" /> 24H STREAM LIVE <strong>Profit growing</strong></div>
-      <div className="comparison-stat comparison-stat-offline"><span>CONNECTION LOST</span><strong>No viewers. No momentum.</strong></div>
-      <div className="comparison-stat comparison-stat-live"><span>NOW BROADCASTING</span><strong>Audience stays. Revenue moves.</strong></div>
-      <button
-        type="button"
-        className="comparison-handle"
-        style={{ left: `${position}%` }}
-        aria-label="Compare offline and live stream states"
-        aria-valuemin={0}
-        aria-valuemax={100}
-        aria-valuenow={Math.round(position)}
-        aria-valuetext={`${Math.round(position)}% offline view, ${Math.round(100 - position)}% live view`}
-        role="slider"
-        tabIndex={0}
-        onPointerDown={handlePointerDown}
-        onPointerMove={handlePointerMove}
-        onPointerUp={handlePointerUp}
-        onPointerCancel={handlePointerUp}
-        onKeyDown={handleKeyDown}
-        data-testid="comparison-slider-handle"
-      >
-        <span><ArrowLeftRight size={17} /></span>
-      </button>
-    </div>
-  </MarketingSection>;
+      <AnimatePresence>
+        {menuOpen && (
+          <motion.div className="streamly-mobile-menu" initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}>
+            {nav.map((item) => <button type="button" key={item.label} onClick={() => go(item.href)}>{item.label}<ArrowRight size={15} /></button>)}
+            <Link href="/access" onClick={() => setMenuOpen(false)}>Log in <ArrowRight size={15} /></Link>
+            <Link href="/pricing" onClick={() => setMenuOpen(false)}>Start free trial <ArrowRight size={15} /></Link>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </header>
+  );
 }
 
-function MarketingSection({ children, className = "", id }: { children: ReactNode; className?: string; id?: string }) {
-  const ref = useRef<HTMLElement>(null);
-  const inView = useInView(ref, { once: true, margin: "-10% 0px" });
-  return <motion.section ref={ref} id={id} className={`marketing-section ${className}`} initial="hidden" animate={inView ? "visible" : "hidden"} variants={reveal}>{children}</motion.section>;
+function SignalBadge({ children, tone = "blue" }: { children: ReactNode; tone?: "blue" | "green" | "violet" }) {
+  return <span className={`signal-badge signal-badge-${tone}`}><i />{children}</span>;
 }
 
-function AnimatedCountdownUnit({ value }: { value: string }) {
-  return <span className="monthly-countdown-slot" aria-hidden="true">
-    <AnimatePresence mode="popLayout" initial={false}>
-      <motion.span
-        key={value}
-        className="monthly-countdown-value"
-        initial={{ opacity: 0, filter: "blur(11px)", y: 13, scale: 0.94 }}
-        animate={{ opacity: 1, filter: "blur(0px)", y: 0, scale: 1 }}
-        exit={{ opacity: 0, filter: "blur(11px)", y: -13, scale: 1.04 }}
-        transition={{ duration: 0.38, ease }}
-      >
-        {value}
-      </motion.span>
-    </AnimatePresence>
-  </span>;
-}
-
-function MonthlyOfferCountdown() {
-  const [remaining, setRemaining] = useState(MONTHLY_OFFER_DURATION);
-
-  useEffect(() => {
-    const now = Date.now();
-    const savedDeadline = Number(window.localStorage.getItem(MONTHLY_OFFER_DEADLINE_KEY));
-    const deadline = savedDeadline > now ? savedDeadline : now + MONTHLY_OFFER_DURATION;
-
-    window.localStorage.setItem(MONTHLY_OFFER_DEADLINE_KEY, String(deadline));
-    const update = () => setRemaining(Math.max(0, deadline - Date.now()));
-    update();
-    const timer = window.setInterval(update, 1000);
-    return () => window.clearInterval(timer);
-  }, []);
-
-  const totalSeconds = Math.floor(remaining / 1000);
-  const hours = Math.floor(totalSeconds / 3600);
-  const minutes = Math.floor((totalSeconds % 3600) / 60);
-  const seconds = totalSeconds % 60;
-  const clock = [hours, minutes, seconds].map((value) => String(value).padStart(2, "0"));
-  const expired = totalSeconds === 0;
-
-  return <div className={`monthly-countdown ${expired ? "is-expired" : ""}`} aria-live="polite">
-    <div className="monthly-countdown-heading">
-      <span className="monthly-countdown-dot" />
-      <span>{expired ? "Monthly offer ended" : "Monthly offer ends in"}</span>
-    </div>
-    <div className="monthly-countdown-clock" aria-label={expired ? "Monthly offer ended" : `${hours} hours, ${minutes} minutes, ${seconds} seconds remaining`}>
-      <AnimatedCountdownUnit value={clock[0]} /><span>:</span><AnimatedCountdownUnit value={clock[1]} /><span>:</span><AnimatedCountdownUnit value={clock[2]} />
-    </div>
-    <div className="monthly-countdown-labels"><span>hours</span><span>minutes</span><span>seconds</span></div>
-  </div>;
-}
-
-const accessPlans = [
-  {
-    term: "Free 1 day",
-    label: "Try it free",
-    bonus: "24 hours free",
-    totalAccess: "1 day access",
-    isFeatured: true,
-    isFree: true,
-  },
-  {
-    term: "1 month",
-    label: "Quick start",
-    bonus: "10 days extra",
-    totalAccess: "1 month + 10 days",
-  },
-  {
-    term: "3 months",
-    label: "Creator pace",
-    bonus: "1 month extra",
-    totalAccess: "3 months + 1 month",
-  },
-  {
-    term: "6 months",
-    label: "Growth window",
-    bonus: "2 months extra",
-    totalAccess: "6 months + 2 months",
-  },
-  {
-    term: "1 year",
-    label: "Best value",
-    bonus: "5 months extra",
-    totalAccess: "1 year + 5 months",
-    isFeatured: true,
-  },
-];
-
-const planFeatures = [
-  ["Unlimited storage", "Keep your full media library ready to stream."],
-  ["2 live monitor bots", "Two bots keep watching your stream health continuously."],
-  ["Unlimited live streams", "Run as many concurrent streams as your plan needs."],
-  ["Unlimited account streams", "Use streams from unlimited connected accounts."],
-  ["YouTube + Facebook Live", "Go live directly to YouTube and Facebook."],
-  ["Twitch, Kick + RTMP", "Connect more platforms with standard stream keys."],
-  ["24-hour live streaming", "Keep channels running around the clock."],
-  ["VPS access", "Use a dedicated remote streaming environment."],
-  ["Direct downloads", "Download your videos and media directly."],
-  ["Playlist + auto scheduler", "Build loops, schedule broadcasts, and restart automatically."],
-];
-
-const contactChannels = [
-  { label: "WhatsApp", Icon: MessageCircle },
-  { label: "Telegram", Icon: Send },
-] as const;
-
-const paywallPlans = [
-  { term: "Free 1 day", price: "FREE", crossed: "", label: "24 hours", offer: "Try the full broadcast room", bonus: "No payment to start", featured: true },
-  { term: "1 month", price: "₹799", crossed: "₹1,000", label: "1 month", offer: "20% offer included", bonus: "10 days extra" },
-  { term: "3 months", price: "Contact us", crossed: "", label: "3 months", offer: "Creator access window", bonus: "1 month extra" },
-  { term: "6 months", price: "Contact us", crossed: "", label: "6 months", offer: "Growth access window", bonus: "2 months extra" },
-  { term: "12 months", price: "₹7,999", crossed: "₹10,000", label: "12 months", offer: "20% annual offer", bonus: "Annual access" },
-  { term: "1 year", price: "Contact us", crossed: "", label: "1 year", offer: "Best value access", bonus: "5 months extra", featured: true },
-];
-
-function PlanOfferSlider() {
-  const [selectedPlan, setSelectedPlan] = useState<(typeof accessPlans)[number] | null>(null);
-  const [selectedChannel, setSelectedChannel] = useState<string | null>(null);
-  const [, setLocation] = useLocation();
-  const closeContact = () => {
-    setSelectedPlan(null);
-    setSelectedChannel(null);
-  };
-  const choosePlan = (plan: (typeof accessPlans)[number]) => {
-    if (!plan.isFree) {
-      setLocation(`/gateway?plan=${encodeURIComponent(plan.term)}`);
-      return;
-    }
-    setSelectedPlan(plan);
-    setSelectedChannel(null);
-  };
-
-  return <MarketingSection className="plan-offer-section">
-    <div className="plan-offer-heading">
-      <div><span className="section-index">05 / PREMIUM ACCESS</span><h2>Choose your <em>access window.</em></h2></div>
-      <p>Pick your access window and get the full broadcast toolkit: storage, monitoring bots, unlimited streams, VPS access, and multi-platform delivery.</p>
-    </div>
-    <div className="plan-offer-shell">
-      <div className="plan-offer-status"><span className="monitor-led" /> ACCESS WINDOWS / 06 PLANS <span className="plan-offer-status-line" /></div>
-      <div className="plan-offer-grid" aria-label="All access plans">
-        {accessPlans.map((plan, index) => <article className={`plan-offer-card ${plan.isFeatured ? "is-featured" : ""}`} key={plan.term}>
-          <div className="plan-offer-card-header">
-            <div>
-              <span className="plan-offer-card-kicker">STREAMLY / {plan.label}</span>
-              <h3>{plan.term}</h3>
+function DashboardMock() {
+  const [tab, setTab] = useState<"overview" | "schedule">("overview");
+  return (
+    <div className="dashboard-wrap" aria-label="Streamly control room preview">
+      <div className="dashboard-glow dashboard-glow-blue" />
+      <div className="dashboard-glow dashboard-glow-violet" />
+      <div className="dashboard-window">
+        <div className="dashboard-topbar">
+          <div className="window-dots"><i /><i /><i /></div>
+          <span className="window-route"><Radio size={13} weight="fill" /> streamly / control room</span>
+          <DotsThree size={19} />
+        </div>
+        <div className="dashboard-body">
+          <aside className="dashboard-sidebar">
+            <div className="dashboard-mini-brand"><BrandMark /></div>
+            <span className="dash-icon active"><Gauge size={17} /></span>
+            <span className="dash-icon"><VideoCamera size={17} /></span>
+            <span className="dash-icon"><ChartLineUp size={17} /></span>
+            <span className="dash-icon"><ListChecks size={17} /></span>
+            <span className="dash-icon dash-icon-bottom"><Sparkle size={17} /></span>
+          </aside>
+          <div className="dashboard-main">
+            <div className="dashboard-heading">
+              <div><span className="dashboard-kicker">MONITORING / CHANNEL 01</span><h3>Good morning, Rhea.</h3></div>
+              <button type="button" className="dashboard-add"><Plus size={14} /> Add stream</button>
             </div>
-            {plan.isFree ? <span className="plan-offer-best-value">FREE</span> : plan.isFeatured && <span className="plan-offer-best-value">BEST VALUE</span>}
+            <div className="dashboard-tabs" role="tablist" aria-label="Dashboard preview tabs">
+              <button type="button" className={tab === "overview" ? "selected" : ""} onClick={() => setTab("overview")} role="tab" aria-selected={tab === "overview"}>Overview</button>
+              <button type="button" className={tab === "schedule" ? "selected" : ""} onClick={() => setTab("schedule")} role="tab" aria-selected={tab === "schedule"}>Schedule</button>
+            </div>
+            <AnimatePresence mode="wait">
+              {tab === "overview" ? (
+                <motion.div key="overview" className="dashboard-overview" initial={{ opacity: 0, x: 8 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -8 }}>
+                  <div className="dashboard-live-card">
+                    <div className="live-card-header"><SignalBadge tone="green">Broadcasting</SignalBadge><span>02:18:44:09</span></div>
+                    <div className="live-preview"><div className="preview-noise" /><div className="preview-grid" /><span className="preview-play"><Play size={18} weight="fill" /></span><span className="preview-caption">NIGHT RADIO / LOOP 07</span><span className="preview-resolution">1080p · 60 FPS</span></div>
+                    <div className="live-card-foot"><span><YoutubeLogo size={15} weight="fill" /> YouTube</span><span className="live-viewers"><i /> 1,284 watching</span><button type="button" aria-label="Pause stream"><Pause size={14} weight="fill" /></button></div>
+                  </div>
+                  <div className="dashboard-metrics">
+                    <div className="dash-metric"><span>WATCH TIME</span><strong>18.6k <small>hrs</small></strong><em>+12.4%</em></div>
+                    <div className="dash-metric"><span>AVG. VIEWERS</span><strong>1,284</strong><em>+8.9%</em></div>
+                    <div className="dash-chart"><div className="dash-chart-head"><span>VIEWERS / LAST 24H</span><TrendUp size={14} /></div><div className="chart-bars">{[32, 48, 40, 61, 52, 74, 58, 84, 69, 92, 77, 88].map((height, index) => <i key={index} style={{ height: `${height}%` }} />)}</div><div className="chart-axis"><span>00:00</span><span>12:00</span><span>NOW</span></div></div>
+                  </div>
+                </motion.div>
+              ) : (
+                <motion.div key="schedule" className="dashboard-schedule" initial={{ opacity: 0, x: 8 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -8 }}>
+                  <div className="schedule-date"><span>UP NEXT</span><strong>Tuesday, 06:30</strong><small>Morning movement · 12 videos</small></div>
+                  {["Night radio / Loop 07", "Morning movement", "Focus desk / 2 hours"].map((item, index) => <div className="schedule-row" key={item}><span>0{index + 1}</span><strong>{item}</strong><small>{index === 0 ? "Live now" : index === 1 ? "Tomorrow" : "Wed, 09:00"}</small><CheckCircle size={15} /></div>)}
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
-          <div className="plan-offer-bonus">
-            <span>OFFER</span>
-            <strong>+ {plan.bonus}</strong>
-            <small>{plan.totalAccess} total access</small>
-          </div>
-          <div className="plan-offer-features">
-            {planFeatures.map(([title, detail]) => <div className="plan-offer-feature" key={title}>
-              <Check size={14} />
-              <div><strong>{title}</strong><span>{detail}</span></div>
-            </div>)}
-          </div>
-          <button type="button" className="plan-offer-card-cta" onClick={() => choosePlan(plan)} data-testid={`button-plan-offer-${index}`}>
-             Choose {plan.term} <ArrowRight size={13} />
-          </button>
-        </article>)}
+        </div>
       </div>
-      <p className="plan-offer-hint"><Check size={13} /> Every plan includes the complete feature set shown above</p>
+      <div className="floating-status floating-status-top"><span className="status-check"><Check size={12} weight="bold" /></span><span><b>Auto-recovery ready</b><small>Last check · 14 sec ago</small></span></div>
+      <div className="floating-status floating-status-bottom"><span className="status-spark"><CloudArrowUp size={15} /></span><span><b>Cloud relay active</b><small>Latency · 42 ms</small></span></div>
     </div>
-    <AnimatePresence>
-      {selectedPlan && <motion.div className="plan-contact-backdrop" role="presentation" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={closeContact}>
-        <motion.div className="plan-contact-dialog" role="dialog" aria-modal="true" aria-labelledby="plan-contact-title" initial={{ opacity: 0, y: 18, scale: .97 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 12, scale: .98 }} onClick={(event) => event.stopPropagation()}>
-          <button type="button" className="plan-contact-close" onClick={closeContact} aria-label="Close contact options"><X size={16} /></button>
-          <span className="section-index">06 / CONTACT TO CONTINUE</span>
-          <h3 id="plan-contact-title">Choose how to activate <em>{selectedPlan.term}</em></h3>
-          <p>First choose a contact option. We will help you with access, payment, and setup for this plan.</p>
-          <div className="plan-contact-options" aria-label="Contact options">
-            {contactChannels.map(({ label, Icon }) => <button type="button" className={`plan-contact-option ${selectedChannel === label ? "is-selected" : ""}`} key={label} onClick={() => setSelectedChannel(label)}>
-              <span className="plan-contact-option-mark"><Icon size={17} strokeWidth={2.3} /></span><span><strong>{label}</strong><small>Contact us about {selectedPlan.term}</small></span><ArrowRight size={14} />
-            </button>)}
-          </div>
-          {selectedChannel && <div className="plan-contact-confirmation"><span className="monitor-led" /><strong>{selectedChannel} selected</strong><span>We’ll connect you about your {selectedPlan.term} access.</span></div>}
-          <button type="button" className="plan-contact-back" onClick={closeContact}>Back to plans</button>
-        </motion.div>
-      </motion.div>}
-    </AnimatePresence>
-  </MarketingSection>;
+  );
+}
+
+function StepCard({ number, Icon, title, copy }: { number: string; Icon: typeof MonitorPlay; title: string; copy: string }) {
+  return <article className="step-card"><span className="step-number">{number}</span><div className="step-icon"><Icon size={22} weight="duotone" /></div><h3>{title}</h3><p>{copy}</p><ArrowRight size={17} className="step-arrow" /></article>;
 }
 
 export function LandingPage() {
-  const [activeCase, setActiveCase] = useState(0);
-  const [heroTransform, setHeroTransform] = useState("perspective(1200px) rotateX(0deg) rotateY(0deg) translate3d(0, 0, 0)");
-  const [, setLocation] = useLocation();
+  const [activeFeature, setActiveFeature] = useState(0);
   const reducedMotion = useReducedMotion();
-  const moveHero = (event: PointerEvent<HTMLDivElement>) => {
-    if (reducedMotion || event.pointerType === "touch") return;
-    const bounds = event.currentTarget.getBoundingClientRect();
-    const x = (event.clientX - bounds.left) / bounds.width - 0.5;
-    const y = (event.clientY - bounds.top) / bounds.height - 0.5;
-    setHeroTransform(`perspective(1200px) rotateX(${(-y * 7).toFixed(2)}deg) rotateY(${(x * 9).toFixed(2)}deg) translate3d(${(x * 8).toFixed(2)}px, ${(y * 8).toFixed(2)}px, 0)`);
-  };
-  const resetHero = () => setHeroTransform("perspective(1200px) rotateX(0deg) rotateY(0deg) translate3d(0, 0, 0)");
-  return <div className="marketing-page">
-    <PublicNav />
-    <main>
-      <section className="marketing-hero" data-testid="section-marketing-hero">
-        <div className="hero-orbit hero-orbit-one" /><div className="hero-orbit hero-orbit-two" />
-        <div className="hero-copy">
-          <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: .25, duration: .7, ease }} className="signal-tag"><span className="signal-tag-dot" /> YOUR CHANNEL, ON LOOP</motion.div>
-           <motion.h1 initial={{ opacity: 0, y: 22 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: .35, duration: .8, ease }}><HeroRollText>Make the</HeroRollText><br /><em><HeroRollText>signal feel alive.</HeroRollText></em></motion.h1>
-           <motion.p initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: .48, duration: .7, ease }}>Streamly turns a playlist into a dependable 24-hour live channel. Build once, broadcast with confidence.</motion.p>
-          <motion.div className="hero-actions" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: .6, duration: .7, ease }}>
-             <div
-               onClick={() => setLocation("/pricing")}
-               onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") setLocation("/pricing"); }}
-               role="link"
-               tabIndex={0}
-               aria-label="Get offer"
-               data-testid="link-hero-offer"
-             >
-                <GetOfferButton />
-             </div>
-            <button className="text-button" onClick={() => document.querySelector("#capabilities")?.scrollIntoView({ behavior: "smooth" })} data-testid="button-explore-product"><Play size={14} /><span>See how it works</span></button>
-          </motion.div>
-          <motion.div className="hero-proof" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: .8, duration: .6 }}><span><Check size={13} /> 4K / 1080p output</span><span><Check size={13} /> YouTube + Facebook</span><span><Check size={13} /> Automatic recovery</span></motion.div>
-        </div>
-        <motion.div className="hero-monitor-wrap" initial={{ opacity: 0, x: 25 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: .35, duration: .9, ease }}><div className="hero-tilt-surface" style={{ transform: heroTransform }} onPointerMove={moveHero} onPointerLeave={resetHero}><SignalMonitor /></div></motion.div>
-        <button className="hero-scroll" onClick={() => document.querySelector("#capabilities")?.scrollIntoView({ behavior: "smooth" })} data-testid="button-scroll-capabilities"><span>Scroll to tune in</span><ArrowDown size={15} /></button>
-      </section>
+  const ActiveFeatureIcon = features[activeFeature].Icon;
+  const scrollTo = (selector: string) => document.querySelector(selector)?.scrollIntoView({ behavior: reducedMotion ? "auto" : "smooth" });
+  return (
+    <div className="streamly-public">
+      <PublicNav />
+      <main>
+        <section className="streamly-hero">
+          <div className="hero-grid" />
+          <div className="hero-orb hero-orb-blue" />
+          <div className="hero-orb hero-orb-violet" />
+          <div className="streamly-container hero-layout">
+            <div className="hero-copy">
+              <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: .65, ease }}><SignalBadge><Lightning size={13} weight="fill" /> POWERED BY 24/7 CLOUD INFRASTRUCTURE</SignalBadge></motion.div>
+              <motion.h1 initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: .08, duration: .75, ease }}>Stream 24/7 on YouTube,<br /><em>even while you sleep.</em></motion.h1>
+              <motion.p initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: .17, duration: .65, ease }}>Keep your channel live continuously without leaving your device on. Upload once, press play, and let cloud infrastructure carry the signal through the night.</motion.p>
+              <motion.div className="hero-actions" initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: .27, duration: .65, ease }}>
+                <Link href="/pricing" className="streamly-button streamly-button-primary" data-testid="link-hero-offer">Start streaming <ArrowRight size={17} weight="bold" /></Link>
+                <button type="button" className="streamly-button streamly-button-quiet" onClick={() => scrollTo("#how-it-works")} data-testid="button-explore-product"><Play size={15} weight="fill" /> See how it works</button>
+              </motion.div>
+              <motion.div className="hero-proof" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: .42, duration: .6 }}><span><Check size={14} weight="bold" /> 1080p and 4K output</span><span><Check size={14} weight="bold" /> YouTube ready</span><span><Check size={14} weight="bold" /> Automatic recovery</span></motion.div>
+            </div>
+            <motion.div className="hero-product" initial={{ opacity: 0, x: 28 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: .16, duration: .9, ease }}><DashboardMock /></motion.div>
+          </div>
+          <button type="button" className="hero-scroll-cue" onClick={() => scrollTo("#how-it-works")}><span>Explore the signal</span><ArrowDown size={15} /></button>
+        </section>
 
-       <ComparisonSlider />
+        <div className="streamly-ticker" aria-label="Streamly product highlights"><div><span>24 / 7 BROADCAST</span><i /> <span>CLOUD RELAY</span><i /> <span>PLAYLIST LOOPING</span><i /> <span>REAL-TIME ANALYTICS</span><i /> <span>24 / 7 BROADCAST</span><i /> <span>CLOUD RELAY</span></div></div>
 
-      <MarketingSection className="signal-strip"><div className="strip-label">Built for the channel that keeps going</div><div className="strip-lines"><span /><span /><span /><span /><span /><span /><span /></div><div className="strip-stats"><strong>24<span>h</span></strong><small>broadcast window</small></div><div className="strip-stats"><strong>4K</strong><small>output ceiling</small></div><div className="strip-stats"><strong>02</strong><small>platform destinations</small></div><div className="strip-platforms"><span>YouTube</span><span>Facebook</span><span>Apps <b>coming soon</b></span></div></MarketingSection>
+        <Reveal id="how-it-works" className="streamly-section how-section">
+          <div className="streamly-container">
+            <div className="section-heading section-heading-split"><div><span className="section-label">01 / HOW IT WORKS</span><h2>Set the signal.<br /><em>Leave the room.</em></h2></div><p>Everything you need to turn a folder of videos into a channel people can return to. No encoder to babysit. No laptop left awake.</p></div>
+            <div className="steps-grid"><StepCard number="01" Icon={ListChecks} title="Build your playlist" copy="Add your videos, arrange the order, and choose how often the sequence should repeat." /><StepCard number="02" Icon={Broadcast} title="Choose your destination" copy="Connect YouTube and set your stream details. Streamly handles the cloud broadcast layer." /><StepCard number="03" Icon={RocketLaunch} title="Go live, then go live" copy="Your channel keeps its rhythm while you sleep, work, or make the next thing." /></div>
+          </div>
+        </Reveal>
 
-       <MarketingSection id="capabilities" className="capabilities-section"><div className="section-intro"><span className="section-index">01 / THE CONTROL ROOM</span><h2>From playlist<br /><em>to transmission.</em></h2><p>Five precise controls keep the signal moving while you focus on the story, the lesson, or the next broadcast.</p></div><div className="capability-list">{powerfulFeatures.map(({ title, description, artwork }, index) => <div className="capability-item" key={title}><span>{String(index + 1).padStart(2, "0")}</span><div className="capability-copy"><div className="capability-art"><img src={artwork} alt="" /></div><div><h3>{title}</h3><p>{description}</p></div></div><Zap size={18} /></div>)}</div></MarketingSection>
+        <Reveal id="capabilities" className="streamly-section capability-section">
+          <div className="streamly-container capability-layout">
+            <div className="section-heading"><span className="section-label">02 / CAPABILITIES</span><h2>Less dashboard.<br /><em>More broadcast.</em></h2><p>Streamly is opinionated about the work that should happen automatically, so you can stay focused on what is worth making.</p></div>
+            <div className="capability-panel">
+              <div className="capability-tabs" role="tablist" aria-label="Streamly capabilities">{features.map((feature, index) => <button type="button" key={feature.title} className={activeFeature === index ? "active" : ""} onClick={() => setActiveFeature(index)} role="tab" aria-selected={activeFeature === index}><span>0{index + 1}</span>{feature.title}<ArrowRight size={15} /></button>)}</div>
+              <AnimatePresence mode="wait"><motion.div key={features[activeFeature].title} className="capability-detail" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: .34, ease }}><div className="capability-detail-icon"><ActiveFeatureIcon size={32} weight="duotone" /></div><span className="section-label">{features[activeFeature].eyebrow}</span><h3>{features[activeFeature].title}</h3><p>{features[activeFeature].description}</p><div className="capability-visual"><div className="visual-line visual-line-a" /><div className="visual-line visual-line-b" /><div className="visual-pulse"><i /><i /><i /></div><span>signal stable</span></div></motion.div></AnimatePresence>
+            </div>
+          </div>
+        </Reveal>
 
-      <MarketingSection id="use-cases" className="use-cases-section"><div className="use-case-head"><div><span className="section-index">02 / PROGRAMMING</span><h2>A channel for<br /><em>every rhythm.</em></h2></div><p>From early morning movement to a quiet night sky, build the loop your audience returns to.</p></div><div className="use-case-feature"><div className="use-case-image"><AnimatePresence mode="wait"><motion.img key={useCases[activeCase].title} src={useCases[activeCase].image} alt={useCases[activeCase].title} initial={{ opacity: 0, scale: 1.05 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} transition={{ duration: .6 }} /></AnimatePresence><div className="image-caption"><span>Now programming</span><strong>{useCases[activeCase].title}</strong></div></div><div className="use-case-rail">{useCases.map((item, index) => <button key={item.title} className={`use-case-tab ${activeCase === index ? "active" : ""}`} onClick={() => setActiveCase(index)} data-testid={`button-use-case-${index}`}><span>0{index + 1}</span><strong>{item.title}</strong><small>{item.note}</small><ArrowRight size={15} /></button>)}</div></div></MarketingSection>
+        <Reveal id="use-cases" className="streamly-section use-case-section">
+          <div className="streamly-container">
+            <div className="section-heading section-heading-split"><div><span className="section-label">03 / MADE FOR MOMENTUM</span><h2>One engine.<br /><em>Many rhythms.</em></h2></div><p>A calm overnight radio station, a daily devotional, a rolling news feed, or an education loop — the format is yours.</p></div>
+            <div className="use-case-grid"><div className="use-case-primary"><div className="use-case-bars"><i /><i /><i /><i /><i /><i /><i /></div><div className="use-case-primary-copy"><span className="signal-badge signal-badge-violet"><i /> PROGRAMMING MODE</span><h3>Build a channel people can leave on.</h3><p>Give your archive a living schedule. Streamly keeps the handoff smooth from one video to the next.</p></div><div className="use-case-quote">“The best broadcast is the one that keeps its promise.”</div></div><div className="use-case-list"><div><span className="use-case-number">01</span><strong>Ambient & focus</strong><small>Long-form loops for deep work</small><ArrowRight size={16} /></div><div><span className="use-case-number">02</span><strong>News & updates</strong><small>Keep the daily signal moving</small><ArrowRight size={16} /></div><div><span className="use-case-number">03</span><strong>Classes & devotion</strong><small>A dependable rhythm for learners</small><ArrowRight size={16} /></div><div><span className="use-case-number">04</span><strong>Product showcases</strong><small>Let your best work stay visible</small><ArrowRight size={16} /></div></div></div>
+          </div>
+        </Reveal>
 
-       <MarketingSection className="workflow-section"><div className="workflow-art"><img className="workflow-artwork" src={scheduleStreamArtwork} alt="" /><div className="workflow-card workflow-card-back"><span>playlist / night-sky</span><b>18 videos</b></div><div className="workflow-card workflow-card-front"><div className="workflow-card-top"><span className="monitor-led" /> LIVE CHANNEL</div><strong>Sleep / Cloud ambience</strong><div className="workflow-track"><i /><i /><i /><i /><i /><i /><i /></div><small>Now looping · 08:42:19</small></div><div className="workflow-schedule"><div><span className="schedule-dot" /> SCHEDULED NEXT</div><strong>Morning movement</strong><small>Tomorrow · 06:30 · YouTube + Facebook</small></div></div><div className="workflow-copy"><span className="section-index">03 / THE HANDOFF</span><h2>Quiet systems<br /><em>make good TV.</em></h2><p>Set the playlist, choose where it goes, and let the room do the repetitive work. The product stays visible when it matters and disappears when it does not.</p><Link href="/access" className="inline-arrow" data-testid="link-workflow-access">Open the control room <ArrowRight size={15} /></Link></div></MarketingSection>
+        <Reveal className="streamly-section analytics-section">
+          <div className="streamly-container analytics-layout"><div className="analytics-copy"><span className="section-label">04 / SIGNAL INTELLIGENCE</span><h2>Know what keeps<br /><em>people watching.</em></h2><p>Streamly gives you the useful readout without burying the signal in a spreadsheet. Watch the shape of your channel over time and make the next loop smarter.</p><Link href="/access" className="streamly-inline-link">Open the control room <ArrowRight size={16} weight="bold" /></Link></div><div className="analytics-card"><div className="analytics-card-top"><div><span>LIVE CHANNEL / 24 HOURS</span><strong>Audience momentum</strong></div><SignalBadge tone="green">Healthy</SignalBadge></div><div className="analytics-big-number">1,284 <small>average viewers</small></div><div className="analytics-bars">{[42, 57, 49, 68, 61, 76, 71, 84, 78, 91, 88, 96, 85, 92].map((height, index) => <i key={index} style={{ height: `${height}%` }} />)}</div><div className="analytics-axis"><span>00:00</span><span>06:00</span><span>12:00</span><span>18:00</span><span>NOW</span></div><div className="analytics-footer"><span><i className="legend-violet" /> Watch time <b>18.6k hrs</b></span><span><i className="legend-blue" /> Peak <b>2,041</b></span></div></div></div>
+        </Reveal>
 
-      <MarketingSection className="final-cta"><div className="final-cta-grid" /><span className="section-index">READY WHEN YOU ARE</span><h2>Give your next loop<br /><em>a proper signal.</em></h2><p>Start with one channel. Build the library around it. Keep the room on air.</p><Link href="/pricing" className="signal-button" data-testid="link-final-pricing"><span>View access options</span><ArrowRight size={16} /></Link></MarketingSection>
-       <PlanOfferSlider />
-    </main>
-    <footer className="marketing-footer"><Link href="/" className="marketing-brand" data-testid="link-footer-home"><BrandMark /><span>Streamly</span></Link><span>Broadcast automation for the long signal.</span><Link href="/access" data-testid="link-footer-access">Access workspace <ArrowRight size={13} /></Link></footer>
-  </div>;
+        <Reveal className="streamly-section pricing-preview">
+          <div className="streamly-container"><div className="pricing-preview-head"><div><span className="section-label">05 / SIMPLE ACCESS</span><h2>Start small.<br /><em>Stay live.</em></h2></div><Link href="/pricing" className="streamly-button streamly-button-quiet">See all access windows <ArrowRight size={16} /></Link></div><div className="preview-plans">{pricingPlans.map((plan, index) => <article key={plan.term} className={`preview-plan ${plan.featured ? "featured" : ""}`}><div className="preview-plan-top"><span>{plan.featured ? "RECOMMENDED" : `0${index + 1} / ACCESS`}</span>{plan.featured && <Sparkle size={15} />}</div><h3>{plan.term}</h3><p>{plan.detail}</p><div className="preview-price"><strong>{plan.price}</strong><span>/ {plan.period}</span></div><div className="preview-bonus"><Check size={14} weight="bold" /> {plan.bonus}</div><Link href="/pricing" className="preview-plan-link">Choose this window <ArrowRight size={15} /></Link></article>)}</div></div>
+        </Reveal>
+
+        <section className="streamly-cta"><div className="cta-grid" /><div className="streamly-container cta-inner"><span className="section-label">THE CHANNEL IS YOURS</span><h2>Make the next<br /><em>broadcast automatic.</em></h2><p>Start with one playlist. Let Streamly handle the hours you cannot.</p><Link href="/pricing" className="streamly-button streamly-button-primary">Start your free day <ArrowRight size={17} weight="bold" /></Link></div></section>
+      </main>
+      <PublicFooter />
+    </div>
+  );
+}
+
+function PublicFooter() {
+  return <footer className="streamly-footer"><div className="streamly-container footer-inner"><div><Link href="/" className="streamly-brand"><BrandMark /><span>Streamly</span></Link><span className="footer-note">Broadcast continuity for creators.</span></div><div className="footer-links"><span>Product</span><Link href="#capabilities">Capabilities</Link><Link href="/pricing">Pricing</Link></div><div className="footer-links"><span>Access</span><Link href="/access">Log in</Link><Link href="/gateway">Gateway</Link></div><div className="footer-socials" aria-label="Social links"><a href="https://twitter.com/" target="_blank" rel="noreferrer" aria-label="Streamly on X"><TwitterLogo size={17} /></a><a href="https://discord.com/" target="_blank" rel="noreferrer" aria-label="Streamly on Discord"><DiscordLogo size={17} /></a><a href="https://www.youtube.com/" target="_blank" rel="noreferrer" aria-label="Streamly on YouTube"><YoutubeLogo size={17} /></a></div><span className="footer-copyright">© 2026 Streamly</span></div></footer>;
+}
+
+function ContactDialog({ plan, onClose }: { plan: { term: string } | null; onClose: () => void }) {
+  const [selected, setSelected] = useState<string | null>(null);
+  useEffect(() => { setSelected(null); }, [plan]);
+  if (!plan) return null;
+  return <AnimatePresence><motion.div className="streamly-modal-backdrop" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose}><motion.div className="streamly-modal" role="dialog" aria-modal="true" aria-labelledby="contact-dialog-title" initial={{ opacity: 0, y: 18, scale: .98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 12 }} onClick={(event) => event.stopPropagation()}><button type="button" className="modal-close" onClick={onClose} aria-label="Close contact dialog"><X size={18} /></button><span className="section-label">TRIAL ACTIVATION</span><h2 id="contact-dialog-title">Activate your <em>{plan.term}</em>.</h2><p>Choose a contact option and we will help you get your first channel moving.</p><div className="contact-options"><button type="button" className={selected === "WhatsApp" ? "selected" : ""} onClick={() => setSelected("WhatsApp")}><span>WA</span><strong>WhatsApp</strong><ArrowRight size={16} /></button><button type="button" className={selected === "Telegram" ? "selected" : ""} onClick={() => setSelected("Telegram")}><span>TE</span><strong>Telegram</strong><ArrowRight size={16} /></button></div>{selected && <div className="contact-confirmation"><CheckCircle size={17} weight="fill" /><span><b>{selected} selected.</b> We will connect you about your {plan.term} access.</span></div>}<button type="button" className="modal-back" onClick={onClose}>Back to plans</button></motion.div></motion.div></AnimatePresence>;
+}
+
+export function PricingPage() {
+  const [selectedPlan, setSelectedPlan] = useState<(typeof accessPlans)[number] | null>(null);
+  const [, setLocation] = useLocation();
+  return <div className="streamly-public"><PublicNav /><main className="pricing-page-main"><div className="streamly-container pricing-page-heading"><span className="section-label">STREAMLY / ACCESS WINDOWS</span><h1>Choose your<br /><em>broadcast runway.</em></h1><p>Start with a free day, then keep your channel live for the window that fits your next season of work. Every plan includes the complete broadcast toolkit.</p></div><div className="streamly-container full-plans">{accessPlans.map((plan, index) => <motion.article key={plan.term} className={`full-plan ${plan.featured ? "featured" : ""}`} whileHover={{ y: -5 }} transition={{ duration: .2 }}><div className="full-plan-top"><span>{plan.featured ? "RECOMMENDED" : `0${index + 1} / ACCESS`}</span>{plan.featured && <Sparkle size={15} />}</div><h2>{plan.term}</h2><p>{plan.detail}</p><div className="full-plan-price"><strong>{plan.price}</strong><span>/ {plan.period}</span></div><div className="full-plan-bonus"><span>PLAN BENEFIT</span><b>{plan.bonus}</b></div><div className="plan-feature-list">{planFeatures.map((feature) => <span key={feature}><Check size={14} weight="bold" />{feature}</span>)}</div><button type="button" className="streamly-button streamly-button-primary plan-cta" onClick={() => plan.featured && plan.term === "Free 1 day" ? setSelectedPlan(plan) : setLocation(`/gateway?plan=${encodeURIComponent(plan.term)}`)} data-testid={`button-paywall-plan-${index}`}>{plan.term === "Free 1 day" ? "Choose free access" : "Continue to gateway"}<ArrowRight size={16} weight="bold" /></button></motion.article>)}</div><div className="streamly-container pricing-footnote"><Radio size={17} weight="fill" /> Need help choosing? We can help map your access window to your channel plan.</div></main><ContactDialog plan={selectedPlan} onClose={() => setSelectedPlan(null)} /><PublicFooter /></div>;
 }
 
 export function GatewayPage() {
   const [, setLocation] = useLocation();
   const plan = new URLSearchParams(window.location.search).get("plan") || "1 month";
-
-  return <div className="marketing-page pricing-page">
-    <PublicNav />
-    <main className="gateway-main">
-      <div className="gateway-card">
-        <span className="section-index">PAYMENT GATEWAY / READY</span>
-        <h1>Continue with<br /><em>{plan}.</em></h1>
-        <p className="gateway-copy">Your selected plan is ready for the payment gateway. Add the gateway details here when you are ready to connect checkout.</p>
-        <div className="gateway-selection"><span className="monitor-led" /><strong>{plan}</strong><span>Selected access window</span></div>
-        <button type="button" className="signal-button" onClick={() => setLocation("/pricing")}><span>Back to pricing</span><ArrowRight size={16} /></button>
-      </div>
-    </main>
-    <footer className="marketing-footer"><Link href="/" className="marketing-brand" data-testid="link-gateway-footer-home"><BrandMark /><span>Streamly</span></Link><span>Secure access setup.</span><Link href="/pricing" data-testid="link-gateway-pricing">Back to pricing <ArrowRight size={13} /></Link></footer>
-  </div>;
-}
-
-export function PricingPage() {
-  const [selectedPlan, setSelectedPlan] = useState<(typeof paywallPlans)[number] | null>(null);
-  const [selectedChannel, setSelectedChannel] = useState<string | null>(null);
-  const [, setLocation] = useLocation();
-  const closeContact = () => {
-    setSelectedPlan(null);
-    setSelectedChannel(null);
-  };
-  const choosePlan = (plan: (typeof paywallPlans)[number]) => {
-    if (!plan.featured || plan.term !== "Free 1 day") {
-      setLocation(`/gateway?plan=${encodeURIComponent(plan.term)}`);
-      return;
-    }
-    setSelectedPlan(plan);
-    setSelectedChannel(null);
-  };
-
-  return <div className="marketing-page pricing-page">
-    <PublicNav />
-    <main className="pricing-main">
-      <div className="pricing-intro">
-        <span className="section-index">STREAMLY / ACCESS WINDOWS</span>
-        <h1>Choose your <em>access.</em></h1>
-        <p>Start free for one day, then choose the access window that fits your live channel. Every plan includes the full broadcast toolkit.</p>
-      </div>
-      <div className="paywall-plan-grid" aria-label="Pricing plans">
-        {paywallPlans.map((plan, index) => <motion.article className={`paywall-plan-card ${plan.featured ? "is-featured" : ""}`} key={plan.term} layout>
-          <div className="paywall-plan-top">
-            <span className="signal-tag"><span className="signal-tag-dot" /> {plan.term === "Free 1 day" ? "TRIAL ACCESS" : "FULL ACCESS"}</span>
-            {plan.featured && <span className="price-card-badge">{plan.term === "Free 1 day" ? "Start here" : "Best value"}</span>}
-          </div>
-          <h2>{plan.term}</h2>
-          <p className="paywall-plan-description">Unlimited storage, live monitor bots, 24-hour streaming, multi-platform delivery, VPS access, and direct downloads.</p>
-          <div className="paywall-plan-price">
-            {plan.crossed && <span className="price-crossed">{plan.crossed}</span>}
-            <strong>{plan.price}</strong>
-            <span className="price-period">/ {plan.label}</span>
-          </div>
-          <div className="offer-line"><Zap size={14} /> {plan.offer}</div>
-          {plan.term === "1 month" && <MonthlyOfferCountdown />}
-          <div className="paywall-plan-bonus"><span>PLAN BENEFIT</span><strong>{plan.bonus}</strong></div>
-          <button type="button" className="signal-button paywall-plan-button" onClick={() => choosePlan(plan)} data-testid={`button-paywall-plan-${index}`}><span>{plan.term === "Free 1 day" ? "Choose free access" : `Continue to gateway`}</span><ArrowRight size={16} /></button>
-          <div className="paywall-plan-features">{["Unlimited storage", "2 live monitor bots", "24-hour live streams", "YouTube + Facebook + RTMP", "VPS + direct downloads"].map((feature) => <span key={feature}><Check size={13} /> {feature}</span>)}</div>
-        </motion.article>)}
-      </div>
-      <div className="pricing-note"><Radio size={16} /><span>Need help first? Choose a plan and contact us on WhatsApp, Facebook, or Telegram.</span></div>
-      <AnimatePresence>
-        {selectedPlan && <motion.div className="plan-contact-backdrop" role="presentation" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={closeContact}>
-          <motion.div className="plan-contact-dialog" role="dialog" aria-modal="true" aria-labelledby="paywall-contact-title" initial={{ opacity: 0, y: 18, scale: .97 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 12, scale: .98 }} onClick={(event) => event.stopPropagation()}>
-            <button type="button" className="plan-contact-close" onClick={closeContact} aria-label="Close contact options"><X size={16} /></button>
-            <span className="section-index">CONTACT TO CONTINUE</span>
-            <h3 id="paywall-contact-title">Activate <em>{selectedPlan.term}</em></h3>
-            <p>First choose a contact option. We will help you with access, payment, and setup for this plan.</p>
-            <div className="plan-contact-options" aria-label="Contact options">
-              {contactChannels.map(({ label, Icon }) => <button type="button" className={`plan-contact-option ${selectedChannel === label ? "is-selected" : ""}`} key={label} onClick={() => setSelectedChannel(label)}>
-                <span className="plan-contact-option-mark"><Icon size={17} strokeWidth={2.3} /></span><span><strong>{label}</strong><small>Contact us about {selectedPlan.term}</small></span><ArrowRight size={14} />
-              </button>)}
-            </div>
-            {selectedChannel && <div className="plan-contact-confirmation"><span className="monitor-led" /><strong>{selectedChannel} selected</strong><span>We’ll connect you about your {selectedPlan.term} access.</span></div>}
-            <button type="button" className="plan-contact-back" onClick={closeContact}>Back to pricing</button>
-          </motion.div>
-        </motion.div>}
-      </AnimatePresence>
-    </main>
-    <footer className="marketing-footer"><Link href="/" className="marketing-brand" data-testid="link-pricing-footer-home"><BrandMark /><span>Streamly</span></Link><span>Simple access. Serious signal.</span><Link href="/" data-testid="link-pricing-back">Back to overview <ArrowRight size={13} /></Link></footer>
-  </div>;
+  return <div className="streamly-public"><PublicNav /><main className="gateway-page-main"><div className="gateway-card"><span className="section-label">PAYMENT GATEWAY / READY</span><h1>Continue with<br /><em>{plan}.</em></h1><p>Your selected access window is ready. Connect the payment gateway here when checkout is enabled for your workspace.</p><div className="gateway-selection"><span className="gateway-selection-icon"><Check size={17} weight="bold" /></span><span><b>{plan}</b><small>Selected access window</small></span></div><button type="button" className="streamly-button streamly-button-primary" onClick={() => setLocation("/pricing")}>Back to pricing <ArrowRight size={16} /></button></div></main><PublicFooter /></div>;
 }

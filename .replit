@@ -38,3 +38,7 @@ VITE_FIREBASE_API_KEY = "AIzaSyC2RQanVtV13FacvP1tx2ZrNWa2HPjQAQE"
 VITE_FIREBASE_APP_ID = "1:602834139993:web:8e61a5342659a10362ea48"
 VITE_FIREBASE_AUTH_DOMAIN = "youtbe-looping.firebaseapp.com"
 VITE_FIREBASE_PROJECT_ID = "youtbe-looping"
+
+[[ports]]
+localPort = 26180
+externalPort = 80
