@@ -242,13 +242,13 @@ export function LandingPage() {
     setCompare(Math.max(0, Math.min(100, ((clientX - bounds.left) / bounds.width) * 100)));
   };
   const updateHeroTilt = (event: ReactPointerEvent<HTMLImageElement>) => {
-    if (shouldReduceMotion || event.pointerType !== "mouse" || window.innerWidth < 1200) return;
+    if (shouldReduceMotion || event.pointerType !== "mouse") return;
     const bounds = event.currentTarget.getBoundingClientRect();
     const x = (event.clientX - bounds.left) / bounds.width - 0.5;
     const y = (event.clientY - bounds.top) / bounds.height - 0.5;
-    const rotateX = Math.max(-2.5, Math.min(2.5, -y * 5));
-    const rotateY = Math.max(-3.5, Math.min(3.5, x * 7));
-    setHeroTilt(`perspective(1200px) rotateX(${rotateX}deg) rotateY(${rotateY}deg)`);
+    const rotateX = Math.max(-5, Math.min(5, -y * 10));
+    const rotateY = Math.max(-6, Math.min(6, x * 12));
+    setHeroTilt(`perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale3d(1.015, 1.015, 1.015)`);
   };
   const creators = [
     { label: "News", image: "channel1.webp", copy: "Stay updated with 24/7 news streaming" },
@@ -293,6 +293,7 @@ export function LandingPage() {
     ["1080p & 4K Output", "Crystal-clear live streams up to 2160p", "1080p_4K_output.webp"],
     ["Advanced Scheduler", "Plan your streams for days, weeks, or months ahead", "advanced_scheduler.webp"],
   ];
+  const channelLogos = ["channel1.webp", "channel2.webp", "channel3.webp", "channel4.webp", "channel5.webp", "channel6.webp", "channel7.webp"];
   return (
     <div className="loop-clone">
       <header className="loop-clone-nav">
@@ -328,8 +329,14 @@ export function LandingPage() {
           <div className="loop-clone-section-inner">
             <h2>Trusted by creators of<br /><strong>65M+ global community</strong></h2>
             <p>Empowering 24/7 live streams of music, devotional, kids, education &amp; news channels</p>
-            <div className="loop-clone-channel-row">
-              {["channel1.webp", "channel2.webp", "channel3.webp", "channel4.webp", "channel5.webp", "channel6.webp", "channel7.webp"].map((name) => <img key={name} src={`/images/appImage/channel-logo/${name}`} alt="" />)}
+            <div className="loop-clone-channel-marquee" aria-label="Examples of 24/7 live streaming channels">
+              <div className="loop-clone-channel-row">
+                {[0, 1].map((setIndex) => (
+                  <div className="loop-clone-channel-set" key={setIndex} aria-hidden={setIndex === 1}>
+                    {channelLogos.map((name) => <img key={`${setIndex}-${name}`} src={`/images/appImage/channel-logo/${name}`} alt="" />)}
+                  </div>
+                ))}
+              </div>
             </div>
             <span className="loop-clone-small-label">Examples of 24/7 live streaming channels</span>
           </div>
