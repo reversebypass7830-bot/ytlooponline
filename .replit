@@ -40,5 +40,13 @@ VITE_FIREBASE_AUTH_DOMAIN = "youtbe-looping.firebaseapp.com"
 VITE_FIREBASE_PROJECT_ID = "youtbe-looping"
 
 [[ports]]
+localPort = 8080
+externalPort = 8080
+
+[[ports]]
+localPort = 8081
+externalPort = 8081
+
+[[ports]]
 localPort = 26180
 externalPort = 80
