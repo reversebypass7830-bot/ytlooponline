@@ -4465,6 +4465,140 @@ select { height: 41px; }
   border-color: #ca3a99;
 }
 
+/* Live room and editor detail pass: no legacy cream or green surfaces remain. */
+.shell .page-live-indicator {
+  border-color: #5a356d;
+  color: #d8c5e0;
+  background: #2b193c;
+}
+
+.shell .page-live-indicator .status-dot {
+  background: #ff62ad;
+  box-shadow: 0 0 0 4px rgba(255, 98, 173, .14);
+}
+
+.shell .live-overview-card {
+  border-color: #4a2b5d;
+  background: linear-gradient(145deg, #2a1838 0%, #21122e 100%);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, .22);
+}
+
+.shell .live-overview-card .metric-kicker {
+  color: #b99fc4;
+}
+
+.shell .live-overview-card strong {
+  color: #fff;
+}
+
+.shell .live-overview-card > span {
+  color: #b09dbb;
+}
+
+.shell .live-overview-card > svg {
+  color: #ff83bd;
+}
+
+.shell .live-overview-primary {
+  border-color: #71356e;
+  background: linear-gradient(145deg, #3a1743 0%, #24132f 100%);
+}
+
+.shell .live-overview-primary .metric-kicker {
+  color: #ff9bc9;
+}
+
+.shell .live-overview-primary strong {
+  color: #fff;
+}
+
+.shell .live-overview-primary > span {
+  color: #d5b8cf;
+}
+
+.shell .live-overview-meter {
+  background: rgba(255, 122, 190, .16);
+}
+
+.shell .live-overview-meter i {
+  background: linear-gradient(90deg, #f0187d, #a92ae7);
+}
+
+.shell .signal-checklist-icon {
+  color: #ff83bd;
+}
+
+.shell .signal-checklist-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 10px;
+}
+
+.shell .signal-check-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 49px;
+  padding: 11px;
+  border: 1px solid #4b2d5e;
+  border-radius: 9px;
+  color: #d8c5e0;
+  background: linear-gradient(145deg, #2b183b, #24132f);
+  font-size: 11px;
+}
+
+.shell .signal-check-icon {
+  display: grid;
+  width: 20px;
+  height: 20px;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid rgba(255, 131, 189, .34);
+  border-radius: 50%;
+  color: #ff83bd;
+  background: rgba(232, 32, 139, .14);
+}
+
+.shell .signal-check-item:hover {
+  border-color: #b43791;
+  background: rgba(232, 35, 143, .12);
+}
+
+.shell .editor-command-bar {
+  border-color: #4b2d5e;
+  background: linear-gradient(100deg, #2e183e, #21122e);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, .18);
+}
+
+.shell .editor-command-kicker {
+  color: #ff83bd;
+}
+
+.shell .editor-command-intro strong {
+  color: #fff;
+}
+
+.shell .editor-command-intro > span:last-child,
+.shell .editor-step {
+  color: #b09dbb;
+}
+
+.shell .editor-step b {
+  border-color: #5a356d;
+  color: #d8c5e0;
+  background: #2b193c;
+}
+
+.shell .editor-step.active {
+  color: #ffb3d5;
+}
+
+.shell .editor-step.active b {
+  border-color: #ef55ad;
+  color: #fff;
+  background: linear-gradient(135deg, #f0187d, #a92ae7);
+}
+
 /* Dashboard surface cleanup: remove the remaining legacy green/cream cards. */
 .shell .section-card,
 .shell .setting-section,
