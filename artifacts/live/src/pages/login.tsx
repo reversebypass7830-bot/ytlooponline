@@ -98,6 +98,7 @@ export default function LoginPage({
   const [profileNeeded, setProfileNeeded] = useState(false);
   const [profile, setProfile] = useState({ displayName: "", email: "" });
   const [localError, setLocalError] = useState("");
+  const verifyingRef = useRef(false);
 
   useEffect(() => {
     if (!otpSent || cooldown <= 0) return undefined;
@@ -125,13 +126,16 @@ export default function LoginPage({
   const verifyOtp = async (eventOrCode?: FormEvent<HTMLFormElement> | string) => {
     if (typeof eventOrCode !== "string") eventOrCode?.preventDefault();
     const code = typeof eventOrCode === "string" ? eventOrCode : otp;
-    if (code.length !== otpLength || busy) return;
+    if (code.length !== otpLength || busy || verifyingRef.current) return;
+    verifyingRef.current = true;
     setLocalError("");
     try {
       const needsProfile = await onVerifyMobileOtp(`+91${cleanPhone}`, code);
       if (needsProfile) setProfileNeeded(true);
     } catch (reason) {
       setLocalError(reason instanceof Error ? reason.message : "That code could not be verified.");
+    } finally {
+      verifyingRef.current = false;
     }
   };
 
