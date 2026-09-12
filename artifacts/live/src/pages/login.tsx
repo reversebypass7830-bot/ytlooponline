@@ -151,6 +151,7 @@ export default function LoginPage({
       <div className="streamly-login-page">
         <div className="streamly-login-orb streamly-login-orb-one" />
         <div className="streamly-login-orb streamly-login-orb-two" />
+        <img className="streamly-login-visual" src="/images/login-side-visual.webp" alt="" aria-hidden="true" loading="lazy" />
         <Link href="/" className="streamly-login-brand"><span className="streamly-mark"><span>S</span><i /></span><span>Streamly</span></Link>
         <main className="streamly-login-main">
           <section className="streamly-login-card" aria-labelledby="profile-title">
@@ -175,6 +176,7 @@ export default function LoginPage({
     <div className="streamly-login-page">
       <div className="streamly-login-orb streamly-login-orb-one" />
       <div className="streamly-login-orb streamly-login-orb-two" />
+      <img className="streamly-login-visual" src="/images/login-side-visual.webp" alt="" aria-hidden="true" loading="lazy" />
       <Link href="/" className="streamly-login-brand"><span className="streamly-mark"><span>S</span><i /></span><span>Streamly</span></Link>
       <main className="streamly-login-main">
         <section className="streamly-login-card" aria-labelledby="login-title">

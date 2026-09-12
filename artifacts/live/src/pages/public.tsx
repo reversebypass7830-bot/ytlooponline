@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { AnimatePresence, motion, useInView, useReducedMotion } from "framer-motion";
 import {
   ArrowDown,
@@ -103,7 +103,7 @@ function BrandMark() {
   return <span className="streamly-mark" aria-hidden="true"><span>S</span><i /></span>;
 }
 
-function Reveal({ children, className = "", id }: { children: ReactNode; className?: string; id?: string }) {
+function Reveal({ children, className = "", id, style }: { children: ReactNode; className?: string; id?: string; style?: CSSProperties }) {
   const ref = useRef<HTMLElement>(null);
   const inView = useInView(ref, { once: true, margin: "-80px 0px" });
   return (
@@ -111,6 +111,7 @@ function Reveal({ children, className = "", id }: { children: ReactNode; classNa
       ref={ref}
       id={id}
       className={className}
+      style={style}
       initial={{ opacity: 0, y: 22 }}
       animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 22 }}
       transition={{ duration: 0.7, ease }}
@@ -235,7 +236,7 @@ export function LandingPage() {
     <div className="streamly-public">
       <PublicNav />
       <main>
-        <section className="streamly-hero">
+        <section className="streamly-hero" style={{ backgroundImage: "url('/images/hero-bg-glow.webp')" }}>
           <div className="hero-grid" />
           <div className="hero-orb hero-orb-blue" />
           <div className="hero-orb hero-orb-violet" />
@@ -250,14 +251,17 @@ export function LandingPage() {
               </motion.div>
               <motion.div className="hero-proof" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: .42, duration: .6 }}><span><Check size={14} weight="bold" /> 1080p and 4K output</span><span><Check size={14} weight="bold" /> YouTube ready</span><span><Check size={14} weight="bold" /> Automatic recovery</span></motion.div>
             </div>
-            <motion.div className="hero-product" initial={{ opacity: 0, x: 28 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: .16, duration: .9, ease }}><DashboardMock /></motion.div>
+            <motion.div className="hero-product" initial={{ opacity: 0, x: 28 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: .16, duration: .9, ease }}>
+              <img className="hero-visual-image" src="/images/hero-visual.webp" alt="Abstract glowing cloud relay visual" loading="lazy" />
+              <DashboardMock />
+            </motion.div>
           </div>
           <button type="button" className="hero-scroll-cue" onClick={() => scrollTo("#how-it-works")}><span>Explore the signal</span><ArrowDown size={15} /></button>
         </section>
 
         <div className="streamly-ticker" aria-label="Streamly product highlights"><div><span>24 / 7 BROADCAST</span><i /> <span>CLOUD RELAY</span><i /> <span>PLAYLIST LOOPING</span><i /> <span>REAL-TIME ANALYTICS</span><i /> <span>24 / 7 BROADCAST</span><i /> <span>CLOUD RELAY</span></div></div>
 
-        <Reveal id="how-it-works" className="streamly-section how-section">
+        <Reveal id="how-it-works" className="streamly-section how-section" style={{ backgroundImage: "url('/images/steps-bg-pattern.webp')" }}>
           <div className="streamly-container">
             <div className="section-heading section-heading-split"><div><span className="section-label">01 / HOW IT WORKS</span><h2>Set the signal.<br /><em>Leave the room.</em></h2></div><p>Everything you need to turn a folder of videos into a channel people can return to. No encoder to babysit. No laptop left awake.</p></div>
             <div className="steps-grid"><StepCard number="01" Icon={ListChecks} title="Build your playlist" copy="Add your videos, arrange the order, and choose how often the sequence should repeat." /><StepCard number="02" Icon={Broadcast} title="Choose your destination" copy="Connect YouTube and set your stream details. Streamly handles the cloud broadcast layer." /><StepCard number="03" Icon={RocketLaunch} title="Go live, then go live" copy="Your channel keeps its rhythm while you sleep, work, or make the next thing." /></div>
@@ -289,7 +293,7 @@ export function LandingPage() {
           <div className="streamly-container"><div className="pricing-preview-head"><div><span className="section-label">05 / SIMPLE ACCESS</span><h2>Start small.<br /><em>Stay live.</em></h2></div><Link href="/pricing" className="streamly-button streamly-button-quiet">See all access windows <ArrowRight size={16} /></Link></div><div className="preview-plans">{pricingPlans.map((plan, index) => <article key={plan.term} className={`preview-plan ${plan.featured ? "featured" : ""}`}><div className="preview-plan-top"><span>{plan.featured ? "RECOMMENDED" : `0${index + 1} / ACCESS`}</span>{plan.featured && <Sparkle size={15} />}</div><h3>{plan.term}</h3><p>{plan.detail}</p><div className="preview-price"><strong>{plan.price}</strong><span>/ {plan.period}</span></div><div className="preview-bonus"><Check size={14} weight="bold" /> {plan.bonus}</div><Link href="/pricing" className="preview-plan-link">Choose this window <ArrowRight size={15} /></Link></article>)}</div></div>
         </Reveal>
 
-        <section className="streamly-cta"><div className="cta-grid" /><div className="streamly-container cta-inner"><span className="section-label">THE CHANNEL IS YOURS</span><h2>Make the next<br /><em>broadcast automatic.</em></h2><p>Start with one playlist. Let Streamly handle the hours you cannot.</p><Link href="/pricing" className="streamly-button streamly-button-primary">Start your free day <ArrowRight size={17} weight="bold" /></Link></div></section>
+        <section className="streamly-cta" style={{ backgroundImage: "url('/images/cta-bg.webp')" }}><div className="cta-grid" /><div className="streamly-container cta-inner"><span className="section-label">THE CHANNEL IS YOURS</span><h2>Make the next<br /><em>broadcast automatic.</em></h2><p>Start with one playlist. Let Streamly handle the hours you cannot.</p><Link href="/pricing" className="streamly-button streamly-button-primary">Start your free day <ArrowRight size={17} weight="bold" /></Link></div></section>
       </main>
       <PublicFooter />
     </div>
@@ -297,7 +301,7 @@ export function LandingPage() {
 }
 
 function PublicFooter() {
-  return <footer className="streamly-footer"><div className="streamly-container footer-inner"><div><Link href="/" className="streamly-brand"><BrandMark /><span>Streamly</span></Link><span className="footer-note">Broadcast continuity for creators.</span></div><div className="footer-links"><span>Product</span><Link href="#capabilities">Capabilities</Link><Link href="/pricing">Pricing</Link></div><div className="footer-links"><span>Access</span><Link href="/access">Log in</Link><Link href="/gateway">Gateway</Link></div><div className="footer-socials" aria-label="Social links"><a href="https://twitter.com/" target="_blank" rel="noreferrer" aria-label="Streamly on X"><TwitterLogo size={17} /></a><a href="https://discord.com/" target="_blank" rel="noreferrer" aria-label="Streamly on Discord"><DiscordLogo size={17} /></a><a href="https://www.youtube.com/" target="_blank" rel="noreferrer" aria-label="Streamly on YouTube"><YoutubeLogo size={17} /></a></div><span className="footer-copyright">© 2026 Streamly</span></div></footer>;
+  return <footer className="streamly-footer" style={{ backgroundImage: "url('/images/footer-texture.webp')" }}><div className="streamly-container footer-inner"><div><Link href="/" className="streamly-brand"><BrandMark /><span>Streamly</span></Link><span className="footer-note">Broadcast continuity for creators.</span></div><div className="footer-links"><span>Product</span><Link href="#capabilities">Capabilities</Link><Link href="/pricing">Pricing</Link></div><div className="footer-links"><span>Access</span><Link href="/access">Log in</Link><Link href="/gateway">Gateway</Link></div><div className="footer-socials" aria-label="Social links"><a href="https://twitter.com/" target="_blank" rel="noreferrer" aria-label="Streamly on X"><TwitterLogo size={17} /></a><a href="https://discord.com/" target="_blank" rel="noreferrer" aria-label="Streamly on Discord"><DiscordLogo size={17} /></a><a href="https://www.youtube.com/" target="_blank" rel="noreferrer" aria-label="Streamly on YouTube"><YoutubeLogo size={17} /></a></div><span className="footer-copyright">© 2026 Streamly</span></div></footer>;
 }
 
 function ContactDialog({ plan, onClose }: { plan: { term: string } | null; onClose: () => void }) {
@@ -310,7 +314,7 @@ function ContactDialog({ plan, onClose }: { plan: { term: string } | null; onClo
 export function PricingPage() {
   const [selectedPlan, setSelectedPlan] = useState<(typeof accessPlans)[number] | null>(null);
   const [, setLocation] = useLocation();
-  return <div className="streamly-public"><PublicNav /><main className="pricing-page-main"><div className="streamly-container pricing-page-heading"><span className="section-label">STREAMLY / ACCESS WINDOWS</span><h1>Choose your<br /><em>broadcast runway.</em></h1><p>Start with a free day, then keep your channel live for the window that fits your next season of work. Every plan includes the complete broadcast toolkit.</p></div><div className="streamly-container full-plans">{accessPlans.map((plan, index) => <motion.article key={plan.term} className={`full-plan ${plan.featured ? "featured" : ""}`} whileHover={{ y: -5 }} transition={{ duration: .2 }}><div className="full-plan-top"><span>{plan.featured ? "RECOMMENDED" : `0${index + 1} / ACCESS`}</span>{plan.featured && <Sparkle size={15} />}</div><h2>{plan.term}</h2><p>{plan.detail}</p><div className="full-plan-price"><strong>{plan.price}</strong><span>/ {plan.period}</span></div><div className="full-plan-bonus"><span>PLAN BENEFIT</span><b>{plan.bonus}</b></div><div className="plan-feature-list">{planFeatures.map((feature) => <span key={feature}><Check size={14} weight="bold" />{feature}</span>)}</div><button type="button" className="streamly-button streamly-button-primary plan-cta" onClick={() => plan.featured && plan.term === "Free 1 day" ? setSelectedPlan(plan) : setLocation(`/gateway?plan=${encodeURIComponent(plan.term)}`)} data-testid={`button-paywall-plan-${index}`}>{plan.term === "Free 1 day" ? "Choose free access" : "Continue to gateway"}<ArrowRight size={16} weight="bold" /></button></motion.article>)}</div><div className="streamly-container pricing-footnote"><Radio size={17} weight="fill" /> Need help choosing? We can help map your access window to your channel plan.</div></main><ContactDialog plan={selectedPlan} onClose={() => setSelectedPlan(null)} /><PublicFooter /></div>;
+  return <div className="streamly-public"><PublicNav /><main className="pricing-page-main"><div className="streamly-container pricing-page-heading"><span className="section-label">STREAMLY / ACCESS WINDOWS</span><h1>Choose your<br /><em>broadcast runway.</em></h1><p>Start with a free day, then keep your channel live for the window that fits your next season of work. Every plan includes the complete broadcast toolkit.</p></div><div className="streamly-container full-plans">{accessPlans.map((plan, index) => <motion.article key={plan.term} className={`full-plan ${plan.featured ? "featured" : ""}`} whileHover={{ y: -5 }} transition={{ duration: .2 }}>{plan.featured && <img className="popular-badge" src="/images/badge-popular.png" alt="" aria-hidden="true" loading="lazy" />}<div className="full-plan-top"><span>{plan.featured ? "RECOMMENDED" : `0${index + 1} / ACCESS`}</span>{plan.featured && <Sparkle size={15} />}</div><h2>{plan.term}</h2><p>{plan.detail}</p><div className="full-plan-price"><strong>{plan.price}</strong><span>/ {plan.period}</span></div><div className="full-plan-bonus"><span>PLAN BENEFIT</span><b>{plan.bonus}</b></div><div className="plan-feature-list">{planFeatures.map((feature) => <span key={feature}><Check size={14} weight="bold" />{feature}</span>)}</div><button type="button" className="streamly-button streamly-button-primary plan-cta" onClick={() => plan.featured && plan.term === "Free 1 day" ? setSelectedPlan(plan) : setLocation(`/gateway?plan=${encodeURIComponent(plan.term)}`)} data-testid={`button-paywall-plan-${index}`}>{plan.term === "Free 1 day" ? "Choose free access" : "Continue to gateway"}<ArrowRight size={16} weight="bold" /></button></motion.article>)}</div><div className="streamly-container pricing-footnote"><Radio size={17} weight="fill" /> Need help choosing? We can help map your access window to your channel plan.</div></main><ContactDialog plan={selectedPlan} onClose={() => setSelectedPlan(null)} /><PublicFooter /></div>;
 }
 
 export function GatewayPage() {

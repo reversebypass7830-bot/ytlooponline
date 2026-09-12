@@ -2902,7 +2902,7 @@ select { height: 41px; }
 .streamly-nav-trial:hover { transform: translateY(-1px); filter: brightness(1.09); box-shadow: 0 12px 28px rgba(37,99,235,.3); }
 .streamly-menu-button { display: none; width: 34px; height: 34px; padding: 0; border: 1px solid var(--sl-border)!important; border-radius: 7px; }
 .streamly-mobile-menu { display: none; }
-.streamly-hero { position: relative; min-height: 690px; overflow: hidden; border-bottom: 1px solid var(--sl-border); }
+.streamly-hero { position: relative; min-height: 690px; overflow: hidden; border-bottom: 1px solid var(--sl-border); background-color: #0B0F19; background-position: center; background-size: cover; }
 .hero-grid { position: absolute; inset: 0; opacity: .36; background-image: linear-gradient(rgba(35, 42, 69, .34) 1px, transparent 1px), linear-gradient(90deg, rgba(35, 42, 69, .34) 1px, transparent 1px); background-size: 76px 76px; mask-image: linear-gradient(90deg, black, transparent 86%); }
 .hero-orb { position: absolute; border-radius: 50%; pointer-events: none; filter: blur(1px); }
 .hero-orb-blue { top: -210px; right: 10%; width: 570px; height: 570px; border: 1px solid rgba(37, 99, 235, .2); box-shadow: 0 0 0 50px rgba(37, 99, 235, .035), 0 0 0 110px rgba(37, 99, 235, .025); }
@@ -2931,7 +2931,9 @@ select { height: 41px; }
 .hero-scroll-cue { position: absolute; z-index: 3; bottom: 22px; left: max(32px, calc((100vw - 1180px) / 2)); display: inline-flex; align-items: center; gap: 9px; padding: 0; border: 0; color: var(--sl-faint); background: transparent; font: 9px 'Space Mono', monospace; letter-spacing: .08em; text-transform: uppercase; cursor: pointer; }
 .hero-scroll-cue svg { color: #6F8FE4; animation: sl-bob 1.8s ease-in-out infinite; }
 @keyframes sl-bob { 50% { transform: translateY(4px); } }
-.dashboard-wrap { position: relative; padding: 30px 0 25px 28px; perspective: 1200px; }
+.hero-product { position: relative; }
+.hero-visual-image { position: absolute; z-index: 0; top: -72px; right: -28px; width: min(94%, 560px); opacity: .73; filter: saturate(1.12) drop-shadow(0 0 52px rgba(74, 83, 246, .22)); mix-blend-mode: screen; pointer-events: none; }
+.dashboard-wrap { position: relative; z-index: 1; padding: 30px 0 25px 28px; perspective: 1200px; }
 .dashboard-window { position: relative; z-index: 2; overflow: hidden; border: 1px solid #303B66; border-radius: 12px; background: #0F1425; box-shadow: 0 30px 80px rgba(0, 0, 0, .48), 0 0 0 10px rgba(37, 99, 235, .035); transform: rotateY(-6deg) rotateX(2deg); }
 .dashboard-topbar { display: flex; align-items: center; justify-content: space-between; height: 39px; padding: 0 13px; border-bottom: 1px solid var(--sl-border); color: #667294; font: 9px 'Space Mono', monospace; }
 .window-dots { display: flex; gap: 5px; }
@@ -3103,4 +3105,20 @@ select { height: 41px; }
   .streamly-login-card h1 { font-size: 27px; }
   .streamly-login-tabs button { font-size: 9px; }
   .streamly-login-tabs button svg { display: none; }
+}
+
+/* Generated visual layer from the Streamly image direction. */
+.streamly-hero { background-color: #0B0F19; background-position: center; background-size: cover; }
+.hero-product { position: relative; }
+.hero-visual-image { position: absolute; z-index: 0; top: -72px; right: -28px; width: min(94%, 560px); opacity: .73; filter: saturate(1.12) drop-shadow(0 0 52px rgba(74,83,246,.22)); mix-blend-mode: screen; pointer-events: none; }
+.dashboard-wrap { position: relative; z-index: 1; }
+.how-section { background-position: center; background-size: cover; }
+.streamly-cta { background-color: #10162A; background-position: center; background-size: cover; }
+.streamly-footer { background-color: #090D16; background-position: center; background-size: cover; }
+.full-plan { position: relative; }
+.popular-badge { position: absolute; top: -28px; right: 16px; width: 52px; height: 52px; object-fit: contain; filter: drop-shadow(0 10px 18px rgba(139,92,246,.28)); transform: rotate(8deg); }
+.streamly-login-visual { position: absolute; z-index: 0; top: 50%; right: max(5vw, calc((100vw - 1180px) / 2)); width: min(31vw, 430px); max-height: 78vh; object-fit: contain; opacity: .42; transform: translateY(-50%); filter: saturate(1.12) drop-shadow(0 0 48px rgba(74,83,246,.24)); mix-blend-mode: screen; pointer-events: none; }
+@media (max-width: 760px) {
+  .hero-visual-image { top: -22px; right: -30px; width: 76%; opacity: .46; }
+  .streamly-login-visual { right: -14%; width: 58vw; opacity: .2; }
 }

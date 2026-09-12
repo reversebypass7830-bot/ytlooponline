@@ -1,0 +1,101 @@
+# MASTER PROMPT — AI-Generated Images, Illustrations & Placement
+### Companion to: master-prompt-landing-login-ui.md
+
+Paste this into your AI coding tool alongside the UI master prompt. This document covers everything the icon system does NOT: real illustrations, hero visuals, and decorative graphics that need to be AI-generated (via Midjourney / DALL-E / Ideogram / Leonardo / any image model) and then placed into the code.
+
+---
+
+## 0. WHY THIS EXISTS (read before building)
+
+- **Phosphor Icons** (from the other master prompt) = small functional UI icons (buttons, nav, form fields). They are code, not images — nothing to generate.
+- **This document** = actual pixel images (illustrations, hero graphics, background art) that need to be generated once by an image AI, saved as files, and referenced in the code like any normal image asset.
+
+If your coding tool (Claude Code / Cursor / bolt.new / v0) has an image-generation capability built in, it can generate these directly. If not, generate each one separately using the prompts below in any image tool, then drop the file into the exact path given, and the code will pick it up.
+
+---
+
+## 1. WHERE IMAGES ARE NEEDED (full map)
+
+| # | Location | Purpose | File path | Size / Ratio |
+|---|---|---|---|---|
+| 1 | Hero section, right side | Abstract product visual — stream/cloud concept | `/public/images/hero-visual.webp` | 1200×1000 (portrait-ish square) |
+| 2 | Hero background | Soft ambient glow/texture behind headline | `/public/images/hero-bg-glow.webp` | 1920×1080, very low detail |
+| 3 | "How It Works" section background | Subtle connecting texture behind the 3 steps | `/public/images/steps-bg-pattern.webp` | 1920×600, tileable |
+| 4 | Pricing — "Most Popular" card | Small decorative badge/sticker graphic | `/public/images/badge-popular.webp` | 200×200, transparent bg |
+| 5 | Final CTA banner background | Gradient/abstract texture | `/public/images/cta-bg.webp` | 1920×800 |
+| 6 | Login page, left panel (if split-screen layout) | Side illustration reinforcing "always streaming" concept | `/public/images/login-side-visual.webp` | 900×1200 (portrait) |
+| 7 | Footer background (optional) | Very faint texture, barely visible | `/public/images/footer-texture.webp` | 1920×400 |
+
+Everything else on both pages (feature icons, nav icons, form field icons, badges like "LIVE") stays Phosphor — **do not generate images for those**, that would be inconsistent and heavier to load.
+
+---
+
+## 2. READY-TO-USE GENERATION PROMPTS
+
+Copy these directly into your image generator. All of them are written to produce a single consistent visual language — dark, glossy, tech-forward, gradient-lit. None reference real logos, brands, or copyrighted characters (YouTube's logo/branding must NOT be reproduced — see Section 5).
+
+**1. Hero visual (`hero-visual.webp`)**
+> Abstract 3D render of a glowing cloud/server core radiating soft light, floating geometric play-button-like shards around it, deep navy and electric blue and purple gradient lighting, dark background #0B0F19, minimal, premium SaaS product illustration style, soft volumetric glow, no text, no logos
+
+**2. Hero background glow (`hero-bg-glow.webp`)**
+> Extremely soft abstract gradient blur, blue and purple light bleeding into near-black background, no shapes, no objects, ambient light texture only, ultra minimal, for use as a background layer behind text
+
+**3. How-it-works background pattern (`steps-bg-pattern.webp`)**
+> Very subtle dark navy background with faint thin connecting lines and dots forming a network/flow pattern, low contrast, barely visible texture, seamless horizontal tile, no bright colors, minimal tech aesthetic
+
+**4. Popular badge sticker (`badge-popular.webp`)**
+> Small glossy 3D badge icon, star or ribbon shape, purple-to-blue gradient, glass/glossy material, transparent background, isolated on transparent, product-UI sticker style, no text
+
+**5. CTA banner background (`cta-bg.webp`)**
+> Wide abstract gradient background, electric blue blending into deep purple into near-black, soft diagonal light streaks, smooth and premium, no objects, no text, subtle grain texture
+
+**6. Login side visual (`login-side-visual.webp`)**
+> Vertical abstract 3D illustration, a glowing orb/sphere representing an always-on live signal, soft particles floating around it, dark navy background with blue-purple gradient lighting, minimal premium tech illustration, no text, no logos, portrait orientation
+
+**7. Footer texture (`footer-texture.webp`)**
+> Extremely faint dark texture, subtle grain and soft vignette, almost solid dark navy, barely perceptible detail, for use behind footer content
+
+---
+
+## 3. STYLE CONSISTENCY RULES (apply to every image above)
+
+- **Color grading**: every image must lean into the same 3 tones — deep navy/charcoal (`#0B0F19`–`#12172A`), electric blue (`#2563EB`), and neon purple (`#8B5CF6`). No warm tones, no unrelated colors.
+- **No text baked into images** — all copy stays as real HTML text for accessibility and easy editing.
+- **No literal logos** — never generate the YouTube play-button logo or any recognizable brand mark; use abstract/generic play-shape or signal/orb motifs instead (trademark safety).
+- **Consistent render style** — pick ONE style (recommended: soft 3D/glass render, like the prompts above) and keep every image in that same style. Do not mix flat illustration with photoreal render.
+- **Format**: export/generate as `.webp` for smaller file size; keep a `.png` fallback only for image #4 (badge, needs transparency and webp transparency isn't universally supported by older tools).
+
+---
+
+## 4. IMPLEMENTATION INSTRUCTIONS FOR THE CODING TOOL
+
+- Store all images under `/public/images/` using the exact filenames in the table above.
+- Reference them with lazy loading:
+  ```jsx
+  <img src="/images/hero-visual.webp" alt="Product visual" loading="lazy" className="..." />
+  ```
+- **Until the real generated image exists**, render a graceful placeholder in its exact place so layout never breaks — a plain gradient `div` matching the section's color scheme, same aspect ratio as the target image:
+  ```jsx
+  <div className="aspect-[6/5] rounded-2xl bg-gradient-to-br from-accent-primary/20 to-accent-secondary/20" />
+  ```
+  Replace this div with the real `<img>` tag once the file is generated and placed — leave a `// TODO: replace placeholder with hero-visual.webp` comment at each spot.
+- Background images (`hero-bg-glow`, `steps-bg-pattern`, `cta-bg`, `footer-texture`) go on the section wrapper as CSS `background-image`, not as `<img>` tags, so they sit behind text content:
+  ```jsx
+  <section style={{ backgroundImage: "url('/images/cta-bg.webp')" }} className="bg-cover bg-center">
+  ```
+
+---
+
+## 5. TRADEMARK / COPYRIGHT NOTE
+
+Because this product integrates with YouTube, it's tempting to use YouTube's red play-button logo in generated art — don't. Trademarked logos should never be reproduced in generated images. All prompts above are written to produce **generic, abstract signal/orb/play-shape motifs** instead — this keeps the visuals safe to use commercially without needing YouTube's brand permission.
+
+---
+
+## 6. QUICK CHECKLIST
+
+- [ ] Generate all 7 images using prompts in Section 2
+- [ ] Save with exact filenames into `/public/images/`
+- [ ] Wire each into the correct section per Section 1's table
+- [ ] Placeholder gradients removed once real images are in place
+- [ ] No text, no real logos, no off-palette colors in any generated image
