@@ -4998,18 +4998,19 @@ select { height: 41px; }
 .profile-identity-card { display:flex; align-items:center; gap:20px; }
 .profile-avatar-wrap { position:relative; flex:0 0 auto; display:grid; justify-items:center; gap:10px; }
 .profile-avatar { width:112px; height:112px; border-radius:50%; object-fit:cover; border:3px solid #f0187d; box-shadow:0 10px 26px rgba(227,25,127,.24); }
-.profile-upload-button { display:inline-flex; align-items:center; gap:6px; padding:7px 10px; border:1px solid #d4c2df; border-radius:8px; color:#6a4b78; background:#fff8ff; font-size:10px; font-weight:700; cursor:pointer; }
-.profile-upload-button input { display:none; }
+.profile-avatar-edit { position:absolute; right:1px; bottom:1px; display:grid; place-items:center; width:29px; height:29px; border:2px solid #1f102c; border-radius:50%; color:#fff; background:#f0187d; box-shadow:0 5px 14px rgba(227,25,127,.35); cursor:pointer; }
+.profile-avatar-edit:hover { background:#ff2b8f; transform:translateY(-1px); }
+.profile-avatar-edit input { display:none; }
 .profile-identity-copy { min-width:0; }
 .profile-identity-copy h2 { margin:4px 0 5px; font-size:20px; letter-spacing:-.04em; }
 .profile-identity-copy > p:not(.eyebrow) { margin:0; color:#88748e; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .profile-form { display:grid; gap:13px; margin-top:18px; }
 .profile-form .button { justify-self:start; margin-top:3px; }
 .profile-message { margin:0; color:#dc5c9f; font:10px var(--app-font-mono); line-height:1.5; }
-.profile-provider-note { display:grid; gap:15px; margin-top:18px; padding:14px; border:1px solid #e0cfe5; border-radius:10px; background:#fbf4fd; color:#775c81; font-size:11px; line-height:1.5; }
+.profile-provider-note { display:grid; gap:15px; margin-top:18px; padding:14px; border:1px solid #5a356d; border-radius:10px; background:#2b193c; color:#d7c6df; font-size:11px; line-height:1.5; }
 .profile-provider-note p { margin:0; }
 .billing-summary { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; margin:18px 0; }
-.billing-summary > div { display:grid; gap:6px; padding:12px; border:1px solid #e0cfe5; border-radius:9px; background:#fbf4fd; }
+.billing-summary > div { display:grid; gap:6px; padding:12px; border:1px solid #5a356d; border-radius:9px; background:#2b193c; }
 .billing-summary strong { color:#fff; font-size:13px; }
 .danger-button { color:#ffd8eb; border-color:#7a3b64; background:#32162d; }
 .danger-button:hover { border-color:#ee4da5; background:#4a193b; color:#fff; }
@@ -5022,6 +5023,7 @@ select { height: 41px; }
   .profile-identity-card, .profile-card { padding:17px; }
   .profile-identity-card { align-items:flex-start; }
   .profile-avatar { width:88px; height:88px; }
+  .profile-avatar-edit { right:-1px; bottom:-1px; width:27px; height:27px; }
   .profile-identity-copy h2 { font-size:17px; }
   .profile-page { padding-bottom:104px; }
   .mobile-nav-wrap { display:block; position:fixed; z-index:30; right:0; bottom:0; left:0; }

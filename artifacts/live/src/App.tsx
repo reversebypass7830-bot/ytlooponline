@@ -4071,8 +4071,8 @@ function ProfilePage({ workspace, account, firebaseUser, profilePhoto, onProfile
       <div className="page-head"><div><h1>Profile</h1></div><button className="button danger-button" onClick={() => void onLogout()} data-testid="button-profile-logout"><ShieldCheck size={15}/> Log out</button></div>
       <div className="profile-layout">
         <section className="card profile-identity-card">
-          <div className="profile-avatar-wrap"><img className="profile-avatar" src={displayPhoto} alt={`${name || "Your"} profile`} /><label className="profile-upload-button"><Upload size={14}/> Change photo<input type="file" accept="image/*" onChange={uploadPhoto} /></label></div>
-          <div className="profile-identity-copy"><h2>{name || "Workspace user"}</h2>{email && <p>{email}</p>}</div>
+          <div className="profile-avatar-wrap"><img className="profile-avatar" src={displayPhoto} alt={`${name || "Your"} profile`} /><label className="profile-avatar-edit" title="Change profile photo" aria-label="Change profile photo"><Pencil size={13}/><input type="file" accept="image/*" onChange={uploadPhoto} /></label></div>
+          <div className="profile-identity-copy">{email && <p>{email}</p>}</div>
         </section>
         <section className="card profile-card">
           <div className="section-head"><div><h2 className="section-title">Personal details</h2><p className="subtle">These details are used for your workspace account.</p></div><UserRound size={18} /></div>
