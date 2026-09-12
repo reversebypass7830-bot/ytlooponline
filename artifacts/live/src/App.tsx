@@ -1,13 +1,14 @@
-import { useEffect, useMemo, useRef, useState, type CSSProperties, type FormEvent, type PointerEvent as ReactPointerEvent, type ReactNode, type SyntheticEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type ChangeEvent, type FormEvent, type PointerEvent as ReactPointerEvent, type ReactNode, type SyntheticEvent } from "react";
 import { Link, Redirect, Route, Switch, useLocation, Router as WouterRouter } from "wouter";
 import {
   Activity as ActivityIcon, ArrowRight, BookOpen, Camera, Check, CircleHelp, Clipboard,
   Download, FileVideo, FolderOpen, Gauge, Gift, Instagram, LayoutDashboard,
   Image, Layers, Link2, Menu, MessageCircle, MonitorPlay, Pencil, Play, Plus, Radio, Scissors, Search, Send, Settings,
+  MoreHorizontal, UserRound, CreditCard, KeyRound, Mail,
   Mic, ShieldCheck, Smartphone, Sparkles, Square, Trash2, Type, Upload, Video, Wand2, X, Youtube,
 } from "lucide-react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { GoogleAuthProvider, onAuthStateChanged, signInWithPopup, signInWithRedirect, signOut as firebaseSignOut, type User as FirebaseUser } from "firebase/auth";
+import { EmailAuthProvider, GoogleAuthProvider, onAuthStateChanged, reauthenticateWithCredential, sendPasswordResetEmail, signInWithPopup, signInWithRedirect, signOut as firebaseSignOut, updateEmail, updatePassword, updateProfile, type User as FirebaseUser } from "firebase/auth";
 import Hls from "hls.js";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/toaster";
@@ -164,6 +165,8 @@ const purchasePath = "/pricing";
 const now = () => new Date().toISOString();
 const uid = (prefix: string) => `${prefix}-${Math.random().toString(36).slice(2, 9)}`;
 const isLicenseActive = (license: LicenseSession | null) => Boolean(license && license.active && new Date(license.expiresAt).getTime() > Date.now());
+const profilePhotoKey = (userId: string) => `reverse-bypass-profile-photo:${userId}`;
+const defaultProfilePhoto = (userId: string) => `https://i.pravatar.cc/200?img=${(Array.from(userId).reduce((sum, char) => sum + char.charCodeAt(0), 0) % 70) + 1}`;
 const getClientId = () => {
   const existing = localStorage.getItem("signal-desk-client-id");
   if (existing) return existing;
@@ -1166,7 +1169,7 @@ function Brand({ compact = false }: { compact?: boolean }) {
   </div>;
 }
 
-function Sidebar({ path, open, onClose, user, onLogout, data }: { path:string; open:boolean; onClose:()=>void; user:string; onLogout:()=>void; data:DataState }) {
+function Sidebar({ path, open, onClose, user, photo, data }: { path:string; open:boolean; onClose:()=>void; user:string; photo?:string; data:DataState }) {
   const nav = [
     { href:"/dashboard", label:"Overview", icon:LayoutDashboard },
      { href:"/live", label:"Live channels", icon:MonitorPlay, count:data.channels.filter(c=>c.status==="live").length || undefined },
@@ -1182,12 +1185,11 @@ function Sidebar({ path, open, onClose, user, onLogout, data }: { path:string; o
     </nav>
     <div className="nav-label" style={{marginTop:28}}>Workspace</div>
     <nav className="nav">
-      <Link href="/settings" onClick={onClose} className={`nav-link ${path === "/settings" ? "active" : ""}`} data-testid="link-settings"><Settings size={16}/><span>Settings</span></Link>
-      <button className="nav-link" onClick={() => { onLogout(); onClose(); }} data-testid="button-sign-out"><ShieldCheck size={16}/><span>Sign out</span></button>
+      <Link href="/profile" onClick={onClose} className={`nav-link ${path === "/profile" ? "active" : ""}`} data-testid="link-profile"><UserRound size={16}/><span>Profile</span></Link>
     </nav>
     <div className="sidebar-bottom">
       <div className="workspace-card"><strong>Private workspace</strong><p>Your private workspace is saved in your Firebase license workspace.</p></div>
-      <div className="mini-user"><span className="avatar">{user.slice(0,2).toUpperCase()}</span><span style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{user}</span></div>
+      <div className="mini-user"><span className="avatar">{photo ? <img src={photo} alt="" /> : user.slice(0,2).toUpperCase()}</span><span style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{user}</span></div>
     </div>
   </aside>;
 }
@@ -1227,13 +1229,38 @@ function DownloadActivity({ downloads, onDismiss }: { downloads: YoutubeDownload
   </div>;
 }
 
-function AppShell({ children, title, account, workspace }: { children:ReactNode; title:string; account?: AccountSummary | null; workspace:ReturnType<typeof useWorkspace> }) {
+function MobileNav({ path, data }: { path:string; data:DataState }) {
+  const [moreOpen, setMoreOpen] = useState(false);
+  const primary = [
+    { href: "/dashboard", label: "Home", icon: LayoutDashboard },
+    { href: "/live", label: "Live", icon: MonitorPlay },
+    { href: "/videos", label: "Videos", icon: FileVideo },
+    { href: "/profile", label: "Profile", icon: UserRound },
+  ];
+  const extra = [
+    { href: "/live-preview", label: "Stream preview", icon: Radio },
+    { href: "/editor", label: "Video editor", icon: Wand2 },
+  ];
+  return <div className="mobile-nav-wrap">
+    {moreOpen && <button className="mobile-more-backdrop" aria-label="Close more menu" onClick={() => setMoreOpen(false)} />}
+    {moreOpen && <div className="mobile-more-menu" role="menu">
+      {extra.map(({ href, label, icon: Icon }) => <Link key={href} href={href} onClick={() => setMoreOpen(false)} className={`mobile-more-link ${path === href ? "active" : ""}`}><Icon size={16}/><span>{label}</span>{href === "/live-preview" && data.channels.some((channel) => channel.status === "live") && <span className="nav-count">Live</span>}</Link>)}
+    </div>}
+    <nav className="mobile-nav" aria-label="Mobile navigation">
+      {primary.map(({ href, label, icon: Icon }) => <Link key={href} href={href} className={`mobile-nav-link ${path === href ? "active" : ""}`}><Icon size={18}/><span>{label}</span></Link>)}
+      <button className={`mobile-nav-link ${moreOpen || extra.some((item) => item.href === path) ? "active" : ""}`} onClick={() => setMoreOpen((value) => !value)} aria-expanded={moreOpen}><MoreHorizontal size={18}/><span>More</span></button>
+    </nav>
+  </div>;
+}
+
+function AppShell({ children, title, account, profilePhoto, workspace }: { children:ReactNode; title:string; account?: AccountSummary | null; profilePhoto?: string; workspace:ReturnType<typeof useWorkspace> }) {
   const [path] = useLocation();
   const [menu, setMenu] = useState(false);
   return <div className="shell">
     {menu && <button className="sidebar-scrim" aria-label="Close navigation" onClick={() => setMenu(false)} data-testid="button-close-menu" />}
-    <Sidebar path={path} open={menu} onClose={()=>setMenu(false)} user={workspace.user} onLogout={workspace.logout} data={workspace.data}/>
+    <Sidebar path={path} open={menu} onClose={()=>setMenu(false)} user={account?.displayName || account?.email || workspace.user} photo={profilePhoto} data={workspace.data}/>
      <main className="main"><Header title={title} account={account} onMenu={()=>setMenu(true)}/><DownloadActivity downloads={workspace.youtubeDownloads} onDismiss={workspace.dismissYoutubeDownload}/>{children}</main>
+    <MobileNav path={path} data={workspace.data}/>
     {workspace.toast && <div className="toast" data-testid="status-toast"><Check size={14} style={{verticalAlign:"-2px", marginRight:7}}/>{workspace.toast}</div>}
   </div>;
 }
@@ -3927,6 +3954,150 @@ function EditorTransformControls({ selectedLayer, hasWebcam, hasAnimation, mainT
   </div>;
 }
 
+function ProfilePage({ workspace, account, firebaseUser, plans, profilePhoto, onProfilePhotoChange, onSaveProfile, onLogout }: {
+  workspace: ReturnType<typeof useWorkspace>;
+  account: AccountSummary;
+  firebaseUser: FirebaseUser;
+  plans: AccountPlan[];
+  profilePhoto: string;
+  onProfilePhotoChange: (photo: string) => void;
+  onSaveProfile: (profile: { displayName: string; email: string; phone?: string }) => Promise<void>;
+  onLogout: () => Promise<void>;
+}) {
+  const [name, setName] = useState(account.displayName || "");
+  const [email, setEmail] = useState(account.email || firebaseUser.email || "");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [passwordBusy, setPasswordBusy] = useState(false);
+  const [notice, setNotice] = useState("");
+  const [passwordNotice, setPasswordNotice] = useState("");
+  const [photoIndex, setPhotoIndex] = useState(0);
+  const photoChoices = [12, 27, 36, 45, 58, 67].map((image) => `https://i.pravatar.cc/200?img=${image}`);
+  const hasPasswordProvider = firebaseUser.providerData.some((provider) => provider.providerId === "password");
+
+  useEffect(() => {
+    setName(account.displayName || "");
+    setEmail(account.email || firebaseUser.email || "");
+  }, [account.displayName, account.email, firebaseUser.email]);
+
+  const choosePhoto = (photo: string) => {
+    onProfilePhotoChange(photo);
+    if (!photo.startsWith("data:")) void updateProfile(firebaseUser, { photoURL: photo }).catch(() => undefined);
+    setNotice("Profile photo updated.");
+  };
+
+  const saveDetails = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!name.trim() || !email.trim()) return;
+    setSaving(true);
+    setNotice("");
+    try {
+      if (email.trim() !== (firebaseUser.email || "")) await updateEmail(firebaseUser, email.trim());
+      await updateProfile(firebaseUser, { displayName: name.trim() });
+      await onSaveProfile({ displayName: name.trim(), email: email.trim(), phone: account.phone });
+      setNotice("Your profile details were saved.");
+    } catch (reason) {
+      setNotice(reason instanceof Error ? reason.message : "Could not save your profile details.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const savePassword = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setPasswordNotice("");
+    if (!hasPasswordProvider) {
+      setPasswordNotice("This account uses Google sign-in. Use the password reset email if a password login is enabled.");
+      return;
+    }
+    if (newPassword.length < 6 || newPassword !== confirmPassword) {
+      setPasswordNotice("Use at least 6 characters and make both password fields match.");
+      return;
+    }
+    setPasswordBusy(true);
+    try {
+      if (currentPassword) {
+        const credential = EmailAuthProvider.credential(firebaseUser.email || email, currentPassword);
+        await reauthenticateWithCredential(firebaseUser, credential);
+      }
+      await updatePassword(firebaseUser, newPassword);
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+      setPasswordNotice("Password changed successfully.");
+    } catch (reason) {
+      setPasswordNotice(reason instanceof Error ? reason.message : "Could not change the password. Please sign in again and retry.");
+    } finally {
+      setPasswordBusy(false);
+    }
+  };
+
+  const sendResetEmail = async () => {
+    setPasswordBusy(true);
+    setPasswordNotice("");
+    try {
+      await sendPasswordResetEmail(firebaseAuth, email);
+      setPasswordNotice("Password reset instructions were sent to your email.");
+    } catch (reason) {
+      setPasswordNotice(reason instanceof Error ? reason.message : "Could not send a password reset email.");
+    } finally {
+      setPasswordBusy(false);
+    }
+  };
+
+  const uploadPhoto = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === "string") choosePhoto(reader.result);
+    };
+    reader.readAsDataURL(file);
+    event.target.value = "";
+  };
+
+  return <AppShell title="Profile" account={account} profilePhoto={profilePhoto} workspace={workspace}>
+    <div className="page profile-page">
+      <div className="page-head"><div><p className="eyebrow">Your workspace identity</p><h1>Profile</h1><p className="subtle">Update how your account appears across Reverse Bypass.</p></div><button className="button danger-button" onClick={() => void onLogout()} data-testid="button-profile-logout"><ShieldCheck size={15}/> Log out</button></div>
+      <div className="profile-layout">
+        <section className="card profile-identity-card">
+          <div className="profile-avatar-wrap"><img className="profile-avatar" src={profilePhoto} alt={`${name || "Your"} profile`} /><label className="profile-upload-button"><Upload size={14}/> Change photo<input type="file" accept="image/*" onChange={uploadPhoto} /></label></div>
+          <div className="profile-identity-copy"><p className="eyebrow">Account profile</p><h2>{name || "Workspace user"}</h2><p>{email}</p><button className="profile-random-button" onClick={() => { const nextIndex = (photoIndex + 1) % photoChoices.length; setPhotoIndex(nextIndex); choosePhoto(photoChoices[nextIndex]); }}><Sparkles size={14}/> Use a random photo</button></div>
+        </section>
+        <section className="card profile-card">
+          <div className="section-head"><div><h2 className="section-title">Personal details</h2><p className="subtle">These details are used for your workspace account.</p></div><UserRound size={18} /></div>
+          <form className="profile-form" onSubmit={saveDetails}>
+            <div className="field"><label htmlFor="profile-name">Name</label><input id="profile-name" value={name} onChange={(event) => setName(event.target.value)} placeholder="Your name" data-testid="input-profile-name" /></div>
+            <div className="field"><label htmlFor="profile-email">Email</label><input id="profile-email" type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="you@example.com" data-testid="input-profile-email" /></div>
+            <button className="button" type="submit" disabled={saving || !name.trim() || !email.trim()}>{saving ? "Saving…" : "Save changes"} <Check size={14}/></button>
+            {notice && <p className="profile-message">{notice}</p>}
+          </form>
+        </section>
+      </div>
+      <div className="profile-layout">
+        <section className="card profile-card">
+          <div className="section-head"><div><h2 className="section-title">Password</h2><p className="subtle">Keep your account secure with a password only you know.</p></div><KeyRound size={18}/></div>
+          {hasPasswordProvider ? <form className="profile-form" onSubmit={savePassword}>
+            <div className="field"><label htmlFor="current-password">Current password <span className="field-hint">(optional)</span></label><input id="current-password" type="password" value={currentPassword} onChange={(event) => setCurrentPassword(event.target.value)} autoComplete="current-password" /></div>
+            <div className="field"><label htmlFor="new-password">New password</label><input id="new-password" type="password" value={newPassword} onChange={(event) => setNewPassword(event.target.value)} autoComplete="new-password" /></div>
+            <div className="field"><label htmlFor="confirm-password">Confirm new password</label><input id="confirm-password" type="password" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} autoComplete="new-password" /></div>
+            <button className="button" type="submit" disabled={passwordBusy}>{passwordBusy ? "Updating…" : "Change password"} <KeyRound size={14}/></button>
+          </form> : <div className="profile-provider-note"><p>You signed in with Google, so password access is managed by Google.</p><button className="button secondary" onClick={() => void sendResetEmail()} disabled={passwordBusy}>{passwordBusy ? "Sending…" : "Email password reset link"} <Mail size={14}/></button></div>}
+          {passwordNotice && <p className="profile-message">{passwordNotice}</p>}
+        </section>
+        <section className="card profile-card">
+          <div className="section-head"><div><h2 className="section-title">Billing</h2><p className="subtle">Review your access plan and renewal options.</p></div><CreditCard size={18}/></div>
+          <div className="billing-summary"><div><span className="metric-kicker">Current plan</span><strong>{account.activePlan?.name || "Workspace access"}</strong></div><div><span className="metric-kicker">Access until</span><strong>{new Date(account.accessEndsAt).toLocaleDateString()}</strong></div></div>
+          <Link href="/pricing" className="button secondary" data-testid="link-profile-billing"><CreditCard size={14}/> View billing & plans <ArrowRight size={14}/></Link>
+        </section>
+      </div>
+      <section className="card profile-card profile-security-note"><ShieldCheck size={17}/><div><strong>{plans.length ? `${plans.length} plans available` : "Your plan is active"}</strong><p>Your account and billing details are protected by secure sign-in.</p></div></section>
+    </div>
+  </AppShell>;
+}
+
 function SettingsPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}) {
   const [autoSave,setAutoSave]=useState(()=>localStorage.getItem("signal-desk-autosave")!=="off");const [compact,setCompact]=useState(()=>localStorage.getItem("signal-desk-compact")==="on");const toggle=(key:string,value:boolean,setter:(v:boolean)=>void)=>{setter(value);localStorage.setItem(key,value?"on":"off");workspace.setToast(value?"Preference enabled":"Preference disabled")};
    return <AppShell title="Settings" workspace={workspace}>
@@ -3941,8 +4112,8 @@ function SettingsPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}) {
    </AppShell>;
 }
 
-function Routed({workspace, account, onSavePhone}:{workspace:ReturnType<typeof useWorkspace>; account:AccountSummary|null; onSavePhone:(phone:string)=>Promise<void>}) {
-  return <Switch><Route path="/dashboard"><Dashboard workspace={workspace} account={account} onSavePhone={onSavePhone}/></Route><Route path="/live"><LivePage workspace={workspace}/></Route><Route path="/live-preview"><LivePreviewPage workspace={workspace}/></Route><Route path="/videos"><VideosPage workspace={workspace}/></Route><Route path="/editor"><VideoEditorPage workspace={workspace}/></Route><Route path="/settings"><SettingsPage workspace={workspace}/></Route><Route><NotFound/></Route></Switch>;
+function Routed({workspace, account, firebaseUser, plans, profilePhoto, onProfilePhotoChange, onSaveProfile, onSavePhone, onLogout}:{workspace:ReturnType<typeof useWorkspace>; account:AccountSummary|null; firebaseUser:FirebaseUser|null; plans:AccountPlan[]; profilePhoto:string; onProfilePhotoChange:(photo:string)=>void; onSaveProfile:(profile:{displayName:string; email:string; phone?:string})=>Promise<void>; onSavePhone:(phone:string)=>Promise<void>; onLogout:()=>Promise<void>}) {
+  return <Switch><Route path="/dashboard"><Dashboard workspace={workspace} account={account} onSavePhone={onSavePhone}/></Route><Route path="/live"><LivePage workspace={workspace}/></Route><Route path="/live-preview"><LivePreviewPage workspace={workspace}/></Route><Route path="/videos"><VideosPage workspace={workspace}/></Route><Route path="/editor"><VideoEditorPage workspace={workspace}/></Route><Route path="/profile">{account && firebaseUser ? <ProfilePage workspace={workspace} account={account} firebaseUser={firebaseUser} plans={plans} profilePhoto={profilePhoto} onProfilePhotoChange={onProfilePhotoChange} onSaveProfile={onSaveProfile} onLogout={onLogout}/> : <Redirect to="/dashboard"/>}</Route><Route path="/settings"><Redirect to="/profile"/></Route><Route><NotFound/></Route></Switch>;
 }
 
 function App() {
@@ -3951,6 +4122,19 @@ function App() {
   const license = useLicense();
   const accountSession = useAccountSession(isSignedIn, user?.uid, !firebaseLoading);
   const hasAccountSession = Boolean(accountSession.account);
+  const [profilePhoto, setProfilePhoto] = useState("");
+  useEffect(() => {
+    if (!user) {
+      setProfilePhoto("");
+      return;
+    }
+    setProfilePhoto(localStorage.getItem(profilePhotoKey(user.uid)) || user.photoURL || defaultProfilePhoto(user.uid));
+  }, [user?.uid, user?.photoURL]);
+  const handleProfilePhotoChange = (photo: string) => {
+    if (!user) return;
+    localStorage.setItem(profilePhotoKey(user.uid), photo);
+    setProfilePhoto(photo);
+  };
   const [mobileGiftKey, setMobileGiftKey] = useState("");
   const [profileGateId, setProfileGateId] = useState<string | null>(null);
   const accountLicense = accountSession.account ? {
@@ -4014,7 +4198,7 @@ function App() {
   if (location === "/access") return <LicenseGate license={activeLicense} busy={license.busy} error={license.error || firebaseError} signedIn={Boolean(isSignedIn || hasAccountSession)} onActivate={license.activate} onRenew={license.renew} onGoogleLogin={() => setLocation("/sign-in")} onGiftReady={setMobileGiftKey} onOpenRoom={openMobileRoom}/>;
   if (!activeLicense || !isLicenseActive(activeLicense)) return <LicenseGate license={activeLicense} busy={license.busy} error={license.error || firebaseError} signedIn={Boolean(isSignedIn || hasAccountSession)} onActivate={license.activate} onRenew={license.renew} onGoogleLogin={() => setLocation("/sign-in")} onGiftReady={setMobileGiftKey} onOpenRoom={openMobileRoom}/>;
   if (!workspace.ready) return <div className="workspace-loading"><Radio size={20}/><span>Loading your private workspace…</span></div>;
-  return <><Routed workspace={workspace} account={accountSession.account} onSavePhone={accountSession.savePhone}/>{accountSession.account && profileGateId === accountSession.account.id && <AccountCompletionDialog account={accountSession.account} onSave={accountSession.saveProfile} onClose={() => setProfileGateId(null)} />}</>;
+  return <><Routed workspace={workspace} account={accountSession.account} firebaseUser={user} plans={accountSession.plans} profilePhoto={profilePhoto} onProfilePhotoChange={handleProfilePhotoChange} onSaveProfile={accountSession.saveProfile} onSavePhone={accountSession.savePhone} onLogout={signOut}/>{accountSession.account && profileGateId === accountSession.account.id && <AccountCompletionDialog account={accountSession.account} onSave={accountSession.saveProfile} onClose={() => setProfileGateId(null)} />}</>;
 }
 
 export default function RootApp() {
