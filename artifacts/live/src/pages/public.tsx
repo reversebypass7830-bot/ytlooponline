@@ -422,7 +422,7 @@ export function LandingPage() {
             </div>
             <div className="loop-clone-pricing-stepper" aria-label="Choose plan duration">
               <button type="button" aria-label="Previous duration" disabled={duration === 1} onClick={() => setDuration((value) => Math.max(1, value - 1))}><ArrowLeft size={17} /></button>
-              <div className={`loop-clone-pricing-track ${durationLimit > 5 ? "dense" : ""}`} aria-hidden="true">{Array.from({ length: durationLimit }, (_, index) => <i className={duration >= index + 1 ? "active" : ""} key={index} />)}</div>
+              <div className={`loop-clone-pricing-track ${durationLimit > 5 ? "dense" : ""}`} style={{ "--duration-progress": `${((duration - 1) / (durationLimit - 1)) * 100}%` } as CSSProperties} aria-hidden="true">{Array.from({ length: durationLimit }, (_, index) => <i className={`${duration >= index + 1 ? "active " : ""}${duration === index + 1 ? "current" : ""}`} key={index} />)}</div>
               <strong>{selectedDurationLabel}</strong>
               <button type="button" aria-label="Next duration" disabled={duration === durationLimit} onClick={() => setDuration((value) => Math.min(durationLimit, value + 1))}><ArrowRight size={17} /></button>
             </div>
