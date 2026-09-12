@@ -4406,3 +4406,61 @@ select { height: 41px; }
     padding: 27px 17px 48px;
   }
 }
+
+/* Final Loop Stream polish: compact brand mark and consistent dark surfaces. */
+.shell .brand {
+  padding: 2px 9px 22px;
+}
+
+.shell .brand-mark {
+  width: 88px;
+  height: 36px;
+  border-radius: 8px;
+  background: transparent;
+  box-shadow: 0 5px 16px rgba(225, 25, 129, .14);
+}
+
+.shell .brand-mark img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.shell .modal {
+  color: #f8f3ff;
+  background: linear-gradient(145deg, #291738 0%, #1d1029 100%);
+  border-color: #4c2d5f;
+}
+
+.shell .modal-head,
+.shell .modal-foot {
+  border-color: #3c2550;
+}
+
+.shell .modal-foot {
+  background: rgba(13, 4, 20, .22);
+}
+
+.shell .modal .icon-button {
+  background: #2b193c;
+  border-color: #5a356d;
+  color: #d8c5e0;
+}
+
+.shell .modal .icon-button:hover {
+  background: #3a1d4d;
+  border-color: #df3da0;
+  color: #fff;
+}
+
+.shell .modal .button.secondary {
+  color: #f4d7ec;
+  background: #2b193c;
+  border-color: #5a356d;
+}
+
+.shell .modal .button.secondary:hover {
+  color: #fff;
+  background: #3a1d4d;
+  border-color: #ca3a99;
+}
