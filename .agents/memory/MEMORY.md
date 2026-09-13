@@ -27,3 +27,4 @@
 - [Firebase Google auth bridge](firebase-google-auth-bridge.md) — exchange Firebase Google ID tokens for a server-signed session so Firebase auth can preserve existing account and workspace semantics.
 - [Firebase Vite configuration](firebase-vite-config.md) — this workflow needs explicit Vite injection when browser config comes from existing non-VITE Firebase environment variables.
 - [Publish image size](publish-image-size.md) — large local runtime media can bypass gitignore during publishing; use root .replitignore for deployment-only exclusions.
+- [Cloudflare preview fallback](cloudflare-preview-fallback.md) — the public quick tunnel is optional; local live preview must survive transient tunnel failures.

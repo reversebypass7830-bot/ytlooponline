@@ -27,6 +27,7 @@ let botPolling = false;
 let botAbortController = null;
 let vite;
 let tunnel;
+let tunnelUnavailable = false;
 const subscribedChatIds = new Set();
 const tunnelUrlWaiters = new Set();
 
@@ -45,7 +46,7 @@ function currentBotMessage() {
   return [
     'Reverse Bypass by Reverse Bypass',
     '',
-    `Active link (realtime): ${activeUrl || 'starting...'}`,
+    `Active link (realtime): ${activeUrl || (tunnelUnavailable ? 'unavailable' : 'starting...')}`,
     '',
     'Use Get Link to receive the current URL or Reset to restart local host and Cloudflare.',
   ].join('\n');
@@ -291,16 +292,21 @@ function handleTunnelOutput(chunk) {
   }
 }
 
+async function markTunnelUnavailable(message) {
+  tunnelUnavailable = true;
+  activeUrl = '';
+  await writeLinkFile(message);
+  console.error(message);
+}
+
 function attachProcessHandlers() {
   tunnel.stdout.on('data', handleTunnelOutput);
   tunnel.stderr.on('data', handleTunnelOutput);
 
   tunnel.on('error', async (error) => {
-    await writeLinkFile(
-      `Cloudflare Tunnel could not start: ${error.message}. Make sure cloudflared is installed.`,
+    await markTunnelUnavailable(
+      `Cloudflare Tunnel could not start: ${error.message}. The local preview remains available.`,
     );
-    console.error('Cloudflare Tunnel could not start:', error);
-    if (!restarting) stopProcesses(1);
   });
 
   vite.on('error', (error) => {
@@ -317,13 +323,9 @@ function attachProcessHandlers() {
 
   tunnel.on('exit', async (code) => {
     if (!shuttingDown && !restarting) {
-      await writeLinkFile(
-        `Cloudflare Tunnel stopped unexpectedly (exit code ${code ?? 1}).`,
+      await markTunnelUnavailable(
+        `Cloudflare Tunnel stopped unexpectedly with exit code ${code ?? 1}. The local preview remains available.`,
       );
-      console.error(
-        `Cloudflare Tunnel stopped unexpectedly with exit code ${code ?? 1}.`,
-      );
-      stopProcesses(code ?? 1);
     }
   });
 }
@@ -353,6 +355,7 @@ function startServices() {
       stdio: ['ignore', 'pipe', 'pipe'],
     },
   );
+  tunnelUnavailable = false;
   attachProcessHandlers();
 }
 
