@@ -176,7 +176,11 @@ const getClientId = () => {
   return next;
 };
 async function apiJson<T>(path: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(path, { ...init, headers: { "Content-Type": "application/json", ...(init?.headers || {}) } });
+  const response = await fetch(path, {
+    ...init,
+    credentials: "include",
+    headers: { "Content-Type": "application/json", ...(init?.headers || {}) },
+  });
   const payload = await response.json().catch(() => ({})) as { error?: string } & T;
   if (!response.ok) {
     const error = new Error(payload.error || "The request could not be completed.") as Error & { status?: number };

@@ -37,6 +37,17 @@ function readCookie(req: Request, name: string): string | null {
   return match ? decodeURIComponent(match.slice(name.length + 1)) : null;
 }
 
+function isSecureRequest(req: Request): boolean {
+  const forwardedProto = String(req.headers["x-forwarded-proto"] || "").split(",")[0].trim().toLowerCase();
+  const origin = String(req.headers.origin || "").toLowerCase();
+  const referer = String(req.headers.referer || "").toLowerCase();
+  return req.secure || forwardedProto === "https" || origin.startsWith("https://") || referer.startsWith("https://");
+}
+
+function sessionCookieAttributes(req: Request, maxAge: number): string {
+  return `Max-Age=${maxAge}; Path=/; SameSite=${isSecureRequest(req) ? "None" : "Lax"}${isSecureRequest(req) ? "; Secure" : ""}`;
+}
+
 function signMobilePayload(payload: string): string {
   return createHmac("sha256", sessionSecret()).update(payload).digest("base64url");
 }
@@ -127,13 +138,13 @@ export function accountUserId(req: Request): string | null {
   return accountIdentity(req)?.userId || null;
 }
 
-export function setMobileSession(res: Response, accountId: string): void {
+export function setMobileSession(req: Request, res: Response, accountId: string): void {
   const session = createMobileSession(accountId);
-  res.setHeader("Set-Cookie", `${mobileSessionCookie}=${encodeURIComponent(session.value)}; Max-Age=${session.maxAge}; Path=/; HttpOnly; SameSite=Lax${process.env.NODE_ENV === "production" ? "; Secure" : ""}`);
+  res.setHeader("Set-Cookie", `${mobileSessionCookie}=${encodeURIComponent(session.value)}; ${sessionCookieAttributes(req, session.maxAge)}; HttpOnly`);
 }
 
-export function clearMobileSession(res: Response): void {
-  res.setHeader("Set-Cookie", `${mobileSessionCookie}=; Max-Age=0; Path=/; HttpOnly; SameSite=Lax${process.env.NODE_ENV === "production" ? "; Secure" : ""}`);
+export function clearMobileSession(req: Request, res: Response): void {
+  res.setHeader("Set-Cookie", `${mobileSessionCookie}=; ${sessionCookieAttributes(req, 0)}; HttpOnly`);
 }
 
 export function clerkSessionClaims(req: Request): Record<string, unknown> {

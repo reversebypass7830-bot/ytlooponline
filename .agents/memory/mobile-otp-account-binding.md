@@ -20,3 +20,9 @@ After mobile OTP creates a server session, refresh the client account state befo
 **Why:** Navigating immediately can render the login gate again when the account session hook still has its pre-login null value.
 
 **How to apply:** Reload the account/session query after a successful linked-account OTP response, then navigate to the workspace.
+
+Mobile session cookies must be sent explicitly by the browser API client and use `SameSite=None; Secure` when the request is HTTPS or embedded in a preview tunnel.
+
+**Why:** Preview and tunnel requests can run in an embedded or cross-site context where the default credential mode or `SameSite=Lax` prevents the newly issued session from reaching `/api/account`.
+
+**How to apply:** Keep `credentials: "include"` on authenticated fetches and derive cookie attributes from forwarded HTTPS/origin headers, while retaining `SameSite=Lax` for local HTTP.

@@ -87,7 +87,7 @@ function providerMessage(payload: ProviderResponse): string {
   return payload.message || "The OTP provider rejected the request.";
 }
 
-function respondWithCompletedChallenge(res: Response, completed: CompletedMobileChallenge): void {
+function respondWithCompletedChallenge(req: Request, res: Response, completed: CompletedMobileChallenge): void {
   if (completed.kind === "profile") {
     res.json({
       code: "PROFILE_REQUIRED",
@@ -98,7 +98,7 @@ function respondWithCompletedChallenge(res: Response, completed: CompletedMobile
     return;
   }
 
-  setMobileSession(res, completed.account.id);
+  setMobileSession(req, res, completed.account.id);
   res.json({
     message: "OTP verified.",
     account: completed.account,
@@ -156,7 +156,7 @@ router.post("/mobile-auth/verify-otp", async (req: Request, res: Response): Prom
     const completed = completedChallenges.get(requestId);
     if (completed) {
       if (completed.phone === phone && completed.expiresAt > Date.now()) {
-        respondWithCompletedChallenge(res, completed);
+        respondWithCompletedChallenge(req, res, completed);
         return;
       }
       completedChallenges.delete(requestId);
@@ -221,7 +221,7 @@ router.post("/mobile-auth/verify-otp", async (req: Request, res: Response): Prom
         };
         completedChallenges.set(requestId, completedChallenge);
         await firebaseDelete(path);
-        respondWithCompletedChallenge(res, completedChallenge);
+        respondWithCompletedChallenge(req, res, completedChallenge);
         return;
       }
 
@@ -240,7 +240,7 @@ router.post("/mobile-auth/verify-otp", async (req: Request, res: Response): Prom
       };
       completedChallenges.set(requestId, completedChallenge);
       await firebaseDelete(path);
-      respondWithCompletedChallenge(res, completedChallenge);
+      respondWithCompletedChallenge(req, res, completedChallenge);
     } catch (error) {
       req.log.error({ error: error instanceof Error ? error.message : "unknown" }, "Mobile OTP verification failed");
       res.status(502).json({ error: "Could not verify the OTP. Please try again." });
@@ -272,7 +272,7 @@ router.post("/mobile-auth/complete-profile", async (req: Request, res: Response)
   try {
     const { account } = await createMobileAccount({ phone: verified.phone, email, displayName });
     verifiedChallenges.delete(onboardingToken);
-    setMobileSession(res, account.id);
+    setMobileSession(req, res, account.id);
     res.status(201).json({
       message: "Your workspace is ready.",
       account: {
@@ -291,7 +291,7 @@ router.post("/mobile-auth/complete-profile", async (req: Request, res: Response)
 });
 
 router.post("/mobile-auth/logout", (req, res): void => {
-  clearMobileSession(res);
+  clearMobileSession(req, res);
   res.json({ ok: true });
 });
 
