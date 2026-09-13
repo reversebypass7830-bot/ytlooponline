@@ -18,8 +18,13 @@ type AccountMap = Record<string, AccountRecord>;
 type Challenge = { requestId: string; phone: string; deviceId: string; issuedAt: string; expiresAt: string; attempts: number };
 type VerifiedMobileChallenge = { phone: string; expiresAt: number };
 type ProviderResponse = { status?: number; message?: string; user?: { phone?: string } };
+type AccountSummary = Pick<AccountRecord, "id" | "displayName" | "email" | "phone" | "role">;
+type CompletedMobileChallenge =
+  | { kind: "profile"; phone: string; onboardingToken: string; expiresAt: number }
+  | { kind: "account"; phone: string; account: AccountSummary; expiresAt: number };
 
 const verifiedChallenges = new Map<string, VerifiedMobileChallenge>();
+const completedChallenges = new Map<string, CompletedMobileChallenge>();
 
 function normalizePhone(value: string): string {
   const digits = value.replace(/\D/g, "");
@@ -82,6 +87,24 @@ function providerMessage(payload: ProviderResponse): string {
   return payload.message || "The OTP provider rejected the request.";
 }
 
+function respondWithCompletedChallenge(res: Response, completed: CompletedMobileChallenge): void {
+  if (completed.kind === "profile") {
+    res.json({
+      code: "PROFILE_REQUIRED",
+      onboardingToken: completed.onboardingToken,
+      phone: completed.phone,
+      message: "Mobile number verified. Complete your profile to create your workspace.",
+    });
+    return;
+  }
+
+  setMobileSession(res, completed.account.id);
+  res.json({
+    message: "OTP verified.",
+    account: completed.account,
+  });
+}
+
 async function findAccountByPhone(phone: string): Promise<AccountRecord | null> {
   const accounts = (await firebaseGet<AccountMap | null>("accounts")) ?? {};
   const normalized = normalizePhone(phone);
@@ -129,6 +152,14 @@ router.post("/mobile-auth/verify-otp", async (req: Request, res: Response): Prom
     if (!validPhone(phone) || !requestId) {
       staleOtpError(res);
       return;
+    }
+    const completed = completedChallenges.get(requestId);
+    if (completed) {
+      if (completed.phone === phone && completed.expiresAt > Date.now()) {
+        respondWithCompletedChallenge(res, completed);
+        return;
+      }
+      completedChallenges.delete(requestId);
     }
     const path = challengePath(phone);
     const challenge = await firebaseGet<Challenge | null>(path);
@@ -178,15 +209,38 @@ router.post("/mobile-auth/verify-otp", async (req: Request, res: Response): Prom
         return;
       }
       const account = await findAccountByPhone(phone);
-      await firebaseDelete(path);
+      const completedAt = Date.now() + challengeTtlMs;
       if (!account) {
         const onboardingToken = randomUUID();
-        verifiedChallenges.set(onboardingToken, { phone, expiresAt: Date.now() + challengeTtlMs });
-        res.json({ code: "PROFILE_REQUIRED", onboardingToken, phone, message: "Mobile number verified. Complete your profile to create your workspace." });
+        verifiedChallenges.set(onboardingToken, { phone, expiresAt: completedAt });
+        const completedChallenge: CompletedMobileChallenge = {
+          kind: "profile",
+          phone,
+          onboardingToken,
+          expiresAt: completedAt,
+        };
+        completedChallenges.set(requestId, completedChallenge);
+        await firebaseDelete(path);
+        respondWithCompletedChallenge(res, completedChallenge);
         return;
       }
-      setMobileSession(res, account.id);
-      res.json({ message: "OTP verified.", account: { id: account.id, displayName: account.displayName, email: account.email, phone: account.phone, role: account.role } });
+
+      const accountSummary: AccountSummary = {
+        id: account.id,
+        displayName: account.displayName,
+        email: account.email,
+        phone: account.phone,
+        role: account.role,
+      };
+      const completedChallenge: CompletedMobileChallenge = {
+        kind: "account",
+        phone,
+        account: accountSummary,
+        expiresAt: completedAt,
+      };
+      completedChallenges.set(requestId, completedChallenge);
+      await firebaseDelete(path);
+      respondWithCompletedChallenge(res, completedChallenge);
     } catch (error) {
       req.log.error({ error: error instanceof Error ? error.message : "unknown" }, "Mobile OTP verification failed");
       res.status(502).json({ error: "Could not verify the OTP. Please try again." });
