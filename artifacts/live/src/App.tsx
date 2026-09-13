@@ -1299,7 +1299,7 @@ function WaterFillAvatar({ src, alt, animate, animationKey }: { src: string; alt
   </svg>;
 }
 
-function LicenseGate({ license, busy, error, signedIn, onActivate, onRenew, onGoogleLogin, onGiftReady, onOpenRoom }: {
+function LicenseGate({ license, busy, error, signedIn, onActivate, onRenew, onGoogleLogin, onMobileAccountLogin, onGiftReady, onOpenRoom }: {
   license: LicenseSession | null;
   busy: boolean;
   error: string;
@@ -1307,6 +1307,7 @@ function LicenseGate({ license, busy, error, signedIn, onActivate, onRenew, onGo
   onActivate: (key: string) => Promise<void>;
   onRenew: () => Promise<void>;
   onGoogleLogin: () => void;
+  onMobileAccountLogin: () => Promise<void>;
   onGiftReady: (key: string) => void;
   onOpenRoom: () => void;
 }) {
@@ -1349,6 +1350,7 @@ function LicenseGate({ license, busy, error, signedIn, onActivate, onRenew, onGo
         setMobileOnboardingToken(result.onboardingToken);
         return true;
       }
+      await onMobileAccountLogin();
       setLocation("/dashboard");
       return false;
     } catch (reason) {
@@ -4263,6 +4265,7 @@ function App() {
       onActivate={license.activate}
       onRenew={license.renew}
       onGoogleLogin={signInWithGoogle}
+      onMobileAccountLogin={accountSession.reload}
       onGiftReady={setMobileGiftKey}
       onOpenRoom={() => { setMobileGiftKey(""); setLocation("/dashboard"); }}
     />;
@@ -4277,8 +4280,8 @@ function App() {
   }
   if (location === "/" && !isLicenseActive(activeLicense)) return <LandingPage />;
   const openMobileRoom = () => { setMobileGiftKey(""); setLocation("/dashboard"); };
-  if (location === "/access") return <LicenseGate license={activeLicense} busy={license.busy} error={license.error || firebaseError} signedIn={Boolean(isSignedIn || hasAccountSession)} onActivate={license.activate} onRenew={license.renew} onGoogleLogin={() => setLocation("/sign-in")} onGiftReady={setMobileGiftKey} onOpenRoom={openMobileRoom}/>;
-  if (!activeLicense || !isLicenseActive(activeLicense)) return <LicenseGate license={activeLicense} busy={license.busy} error={license.error || firebaseError} signedIn={Boolean(isSignedIn || hasAccountSession)} onActivate={license.activate} onRenew={license.renew} onGoogleLogin={() => setLocation("/sign-in")} onGiftReady={setMobileGiftKey} onOpenRoom={openMobileRoom}/>;
+  if (location === "/access") return <LicenseGate license={activeLicense} busy={license.busy} error={license.error || firebaseError} signedIn={Boolean(isSignedIn || hasAccountSession)} onActivate={license.activate} onRenew={license.renew} onGoogleLogin={() => setLocation("/sign-in")} onMobileAccountLogin={accountSession.reload} onGiftReady={setMobileGiftKey} onOpenRoom={openMobileRoom}/>;
+  if (!activeLicense || !isLicenseActive(activeLicense)) return <LicenseGate license={activeLicense} busy={license.busy} error={license.error || firebaseError} signedIn={Boolean(isSignedIn || hasAccountSession)} onActivate={license.activate} onRenew={license.renew} onGoogleLogin={() => setLocation("/sign-in")} onMobileAccountLogin={accountSession.reload} onGiftReady={setMobileGiftKey} onOpenRoom={openMobileRoom}/>;
   if (!workspace.ready) return <div className="workspace-loading"><Radio size={20}/><span>Loading your private workspace…</span></div>;
   const handleLogout = async () => {
     if (user) {

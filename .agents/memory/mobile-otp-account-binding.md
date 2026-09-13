@@ -14,3 +14,9 @@ The client must not submit the same OTP challenge twice, and the server should m
 **Why:** Users can enter the correct code and still see an expiry error when the duplicate request arrives after the first request has already deleted the challenge.
 
 **How to apply:** Guard client verify triggers with an in-flight ref and cache a successful request result briefly so a duplicate returns the same login or profile result instead of an expiry error.
+
+After mobile OTP creates a server session, refresh the client account state before navigating because cookie-based mobile auth does not change Firebase's client auth state.
+
+**Why:** Navigating immediately can render the login gate again when the account session hook still has its pre-login null value.
+
+**How to apply:** Reload the account/session query after a successful linked-account OTP response, then navigate to the workspace.
