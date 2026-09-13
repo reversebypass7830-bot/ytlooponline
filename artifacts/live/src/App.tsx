@@ -135,6 +135,20 @@ const accessSocialLinks = [
   { label: "WhatsApp", detail: "Direct support line", href: "https://wa.me/", icon: MessageCircle },
   { label: "YouTube", detail: "Watch the live signal", href: "https://www.youtube.com/", icon: Youtube },
 ];
+const mobileDeviceStorageKey = "loop_mobile_device_id";
+
+function getMobileDeviceId(): string {
+  if (typeof window === "undefined") return "WebBrowser-server";
+  try {
+    const existing = window.localStorage.getItem(mobileDeviceStorageKey);
+    if (existing && /^[A-Za-z0-9._:-]{8,80}$/.test(existing)) return existing;
+    const generated = `WebBrowser-${window.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(16).slice(2)}`}`;
+    window.localStorage.setItem(mobileDeviceStorageKey, generated);
+    return generated;
+  } catch {
+    return "WebBrowser-browser";
+  }
+}
 type MediaFileRecord = {
   fileId: string; filename: string; sourcePath: string; playbackUrl: string; title: string; duration: string;
   licenseId: string; licenseName: string; folderName: string; quality: string; createdAt: string; sizeBytes: number;
@@ -1329,7 +1343,7 @@ function LicenseGate({ license, busy, error, signedIn, onActivate, onRenew, onGo
     try {
       const result = await apiJson<{ requestId: string; expiresAt: string; expiresInSeconds: number }>("/api/mobile-auth/send-otp", {
         method: "POST",
-        body: JSON.stringify({ phone }),
+        body: JSON.stringify({ phone, deviceId: getMobileDeviceId() }),
       });
       setMobileRequestId(result.requestId);
       return { expiresAt: result.expiresAt, expiresInSeconds: result.expiresInSeconds };

@@ -26,3 +26,9 @@ Mobile session cookies must be sent explicitly by the browser API client and use
 **Why:** Preview and tunnel requests can run in an embedded or cross-site context where the default credential mode or `SameSite=Lax` prevents the newly issued session from reaching `/api/account`.
 
 **How to apply:** Keep `credentials: "include"` on authenticated fetches and derive cookie attributes from forwarded HTTPS/origin headers, while retaining `SameSite=Lax` for local HTTP.
+
+The OTP provider device identifier must remain stable per browser across resend and verification attempts.
+
+**Why:** Generating a fresh provider device ID for every OTP send makes legitimate retries look like logins from many devices and can trigger a temporary provider lock.
+
+**How to apply:** Persist a browser device ID in local storage, send it with OTP requests, validate it server-side, and use a deterministic phone-based fallback when older clients omit it.

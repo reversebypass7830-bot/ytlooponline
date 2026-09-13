@@ -1,4 +1,4 @@
-import { createHash, randomBytes, randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { Router, type IRouter, type Request, type Response } from "express";
 import { firebaseDelete, firebaseGet, firebasePut } from "../lib/firebase-rest";
 import { clearMobileSession, setMobileSession } from "../middlewares/requireClerkAuth";
@@ -117,7 +117,10 @@ router.post("/mobile-auth/send-otp", async (req: Request, res: Response): Promis
     res.status(400).json({ error: "Enter a valid 10-digit mobile number." });
     return;
   }
-  const deviceId = `WebBrowser${Date.now()}${randomBytes(6).toString("hex")}`;
+  const requestedDeviceId = typeof req.body?.deviceId === "string" ? req.body.deviceId.trim() : "";
+  const deviceId = /^[A-Za-z0-9._:-]{8,80}$/.test(requestedDeviceId)
+    ? requestedDeviceId
+    : `WebBrowser-${createHash("sha256").update(phone).digest("hex").slice(0, 24)}`;
   try {
     const payload = await callProvider("/get/sendotp", { phone });
     if (!providerSucceeded(payload)) {
