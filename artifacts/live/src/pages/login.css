@@ -1,6 +1,6 @@
 .streamly-login-otp-expiry {
   margin: -4px 0 0;
-  color: rgba(255, 255, 255, .62);
+  color: var(--md-sys-color-on-surface-variant);
   font-size: 11px;
   text-align: center;
 }
