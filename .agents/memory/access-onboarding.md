@@ -8,3 +8,9 @@ Unlinked mobile numbers and newly created Google accounts complete onboarding th
 **Why:** Keeping provider verification and account creation on the server prevents provider tokens from reaching the browser and keeps Firebase workspace records, licenses, and sessions consistent.
 
 **How to apply:** Preserve the distinction between authentication and profile completion. Existing linked mobile accounts should enter directly, while incomplete new accounts should remain in the access/profile UI until the generated license is revealed and the user opens the workspace.
+
+After mobile profile completion creates the server session, reload the account session before opening the workspace route.
+
+**Why:** The new cookie can be valid while the client account state is still empty; routing immediately then falls through to the login gate again.
+
+**How to apply:** Complete the profile request, refresh `/api/account`, then allow the “open room” action to navigate to the dashboard.

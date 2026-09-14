@@ -14,3 +14,9 @@ When Clerk is not configured, its global middleware must be skipped rather than 
 **Why:** A missing optional Clerk secret previously converted every Firebase/mobile request into a server-side 500 before those routes ran.
 
 **How to apply:** Gate the app-level Clerk middleware on `CLERK_SECRET_KEY`; keep mobile/Firebase session cookies as the active auth boundary when Clerk is unavailable.
+
+The browser's initial Firebase auth callback may report no Firebase user while a valid server-side mobile session exists; that callback must not clear the server Firebase cookie or act as an explicit logout.
+
+**Why:** Treating initial auth hydration as logout creates a login loop after refresh and can erase a valid server session before account state finishes loading.
+
+**How to apply:** Clear server auth cookies only from an explicit sign-out action, and ignore stale account requests when Firebase/mobile auth state changes.

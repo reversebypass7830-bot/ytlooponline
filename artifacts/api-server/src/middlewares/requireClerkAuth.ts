@@ -111,11 +111,11 @@ export function setFirebaseSession(res: Response, identity: FirebaseSessionIdent
     kind: "firebase",
   })).toString("base64url");
   const value = `${payload}.${signMobilePayload(payload)}`;
-  res.setHeader("Set-Cookie", `${firebaseSessionCookie}=${encodeURIComponent(value)}; Max-Age=${firebaseSessionTtlSeconds}; Path=/; HttpOnly; SameSite=Lax${process.env.NODE_ENV === "production" ? "; Secure" : ""}`);
+  res.setHeader("Set-Cookie", `${firebaseSessionCookie}=${encodeURIComponent(value)}; ${sessionCookieAttributes(res.req, firebaseSessionTtlSeconds)}; HttpOnly`);
 }
 
 export function clearFirebaseSession(res: Response): void {
-  res.setHeader("Set-Cookie", `${firebaseSessionCookie}=; Max-Age=0; Path=/; HttpOnly; SameSite=Lax${process.env.NODE_ENV === "production" ? "; Secure" : ""}`);
+  res.setHeader("Set-Cookie", `${firebaseSessionCookie}=; ${sessionCookieAttributes(res.req, 0)}; HttpOnly`);
 }
 
 export function accountIdentity(req: Request): FirebaseSessionIdentity | null {

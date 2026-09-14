@@ -859,7 +859,6 @@ function useFirebaseAuth() {
     const unsubscribe = onAuthStateChanged(firebaseAuth, (nextUser) => {
       void (async () => {
         if (!nextUser) {
-          await apiJson("/api/firebase-auth/logout", { method: "POST" }).catch(() => undefined);
           if (mounted) {
             setUser(null);
             setError("");
@@ -927,14 +926,19 @@ function useAccountSession(isSignedIn: boolean, userId?: string, authReady = tru
   const [plans, setPlans] = useState<AccountPlan[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const requestIdRef = useRef(0);
 
   const load = async () => {
+    const requestId = ++requestIdRef.current;
     try {
       const result = await apiJson<AccountResponse>("/api/account");
+      if (requestId !== requestIdRef.current) return result.account;
       setAccount(result.account);
       setPlans(result.plans || []);
       setError("");
+      return result.account;
     } catch (reason) {
+      if (requestId !== requestIdRef.current) return null;
       const status = (reason as Error & { status?: number }).status;
       if (status === 401) {
         setAccount(null);
@@ -943,8 +947,9 @@ function useAccountSession(isSignedIn: boolean, userId?: string, authReady = tru
       } else {
         setError(reason instanceof Error ? reason.message : "Could not load your account.");
       }
+      return null;
     } finally {
-      setLoading(false);
+      if (requestId === requestIdRef.current) setLoading(false);
     }
   };
 
@@ -957,7 +962,10 @@ function useAccountSession(isSignedIn: boolean, userId?: string, authReady = tru
     void load();
     if (!isSignedIn && !account) return;
     const timer = window.setInterval(() => void load(), 60_000);
-    return () => window.clearInterval(timer);
+    return () => {
+      window.clearInterval(timer);
+      requestIdRef.current += 1;
+    };
   }, [authReady, isSignedIn, userId, Boolean(account)]);
 
   const saveProfile = async (profile: { displayName: string; email: string; phone?: string; profileImagePath?: string }) => {
@@ -987,12 +995,18 @@ function useAccountSession(isSignedIn: boolean, userId?: string, authReady = tru
   };
 
   const clear = () => {
+    requestIdRef.current += 1;
     setAccount(null);
     setPlans([]);
     setError("");
   };
 
-  return { account, plans, loading, error, reload: load, saveProfile, savePhone, claimOwner, clear };
+  const reload = async () => {
+    const nextAccount = await load();
+    if (!nextAccount) throw new Error("Your session could not be restored. Please sign in again.");
+  };
+
+  return { account, plans, loading, error, reload, saveProfile, savePhone, claimOwner, clear };
 }
 
 function useWorkspace(license: LicenseSession | null, clearLicense: () => void) {
@@ -1389,6 +1403,7 @@ function LicenseGate({ license, busy, error, signedIn, onActivate, onRenew, onGo
         method: "POST",
         body: JSON.stringify({ onboardingToken: mobileOnboardingToken, ...profile }),
       });
+      await onMobileAccountLogin();
       setGiftKey(result.account.licenseKey);
       onGiftReady(result.account.licenseKey);
     } catch (reason) {
