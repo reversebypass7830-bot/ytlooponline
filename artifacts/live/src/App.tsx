@@ -1205,6 +1205,7 @@ function Brand({ compact = false }: { compact?: boolean }) {
 function Sidebar({ path, open, onClose, user, photo, data }: { path:string; open:boolean; onClose:()=>void; user:string; photo?:string; data:DataState }) {
   const nav = [
     { href:"/dashboard", label:"Dashboard", icon:LayoutDashboard },
+    { href:"/analytics", label:"Analytics", icon:Gauge },
     { href:"/live", label:"Live", icon:MonitorPlay, count:data.channels.filter(c=>c.status==="live").length || undefined },
     { href:"/videos", label:"Video", icon:FileVideo },
     { href:"/live-preview", label:"Stream preview", icon:Radio, count:data.channels.filter(c=>c.status==="live").length || undefined },
@@ -1262,23 +1263,10 @@ function DownloadActivity({ downloads, onDismiss }: { downloads: YoutubeDownload
   </div>;
 }
 
-function MobileActionNav({ path }: { path:string }) {
-  const actions = [
-    { href: "/live", label: "Live", icon: MonitorPlay },
-    { href: "/videos", label: "Video", icon: FileVideo },
-    { href: "/live-preview", label: "Stream preview", icon: Radio },
-    { href: "/editor", label: "Video editor", icon: Wand2 },
-    { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  ];
-  return <nav className="mobile-action-nav" aria-label="Workspace actions">
-    {actions.map(({ href, label, icon: Icon }) => <Link key={href} href={href} className={`mobile-action-link ${path === href ? "active" : ""}`}><Icon size={15}/><span>{label}</span></Link>)}
-  </nav>;
-}
-
 function MobileNav({ path }: { path:string }) {
   const primary = [
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-    { href: "/aesthetics", label: "Aesthetics", icon: Gauge },
+    { href: "/analytics", label: "Analytics", icon: Gauge },
     { href: "/profile", label: "Profile", icon: UserRound },
   ];
   return <div className="mobile-nav-wrap">
@@ -1294,7 +1282,7 @@ function AppShell({ children, title, account, profilePhoto, workspace }: { child
   return <div className="shell">
     {menu && <button className="sidebar-scrim" aria-label="Close navigation" onClick={() => setMenu(false)} data-testid="button-close-menu" />}
     <Sidebar path={path} open={menu} onClose={()=>setMenu(false)} user={account?.displayName || account?.email || workspace.user} photo={profilePhoto} data={workspace.data}/>
-     <main className="main"><Header title={title} account={account} onMenu={()=>setMenu(true)}/><MobileActionNav path={path}/><DownloadActivity downloads={workspace.youtubeDownloads} onDismiss={workspace.dismissYoutubeDownload}/>{children}</main>
+     <main className="main"><Header title={title} account={account} onMenu={()=>setMenu(true)}/><DownloadActivity downloads={workspace.youtubeDownloads} onDismiss={workspace.dismissYoutubeDownload}/>{children}</main>
      <MobileNav path={path}/>
     {workspace.toast && <div className="toast" data-testid="status-toast"><Check size={14} style={{verticalAlign:"-2px", marginRight:7}}/>{workspace.toast}</div>}
   </div>;
@@ -1981,13 +1969,44 @@ function PhoneProfileCard({ onSave }: { onSave: (phone: string) => Promise<void>
   return <section className="account-profile-card"><div><p className="eyebrow">Account profile</p><h2>Add a mobile number</h2><p className="subtle">Keep it linked to this Google account. OTP login can use this same account when mobile sign-in is enabled.</p></div><form onSubmit={save}><input type="tel" value={phone} onChange={(event) => setPhone(event.target.value)} placeholder="+91 98765 43210" aria-label="Mobile number"/><button className="button" type="submit" disabled={busy || !phone.trim()}>{busy ? "Saving…" : "Save number"} <Check size={14}/></button></form>{message && <span className="form-hint">{message}</span>}</section>;
 }
 
-function Dashboard({ workspace, account, onSavePhone, pageTitle = "Dashboard" }: { workspace:ReturnType<typeof useWorkspace>; account?: AccountSummary | null; onSavePhone?: (phone: string) => Promise<void>; pageTitle?: string }) {
-  const {data, update} = workspace;
+function Dashboard({ workspace, account }: { workspace:ReturnType<typeof useWorkspace>; account?: AccountSummary | null }) {
+  const actions = [
+    { href: "/live", label: "Live", description: "Manage live channels and start a broadcast.", icon: MonitorPlay, tone: "live" },
+    { href: "/videos", label: "Video", description: "Browse your video library and categories.", icon: FileVideo, tone: "video" },
+    { href: "/live-preview", label: "Stream preview", description: "Check the live composition before it goes out.", icon: Radio, tone: "preview" },
+    { href: "/editor", label: "Video editor", description: "Build a polished stream composition.", icon: Wand2, tone: "editor" },
+  ];
+  return <AppShell title="Dashboard" account={account} workspace={workspace}>
+    <div className="page dashboard-home-page">
+      <div className="page-head"><div><p className="eyebrow">Workspace</p><h1>Dashboard</h1><p className="subtle">Choose what you want to work on.</p></div></div>
+      <div className="dashboard-action-grid">
+        {actions.map(({ href, label, description, icon: Icon, tone }) => <Link key={href} href={href} className={`dashboard-action-card dashboard-action-${tone}`}><span className="dashboard-action-icon"><Icon size={23}/></span><span className="dashboard-action-copy"><strong>{label}</strong><small>{description}</small></span><ArrowRight size={17} className="dashboard-action-arrow"/></Link>)}
+      </div>
+    </div>
+  </AppShell>;
+}
+
+function AnalyticsPage({ workspace, account, onSavePhone }: { workspace:ReturnType<typeof useWorkspace>; account?: AccountSummary | null; onSavePhone?: (phone: string) => Promise<void> }) {
+  const {data} = workspace;
   const live = data.channels.filter(c=>c.status==="live");
-  return <AppShell title={pageTitle} account={account} workspace={workspace}><div className="page"><div className="page-head"><div><p className="eyebrow">Workspace overview</p><h1>{pageTitle}</h1><p className="subtle">Your live channels, library, categories, and recent activity in one view.</p></div></div>{account && !account.phone && onSavePhone && <PhoneProfileCard onSave={onSavePhone} />}
+  const volumeData = [
+    { label: "Live channels", value: data.channels.length, color: "#f0187d" },
+    { label: "Library videos", value: data.videos.length, color: "#8b5cf6" },
+    { label: "Categories", value: data.groups.length, color: "#2e9f91" },
+    { label: "Activities", value: data.activities.length, color: "#df9345" },
+  ];
+  const maxVolume = Math.max(1, ...volumeData.map((item) => item.value));
+  const publishedVideos = data.videos.filter((video) => video.status === "published").length;
+  const draftVideos = data.videos.filter((video) => video.status === "draft").length;
+  const archivedVideos = data.videos.filter((video) => video.status === "archived").length;
+  return <AppShell title="Analytics" account={account} workspace={workspace}><div className="page analytics-page"><div className="page-head"><div><p className="eyebrow">Workspace overview</p><h1>Analytics</h1><p className="subtle">Your live channels, library, categories, and recent activity in one view.</p></div></div>{account && !account.phone && onSavePhone && <PhoneProfileCard onSave={onSavePhone} />}
     <div className="metric-grid"><Metric label="On air now" value={live.length} detail={live.length ? "Signal is healthy" : "Nothing is live"} /><Metric label="Library videos" value={data.videos.length} detail={`${data.videos.filter(v=>v.status==="published").length} published`} /><Metric label="Categories" value={data.groups.length} detail="Playlist folders" /> </div>
+     <div className="analytics-chart-grid">
+       <section className="card section-card analytics-chart-card"><div className="section-head"><div><h2 className="section-title">Workspace volume</h2><p className="subtle" style={{margin: "5px 0 0", fontSize:11}}>A quick view of the content in your workspace.</p></div><Gauge size={17} color="#6c8b83"/></div><div className="analytics-bars" aria-label="Workspace volume chart">{volumeData.map((item) => <div className="analytics-bar-column" key={item.label}><div className="analytics-bar-value">{item.value}</div><div className="analytics-bar-track"><div className="analytics-bar-fill" style={{ height: `${Math.max(item.value ? 10 : 3, (item.value / maxVolume) * 100)}%`, background: item.color }} /></div><span>{item.label}</span></div>)}</div></section>
+       <section className="card section-card analytics-chart-card"><div className="section-head"><div><h2 className="section-title">Library breakdown</h2><p className="subtle" style={{margin: "5px 0 0", fontSize:11}}>Video status across your library.</p></div><FileVideo size={17} color="#6c8b83"/></div><div className="analytics-breakdown"><div className="analytics-breakdown-row"><span><i className="analytics-dot published"/>Published</span><strong>{publishedVideos}</strong><div className="analytics-progress"><span style={{ width: `${data.videos.length ? (publishedVideos / data.videos.length) * 100 : 0}%`, background: "#2e9f91" }}/></div></div><div className="analytics-breakdown-row"><span><i className="analytics-dot draft"/>Draft</span><strong>{draftVideos}</strong><div className="analytics-progress"><span style={{ width: `${data.videos.length ? (draftVideos / data.videos.length) * 100 : 0}%`, background: "#df9345" }}/></div></div><div className="analytics-breakdown-row"><span><i className="analytics-dot archived"/>Archived</span><strong>{archivedVideos}</strong><div className="analytics-progress"><span style={{ width: `${data.videos.length ? (archivedVideos / data.videos.length) * 100 : 0}%`, background: "#8b5cf6" }}/></div></div></div></section>
+     </div>
      <div className="split-grid"><section className="card section-card"><div className="section-head"><div><h2 className="section-title">Live channels</h2><p className="subtle" style={{margin: "5px 0 0", fontSize:11}}>Your broadcast surface, at a glance.</p></div><Link href="/live" className="section-link" data-testid="link-view-all-live">View all <ArrowRight size={12} style={{verticalAlign:"-2px"}}/></Link></div>{live.length ? <div className="live-list">{live.map(c=><div className="live-row" key={c.id} data-testid={`live-row-${c.id}`}><div className="thumb" style={{background:c.thumbnailColor}}><Radio size={16}/></div><div><div className="row-title">{c.title}</div><div className="row-meta">{c.platform} · live for {fmtTime(c.startedAt)}</div></div><div className="status live"><span className="status-dot"/>Live</div></div>)}</div> : <EmptyState icon={<Radio size={21}/>} title="Nothing is live" copy="Your live channels will appear here when they are on air."/>}</section>
-      <section className="card section-card"><div className="section-head"><div><h2 className="section-title">Recent activity</h2><p className="subtle" style={{margin:"5px 0 0",fontSize:11}}>A small paper trail for the room.</p></div><ActivityIcon size={17} color="#6c8b83"/></div><ActivityList activities={data.activities}/></section></div>
+       <section className="card section-card"><div className="section-head"><div><h2 className="section-title">Recent activity</h2><p className="subtle" style={{margin:"5px 0 0",fontSize:11}}>A small paper trail for the room.</p></div><ActivityIcon size={17} color="#6c8b83"/></div><ActivityList activities={data.activities}/></section></div>
     </div></AppShell>;
 }
 
@@ -4228,7 +4247,7 @@ function Routed({workspace, account, firebaseUser, profilePhoto, onProfilePhotoC
     active: true,
     history: [],
   };
-  return <Switch><Route path="/dashboard"><Dashboard workspace={workspace} account={account} onSavePhone={onSavePhone}/></Route><Route path="/aesthetics"><Dashboard workspace={workspace} account={account} onSavePhone={onSavePhone} pageTitle="Aesthetics"/></Route><Route path="/live"><LivePage workspace={workspace}/></Route><Route path="/live-preview"><LivePreviewPage workspace={workspace}/></Route><Route path="/videos"><VideosPage workspace={workspace}/></Route><Route path="/editor"><VideoEditorPage workspace={workspace}/></Route><Route path="/profile"><ProfilePage workspace={workspace} account={profileAccount} firebaseUser={firebaseUser} profilePhoto={profilePhoto} onProfilePhotoChange={onProfilePhotoChange} onSaveProfile={account ? onSaveProfile : undefined} onLogout={onLogout}/></Route><Route path="/settings"><Redirect to="/profile"/></Route><Route><NotFound/></Route></Switch>;
+  return <Switch><Route path="/dashboard"><Dashboard workspace={workspace} account={account}/></Route><Route path="/analytics"><AnalyticsPage workspace={workspace} account={account} onSavePhone={onSavePhone}/></Route><Route path="/aesthetics"><Redirect to="/analytics"/></Route><Route path="/live"><LivePage workspace={workspace}/></Route><Route path="/live-preview"><LivePreviewPage workspace={workspace}/></Route><Route path="/videos"><VideosPage workspace={workspace}/></Route><Route path="/editor"><VideoEditorPage workspace={workspace}/></Route><Route path="/profile"><ProfilePage workspace={workspace} account={profileAccount} firebaseUser={firebaseUser} profilePhoto={profilePhoto} onProfilePhotoChange={onProfilePhotoChange} onSaveProfile={account ? onSaveProfile : undefined} onLogout={onLogout}/></Route><Route path="/settings"><Redirect to="/profile"/></Route><Route><NotFound/></Route></Switch>;
 }
 
 function App() {
