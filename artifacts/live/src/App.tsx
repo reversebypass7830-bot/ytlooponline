@@ -1879,6 +1879,63 @@ function OwnerKeysPanel({ tokens, tokenDraft, keyBusy, error, onDraftChange, onA
   </div>;
 }
 
+function OwnerLicensePage({ licenses, name, days, busy, error, message, onNameChange, onDaysChange, onCreate, onRenew, onRemove, onRecover, onDashboard, onKeys }: {
+  licenses: LicenseSession[];
+  name: string;
+  days: string;
+  busy: boolean;
+  error: string;
+  message: string;
+  onNameChange: (value: string) => void;
+  onDaysChange: (value: string) => void;
+  onCreate: (event: FormEvent) => void;
+  onRenew: (licenseId: string) => void;
+  onRemove: (license: LicenseSession) => void;
+  onRecover: (license: LicenseSession) => void;
+  onDashboard: () => void;
+  onKeys: () => void;
+}) {
+  return <div className="owner-page owner-license-page">
+    <header className="owner-topbar"><div className="owner-topbar-title"><span className="owner-topbar-kicker">Slash Owner</span><strong>License key</strong></div></header>
+    <main className="owner-content">
+      <div className="page-head owner-page-heading"><div><p className="eyebrow">Customer access</p><h1>License key</h1><p className="subtle">Create, recover, renew, and remove workspace access keys from one place.</p></div><div className="owner-page-badge"><KeyRound size={16}/> {licenses.length} configured</div></div>
+      {error && <div className="error-note">{error}</div>}{message && <div className="owner-success">{message}</div>}
+      <OwnerMobileNav active="dashboard" onDashboard={onDashboard} onKeys={onKeys} />
+      <section className="card section-card owner-create"><div className="section-head"><div><h2 className="section-title">Create license key</h2><p className="subtle" style={{ margin: "5px 0 0", fontSize: 11 }}>Create a separate workspace and access key for each customer.</p></div><KeyRound size={18} color="#5b52c7"/></div><form className="owner-create-form" onSubmit={onCreate}><div className="field"><label>Customer / workspace name</label><input value={name} onChange={(event) => onNameChange(event.target.value)} placeholder="Studio A" data-testid="input-license-name"/></div><div className="field"><label>Valid for days</label><input type="number" min="1" max="3650" value={days} onChange={(event) => onDaysChange(event.target.value)} data-testid="input-license-days"/></div><button className="button" type="submit" disabled={busy || !name.trim()}><Plus size={15}/> Create license key</button></form></section>
+      <section className="card section-card owner-list"><div className="section-head"><div><h2 className="section-title">Existing license keys</h2><p className="subtle" style={{ margin: "5px 0 0", fontSize: 11 }}>Recover a key for a customer or renew their access.</p></div><KeyRound size={18} color="#5b52c7"/></div>{licenses.length === 0 ? <EmptyState icon={<KeyRound size={21}/>} title="No license keys yet" copy="Create the first key above to give a workspace access."/> : <div className="license-list">{licenses.map((license) => { const active = isLicenseActive(license); return <div className="license-row" key={license.licenseId}><div className="license-row-main"><div className="license-key-badge"><KeyRound size={15}/></div><div><strong>{license.name}</strong><span className="mono">{license.key}</span></div></div><div className={`status ${active ? "live" : "stopped"}`}><span className="status-dot"/>{active ? "Active" : "Expired"} · {new Date(license.expiresAt).toLocaleDateString()}</div><div className="actions"><button className="button secondary small" onClick={() => onRecover(license)} disabled={busy}><KeyRound size={13}/> Recover</button><button className="button secondary small" onClick={() => onRenew(license.licenseId)} disabled={busy}>Renew</button><button className="icon-button" onClick={() => onRemove(license)} disabled={busy} title="Delete license" aria-label={`Delete ${license.name}`}><Trash2 size={13}/></button></div></div>; })}</div>}</section>
+    </main>
+  </div>;
+}
+
+function OwnerDashboardPage({ ownerPassword, error, message, keyBusy, showIncludedAnimations, onFolder, onAnimations, onLicense, onKeys, onCloseAnimations }: {
+  ownerPassword: string;
+  error: string;
+  message: string;
+  keyBusy: boolean;
+  showIncludedAnimations: boolean;
+  onFolder: () => void;
+  onAnimations: () => void;
+  onLicense: () => void;
+  onKeys: () => void;
+  onCloseAnimations: () => void;
+}) {
+  return <div className="owner-page owner-dashboard-page">
+    <header className="owner-topbar"><div className="owner-topbar-title"><span className="owner-topbar-kicker">Slash Owner</span><strong>Dashboard</strong></div><span className="owner-secure-label"><ShieldCheck size={15}/> Secure owner workspace</span></header>
+    <main className="owner-content">
+      <div className="page-head owner-page-heading"><div><p className="eyebrow">Owner workspace</p><h1>Dashboard</h1><p className="subtle">Choose a workspace area to manage your folders, animations, or system access.</p></div><div className="owner-page-badge"><ShieldCheck size={16}/> Connected</div></div>
+      {error && <div className="error-note">{error}</div>}{message && <div className="owner-success">{message}</div>}
+      <OwnerMobileNav active="dashboard" onDashboard={() => undefined} onKeys={onKeys} />
+      <section className="owner-action-grid" aria-label="Owner actions">
+        <button className="owner-action-card folder" onClick={onFolder}><span className="owner-action-icon"><FolderOpen size={22}/></span><span><strong>My Folder</strong><small>Organize shared animation folders and videos.</small></span><ArrowRight size={17}/></button>
+        <button className="owner-action-card animation" onClick={onAnimations}><span className="owner-action-icon"><Upload size={22}/></span><span><strong>Include Animation</strong><small>Add videos available to every active license.</small></span><ArrowRight size={17}/></button>
+        <button className="owner-action-card license" onClick={onLicense}><span className="owner-action-icon"><KeyRound size={22}/></span><span><strong>License key</strong><small>Create and recover customer access keys.</small></span><ArrowRight size={17}/></button>
+        <button className="owner-action-card system-key" onClick={onKeys} disabled={keyBusy}><span className="owner-action-icon"><ShieldCheck size={22}/></span><span><strong>Key</strong><small>Manage the secure downloader key pool.</small></span><ArrowRight size={17}/></button>
+      </section>
+    </main>
+    {showIncludedAnimations && <IncludedAnimationsModal ownerPassword={ownerPassword} onClose={onCloseAnimations} />}
+  </div>;
+}
+
 function OwnerConsolePage() {
   const [password, setPassword] = useState("");
   const [authorizedPassword, setAuthorizedPassword] = useState("");
@@ -1892,8 +1949,7 @@ function OwnerConsolePage() {
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [showIncludedAnimations, setShowIncludedAnimations] = useState(false);
-  const [ownerView, setOwnerView] = useState<"dashboard" | "keys" | "folders">("dashboard");
-  const licenseCreateRef = useRef<HTMLElement>(null);
+  const [ownerView, setOwnerView] = useState<"dashboard" | "licenses" | "keys" | "folders">("dashboard");
 
   const load = async (ownerPassword: string) => {
     const result = await apiJson<{ licenses?: LicenseSession[] }>("/api/licenses", { headers: { "X-Owner-Password": ownerPassword } });
@@ -1964,20 +2020,22 @@ function OwnerConsolePage() {
   if (!authorizedPassword) return <div className="owner-login-page"><section className="owner-login-panel"><div className="owner-login-mark"><KeyRound size={22}/></div><p className="eyebrow">Slash Owner</p><h1>Owner console</h1><p className="subtle">Create license keys, manage shared animations, and keep system keys organized.</p>{error && <div className="error-note">{error}</div>}<form className="login-form" onSubmit={signIn}><div className="field"><label htmlFor="slash-owner-password">Owner password</label><input id="slash-owner-password" type="password" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="current-password" autoFocus data-testid="input-owner-password"/></div><button className="button login-submit" type="submit" disabled={busy || !password} data-testid="button-owner-login">{busy ? "Checking…" : "Open dashboard"} <ArrowRight size={16}/></button></form></section></div>;
   if (ownerView === "folders") return <OwnerFoldersPage ownerPassword={authorizedPassword} onBack={goDashboard} onKeys={openKeys} />;
   if (ownerView === "keys") return <OwnerKeysPanel tokens={vidKrakenTokens} tokenDraft={tokenDraft} keyBusy={keyBusy} error={error} onDraftChange={setTokenDraft} onAdd={(event) => void addToken(event)} onRemove={(token) => void removeToken(token)} onDashboard={goDashboard} />;
+  if (ownerView === "licenses") return <OwnerLicensePage licenses={licenses} name={name} days={days} busy={busy} error={error} message={message} onNameChange={setName} onDaysChange={setDays} onCreate={(event) => void create(event)} onRenew={(licenseId) => void renew(licenseId)} onRemove={(license) => void remove(license)} onRecover={(license) => void recover(license)} onDashboard={goDashboard} onKeys={openKeys} />;
+  if (ownerView === "dashboard") return <OwnerDashboardPage ownerPassword={authorizedPassword} error={error} message={message} keyBusy={keyBusy} showIncludedAnimations={showIncludedAnimations} onFolder={() => setOwnerView("folders")} onAnimations={() => setShowIncludedAnimations(true)} onLicense={() => setOwnerView("licenses")} onKeys={openKeys} onCloseAnimations={() => setShowIncludedAnimations(false)} />;
 
   return <div className="owner-page owner-dashboard-page">
     <header className="owner-topbar"><div className="owner-topbar-title"><span className="owner-topbar-kicker">Slash Owner</span><strong>Dashboard</strong></div><span className="owner-secure-label"><ShieldCheck size={15}/> Secure owner workspace</span></header>
     <main className="owner-content">
-      <div className="page-head owner-page-heading"><div><p className="eyebrow">Owner workspace</p><h1>Dashboard</h1><p className="subtle">Manage your folders, animations, license keys, and system access from one place.</p></div><div className="owner-page-badge"><ShieldCheck size={16}/> Connected</div></div>
+      <div className="page-head owner-page-heading"><div><p className="eyebrow">Owner workspace</p><h1>Dashboard</h1><p className="subtle">Choose a workspace area to manage your folders, animations, or system access.</p></div><div className="owner-page-badge"><ShieldCheck size={16}/> Connected</div></div>
       {error && <div className="error-note">{error}</div>}{message && <div className="owner-success">{message}</div>}
       <OwnerMobileNav active="dashboard" onDashboard={goDashboard} onKeys={openKeys} />
       <section className="owner-action-grid" aria-label="Owner actions">
         <button className="owner-action-card folder" onClick={() => setOwnerView("folders")}><span className="owner-action-icon"><FolderOpen size={22}/></span><span><strong>My Folder</strong><small>Organize shared animation folders and videos.</small></span><ArrowRight size={17}/></button>
         <button className="owner-action-card animation" onClick={() => setShowIncludedAnimations(true)}><span className="owner-action-icon"><Upload size={22}/></span><span><strong>Include Animation</strong><small>Add videos available to every active license.</small></span><ArrowRight size={17}/></button>
-        <button className="owner-action-card license" onClick={() => licenseCreateRef.current?.scrollIntoView({ behavior: "smooth", block: "center" })}><span className="owner-action-icon"><KeyRound size={22}/></span><span><strong>License key</strong><small>Create and recover customer access keys.</small></span><ArrowRight size={17}/></button>
+        <button className="owner-action-card license" onClick={() => setOwnerView("licenses")}><span className="owner-action-icon"><KeyRound size={22}/></span><span><strong>License key</strong><small>Create and recover customer access keys.</small></span><ArrowRight size={17}/></button>
         <button className="owner-action-card system-key" onClick={() => void openKeys()} disabled={keyBusy}><span className="owner-action-icon"><ShieldCheck size={22}/></span><span><strong>Key</strong><small>Manage the secure downloader key pool.</small></span><ArrowRight size={17}/></button>
       </section>
-      <section className="card section-card owner-create" ref={licenseCreateRef}><div className="section-head"><div><h2 className="section-title">Create license key</h2><p className="subtle" style={{ margin: "5px 0 0", fontSize: 11 }}>Create a separate workspace and access key for each customer.</p></div><KeyRound size={18} color="#5b52c7"/></div><form className="owner-create-form" onSubmit={create}><div className="field"><label>Customer / workspace name</label><input value={name} onChange={(event) => setName(event.target.value)} placeholder="Studio A" data-testid="input-license-name"/></div><div className="field"><label>Valid for days</label><input type="number" min="1" max="3650" value={days} onChange={(event) => setDays(event.target.value)} data-testid="input-license-days"/></div><button className="button" type="submit" disabled={busy || !name.trim()}><Plus size={15}/> Create key</button></form></section>
+      <section className="card section-card owner-create"><div className="section-head"><div><h2 className="section-title">Create license key</h2><p className="subtle" style={{ margin: "5px 0 0", fontSize: 11 }}>Create a separate workspace and access key for each customer.</p></div><KeyRound size={18} color="#5b52c7"/></div><form className="owner-create-form" onSubmit={create}><div className="field"><label>Customer / workspace name</label><input value={name} onChange={(event) => setName(event.target.value)} placeholder="Studio A" data-testid="input-license-name"/></div><div className="field"><label>Valid for days</label><input type="number" min="1" max="3650" value={days} onChange={(event) => setDays(event.target.value)} data-testid="input-license-days"/></div><button className="button" type="submit" disabled={busy || !name.trim()}><Plus size={15}/> Create key</button></form></section>
       <section className="card section-card owner-list"><div className="section-head"><div><h2 className="section-title">License keys</h2><p className="subtle" style={{ margin: "5px 0 0", fontSize: 11 }}>{licenses.length} key{licenses.length === 1 ? "" : "s"} · Recover or renew access below.</p></div><KeyRound size={18} color="#5b52c7"/></div>{licenses.length === 0 ? <EmptyState icon={<KeyRound size={21}/>} title="No license keys yet" copy="Create the first key above to give a workspace access."/> : <div className="license-list">{licenses.map((license) => { const active = isLicenseActive(license); return <div className="license-row" key={license.licenseId}><div className="license-row-main"><div className="license-key-badge"><KeyRound size={15}/></div><div><strong>{license.name}</strong><span className="mono">{license.key}</span></div></div><div className={`status ${active ? "live" : "stopped"}`}><span className="status-dot"/>{active ? "Active" : "Expired"} · {new Date(license.expiresAt).toLocaleDateString()}</div><div className="actions"><button className="button secondary small" onClick={() => void recover(license)} disabled={busy}><KeyRound size={13}/> Recover</button><button className="button secondary small" onClick={() => void renew(license.licenseId)} disabled={busy}>Renew</button><button className="icon-button" onClick={() => void remove(license)} disabled={busy} title="Delete license" aria-label={`Delete ${license.name}`}><Trash2 size={13}/></button></div></div>; })}</div>}</section>
     </main>
     {showIncludedAnimations && <IncludedAnimationsModal ownerPassword={authorizedPassword} onClose={() => setShowIncludedAnimations(false)} />}

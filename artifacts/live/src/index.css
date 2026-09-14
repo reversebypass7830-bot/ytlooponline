@@ -5410,6 +5410,7 @@ select { height: 41px; }
 .owner-folders-page .owner-content { padding-bottom:100px; }
 .owner-folders-page .owner-topbar .button.secondary { border-color:#e0e2e9; color:#555b68; background:#fff; }
 .owner-folders-page .owner-topbar .button.secondary:hover { color:#7c1750; border-color:#c58bad; background:#fcf4f8; }
+.owner-dashboard-page .owner-create, .owner-dashboard-page .owner-list { display:none; }
 
 @media (max-width: 960px) {
   .owner-action-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
