@@ -1,12 +1,4 @@
-import { useEffect, useRef, useState, type FormEvent } from "react";
-import {
-  ArrowRight,
-  CheckCircle,
-  Key,
-  Lightning,
-  ShieldCheck,
-  WarningCircle,
-} from "@phosphor-icons/react";
+import { useEffect, useRef, useState, type CSSProperties, type FormEvent } from "react";
 import "./login.css";
 
 type LoginMethod = "phone" | "license";
@@ -26,6 +18,16 @@ export type LoginPageProps = {
 };
 
 const otpLength = 4;
+type MaterialIconName = "arrow_forward" | "bolt" | "check_circle" | "key" | "lock" | "shield" | "verified_user" | "warning";
+
+function MaterialIcon({ name, className = "" }: { name: MaterialIconName; className?: string }) {
+  const iconStyle = {
+    maskImage: `url(/images/material-icons/${name}.svg)`,
+    WebkitMaskImage: `url(/images/material-icons/${name}.svg)`,
+  } as CSSProperties;
+
+  return <span className={`streamly-material-icon ${className}`} style={iconStyle} aria-hidden="true" />;
+}
 
 function OtpBoxes({ value, onChange, onComplete }: { value: string; onChange: (value: string) => void; onComplete: (value: string) => void }) {
   const refs = useRef<Array<HTMLInputElement | null>>([]);
@@ -190,15 +192,15 @@ export default function LoginPage({
         <main className="streamly-login-main">
           <section className="streamly-login-card" aria-labelledby="profile-title">
             <img className="streamly-login-card-logo" src="/images/logo/loop-logo.webp" alt="Loop Stream" />
-            <div className="streamly-login-icon"><CheckCircle size={25} weight="duotone" /></div>
+            <div className="streamly-login-icon"><MaterialIcon name="check_circle" /></div>
             <span className="streamly-login-eyebrow">Phone verified</span>
             <h1 id="profile-title">Finish your<br /><em>workspace.</em></h1>
             <p className="streamly-login-copy">Add two details so your private broadcast room is ready when you are.</p>
-            {shownError && <div className="streamly-login-error" role="alert"><WarningCircle size={17} weight="duotone" /><span>{shownError}</span></div>}
+            {shownError && <div className="streamly-login-error" role="alert"><MaterialIcon name="warning" /><span>{shownError}</span></div>}
             <form className="streamly-login-form" onSubmit={completeProfile}>
               <label>Display name<input value={profile.displayName} onChange={(event) => setProfile({ ...profile, displayName: event.target.value })} placeholder="Your name" autoComplete="name" /></label>
               <label>Email address<input value={profile.email} onChange={(event) => setProfile({ ...profile, email: event.target.value })} placeholder="you@example.com" type="email" autoComplete="email" /></label>
-              <button className="streamly-login-primary" type="submit" disabled={busy || profile.displayName.trim().length < 2 || !profile.email.includes("@")}>{busy ? "Preparing your room…" : "Open my workspace"} <ArrowRight size={17} weight="bold" /></button>
+              <button className="streamly-login-primary" type="submit" disabled={busy || profile.displayName.trim().length < 2 || !profile.email.includes("@")}>{busy ? "Preparing your room…" : "Open my workspace"} <MaterialIcon name="arrow_forward" /></button>
             </form>
           </section>
         </main>
@@ -217,18 +219,18 @@ export default function LoginPage({
             <span>24/7 broadcast control</span>
           </div>
           <div className="streamly-login-heading">
-            <div className="streamly-login-icon"><Lightning size={25} weight="duotone" /></div>
+            <div className="streamly-login-icon"><MaterialIcon name="bolt" /></div>
             <div><span className="streamly-login-eyebrow">{expired ? "License needs attention" : "Private access"}</span><h1 id="login-title">{expired ? "Renew your room." : "Welcome back."}</h1></div>
           </div>
           <p className="streamly-login-copy">{expired ? "Renew your current license to keep your channels, videos, and settings exactly as you left them." : "Sign in to your account and start your broadcast."}</p>
-          {shownError && <div className="streamly-login-error" role="alert"><WarningCircle size={17} weight="duotone" /><span>{shownError}</span></div>}
+          {shownError && <div className="streamly-login-error" role="alert"><MaterialIcon name="warning" /><span>{shownError}</span></div>}
           <div id="login-method-panel" className="streamly-login-method-panel" role="region" aria-label={method === "phone" ? "Phone sign-in" : "License key sign-in"}>
             {method === "phone" && (
               otpSent ? (
                 <form className="streamly-login-form" onSubmit={verifyOtp}>
                   <div className="streamly-login-form-heading"><div><label htmlFor="otp-code">Verification code</label><p>Enter the code sent to +91 {cleanPhone}</p></div></div>
                   <OtpBoxes value={otp} onChange={(next) => { setOtp(next); setLocalError(""); }} onComplete={(code) => { void verifyOtp(code); }} />
-                  <button className="streamly-login-primary" type="submit" disabled={busy || otp.length !== otpLength}>{busy ? "Verifying…" : "Verify & login"} <ArrowRight size={17} weight="bold" /></button>
+                  <button className="streamly-login-primary" type="submit" disabled={busy || otp.length !== otpLength}>{busy ? "Verifying…" : "Verify & login"} <MaterialIcon name="arrow_forward" /></button>
                   <div className="streamly-login-inline-actions"><button type="button" onClick={() => { setOtpSent(false); setOtp(""); setOtpExpiresAt(""); setOtpRemainingSeconds(0); }}>Change number</button><button type="button" disabled={resendCooldown > 0 || busy} onClick={(event) => { void sendOtp(event as unknown as FormEvent<HTMLFormElement>); }}>{resendCooldown > 0 ? `Resend in 00:${String(resendCooldown).padStart(2, "0")}` : "Resend code"}</button></div>
                   <p className="streamly-login-otp-expiry" role="status">{otpRemainingSeconds > 0 ? `Code expires in ${Math.floor(otpRemainingSeconds / 60)}:${String(otpRemainingSeconds % 60).padStart(2, "0")}` : "This code has expired. Request a new one."}</p>
                 </form>
@@ -241,12 +243,12 @@ export default function LoginPage({
                     </div>
                     {phoneError && <span id="mobile-number-error" className="streamly-login-field-error" role="alert">{phoneError}</span>}
                   </label>
-                  <button className="streamly-login-primary" type="submit" disabled={busy || cleanPhone.length !== 10}>{busy ? "Sending code…" : "Send OTP"} <ArrowRight size={17} weight="bold" /></button>
+                  <button className="streamly-login-primary" type="submit" disabled={busy || cleanPhone.length !== 10}>{busy ? "Sending code…" : "Send OTP"} <MaterialIcon name="arrow_forward" /></button>
                 </form>
               )
             )}
 
-            {method === "license" && <form className="streamly-login-form" onSubmit={activateLicense}><label htmlFor="license-key">License key<div className={`streamly-key-field ${licenseError ? "has-error" : ""}`}><Key size={17} weight="duotone" aria-hidden="true" /><input id="license-key" value={licenseKey} onChange={(event) => { setLicenseKey(event.target.value.toUpperCase()); setLicenseError(""); }} placeholder="XXXX-XXXX-XXXX-XXXX" autoComplete="off" aria-invalid={Boolean(licenseError)} /></div><small>Find your license key in your purchase confirmation email.</small></label><button className="streamly-login-primary" type="submit" disabled={busy || !licenseKey.trim()}>{busy ? "Activating…" : expired ? "Renew & login" : "Activate & login"} <ArrowRight size={17} weight="bold" /></button><button className="streamly-login-back" type="button" onClick={() => { setMethod("phone"); setLocalError(""); setLicenseError(""); }}>Back to phone sign-in</button></form>}
+            {method === "license" && <form className="streamly-login-form" onSubmit={activateLicense}><label htmlFor="license-key">License key<div className={`streamly-key-field ${licenseError ? "has-error" : ""}`}><MaterialIcon name="key" /><input id="license-key" value={licenseKey} onChange={(event) => { setLicenseKey(event.target.value.toUpperCase()); setLicenseError(""); }} placeholder="XXXX-XXXX-XXXX-XXXX" autoComplete="off" aria-invalid={Boolean(licenseError)} /></div><small>Find your license key in your purchase confirmation email.</small></label><button className="streamly-login-primary" type="submit" disabled={busy || !licenseKey.trim()}>{busy ? "Activating…" : expired ? "Renew & login" : "Activate & login"} <MaterialIcon name="arrow_forward" /></button><button className="streamly-login-back" type="button" onClick={() => { setMethod("phone"); setLocalError(""); setLicenseError(""); }}>Back to phone sign-in</button></form>}
           </div>
 
           {method === "phone" && !otpSent && (
@@ -257,13 +259,13 @@ export default function LoginPage({
                   <img className="streamly-google-logo" src="/images/google-logo.png" alt="" aria-hidden="true" /> Google
                 </button>
                 <button className="streamly-login-alternative-button" type="button" onClick={() => { setMethod("license"); setLocalError(""); setLicenseError(""); }} disabled={busy}>
-                  <Key size={18} weight="duotone" /> License key
+                  <MaterialIcon name="key" /> License key
                 </button>
               </div>
             </div>
           )}
 
-          <div className="streamly-login-trust"><ShieldCheck size={15} weight="duotone" /> Private workspace access, protected by secure sign-in</div>
+          <div className="streamly-login-trust"><MaterialIcon name="verified_user" /> Private workspace access, protected by secure sign-in</div>
         </section>
       </main>
     </div>

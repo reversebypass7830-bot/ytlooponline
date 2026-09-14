@@ -78,6 +78,9 @@
     "zod": "catalog:"
   },
   "dependencies": {
+    "@material-design-icons/svg": "^0.14.15",
+    "@material/material-color-utilities": "^0.4.0",
+    "@material/web": "^2.5.0",
     "firebase": "^12.19.0",
     "hls.js": "^1.7.2"
   }
