@@ -3009,103 +3009,115 @@ select { height: 41px; }
 
 /* Streamly access surface — the same broadcast signal as the public page. */
 .streamly-login-page {
-  --sl-bg: #0B0F19;
-  --sl-surface: #12172A;
-  --sl-surface-2: #1A2138;
-  --sl-border: #232A45;
-  --sl-blue: #2563EB;
-  --sl-violet: #8B5CF6;
-  --sl-green: #10B981;
-  --sl-text: #F4F6FC;
-  --sl-muted: #9AA4BE;
+  --sl-bg: #100018;
+  --sl-surface: #1B0629;
+  --sl-surface-2: #28103B;
+  --sl-border: rgba(214, 86, 184, .32);
+  --sl-pink: #FB1681;
+  --sl-pink-bright: #FF4FA5;
+  --sl-purple: #9B24C7;
+  --sl-green: #45D6A0;
+  --sl-text: #FFF9FD;
+  --sl-muted: #CFC1D4;
   position: relative;
   display: flex;
   min-height: 100dvh;
   overflow: hidden;
   color: var(--sl-text);
   background:
-    radial-gradient(circle at 75% 12%, rgba(37,99,235,.15), transparent 28rem),
-    radial-gradient(circle at 12% 90%, rgba(139,92,246,.11), transparent 25rem),
+    radial-gradient(circle at 50% -8%, rgba(251,22,129,.2), transparent 30rem),
+    radial-gradient(circle at 100% 58%, rgba(155,36,199,.15), transparent 28rem),
+    radial-gradient(circle at 0% 100%, rgba(87,16,105,.24), transparent 32rem),
     var(--sl-bg);
-  font-family: 'Inter', ui-sans-serif, sans-serif;
+  font-family: 'Figtree', 'Inter', ui-sans-serif, sans-serif;
 }
 .streamly-login-page::before {
   position: absolute;
   inset: 0;
   pointer-events: none;
   content: "";
-  opacity: .32;
-  background-image: linear-gradient(rgba(35,42,69,.24) 1px, transparent 1px), linear-gradient(90deg, rgba(35,42,69,.24) 1px, transparent 1px);
-  background-size: 78px 78px;
-  mask-image: linear-gradient(to bottom, black, transparent 82%);
+  opacity: .18;
+  background-image: linear-gradient(rgba(251,22,129,.26) 1px, transparent 1px), linear-gradient(90deg, rgba(251,22,129,.26) 1px, transparent 1px);
+  background-size: 92px 92px;
+  mask-image: radial-gradient(circle at center, black, transparent 76%);
 }
 .streamly-login-orb { position: absolute; pointer-events: none; border-radius: 999px; filter: blur(1px); }
-.streamly-login-orb-one { top: -260px; right: -150px; width: 600px; height: 600px; border: 1px solid rgba(37,99,235,.19); box-shadow: 0 0 0 50px rgba(37,99,235,.025), 0 0 0 100px rgba(37,99,235,.02); }
-.streamly-login-orb-two { bottom: -300px; left: -180px; width: 540px; height: 540px; background: radial-gradient(circle, rgba(139,92,246,.12), transparent 68%); }
+.streamly-login-orb-one { top: -280px; right: -180px; width: 640px; height: 640px; border: 1px solid rgba(251,22,129,.24); box-shadow: 0 0 0 52px rgba(251,22,129,.035), 0 0 0 104px rgba(155,36,199,.025); }
+.streamly-login-orb-two { bottom: -330px; left: -210px; width: 580px; height: 580px; background: radial-gradient(circle, rgba(155,36,199,.2), transparent 68%); }
 .streamly-login-brand { position: absolute; z-index: 2; top: 29px; left: max(24px, calc((100vw - 1180px) / 2)); display: inline-flex; align-items: center; gap: 10px; color: var(--sl-text); font: 800 16px 'Plus Jakarta Sans', sans-serif; letter-spacing: -.04em; }
-.streamly-login-main { position: relative; z-index: 1; display: grid; place-items: center; width: 100%; min-height: 100dvh; padding: 104px 20px 42px; }
-.streamly-login-card { width: min(100%, 452px); padding: 28px; border: 1px solid var(--sl-border); border-radius: 19px; background: rgba(18,23,42,.91); box-shadow: 0 32px 90px rgba(0,0,0,.36), inset 0 1px rgba(255,255,255,.035); }
+.streamly-login-main { position: relative; z-index: 1; display: grid; place-items: center; width: 100%; min-height: 100dvh; padding: 40px 20px; }
+.streamly-login-card { width: min(100%, 480px); padding: 34px; border: 1px solid var(--sl-border); border-radius: 15px; background: linear-gradient(145deg, rgba(38,11,54,.96), rgba(19,3,31,.96)); box-shadow: 0 34px 100px rgba(0,0,0,.48), 0 0 0 1px rgba(251,22,129,.05), 0 0 80px rgba(155,36,199,.12), inset 0 1px rgba(255,255,255,.06); }
+.streamly-login-card-brand { display: grid; justify-items: center; gap: 9px; margin-bottom: 29px; text-align: center; }
+.streamly-login-card-logo { display: block; width: 104px; height: auto; max-height: 52px; object-fit: contain; }
+.streamly-login-card-brand span { color: rgba(255,226,247,.52); font: 700 9px 'Space Mono', monospace; letter-spacing: .16em; text-transform: uppercase; }
 .streamly-login-card-top { display: flex; justify-content: space-between; padding-bottom: 23px; border-bottom: 1px solid rgba(35,42,69,.9); color: #68738F; font: 8px 'Space Mono', monospace; letter-spacing: .12em; }
 .streamly-login-card-top span:first-child { display: inline-flex; align-items: center; gap: 8px; }
 .streamly-login-card-top i { width: 6px; height: 6px; border-radius: 50%; background: var(--sl-green); box-shadow: 0 0 0 4px rgba(16,185,129,.12); }
 .streamly-login-heading { display: flex; align-items: center; gap: 13px; margin-top: 27px; }
-.streamly-login-icon { display: grid; place-items: center; width: 46px; height: 46px; flex: 0 0 46px; border: 1px solid rgba(37,99,235,.35); border-radius: 13px; color: #8EB3FF; background: rgba(37,99,235,.11); }
+.streamly-login-icon { display: grid; place-items: center; width: 46px; height: 46px; flex: 0 0 46px; border: 1px solid rgba(251,22,129,.42); border-radius: 13px; color: #FF78B8; background: rgba(251,22,129,.1); box-shadow: 0 0 22px rgba(251,22,129,.12); }
 .streamly-login-card > .streamly-login-icon { margin-inline: auto; }
-.streamly-login-eyebrow { display: block; margin-bottom: 7px; color: #8EB3FF; font: 9px 'Space Mono', monospace; letter-spacing: .12em; text-transform: uppercase; }
-.streamly-login-card h1 { margin: 0; color: var(--sl-text); font: 700 30px/1.04 'Plus Jakarta Sans', sans-serif; letter-spacing: -.07em; }
-.streamly-login-card h1 em { color: #A78BFA; font-style: normal; }
-.streamly-login-copy { margin: 18px 0 23px; color: var(--sl-muted); font-size: 12px; line-height: 1.7; }
-.streamly-login-error { display: flex; align-items: flex-start; gap: 8px; margin: -4px 0 16px; padding: 10px 11px; border: 1px solid rgba(239,68,68,.38); border-radius: 8px; color: #FCA5A5; background: rgba(239,68,68,.08); font-size: 11px; line-height: 1.45; }
-.streamly-login-tabs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; margin-bottom: 24px; padding: 4px; border-radius: 999px; background: var(--sl-surface-2); }
-.streamly-login-tabs button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-width: 0; padding: 10px 6px; border: 0; border-radius: 999px; color: var(--sl-muted); background: transparent; font-size: 10px; font-weight: 700; cursor: pointer; transition: color .2s, background .2s, transform .2s; }
-.streamly-login-tabs button:hover { color: var(--sl-text); transform: translateY(-1px); }
-.streamly-login-tabs button.active { color: #fff; background: var(--sl-blue); box-shadow: 0 8px 20px rgba(37,99,235,.23); }
+.streamly-login-eyebrow { display: block; margin-bottom: 7px; color: #FF78B8; font: 9px 'Space Mono', monospace; letter-spacing: .12em; text-transform: uppercase; }
+.streamly-login-card h1 { margin: 0; color: var(--sl-text); font: 700 31px/1.04 'Figtree', 'Inter', sans-serif; letter-spacing: -.06em; }
+.streamly-login-card h1 em { color: #FF77B8; font-style: normal; }
+.streamly-login-copy { margin: 18px 0 23px; color: var(--sl-muted); font-size: 13px; line-height: 1.65; }
+.streamly-login-error { display: flex; align-items: flex-start; gap: 8px; margin: -4px 0 16px; padding: 11px 12px; border: 1px solid rgba(255,89,130,.45); border-radius: 9px; color: #FFB4C6; background: rgba(255,56,111,.1); font-size: 11px; line-height: 1.45; }
+.streamly-login-tabs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; margin-bottom: 25px; padding: 5px; border: 1px solid rgba(214,86,184,.19); border-radius: 12px; background: rgba(27,6,41,.78); }
+.streamly-login-tabs button { display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-width: 0; min-height: 43px; padding: 9px 6px; border: 1px solid transparent; border-radius: 8px; color: #BCA9C2; background: transparent; font-size: 10px; font-weight: 700; cursor: pointer; transition: color .2s, background .2s, border-color .2s, transform .2s, box-shadow .2s; }
+.streamly-login-tabs button:hover { color: var(--sl-text); border-color: rgba(251,22,129,.3); transform: translateY(-1px); }
+.streamly-login-tabs button:focus-visible { outline: 2px solid #FF65AD; outline-offset: 2px; }
+.streamly-login-tabs button.active { color: #fff; border-color: rgba(255,125,190,.48); background: linear-gradient(135deg, rgba(251,22,129,.94), rgba(155,36,199,.92)); box-shadow: 0 8px 22px rgba(251,22,129,.22); }
+.streamly-login-method-panel { min-height: 153px; }
 .streamly-login-form { display: grid; gap: 15px; }
 .streamly-login-form label { display: grid; gap: 7px; color: #AFB8CE; font: 10px 'Space Mono', monospace; letter-spacing: .07em; text-transform: uppercase; }
-.streamly-login-form label input { width: 100%; height: 47px; padding: 0 13px; border: 1px solid #303A5C; border-radius: 9px; outline: none; color: var(--sl-text); background: #0F1425; font: 13px 'Inter', sans-serif; transition: border-color .2s, box-shadow .2s; }
-.streamly-login-form label input::placeholder { color: #59647F; }
-.streamly-login-form label input:focus, .streamly-phone-field:focus-within, .streamly-key-field:focus-within { border-color: #5B8CF4; box-shadow: 0 0 0 3px rgba(37,99,235,.16); }
-.streamly-login-form label small { color: #68738F; font: 10px/1.5 'Inter', sans-serif; letter-spacing: 0; text-transform: none; }
-.streamly-phone-field, .streamly-key-field { display: flex; align-items: center; gap: 9px; height: 49px; padding: 0 12px; border: 1px solid #303A5C; border-radius: 9px; background: #0F1425; transition: border-color .2s, box-shadow .2s; }
-.streamly-phone-field > span { padding-right: 10px; border-right: 1px solid #303A5C; color: var(--sl-text); font: 12px 'Space Mono', monospace; }
-.streamly-phone-field svg, .streamly-key-field svg { color: #7EA1F4; flex: 0 0 auto; }
+.streamly-login-form label input { width: 100%; height: 49px; padding: 0 13px; border: 1px solid #53335F; border-radius: 9px; outline: none; color: var(--sl-text); background: #12051D; font: 13px 'Figtree', 'Inter', sans-serif; transition: border-color .2s, box-shadow .2s; }
+.streamly-login-form label input::placeholder { color: #806A87; }
+.streamly-login-form label input:focus, .streamly-phone-field:focus-within, .streamly-key-field:focus-within { border-color: #FF5EAC; box-shadow: 0 0 0 3px rgba(251,22,129,.16), 0 0 20px rgba(251,22,129,.09); }
+.streamly-login-form label small { color: #8E7895; font: 10px/1.5 'Figtree', 'Inter', sans-serif; letter-spacing: 0; text-transform: none; }
+.streamly-login-field-error { margin-top: -1px; color: #FF9DBB; font: 10px/1.4 'Figtree', 'Inter', sans-serif; letter-spacing: 0; text-transform: none; }
+.streamly-phone-field, .streamly-key-field { display: flex; align-items: center; gap: 9px; height: 49px; padding: 0 12px; border: 1px solid #53335F; border-radius: 9px; background: #12051D; transition: border-color .2s, box-shadow .2s; }
+.streamly-phone-field > span { padding-right: 10px; border-right: 1px solid #53335F; color: var(--sl-text); font: 12px 'Space Mono', monospace; }
+.streamly-phone-field svg, .streamly-key-field svg { color: #FF76B9; flex: 0 0 auto; }
 .streamly-phone-field input, .streamly-key-field input { height: 100%!important; padding: 0!important; border: 0!important; box-shadow: none!important; background: transparent!important; font-size: 13px!important; }
 .streamly-key-field input { font-family: 'Space Mono', monospace!important; letter-spacing: .08em; }
-.streamly-key-field.has-error { border-color: #EF4444; }
-.streamly-login-primary { display: inline-flex; align-items: center; justify-content: center; gap: 9px; min-height: 47px; border: 1px solid rgba(96,165,250,.2); border-radius: 9px; color: #fff; background: linear-gradient(115deg, #2563EB, #3B5FD0); box-shadow: 0 11px 28px rgba(37,99,235,.2); font-size: 12px; font-weight: 800; cursor: pointer; transition: transform .2s, box-shadow .2s, filter .2s; }
-.streamly-login-primary:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 15px 32px rgba(37,99,235,.3); filter: brightness(1.08); }
+.streamly-phone-field.has-error, .streamly-key-field.has-error { border-color: #FF5A85; }
+.streamly-login-primary { display: inline-flex; align-items: center; justify-content: center; gap: 9px; min-height: 49px; border: 1px solid rgba(255,151,208,.25); border-radius: 9px; color: #fff; background: linear-gradient(115deg, #FB1681, #C227B9); box-shadow: 0 11px 28px rgba(251,22,129,.22); font-size: 12px; font-weight: 800; cursor: pointer; transition: transform .2s, box-shadow .2s, filter .2s; }
+.streamly-login-primary:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 15px 32px rgba(251,22,129,.34); filter: brightness(1.08); }
 .streamly-login-primary:disabled { cursor: not-allowed; opacity: .48; }
 .streamly-login-form-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
 .streamly-login-form-heading label { color: #AFB8CE; }
 .streamly-login-form-heading p { margin: 6px 0 0; color: #68738F; font: 11px 'Inter', sans-serif; letter-spacing: 0; text-transform: none; }
 .streamly-login-form-heading > svg { color: #7EA1F4; }
 .streamly-otp-boxes { display: grid; grid-template-columns: repeat(4, 1fr); gap: 9px; }
-.streamly-otp-boxes input { width: 100%; height: 55px; border: 1px solid #303A5C; border-radius: 9px; outline: none; color: #fff; background: #0F1425; text-align: center; font: 700 22px 'Space Mono', monospace; transition: border-color .2s, transform .2s, box-shadow .2s; }
-.streamly-otp-boxes input:focus { border-color: #5B8CF4; box-shadow: 0 0 0 3px rgba(37,99,235,.16); transform: translateY(-2px); }
+.streamly-otp-boxes input { width: 100%; height: 55px; border: 1px solid #53335F; border-radius: 9px; outline: none; color: #fff; background: #12051D; text-align: center; font: 700 22px 'Space Mono', monospace; transition: border-color .2s, transform .2s, box-shadow .2s; }
+.streamly-otp-boxes input:focus { border-color: #FF5EAC; box-shadow: 0 0 0 3px rgba(251,22,129,.16); transform: translateY(-2px); }
 .streamly-login-inline-actions { display: flex; justify-content: space-between; gap: 10px; }
-.streamly-login-inline-actions button { padding: 0; border: 0; color: #8EB3FF; background: transparent; font-size: 10px; cursor: pointer; }
-.streamly-login-inline-actions button:disabled { color: #59647F; cursor: not-allowed; }
+.streamly-login-inline-actions button { padding: 0; border: 0; color: #FF78B8; background: transparent; font-size: 10px; cursor: pointer; }
+.streamly-login-inline-actions button:hover { color: #FFD2E8; }
+.streamly-login-inline-actions button:disabled { color: #806A87; cursor: not-allowed; }
 .streamly-google-panel { display: grid; gap: 16px; }
-.streamly-google-button { display: inline-flex; align-items: center; justify-content: center; gap: 9px; min-height: 49px; border: 0; border-radius: 9px; color: #1C2438; background: #F8FAFC; font-size: 12px; font-weight: 800; cursor: pointer; transition: transform .2s, box-shadow .2s; }
-.streamly-google-button:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 12px 25px rgba(0,0,0,.22); }
-.streamly-google-button svg { color: #4285F4; }
+.streamly-google-button { display: inline-flex; align-items: center; justify-content: center; gap: 9px; min-height: 49px; border: 1px solid #68416E; border-radius: 9px; color: #FFF8FC; background: #21102E; font-size: 12px; font-weight: 800; cursor: pointer; transition: transform .2s, border-color .2s, box-shadow .2s, background .2s; }
+.streamly-google-button:hover:not(:disabled) { border-color: #FF5EAC; background: #2C123B; transform: translateY(-2px); box-shadow: 0 12px 25px rgba(251,22,129,.16); }
+.streamly-google-button svg { color: #FF7DBA; }
 .streamly-google-button:disabled { cursor: not-allowed; opacity: .55; }
-.streamly-google-panel p { display: flex; align-items: center; justify-content: center; gap: 6px; margin: 0; color: #68738F; font-size: 10px; line-height: 1.4; text-align: center; }
+.streamly-google-panel p { display: flex; align-items: center; justify-content: center; gap: 6px; margin: 0; color: #8E7895; font-size: 10px; line-height: 1.4; text-align: center; }
 .streamly-google-panel p svg { color: var(--sl-green); }
 .streamly-login-divider { display: flex; align-items: center; gap: 12px; margin: 24px 0 16px; color: #59647F; font: 8px 'Space Mono', monospace; letter-spacing: .1em; text-transform: uppercase; }
 .streamly-login-divider::before, .streamly-login-divider::after { height: 1px; flex: 1; content: ""; background: var(--sl-border); }
 .streamly-login-footer { margin: 0; color: #68738F; font-size: 11px; text-align: center; }
 .streamly-login-footer a { color: #A78BFA; font-weight: 700; }
 .streamly-login-footer a:hover { color: #C4B5FD; text-decoration: underline; }
-.streamly-login-trust { display: flex; align-items: center; justify-content: center; gap: 6px; margin-top: 18px; color: #59647F; font: 9px 'Space Mono', monospace; }
+.streamly-login-trust { display: flex; align-items: center; justify-content: center; gap: 6px; margin-top: 22px; color: #806A87; font: 9px 'Space Mono', monospace; text-align: center; }
 .streamly-login-trust svg { color: var(--sl-green); }
 @media (max-width: 520px) {
   .streamly-login-brand { top: 21px; left: 20px; }
-  .streamly-login-main { padding: 88px 16px 28px; }
-  .streamly-login-card { padding: 22px 19px 20px; border-radius: 16px; }
-  .streamly-login-card h1 { font-size: 27px; }
-  .streamly-login-tabs button { font-size: 9px; }
+  .streamly-login-main { padding: 24px 16px; }
+  .streamly-login-card { padding: 26px 19px 22px; border-radius: 14px; }
+  .streamly-login-card-brand { margin-bottom: 25px; }
+  .streamly-login-card h1 { font-size: 28px; }
+  .streamly-login-tabs { gap: 3px; padding: 4px; }
+  .streamly-login-tabs button { min-height: 44px; font-size: 9px; }
   .streamly-login-tabs button svg { display: none; }
+  .streamly-login-method-panel { min-height: 157px; }
 }
 
 /* Generated visual layer from the Streamly image direction. */

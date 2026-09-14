@@ -1,0 +1,234 @@
+Create a premium, modern Login Page UI inspired by the uploaded reference image.
+
+IMPORTANT:
+- Use the uploaded screenshot ONLY as a visual design reference.
+- Do not copy any proprietary branding/assets.
+- Recreate the overall layout, spacing, colors, typography, card style, and visual hierarchy with clean original code.
+- The final UI must look polished, professional, and production-ready.
+
+TECH STACK:
+- React + Vite
+- Tailwind CSS
+- Install/use a proper modern icon library such as Lucide React or React Icons.
+- Use a clean component-based architecture.
+- Use CSS animations/transitions where appropriate.
+- Make the page fully responsive for desktop, tablet, and mobile.
+
+DESIGN THEME:
+- Overall background: very dark purple/black gradient.
+- Main card: dark purple glass-like panel.
+- Card border: subtle pink/purple border.
+- Primary accent: vibrant pink/magenta.
+- Text: white/off-white.
+- Secondary text: muted purple/gray.
+- Inputs: almost-black/dark purple.
+- Buttons: pink/magenta gradient or solid accent.
+- Add very subtle glow effects around important elements.
+- Keep the UI elegant, minimal, and not over-designed.
+
+PAGE LAYOUT:
+
+1. CENTER LOGIN CARD
+Create a centered login card similar to the reference screenshot.
+
+Card requirements:
+- Width around 420–500px on desktop.
+- Responsive width on mobile.
+- Rounded corners around 10–14px.
+- Thin purple/pink border.
+- Slight glass/gradient effect.
+- Subtle shadow/glow.
+- Comfortable internal padding.
+- Clean spacing between every section.
+
+2. LOGO / BRAND AT TOP
+At the top center of the card:
+- Add a modern text/logo area.
+- Brand name should be clearly visible.
+- Add a small subtitle/tagline below the brand if appropriate.
+- Use an original text-based logo treatment if no logo asset is provided.
+- Keep it visually similar in placement to the reference.
+
+3. WELCOME SECTION
+Below the logo:
+
+Small uppercase label:
+"PRIVATE ACCESS"
+
+Large heading:
+"Welcome back."
+
+Description:
+"Sign in to your account and start your broadcast."
+
+Use:
+- Small letter spacing on the uppercase label.
+- Large bold heading.
+- Muted description.
+- Proper typography hierarchy.
+
+4. LOGIN METHOD TABS
+Create a horizontal login-method selector with 3 options:
+
+[ Phone ] [ Google ] [ License Key ]
+
+Requirements:
+- Phone should be selected by default.
+- Selected tab has a pink/magenta border/background.
+- Unselected tabs remain transparent/dark.
+- Use proper icons from Lucide React / React Icons.
+- Phone icon for Phone.
+- Google icon for Google.
+- Key/license icon for License Key.
+- Smooth hover and active transitions.
+- Tabs must work functionally and switch the login form.
+
+5. PHONE LOGIN FORM
+When Phone is selected:
+
+Create a label:
+"MOBILE NUMBER"
+
+Phone input:
+- Country code selector showing "+91"
+- Mobile number input beside it.
+- Dark background.
+- Subtle border.
+- Pink focus ring.
+- Proper placeholder.
+- Phone icon if visually appropriate.
+
+Below it create a full-width button:
+
+"Send OTP  →"
+
+Button:
+- Pink/magenta.
+- Rounded corners.
+- Strong contrast.
+- Hover animation.
+- Active/pressed state.
+- Loading state after clicking.
+- Disabled state when phone number is invalid.
+
+6. GOOGLE LOGIN
+When Google tab is selected:
+- Show a clean Google sign-in button.
+- Use the Google icon.
+- Text: "Continue with Google"
+- Keep the same dark/purple theme.
+- Do NOT create a fake Google logo manually if an appropriate icon library is available.
+
+7. LICENSE KEY LOGIN
+When License Key tab is selected:
+- Show an input labeled "LICENSE KEY".
+- Add key icon.
+- Placeholder such as:
+  "Enter your license key"
+- Full-width button:
+  "Activate License"
+- Add proper validation and error states.
+
+8. FORM VALIDATION
+Implement proper frontend validation:
+- Phone number required.
+- Validate Indian +91 mobile number format.
+- License key required when License Key login is selected.
+- Display elegant inline error messages.
+- Never use browser default ugly alert boxes.
+
+9. ICONS
+Use a professional icon library.
+
+Install/use:
+- lucide-react OR react-icons
+
+Use icons consistently for:
+- Phone
+- Google
+- License/key
+- Arrow
+- Lock/security
+- Error
+- Loading
+
+Do not use random emoji icons.
+
+10. VISUAL DETAILS
+Add subtle premium details:
+- Background radial gradients.
+- Very subtle pink/purple glow.
+- Soft card shadow.
+- 1px borders.
+- Smooth hover transitions.
+- Focus states.
+- Button hover effects.
+- Small micro-interactions.
+- Avoid excessive animations.
+
+11. RESPONSIVENESS
+Desktop:
+- Center card vertically and horizontally.
+
+Tablet:
+- Maintain comfortable card width.
+
+Mobile:
+- Card should almost fill the screen width with proper margins.
+- No horizontal scrolling.
+- Tabs should remain usable.
+- Inputs/buttons should have comfortable touch targets.
+- Typography should scale appropriately.
+
+12. ACCESSIBILITY
+- Proper labels for all inputs.
+- Keyboard accessible tabs.
+- Visible focus states.
+- Proper button states.
+- ARIA attributes where appropriate.
+- Good color contrast.
+
+13. CODE QUALITY
+Create reusable components such as:
+
+LoginPage
+LoginCard
+BrandLogo
+LoginMethodTabs
+PhoneLoginForm
+GoogleLoginForm
+LicenseKeyForm
+InputField
+PrimaryButton
+
+Keep the code clean and maintainable.
+
+14. PROJECT SETUP
+If the project is empty:
+- Initialize the React/Vite project.
+- Install Tailwind CSS.
+- Install lucide-react or react-icons.
+- Configure everything properly.
+- Make sure the project runs without errors.
+
+15. FINAL RESULT
+The final page should feel like a premium SaaS/broadcasting platform login screen.
+
+VISUAL PRIORITY:
+1. Extremely clean UI
+2. Accurate dark purple + magenta theme
+3. Perfect spacing/alignment
+4. Premium typography
+5. Beautiful card
+6. High-quality icons
+7. Smooth interactions
+8. Responsive design
+9. Functional login method switching
+10. Production-quality code
+
+Do not make it look like a generic Bootstrap login page.
+Do not use excessive gradients.
+Do not use unnecessary images.
+Use icons and UI elements where they improve the design.
+
+The uploaded reference image should be treated as the primary visual inspiration for the layout and overall theme.

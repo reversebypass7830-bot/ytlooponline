@@ -91,6 +91,7 @@ export default function LoginPage({
 }: LoginPageProps) {
   const [method, setMethod] = useState<LoginMethod>("phone");
   const [phone, setPhone] = useState("");
+  const [phoneTouched, setPhoneTouched] = useState(false);
   const [otp, setOtp] = useState("");
   const [otpSent, setOtpSent] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(30);
@@ -122,9 +123,13 @@ export default function LoginPage({
 
   const shownError = error || localError || licenseError;
   const cleanPhone = phone.replace(/\D/g, "").slice(0, 10);
+  const phoneError = phoneTouched && cleanPhone.length > 0 && cleanPhone.length !== 10
+    ? "Enter a valid 10-digit Indian mobile number."
+    : "";
 
   const sendOtp = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    setPhoneTouched(true);
     if (cleanPhone.length !== 10 || busy) return;
     setLocalError("");
     try {
@@ -209,7 +214,10 @@ export default function LoginPage({
       <div className="streamly-login-orb streamly-login-orb-two" />
       <main className="streamly-login-main">
         <section className="streamly-login-card" aria-labelledby="login-title">
-          <img className="streamly-login-card-logo" src="/images/logo/loop-logo.webp" alt="Loop Stream" />
+          <div className="streamly-login-card-brand">
+            <img className="streamly-login-card-logo" src="/images/logo/loop-logo.webp" alt="Loop Stream" />
+            <span>24/7 broadcast control</span>
+          </div>
           <div className="streamly-login-heading">
             <div className="streamly-login-icon"><Lightning size={25} weight="duotone" /></div>
             <div><span className="streamly-login-eyebrow">{expired ? "License needs attention" : "Private access"}</span><h1 id="login-title">{expired ? "Renew your room." : "Welcome back."}</h1></div>
@@ -218,33 +226,43 @@ export default function LoginPage({
           {shownError && <div className="streamly-login-error" role="alert"><WarningCircle size={17} weight="duotone" /><span>{shownError}</span></div>}
           <div className="streamly-login-tabs" role="tablist" aria-label="Sign-in methods">
             {([["phone", Phone, "Phone"], ["google", GoogleLogo, "Google"], ["license", Key, "License key"]] as const).map(([key, Icon, label]) => (
-              <button key={key} type="button" role="tab" aria-selected={method === key} className={method === key ? "active" : ""} onClick={() => { setMethod(key); setLocalError(""); setLicenseError(""); }}>
+              <button key={key} id={`login-tab-${key}`} type="button" role="tab" aria-selected={method === key} aria-controls="login-method-panel" tabIndex={method === key ? 0 : -1} className={method === key ? "active" : ""} onClick={() => { setMethod(key); setLocalError(""); setLicenseError(""); }}>
                 <Icon size={17} weight="duotone" /> <span>{label}</span>
               </button>
             ))}
           </div>
 
-          {method === "phone" && (
-            otpSent ? (
-              <form className="streamly-login-form" onSubmit={verifyOtp}>
-                <div className="streamly-login-form-heading"><div><label htmlFor="otp-code">Verification code</label><p>Enter the code sent to +91 {cleanPhone}</p></div></div>
-                <OtpBoxes value={otp} onChange={(next) => { setOtp(next); setLocalError(""); }} onComplete={(code) => { void verifyOtp(code); }} />
-                <button className="streamly-login-primary" type="submit" disabled={busy || otp.length !== otpLength}>{busy ? "Verifying…" : "Verify & login"} <ArrowRight size={17} weight="bold" /></button>
+          <div id="login-method-panel" className="streamly-login-method-panel" role="tabpanel" aria-labelledby={`login-tab-${method}`}>
+            {method === "phone" && (
+              otpSent ? (
+                <form className="streamly-login-form" onSubmit={verifyOtp}>
+                  <div className="streamly-login-form-heading"><div><label htmlFor="otp-code">Verification code</label><p>Enter the code sent to +91 {cleanPhone}</p></div></div>
+                  <OtpBoxes value={otp} onChange={(next) => { setOtp(next); setLocalError(""); }} onComplete={(code) => { void verifyOtp(code); }} />
+                  <button className="streamly-login-primary" type="submit" disabled={busy || otp.length !== otpLength}>{busy ? "Verifying…" : "Verify & login"} <ArrowRight size={17} weight="bold" /></button>
                   <div className="streamly-login-inline-actions"><button type="button" onClick={() => { setOtpSent(false); setOtp(""); setOtpExpiresAt(""); setOtpRemainingSeconds(0); }}>Change number</button><button type="button" disabled={resendCooldown > 0 || busy} onClick={(event) => { void sendOtp(event as unknown as FormEvent<HTMLFormElement>); }}>{resendCooldown > 0 ? `Resend in 00:${String(resendCooldown).padStart(2, "0")}` : "Resend code"}</button></div>
                   <p className="streamly-login-otp-expiry" role="status">{otpRemainingSeconds > 0 ? `Code expires in ${Math.floor(otpRemainingSeconds / 60)}:${String(otpRemainingSeconds % 60).padStart(2, "0")}` : "This code has expired. Request a new one."}</p>
-              </form>
-            ) : (
-              <form className="streamly-login-form" onSubmit={sendOtp}>
-                 <label>Mobile number<div className="streamly-phone-field"><span>+91</span><input value={phone} onChange={(event) => setPhone(event.target.value.replace(/\D/g, "").slice(0, 10))} placeholder="********" type="tel" inputMode="numeric" autoComplete="tel-national" /></div></label>
-                <button className="streamly-login-primary" type="submit" disabled={busy || cleanPhone.length !== 10}>{busy ? "Sending code…" : "Send OTP"} <ArrowRight size={17} weight="bold" /></button>
-              </form>
-            )
-          )}
+                </form>
+              ) : (
+                <form className="streamly-login-form" onSubmit={sendOtp}>
+                  <label htmlFor="mobile-number">Mobile number
+                    <div className={`streamly-phone-field ${phoneError ? "has-error" : ""}`}>
+                      <span aria-hidden="true">+91</span>
+                      <Phone size={17} weight="duotone" aria-hidden="true" />
+                      <input id="mobile-number" value={phone} onChange={(event) => { setPhone(event.target.value.replace(/\D/g, "").slice(0, 10)); setLocalError(""); }} onBlur={() => setPhoneTouched(true)} placeholder="10-digit mobile number" type="tel" inputMode="numeric" autoComplete="tel-national" aria-invalid={Boolean(phoneError)} aria-describedby={phoneError ? "mobile-number-error" : undefined} />
+                    </div>
+                    {phoneError && <span id="mobile-number-error" className="streamly-login-field-error" role="alert">{phoneError}</span>}
+                  </label>
+                  <button className="streamly-login-primary" type="submit" disabled={busy || cleanPhone.length !== 10}>{busy ? "Sending code…" : "Send OTP"} <ArrowRight size={17} weight="bold" /></button>
+                </form>
+              )
+            )}
 
-          {method === "google" && <div className="streamly-google-panel"><button type="button" className="streamly-google-button" onClick={() => { /* TODO: connect to existing Google OAuth flow */ void onGoogleLogin(); }} disabled={busy}><GoogleLogo size={21} weight="bold" /> Continue with Google <ArrowRight size={16} /></button><p><ShieldCheck size={15} weight="duotone" /> We only access your basic profile and YouTube channel info</p></div>}
+            {method === "google" && <div className="streamly-google-panel"><button type="button" className="streamly-google-button" onClick={() => { void onGoogleLogin(); }} disabled={busy}><GoogleLogo size={21} weight="bold" /> Continue with Google <ArrowRight size={16} /></button><p><ShieldCheck size={15} weight="duotone" /> We only access your basic profile and YouTube channel info</p></div>}
 
-          {method === "license" && <form className="streamly-login-form" onSubmit={activateLicense}><label>License key<div className={`streamly-key-field ${licenseError ? "has-error" : ""}`}><Key size={17} weight="duotone" /><input value={licenseKey} onChange={(event) => { setLicenseKey(event.target.value.toUpperCase()); setLicenseError(""); }} placeholder="XXXX-XXXX-XXXX-XXXX" autoComplete="off" /></div><small>Find your license key in your purchase confirmation email.</small></label><button className="streamly-login-primary" type="submit" disabled={busy || !licenseKey.trim()}>{busy ? "Activating…" : expired ? "Renew & login" : "Activate & login"} <ArrowRight size={17} weight="bold" /></button></form>}
+            {method === "license" && <form className="streamly-login-form" onSubmit={activateLicense}><label htmlFor="license-key">License key<div className={`streamly-key-field ${licenseError ? "has-error" : ""}`}><Key size={17} weight="duotone" aria-hidden="true" /><input id="license-key" value={licenseKey} onChange={(event) => { setLicenseKey(event.target.value.toUpperCase()); setLicenseError(""); }} placeholder="XXXX-XXXX-XXXX-XXXX" autoComplete="off" aria-invalid={Boolean(licenseError)} /></div><small>Find your license key in your purchase confirmation email.</small></label><button className="streamly-login-primary" type="submit" disabled={busy || !licenseKey.trim()}>{busy ? "Activating…" : expired ? "Renew & login" : "Activate & login"} <ArrowRight size={17} weight="bold" /></button></form>}
+          </div>
 
+          <div className="streamly-login-trust"><ShieldCheck size={15} weight="duotone" /> Private workspace access, protected by secure sign-in</div>
         </section>
       </main>
     </div>
