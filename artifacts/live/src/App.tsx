@@ -4276,11 +4276,7 @@ function App() {
   }, [accountSession.account, profileGateId]);
   useEffect(() => {
     if (firebaseLoading || (isSignedIn && accountSession.loading)) return;
-    if (hasAccountSession && accountSession.account && !accountSession.account.active && location !== purchasePath && !location.startsWith("/gateway")) {
-      setLocation(purchasePath);
-      return;
-    }
-    if (!mobileGiftKey && hasAccountSession && accountSession.account?.active && (location === "/" || location === "/access" || location.startsWith("/sign-in") || location.startsWith("/sign-up"))) {
+    if (!mobileGiftKey && accountSession.account && (location === "/" || location === "/access" || location.startsWith("/sign-in") || location.startsWith("/sign-up"))) {
       setLocation(accountSession.account.role === "owner" ? "/owner" : "/dashboard");
       return;
     }
@@ -4303,7 +4299,7 @@ function App() {
       onOpenRoom={() => { setMobileGiftKey(""); setLocation("/dashboard"); }}
     />;
   }
-  if (location === "/pricing") return isSignedIn || hasAccountSession ? <PricingPage /> : <Redirect to="/sign-in" />;
+  if (location === "/pricing") return isSignedIn || hasAccountSession ? <Redirect to="/dashboard" /> : <Redirect to="/sign-in" />;
   if (location === "/gateway") return <GatewayPage />;
   if (isSignedIn && accountSession.loading) return <div className="workspace-loading"><Radio size={20}/><span>Preparing your account…</span></div>;
   if (isSignedIn && accountSession.error && !accountSession.account) return <div className="workspace-loading"><span>{accountSession.error}</span></div>;
@@ -4312,10 +4308,9 @@ function App() {
     return <OwnerPage/>;
   }
   if (location === "/" && !isLicenseActive(activeLicense)) return <LandingPage />;
-  if (hasAccountSession && accountSession.account && !accountSession.account.active) return <PricingPage />;
   const openMobileRoom = () => { setMobileGiftKey(""); setLocation("/dashboard"); };
   if (location === "/access") return <LicenseGate license={activeLicense} busy={license.busy} error={license.error || firebaseError} signedIn={Boolean(isSignedIn || hasAccountSession)} onActivate={license.activate} onRenew={license.renew} onGoogleLogin={() => setLocation("/sign-in")} onMobileAccountLogin={accountSession.reload} onGiftReady={setMobileGiftKey} onOpenRoom={openMobileRoom}/>;
-  if (!activeLicense || !isLicenseActive(activeLicense)) return <LicenseGate license={activeLicense} busy={license.busy} error={license.error || firebaseError} signedIn={Boolean(isSignedIn || hasAccountSession)} onActivate={license.activate} onRenew={license.renew} onGoogleLogin={() => setLocation("/sign-in")} onMobileAccountLogin={accountSession.reload} onGiftReady={setMobileGiftKey} onOpenRoom={openMobileRoom}/>;
+  if (!hasAccountSession && (!activeLicense || !isLicenseActive(activeLicense))) return <LicenseGate license={activeLicense} busy={license.busy} error={license.error || firebaseError} signedIn={Boolean(isSignedIn || hasAccountSession)} onActivate={license.activate} onRenew={license.renew} onGoogleLogin={() => setLocation("/sign-in")} onMobileAccountLogin={accountSession.reload} onGiftReady={setMobileGiftKey} onOpenRoom={openMobileRoom}/>;
   if (!workspace.ready) return <div className="workspace-loading"><Radio size={20}/><span>Loading your private workspace…</span></div>;
   const handleLogout = async () => {
     if (user) {
