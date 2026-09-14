@@ -14,3 +14,9 @@ After mobile profile completion creates the server session, reload the account s
 **Why:** The new cookie can be valid while the client account state is still empty; routing immediately then falls through to the login gate again.
 
 **How to apply:** Complete the profile request, refresh `/api/account`, then allow the “open room” action to navigate to the dashboard.
+
+Authentication and entitlement are separate states: an OTP-authenticated account without active access should remain signed in and be routed to pricing, never back to the login gate.
+
+**Why:** Routing inactive accounts through the login gate makes a valid OTP session look like a failed login and causes a repeat-login loop.
+
+**How to apply:** Let the server session authorize `/api/account` and pricing; enforce active access only when entering workspace routes.
