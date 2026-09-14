@@ -4,7 +4,7 @@ import {
   Activity as ActivityIcon, ArrowRight, BookOpen, Camera, Check, CircleHelp, Clipboard,
   Download, FileVideo, FolderOpen, Gauge, Gift, Instagram, LayoutDashboard,
   Image, Layers, Link2, Menu, MessageCircle, MonitorPlay, Pencil, Play, Plus, Radio, Scissors, Search, Send, Settings,
-  MoreHorizontal, UserRound, CreditCard, KeyRound, Mail,
+  UserRound, CreditCard, KeyRound, Mail,
   Mic, ShieldCheck, Smartphone, Sparkles, Square, Trash2, Type, Upload, Video, Wand2, X, Youtube,
 } from "lucide-react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -1204,10 +1204,10 @@ function Brand({ compact = false }: { compact?: boolean }) {
 
 function Sidebar({ path, open, onClose, user, photo, data }: { path:string; open:boolean; onClose:()=>void; user:string; photo?:string; data:DataState }) {
   const nav = [
-    { href:"/dashboard", label:"Overview", icon:LayoutDashboard },
-     { href:"/live", label:"Live channels", icon:MonitorPlay, count:data.channels.filter(c=>c.status==="live").length || undefined },
-     { href:"/live-preview", label:"Live Stream Preview", icon:Radio, count:data.channels.filter(c=>c.status==="live").length || undefined },
-    { href:"/videos", label:"Video library", icon:FileVideo },
+    { href:"/dashboard", label:"Dashboard", icon:LayoutDashboard },
+    { href:"/live", label:"Live", icon:MonitorPlay, count:data.channels.filter(c=>c.status==="live").length || undefined },
+    { href:"/videos", label:"Video", icon:FileVideo },
+    { href:"/live-preview", label:"Stream preview", icon:Radio, count:data.channels.filter(c=>c.status==="live").length || undefined },
     { href:"/editor", label:"Video editor", icon:Wand2 },
   ];
   return <aside className={`sidebar ${open ? "open" : ""}`} data-testid="sidebar">
@@ -1230,7 +1230,7 @@ function Sidebar({ path, open, onClose, user, photo, data }: { path:string; open
 function Header({ title, account, onMenu }: { title:string; account?: AccountSummary | null; onMenu:()=>void }) {
   return <header className="topbar">
     <div className="crumb"><button className="icon-button mobile-menu" onClick={onMenu} data-testid="button-open-menu"><Menu size={18}/></button><span className="crumb-label">Reverse Bypass /</span><span className="crumb-title">{title}</span></div>
-    <div className="top-actions"><AccountAccessTimer account={account}/><div className="live-pulse"><span className="pulse"/><span>Broadcast monitor</span></div><button className="icon-button" data-testid="button-help" title="Help"><CircleHelp size={17}/></button></div>
+    <div className="top-actions"><AccountAccessTimer account={account}/></div>
   </header>;
 }
 
@@ -1262,26 +1262,28 @@ function DownloadActivity({ downloads, onDismiss }: { downloads: YoutubeDownload
   </div>;
 }
 
-function MobileNav({ path, data }: { path:string; data:DataState }) {
-  const [moreOpen, setMoreOpen] = useState(false);
-  const primary = [
-    { href: "/dashboard", label: "Home", icon: LayoutDashboard },
+function MobileActionNav({ path }: { path:string }) {
+  const actions = [
     { href: "/live", label: "Live", icon: MonitorPlay },
-    { href: "/videos", label: "Videos", icon: FileVideo },
-    { href: "/profile", label: "Profile", icon: UserRound },
-  ];
-  const extra = [
+    { href: "/videos", label: "Video", icon: FileVideo },
     { href: "/live-preview", label: "Stream preview", icon: Radio },
     { href: "/editor", label: "Video editor", icon: Wand2 },
+    { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  ];
+  return <nav className="mobile-action-nav" aria-label="Workspace actions">
+    {actions.map(({ href, label, icon: Icon }) => <Link key={href} href={href} className={`mobile-action-link ${path === href ? "active" : ""}`}><Icon size={15}/><span>{label}</span></Link>)}
+  </nav>;
+}
+
+function MobileNav({ path }: { path:string }) {
+  const primary = [
+    { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+    { href: "/aesthetics", label: "Aesthetics", icon: Gauge },
+    { href: "/profile", label: "Profile", icon: UserRound },
   ];
   return <div className="mobile-nav-wrap">
-    {moreOpen && <button className="mobile-more-backdrop" aria-label="Close more menu" onClick={() => setMoreOpen(false)} />}
-    {moreOpen && <div className="mobile-more-menu" role="menu">
-      {extra.map(({ href, label, icon: Icon }) => <Link key={href} href={href} onClick={() => setMoreOpen(false)} className={`mobile-more-link ${path === href ? "active" : ""}`}><Icon size={16}/><span>{label}</span>{href === "/live-preview" && data.channels.some((channel) => channel.status === "live") && <span className="nav-count">Live</span>}</Link>)}
-    </div>}
     <nav className="mobile-nav" aria-label="Mobile navigation">
       {primary.map(({ href, label, icon: Icon }) => <Link key={href} href={href} className={`mobile-nav-link ${path === href ? "active" : ""}`}><Icon size={18}/><span>{label}</span></Link>)}
-      <button className={`mobile-nav-link ${moreOpen || extra.some((item) => item.href === path) ? "active" : ""}`} onClick={() => setMoreOpen((value) => !value)} aria-expanded={moreOpen}><MoreHorizontal size={18}/><span>More</span></button>
     </nav>
   </div>;
 }
@@ -1292,8 +1294,8 @@ function AppShell({ children, title, account, profilePhoto, workspace }: { child
   return <div className="shell">
     {menu && <button className="sidebar-scrim" aria-label="Close navigation" onClick={() => setMenu(false)} data-testid="button-close-menu" />}
     <Sidebar path={path} open={menu} onClose={()=>setMenu(false)} user={account?.displayName || account?.email || workspace.user} photo={profilePhoto} data={workspace.data}/>
-     <main className="main"><Header title={title} account={account} onMenu={()=>setMenu(true)}/><DownloadActivity downloads={workspace.youtubeDownloads} onDismiss={workspace.dismissYoutubeDownload}/>{children}</main>
-    <MobileNav path={path} data={workspace.data}/>
+     <main className="main"><Header title={title} account={account} onMenu={()=>setMenu(true)}/><MobileActionNav path={path}/><DownloadActivity downloads={workspace.youtubeDownloads} onDismiss={workspace.dismissYoutubeDownload}/>{children}</main>
+     <MobileNav path={path}/>
     {workspace.toast && <div className="toast" data-testid="status-toast"><Check size={14} style={{verticalAlign:"-2px", marginRight:7}}/>{workspace.toast}</div>}
   </div>;
 }
@@ -1979,12 +1981,12 @@ function PhoneProfileCard({ onSave }: { onSave: (phone: string) => Promise<void>
   return <section className="account-profile-card"><div><p className="eyebrow">Account profile</p><h2>Add a mobile number</h2><p className="subtle">Keep it linked to this Google account. OTP login can use this same account when mobile sign-in is enabled.</p></div><form onSubmit={save}><input type="tel" value={phone} onChange={(event) => setPhone(event.target.value)} placeholder="+91 98765 43210" aria-label="Mobile number"/><button className="button" type="submit" disabled={busy || !phone.trim()}>{busy ? "Saving…" : "Save number"} <Check size={14}/></button></form>{message && <span className="form-hint">{message}</span>}</section>;
 }
 
-function Dashboard({ workspace, account, onSavePhone }: { workspace:ReturnType<typeof useWorkspace>; account?: AccountSummary | null; onSavePhone?: (phone: string) => Promise<void> }) {
+function Dashboard({ workspace, account, onSavePhone, pageTitle = "Dashboard" }: { workspace:ReturnType<typeof useWorkspace>; account?: AccountSummary | null; onSavePhone?: (phone: string) => Promise<void>; pageTitle?: string }) {
   const {data, update} = workspace;
   const live = data.channels.filter(c=>c.status==="live");
-  return <AppShell title="Overview" account={account} workspace={workspace}><div className="page"><div className="page-head"><div><p className="eyebrow">Account workspace</p><h1>Good morning, {workspace.user.split("@")[0]}.</h1><p className="subtle">The room is quiet. One channel is currently on air.</p></div><div className="dashboard-head-actions"><Link href="/live" className="button" data-testid="link-go-live"><Radio size={15}/> Manage live room</Link></div></div>{account && !account.phone && onSavePhone && <PhoneProfileCard onSave={onSavePhone} />}
+  return <AppShell title={pageTitle} account={account} workspace={workspace}><div className="page"><div className="page-head"><div><p className="eyebrow">Workspace overview</p><h1>{pageTitle}</h1><p className="subtle">Your live channels, library, categories, and recent activity in one view.</p></div></div>{account && !account.phone && onSavePhone && <PhoneProfileCard onSave={onSavePhone} />}
     <div className="metric-grid"><Metric label="On air now" value={live.length} detail={live.length ? "Signal is healthy" : "Nothing is live"} /><Metric label="Library videos" value={data.videos.length} detail={`${data.videos.filter(v=>v.status==="published").length} published`} /><Metric label="Categories" value={data.groups.length} detail="Playlist folders" /> </div>
-    <div className="split-grid"><section className="card section-card"><div className="section-head"><div><h2 className="section-title">Live channels</h2><p className="subtle" style={{margin: "5px 0 0", fontSize:11}}>Your broadcast surface, at a glance.</p></div><Link href="/live" className="section-link" data-testid="link-view-all-live">View all <ArrowRight size={12} style={{verticalAlign:"-2px"}}/></Link></div>{live.length ? <div className="live-list">{live.map(c=><div className="live-row" key={c.id} data-testid={`live-row-${c.id}`}><div className="thumb" style={{background:c.thumbnailColor}}><Radio size={16}/></div><div><div className="row-title">{c.title}</div><div className="row-meta">{c.platform} · live for {fmtTime(c.startedAt)}</div></div><div className="status live"><span className="status-dot"/>Live</div></div>)}</div> : <EmptyState icon={<Radio size={21}/>} title="Nothing is live" copy="Start a channel when the room is ready." action="Open live room" href="/live"/>}<div className="quick-actions"><Link href="/live" className="quick" data-testid="quick-new-channel"><Plus size={15}/> New channel</Link><Link href="/videos" className="quick" data-testid="quick-add-video"><Upload size={15}/> Add to library</Link></div></section>
+     <div className="split-grid"><section className="card section-card"><div className="section-head"><div><h2 className="section-title">Live channels</h2><p className="subtle" style={{margin: "5px 0 0", fontSize:11}}>Your broadcast surface, at a glance.</p></div><Link href="/live" className="section-link" data-testid="link-view-all-live">View all <ArrowRight size={12} style={{verticalAlign:"-2px"}}/></Link></div>{live.length ? <div className="live-list">{live.map(c=><div className="live-row" key={c.id} data-testid={`live-row-${c.id}`}><div className="thumb" style={{background:c.thumbnailColor}}><Radio size={16}/></div><div><div className="row-title">{c.title}</div><div className="row-meta">{c.platform} · live for {fmtTime(c.startedAt)}</div></div><div className="status live"><span className="status-dot"/>Live</div></div>)}</div> : <EmptyState icon={<Radio size={21}/>} title="Nothing is live" copy="Your live channels will appear here when they are on air."/>}</section>
       <section className="card section-card"><div className="section-head"><div><h2 className="section-title">Recent activity</h2><p className="subtle" style={{margin:"5px 0 0",fontSize:11}}>A small paper trail for the room.</p></div><ActivityIcon size={17} color="#6c8b83"/></div><ActivityList activities={data.activities}/></section></div>
     </div></AppShell>;
 }
@@ -4044,6 +4046,7 @@ function ProfilePage({ workspace, account, firebaseUser, profilePhoto, onProfile
   const [passwordNotice, setPasswordNotice] = useState("");
   const [photoBusy, setPhotoBusy] = useState(false);
   const [photoAnimationKey, setPhotoAnimationKey] = useState(0);
+  const [profilePanel, setProfilePanel] = useState<"details" | "password" | null>(null);
   const hasPasswordProvider = Boolean(firebaseUser?.providerData.some((provider) => provider.providerId === "password"));
   const displayPhoto = profilePhoto || defaultProfilePhoto(firebaseUser?.uid || workspace.licenseId || "profile");
 
@@ -4156,26 +4159,26 @@ function ProfilePage({ workspace, account, firebaseUser, profilePhoto, onProfile
 
   return <AppShell title="Profile" account={account} profilePhoto={profilePhoto} workspace={workspace}>
     <div className="page profile-page">
-      <div className="page-head"><div><h1>Profile</h1></div></div>
-      <div className="profile-layout">
-        <section className="card profile-identity-card">
-          <div className="profile-avatar-wrap"><WaterFillAvatar src={displayPhoto} alt={`${name || "Your"} profile`} animate={photoAnimationKey > 0} animationKey={photoAnimationKey} /><label className={`profile-avatar-edit ${photoBusy ? "is-busy" : ""}`} title="Change profile photo" aria-label="Change profile photo"><Pencil size={13}/><input type="file" accept="image/jpeg,image/png,image/webp,image/gif" onChange={(event) => void uploadPhoto(event)} disabled={photoBusy} /></label></div>
-          <div className="profile-identity-copy">{email && <p>{email}</p>}</div>
-          <button className="button danger-button profile-logout-button" onClick={() => void onLogout()} data-testid="button-profile-logout"><ShieldCheck size={15}/> Log out</button>
-        </section>
-        <section className="card profile-card">
-          <div className="section-head"><div><h2 className="section-title">Personal details</h2><p className="subtle">These details are used for your workspace account.</p></div><UserRound size={18} /></div>
+      <div className="page-head"><div><p className="eyebrow">Account</p><h1>Profile</h1><p className="subtle">Manage your account details and sign-in security.</p></div></div>
+      <section className="card profile-single-card">
+        <div className="profile-avatar-wrap"><WaterFillAvatar src={displayPhoto} alt={`${name || "Your"} profile`} animate={photoAnimationKey > 0} animationKey={photoAnimationKey} /><label className={`profile-avatar-edit ${photoBusy ? "is-busy" : ""}`} title="Change profile photo" aria-label="Change profile photo"><Pencil size={13}/><input type="file" accept="image/jpeg,image/png,image/webp,image/gif" onChange={(event) => void uploadPhoto(event)} disabled={photoBusy} /></label></div>
+        <div className="profile-identity-copy"><strong>{name || "Your profile"}</strong>{email && <p>{email}</p>}</div>
+        <div className="profile-action-list">
+          <button type="button" className={`profile-action-button ${profilePanel === "details" ? "active" : ""}`} onClick={() => setProfilePanel(profilePanel === "details" ? null : "details")}><UserRound size={16}/><span>Personal details</span><ArrowRight size={14}/></button>
+          <button type="button" className={`profile-action-button ${profilePanel === "password" ? "active" : ""}`} onClick={() => setProfilePanel(profilePanel === "password" ? null : "password")}><KeyRound size={16}/><span>Change password</span><ArrowRight size={14}/></button>
+          <button type="button" className="profile-action-button danger-button" onClick={() => void onLogout()} data-testid="button-profile-logout"><ShieldCheck size={16}/><span>Logout</span><ArrowRight size={14}/></button>
+        </div>
+        {profilePanel === "details" && <div className="profile-action-panel">
+          <div className="profile-action-panel-head"><div><h2>Personal details</h2><p className="subtle">These details are used for your workspace account.</p></div><UserRound size={18}/></div>
           <form className="profile-form" onSubmit={saveDetails}>
             <div className="field"><label htmlFor="profile-name">Name</label><input id="profile-name" value={name} onChange={(event) => setName(event.target.value)} placeholder="Your name" data-testid="input-profile-name" /></div>
             <div className="field"><label htmlFor="profile-email">Email</label><input id="profile-email" type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="you@example.com" data-testid="input-profile-email" /></div>
             <button className="button" type="submit" disabled={saving || !name.trim() || Boolean(firebaseUser && !email.trim())}>{saving ? "Saving…" : "Save changes"} <Check size={14}/></button>
             {notice && <p className="profile-message">{notice}</p>}
           </form>
-        </section>
-      </div>
-      <div className="profile-layout">
-        <section className="card profile-card">
-          <div className="section-head"><div><h2 className="section-title">Password</h2><p className="subtle">Keep your account secure with a password only you know.</p></div><KeyRound size={18}/></div>
+        </div>}
+        {profilePanel === "password" && <div className="profile-action-panel">
+          <div className="profile-action-panel-head"><div><h2>Change password</h2><p className="subtle">Keep your account secure with a password only you know.</p></div><KeyRound size={18}/></div>
           {hasPasswordProvider ? <form className="profile-form" onSubmit={savePassword}>
             <div className="field"><label htmlFor="current-password">Current password <span className="field-hint">(optional)</span></label><input id="current-password" type="password" value={currentPassword} onChange={(event) => setCurrentPassword(event.target.value)} autoComplete="current-password" /></div>
             <div className="field"><label htmlFor="new-password">New password</label><input id="new-password" type="password" value={newPassword} onChange={(event) => setNewPassword(event.target.value)} autoComplete="new-password" /></div>
@@ -4183,13 +4186,8 @@ function ProfilePage({ workspace, account, firebaseUser, profilePhoto, onProfile
             <button className="button" type="submit" disabled={passwordBusy}>{passwordBusy ? "Updating…" : "Change password"} <KeyRound size={14}/></button>
           </form> : <div className="profile-provider-note"><p>You signed in with Google, so password access is managed by Google.</p><button className="button secondary" onClick={() => void sendResetEmail()} disabled={passwordBusy}>{passwordBusy ? "Sending…" : "Email password reset link"} <Mail size={14}/></button></div>}
           {passwordNotice && <p className="profile-message">{passwordNotice}</p>}
-        </section>
-        <section className="card profile-card">
-          <div className="section-head"><div><h2 className="section-title">Billing</h2><p className="subtle">Review your access plan and renewal options.</p></div><CreditCard size={18}/></div>
-          <div className="billing-summary"><div><span className="metric-kicker">Current plan</span><strong>{account.activePlan?.name || "Workspace access"}</strong></div><div><span className="metric-kicker">Access until</span><strong>{new Date(account.accessEndsAt).toLocaleDateString()}</strong></div></div>
-          <Link href="/pricing" className="button secondary" data-testid="link-profile-billing"><CreditCard size={14}/> View billing & plans <ArrowRight size={14}/></Link>
-        </section>
-      </div>
+        </div>}
+      </section>
     </div>
   </AppShell>;
 }
@@ -4230,7 +4228,7 @@ function Routed({workspace, account, firebaseUser, profilePhoto, onProfilePhotoC
     active: true,
     history: [],
   };
-  return <Switch><Route path="/dashboard"><Dashboard workspace={workspace} account={account} onSavePhone={onSavePhone}/></Route><Route path="/live"><LivePage workspace={workspace}/></Route><Route path="/live-preview"><LivePreviewPage workspace={workspace}/></Route><Route path="/videos"><VideosPage workspace={workspace}/></Route><Route path="/editor"><VideoEditorPage workspace={workspace}/></Route><Route path="/profile"><ProfilePage workspace={workspace} account={profileAccount} firebaseUser={firebaseUser} profilePhoto={profilePhoto} onProfilePhotoChange={onProfilePhotoChange} onSaveProfile={account ? onSaveProfile : undefined} onLogout={onLogout}/></Route><Route path="/settings"><Redirect to="/profile"/></Route><Route><NotFound/></Route></Switch>;
+  return <Switch><Route path="/dashboard"><Dashboard workspace={workspace} account={account} onSavePhone={onSavePhone}/></Route><Route path="/aesthetics"><Dashboard workspace={workspace} account={account} onSavePhone={onSavePhone} pageTitle="Aesthetics"/></Route><Route path="/live"><LivePage workspace={workspace}/></Route><Route path="/live-preview"><LivePreviewPage workspace={workspace}/></Route><Route path="/videos"><VideosPage workspace={workspace}/></Route><Route path="/editor"><VideoEditorPage workspace={workspace}/></Route><Route path="/profile"><ProfilePage workspace={workspace} account={profileAccount} firebaseUser={firebaseUser} profilePhoto={profilePhoto} onProfilePhotoChange={onProfilePhotoChange} onSaveProfile={account ? onSaveProfile : undefined} onLogout={onLogout}/></Route><Route path="/settings"><Redirect to="/profile"/></Route><Route><NotFound/></Route></Switch>;
 }
 
 function App() {
