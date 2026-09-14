@@ -3075,6 +3075,7 @@ select { height: 41px; }
 .streamly-login-alternative-button:hover:not(:disabled) { border-color: #FF5EAC; color: #FFF8FC; background: rgba(76,22,83,.78); transform: translateY(-1px); }
 .streamly-login-alternative-button:focus-visible, .streamly-login-back:focus-visible { outline: 2px solid #FF65AD; outline-offset: 2px; }
 .streamly-login-alternative-button svg { color: #FF76B9; }
+.streamly-google-logo { display: block; width: 18px; height: 18px; object-fit: contain; border-radius: 50%; }
 .streamly-login-alternative-button:disabled { cursor: not-allowed; opacity: .48; }
 .streamly-login-form { display: grid; gap: 15px; }
 .streamly-login-form label { display: grid; gap: 7px; color: #AFB8CE; font: 10px 'Space Mono', monospace; letter-spacing: .07em; text-transform: uppercase; }

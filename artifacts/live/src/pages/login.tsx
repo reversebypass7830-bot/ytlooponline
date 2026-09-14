@@ -2,10 +2,8 @@ import { useEffect, useRef, useState, type FormEvent } from "react";
 import {
   ArrowRight,
   CheckCircle,
-  GoogleLogo,
   Key,
   Lightning,
-  Phone,
   ShieldCheck,
   WarningCircle,
 } from "@phosphor-icons/react";
@@ -239,7 +237,6 @@ export default function LoginPage({
                   <label htmlFor="mobile-number">Mobile number
                     <div className={`streamly-phone-field ${phoneError ? "has-error" : ""}`}>
                       <span aria-hidden="true">+91</span>
-                      <Phone size={17} weight="duotone" aria-hidden="true" />
                       <input id="mobile-number" value={phone} onChange={(event) => { setPhone(event.target.value.replace(/\D/g, "").slice(0, 10)); setLocalError(""); }} onBlur={() => setPhoneTouched(true)} placeholder="10-digit mobile number" type="tel" inputMode="numeric" autoComplete="tel-national" aria-invalid={Boolean(phoneError)} aria-describedby={phoneError ? "mobile-number-error" : undefined} />
                     </div>
                     {phoneError && <span id="mobile-number-error" className="streamly-login-field-error" role="alert">{phoneError}</span>}
@@ -257,7 +254,7 @@ export default function LoginPage({
               <div className="streamly-login-alternatives-divider"><span>or continue with</span></div>
               <div className="streamly-login-alternative-grid">
                 <button className="streamly-login-alternative-button" type="button" onClick={() => { void onGoogleLogin(); }} disabled={busy}>
-                  <GoogleLogo size={18} weight="bold" /> Google
+                  <img className="streamly-google-logo" src="/images/google-logo.png" alt="" aria-hidden="true" /> Google
                 </button>
                 <button className="streamly-login-alternative-button" type="button" onClick={() => { setMethod("license"); setLocalError(""); setLicenseError(""); }} disabled={busy}>
                   <Key size={18} weight="duotone" /> License key
