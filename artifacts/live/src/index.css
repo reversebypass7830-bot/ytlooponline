@@ -5091,30 +5091,30 @@ select { height: 41px; }
 .danger-button { color:#ffd8eb; border-color:#7a3b64; background:#32162d; }
 .danger-button:hover { border-color:#ee4da5; background:#4a193b; color:#fff; }
 .dashboard-action-grid { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:16px; max-width:900px; }
-.dashboard-action-card { display:flex; align-items:center; gap:15px; min-height:132px; padding:22px; border:1px solid #e1d7e6; border-radius:16px; color:#311c3b; box-shadow:0 8px 26px rgba(60,27,71,.06); transition:transform .18s, border-color .18s, box-shadow .18s; }
-.dashboard-action-card:hover { transform:translateY(-3px); box-shadow:0 14px 32px rgba(111,35,103,.13); }
+.dashboard-action-card { display:flex; align-items:center; gap:15px; min-height:132px; padding:22px; border:1px solid #54366a; border-radius:16px; color:#f5edf8; box-shadow:0 8px 26px rgba(10,0,17,.2); transition:transform .18s, border-color .18s, box-shadow .18s; }
+.dashboard-action-card:hover { transform:translateY(-3px); box-shadow:0 14px 32px rgba(10,0,17,.38); }
 .dashboard-action-icon { display:grid; place-items:center; width:49px; height:49px; flex:0 0 auto; border-radius:14px; color:#fff; box-shadow:0 8px 16px rgba(93,34,103,.18); }
 .dashboard-action-copy { display:grid; gap:6px; min-width:0; flex:1; text-align:left; }
 .dashboard-action-copy strong { font-size:15px; letter-spacing:-.03em; }
-.dashboard-action-copy small { color:#806b86; font-size:11px; line-height:1.45; }
-.dashboard-action-arrow { color:#9a7aa3; flex:0 0 auto; transition:transform .18s; }
+.dashboard-action-copy small { color:#bba8c3; font-size:11px; line-height:1.45; }
+.dashboard-action-arrow { color:#c7a8d3; flex:0 0 auto; transition:transform .18s; }
 .dashboard-action-card:hover .dashboard-action-arrow { transform:translateX(3px); color:#d52e8f; }
-.dashboard-action-live { border-color:#f2b2d1; background:linear-gradient(135deg,#fff3f9,#ffe6f2); }
+.dashboard-action-live { border-color:#9e3d79; background:linear-gradient(145deg,#3d183d,#28142f); }
 .dashboard-action-live:hover { border-color:#ed70b0; }
 .dashboard-action-live .dashboard-action-icon { background:linear-gradient(135deg,#f0187d,#bd2f99); }
-.dashboard-action-live .dashboard-action-copy small { color:#9b527b; }
-.dashboard-action-video { border-color:#d2c3f0; background:linear-gradient(135deg,#f8f5ff,#ece5ff); }
+.dashboard-action-live .dashboard-action-copy small { color:#e1a5c6; }
+.dashboard-action-video { border-color:#68459b; background:linear-gradient(145deg,#302044,#211832); }
 .dashboard-action-video:hover { border-color:#a98be2; }
 .dashboard-action-video .dashboard-action-icon { background:linear-gradient(135deg,#8b5cf6,#6742b6); }
-.dashboard-action-video .dashboard-action-copy small { color:#6e5c9d; }
-.dashboard-action-preview { border-color:#b8ddd8; background:linear-gradient(135deg,#f2fcfa,#def2ee); }
+.dashboard-action-video .dashboard-action-copy small { color:#c1b1e7; }
+.dashboard-action-preview { border-color:#2c817d; background:linear-gradient(145deg,#163d3d,#122b31); }
 .dashboard-action-preview:hover { border-color:#70b8ae; }
 .dashboard-action-preview .dashboard-action-icon { background:linear-gradient(135deg,#2e9f91,#277875); }
-.dashboard-action-preview .dashboard-action-copy small { color:#4f817b; }
-.dashboard-action-editor { border-color:#f0d2a8; background:linear-gradient(135deg,#fffaf1,#ffefd8); }
+.dashboard-action-preview .dashboard-action-copy small { color:#9bd0c9; }
+.dashboard-action-editor { border-color:#9b6840; background:linear-gradient(145deg,#49311f,#2b211c); }
 .dashboard-action-editor:hover { border-color:#dfaa64; }
 .dashboard-action-editor .dashboard-action-icon { background:linear-gradient(135deg,#df9345,#b66a2c); }
-.dashboard-action-editor .dashboard-action-copy small { color:#9a7445; }
+.dashboard-action-editor .dashboard-action-copy small { color:#e4bd8a; }
 .analytics-page .metric-grid { margin-bottom:20px; }
 .analytics-chart-grid { display:grid; grid-template-columns:minmax(0,1.15fr) minmax(300px,.85fr); gap:18px; margin-bottom:18px; }
 .analytics-chart-card { min-height:285px; }
