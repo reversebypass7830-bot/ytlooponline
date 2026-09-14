@@ -1896,7 +1896,7 @@ function OwnerLicensePage({ licenses, name, days, busy, error, message, onNameCh
   onKeys: () => void;
 }) {
   return <div className="owner-page owner-license-page">
-    <header className="owner-topbar"><div className="owner-topbar-title"><span className="owner-topbar-kicker">Slash Owner</span><strong>License key</strong></div></header>
+    <header className="owner-topbar"><div className="owner-topbar-title"><span className="owner-topbar-kicker">Slash Owner</span><strong>License key</strong></div><button className="button secondary owner-desktop-back" onClick={onDashboard} type="button"><ArrowRight size={14} style={{ transform: "rotate(180deg)" }} /> Back to dashboard</button></header>
     <main className="owner-content">
       <div className="page-head owner-page-heading"><div><p className="eyebrow">Customer access</p><h1>License key</h1><p className="subtle">Create, recover, renew, and remove workspace access keys from one place.</p></div><div className="owner-page-badge"><KeyRound size={16}/> {licenses.length} configured</div></div>
       {error && <div className="error-note">{error}</div>}{message && <div className="owner-success">{message}</div>}

@@ -5410,6 +5410,8 @@ select { height: 41px; }
 .owner-folders-page .owner-content { padding-bottom:100px; }
 .owner-folders-page .owner-topbar .button.secondary { border-color:#e0e2e9; color:#555b68; background:#fff; }
 .owner-folders-page .owner-topbar .button.secondary:hover { color:#7c1750; border-color:#c58bad; background:#fcf4f8; }
+.owner-desktop-back { display:inline-flex; align-items:center; gap:7px; border-color:#e0e2e9; color:#555b68; background:#fff; }
+.owner-desktop-back:hover { color:#7c1750; border-color:#c58bad; background:#fcf4f8; }
 .owner-dashboard-page .owner-create, .owner-dashboard-page .owner-list { display:none; }
 
 @media (max-width: 960px) {
@@ -5419,6 +5421,7 @@ select { height: 41px; }
 @media (max-width: 700px) {
   .owner-topbar { height:64px; padding:0 17px; }
   .owner-topbar-title strong { font-size:16px; }
+  .owner-desktop-back { display:none; }
   .owner-secure-label { font-size:0; }
   .owner-secure-label svg { width:19px; height:19px; }
   .owner-content { padding:25px 15px 94px; }
