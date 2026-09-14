@@ -1705,7 +1705,7 @@ function IncludedAnimationsModal({ ownerPassword, onClose, folderName = included
     {message && <div className="file-picked"><Check size={13}/> {message}</div>}{error && <div className="error-note" style={{whiteSpace:"pre-line"}}>{error}</div>}<div className="form-note"><ShieldCheck size={14} style={{verticalAlign:"-3px",marginRight:6}}/>Only the owner can add or remove shared animations. License users can watch and use them, but cannot change them.</div></form></Modal>;
 }
 
-function OwnerFoldersPage({ ownerPassword, onBack }: { ownerPassword: string; onBack: () => void }) {
+function OwnerFoldersPage({ ownerPassword, onBack, onKeys }: { ownerPassword: string; onBack: () => void; onKeys?: () => void }) {
   const [library, setLibrary] = useState<IncludedFoldersResponse | null>(null);
   const [selectedFolder, setSelectedFolder] = useState(includedFolderRoot);
   const [search, setSearch] = useState("");
@@ -1831,7 +1831,7 @@ function OwnerFoldersPage({ ownerPassword, onBack }: { ownerPassword: string; on
   };
 
   return <div className="owner-page owner-folders-page">
-    <header className="owner-topbar"><Brand /><div className="actions"><button className="button secondary" onClick={onBack}><ArrowRight size={14} style={{ transform: "rotate(180deg)" }} /> License keys</button><a href="/" className="button secondary">Open license gate <ArrowRight size={14} /></a></div></header>
+    <header className="owner-topbar"><div className="owner-topbar-title"><span className="owner-topbar-kicker">Slash Owner</span><strong>My Folder</strong></div><div className="actions"><button className="button secondary" onClick={onBack}><ArrowRight size={14} style={{ transform: "rotate(180deg)" }} /> Dashboard</button></div></header>
     <main className="owner-content">
       <div className="page-head owner-folder-page-head"><div><p className="eyebrow">Admin library control</p><h1>My folders</h1><p className="subtle">Organize the shared Included Animations library. Changes here are visible to every active license.</p></div><div className="owner-folder-summary"><strong>{folders.length}</strong><span>folders</span><strong>{files.length}</strong><span>videos · {formatBytes(totalBytes)}</span></div></div>
       {error && <div className="error-note" style={{ marginBottom: 16 }}>{error}</div>}
@@ -1847,6 +1847,140 @@ function OwnerFoldersPage({ ownerPassword, onBack }: { ownerPassword: string; on
     </main>
     {folderDialog && <Modal title={folderDialog === "create" ? "Create folder" : "Rename folder"} onClose={() => setFolderDialog(null)} footer={<><button className="button ghost" onClick={() => setFolderDialog(null)}>Cancel</button><button className="button" type="submit" form="owner-folder-form" disabled={busy || !folderDraft.trim()}>{folderDialog === "create" ? "Create folder" : "Save name"} <Check size={14} /></button></>}><form id="owner-folder-form" onSubmit={submitFolder}><div className="field"><label>{folderDialog === "create" ? "Folder name" : "New folder name"}</label><input autoFocus value={folderDraft} onChange={(event) => setFolderDraft(event.target.value)} placeholder="e.g. Subscribe animations" /></div><span className="field-hint">{folderDialog === "create" ? `This folder will be created inside ${folderName}.` : "All child folders and videos will move with it."}</span></form></Modal>}
     {uploadFolder && <IncludedAnimationsModal ownerPassword={ownerPassword} folderName={uploadFolder} onClose={() => setUploadFolder(null)} onChanged={() => void load()} />}
+    {onKeys && <OwnerMobileNav active="dashboard" onDashboard={onBack} onKeys={onKeys} />}
+  </div>;
+}
+
+function OwnerMobileNav({ active, onDashboard, onKeys }: { active: "dashboard" | "keys"; onDashboard: () => void; onKeys: () => void }) {
+  return <nav className="owner-tab-bar" aria-label="Owner navigation">
+    <button className={`owner-tab-link ${active === "dashboard" ? "active" : ""}`} onClick={onDashboard} type="button"><LayoutDashboard size={18}/><span>Dashboard</span></button>
+    <button className={`owner-tab-link ${active === "keys" ? "active" : ""}`} onClick={onKeys} type="button"><KeyRound size={18}/><span>Key</span></button>
+  </nav>;
+}
+
+function OwnerKeysPanel({ tokens, tokenDraft, keyBusy, error, onDraftChange, onAdd, onRemove, onDashboard }: {
+  tokens: VidKrakenTokenStatus[];
+  tokenDraft: string;
+  keyBusy: boolean;
+  error: string;
+  onDraftChange: (value: string) => void;
+  onAdd: (event: FormEvent) => void;
+  onRemove: (token: VidKrakenTokenStatus) => void;
+  onDashboard: () => void;
+}) {
+  return <div className="owner-page owner-key-page">
+    <header className="owner-topbar"><div className="owner-topbar-title"><span className="owner-topbar-kicker">Slash Owner</span><strong>Key</strong></div></header>
+    <main className="owner-content">
+      <div className="page-head owner-page-heading"><div><p className="eyebrow">System access</p><h1>Key</h1><p className="subtle">Manage the secure VidKraken key pool used for YouTube downloads.</p></div><div className="owner-page-badge"><KeyRound size={16}/> {tokens.length} configured</div></div>
+      {error && <div className="error-note">{error}</div>}
+      <OwnerMobileNav active="keys" onDashboard={onDashboard} onKeys={() => undefined} />
+      <section className="card section-card owner-key-card"><div className="section-head"><div><h2 className="section-title">Add a key</h2><p className="subtle" style={{ margin: "5px 0 0", fontSize: 11 }}>Key values stay hidden after they are saved.</p></div><KeyRound size={18} color="#5b52c7"/></div><form className="owner-key-form" onSubmit={onAdd}><div className="field"><label htmlFor="owner-vidkraken-token">VidKraken key</label><input id="owner-vidkraken-token" type="password" autoComplete="new-password" value={tokenDraft} onChange={(event) => onDraftChange(event.target.value)} placeholder="Paste key securely" disabled={keyBusy} data-testid="input-owner-key"/></div><button className="button" type="submit" disabled={keyBusy || !tokenDraft.trim()}><Plus size={15}/> Add key</button></form>{tokens.length === 0 ? <EmptyState icon={<KeyRound size={21}/>} title="No keys yet" copy="Add a key to enable YouTube downloads."/> : <div className="key-list">{tokens.map((token) => { const cooling = token.status === "cooldown"; return <div className="key-row" key={token.key} data-testid={`row-owner-key-${token.key}`}><div><strong>{token.key}</strong><span className="subtle">Secret value hidden</span></div><div className={`status ${cooling ? "stopped" : "live"}`}><span className="status-dot"/>{cooling && token.cooldownUntil ? `Cooldown until ${new Date(token.cooldownUntil).toLocaleTimeString()}` : "Ready"}</div><button className="icon-button" onClick={() => onRemove(token)} disabled={keyBusy} title={`Delete ${token.key}`} aria-label={`Delete ${token.key}`}><Trash2 size={13}/></button></div>; })}</div>}</section>
+    </main>
+  </div>;
+}
+
+function OwnerConsolePage() {
+  const [password, setPassword] = useState("");
+  const [authorizedPassword, setAuthorizedPassword] = useState("");
+  const [licenses, setLicenses] = useState<LicenseSession[]>([]);
+  const [vidKrakenTokens, setVidKrakenTokens] = useState<VidKrakenTokenStatus[]>([]);
+  const [tokenDraft, setTokenDraft] = useState("");
+  const [keyBusy, setKeyBusy] = useState(false);
+  const [name, setName] = useState("");
+  const [days, setDays] = useState("30");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const [message, setMessage] = useState("");
+  const [showIncludedAnimations, setShowIncludedAnimations] = useState(false);
+  const [ownerView, setOwnerView] = useState<"dashboard" | "keys" | "folders">("dashboard");
+  const licenseCreateRef = useRef<HTMLElement>(null);
+
+  const load = async (ownerPassword: string) => {
+    const result = await apiJson<{ licenses?: LicenseSession[] }>("/api/licenses", { headers: { "X-Owner-Password": ownerPassword } });
+    if (!Array.isArray(result?.licenses)) throw new Error("License list could not be loaded. Please try again.");
+    setLicenses(result.licenses);
+  };
+  const loadVidKrakenTokens = async (ownerPassword: string) => {
+    const result = await apiJson<{ count: number; tokens: VidKrakenTokenStatus[] }>("/api/owner/vidkraken-keys", { headers: { "X-Owner-Password": ownerPassword } });
+    if (!Array.isArray(result?.tokens)) throw new Error("Key list could not be loaded.");
+    setVidKrakenTokens(result.tokens);
+  };
+  const signIn = async (event: FormEvent) => {
+    event.preventDefault(); setBusy(true); setError("");
+    try { await load(password); await loadVidKrakenTokens(password); setAuthorizedPassword(password); }
+    catch (reason) { setError(reason instanceof Error ? reason.message : "Owner access was denied."); }
+    finally { setBusy(false); }
+  };
+  const openKeys = async () => {
+    setKeyBusy(true); setError("");
+    try { await loadVidKrakenTokens(authorizedPassword); setOwnerView("keys"); }
+    catch (reason) { setError(reason instanceof Error ? reason.message : "Could not load keys."); }
+    finally { setKeyBusy(false); }
+  };
+  const addToken = async (event: FormEvent) => {
+    event.preventDefault(); if (!tokenDraft.trim()) return;
+    setKeyBusy(true); setError("");
+    try { await apiJson("/api/owner/vidkraken-keys", { method: "POST", headers: { "X-Owner-Password": authorizedPassword }, body: JSON.stringify({ token: tokenDraft }) }); setTokenDraft(""); await loadVidKrakenTokens(authorizedPassword); setMessage("Key added."); }
+    catch (reason) { setError(reason instanceof Error ? reason.message : "Could not add the key."); }
+    finally { setKeyBusy(false); }
+  };
+  const removeToken = async (token: VidKrakenTokenStatus) => {
+    if (!window.confirm(`Delete ${token.key} from the key pool?`)) return;
+    setKeyBusy(true); setError("");
+    try { await apiJson(`/api/owner/vidkraken-keys/${encodeURIComponent(token.key)}`, { method: "DELETE", headers: { "X-Owner-Password": authorizedPassword } }); await loadVidKrakenTokens(authorizedPassword); setMessage("Key removed."); }
+    catch (reason) { setError(reason instanceof Error ? reason.message : "Could not delete the key."); }
+    finally { setKeyBusy(false); }
+  };
+  const create = async (event: FormEvent) => {
+    event.preventDefault(); if (!name.trim()) return;
+    setBusy(true); setError(""); setMessage("");
+    try { await apiJson<LicenseSession>("/api/licenses", { method: "POST", headers: { "X-Owner-Password": authorizedPassword }, body: JSON.stringify({ name: name.trim(), days: Number(days) }) }); setName(""); await load(authorizedPassword); setMessage("License key created."); }
+    catch (reason) { setError(reason instanceof Error ? reason.message : "Could not create the license key."); }
+    finally { setBusy(false); }
+  };
+  const renew = async (licenseId: string) => {
+    setBusy(true); setError(""); setMessage("");
+    try { await apiJson<LicenseSession>(`/api/licenses/${encodeURIComponent(licenseId)}/renew`, { method: "POST", headers: { "X-Owner-Password": authorizedPassword }, body: JSON.stringify({ days: 30 }) }); await load(authorizedPassword); setMessage("License key renewed for 30 days."); }
+    catch (reason) { setError(reason instanceof Error ? reason.message : "Could not renew the license key."); }
+    finally { setBusy(false); }
+  };
+  const remove = async (license: LicenseSession) => {
+    if (!window.confirm(`Delete ${license.name} and its workspace data?`)) return;
+    setBusy(true); setError(""); setMessage("");
+    try { await apiJson(`/api/licenses/${encodeURIComponent(license.licenseId)}`, { method: "DELETE", headers: { "X-Owner-Password": authorizedPassword } }); await load(authorizedPassword); setMessage("License key removed."); }
+    catch (reason) { setError(reason instanceof Error ? reason.message : "Could not delete the license key."); }
+    finally { setBusy(false); }
+  };
+  const recover = async (license: LicenseSession) => {
+    try {
+      await navigator.clipboard.writeText(license.key);
+      setMessage(`License key for ${license.name} copied.`);
+    } catch {
+      setMessage(`License key: ${license.key}`);
+    }
+  };
+  const goDashboard = () => setOwnerView("dashboard");
+
+  if (!authorizedPassword) return <div className="owner-login-page"><section className="owner-login-panel"><div className="owner-login-mark"><KeyRound size={22}/></div><p className="eyebrow">Slash Owner</p><h1>Owner console</h1><p className="subtle">Create license keys, manage shared animations, and keep system keys organized.</p>{error && <div className="error-note">{error}</div>}<form className="login-form" onSubmit={signIn}><div className="field"><label htmlFor="slash-owner-password">Owner password</label><input id="slash-owner-password" type="password" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="current-password" autoFocus data-testid="input-owner-password"/></div><button className="button login-submit" type="submit" disabled={busy || !password} data-testid="button-owner-login">{busy ? "Checking…" : "Open dashboard"} <ArrowRight size={16}/></button></form></section></div>;
+  if (ownerView === "folders") return <OwnerFoldersPage ownerPassword={authorizedPassword} onBack={goDashboard} onKeys={openKeys} />;
+  if (ownerView === "keys") return <OwnerKeysPanel tokens={vidKrakenTokens} tokenDraft={tokenDraft} keyBusy={keyBusy} error={error} onDraftChange={setTokenDraft} onAdd={(event) => void addToken(event)} onRemove={(token) => void removeToken(token)} onDashboard={goDashboard} />;
+
+  return <div className="owner-page owner-dashboard-page">
+    <header className="owner-topbar"><div className="owner-topbar-title"><span className="owner-topbar-kicker">Slash Owner</span><strong>Dashboard</strong></div><span className="owner-secure-label"><ShieldCheck size={15}/> Secure owner workspace</span></header>
+    <main className="owner-content">
+      <div className="page-head owner-page-heading"><div><p className="eyebrow">Owner workspace</p><h1>Dashboard</h1><p className="subtle">Manage your folders, animations, license keys, and system access from one place.</p></div><div className="owner-page-badge"><ShieldCheck size={16}/> Connected</div></div>
+      {error && <div className="error-note">{error}</div>}{message && <div className="owner-success">{message}</div>}
+      <OwnerMobileNav active="dashboard" onDashboard={goDashboard} onKeys={openKeys} />
+      <section className="owner-action-grid" aria-label="Owner actions">
+        <button className="owner-action-card folder" onClick={() => setOwnerView("folders")}><span className="owner-action-icon"><FolderOpen size={22}/></span><span><strong>My Folder</strong><small>Organize shared animation folders and videos.</small></span><ArrowRight size={17}/></button>
+        <button className="owner-action-card animation" onClick={() => setShowIncludedAnimations(true)}><span className="owner-action-icon"><Upload size={22}/></span><span><strong>Include Animation</strong><small>Add videos available to every active license.</small></span><ArrowRight size={17}/></button>
+        <button className="owner-action-card license" onClick={() => licenseCreateRef.current?.scrollIntoView({ behavior: "smooth", block: "center" })}><span className="owner-action-icon"><KeyRound size={22}/></span><span><strong>License key</strong><small>Create and recover customer access keys.</small></span><ArrowRight size={17}/></button>
+        <button className="owner-action-card system-key" onClick={() => void openKeys()} disabled={keyBusy}><span className="owner-action-icon"><ShieldCheck size={22}/></span><span><strong>Key</strong><small>Manage the secure downloader key pool.</small></span><ArrowRight size={17}/></button>
+      </section>
+      <section className="card section-card owner-create" ref={licenseCreateRef}><div className="section-head"><div><h2 className="section-title">Create license key</h2><p className="subtle" style={{ margin: "5px 0 0", fontSize: 11 }}>Create a separate workspace and access key for each customer.</p></div><KeyRound size={18} color="#5b52c7"/></div><form className="owner-create-form" onSubmit={create}><div className="field"><label>Customer / workspace name</label><input value={name} onChange={(event) => setName(event.target.value)} placeholder="Studio A" data-testid="input-license-name"/></div><div className="field"><label>Valid for days</label><input type="number" min="1" max="3650" value={days} onChange={(event) => setDays(event.target.value)} data-testid="input-license-days"/></div><button className="button" type="submit" disabled={busy || !name.trim()}><Plus size={15}/> Create key</button></form></section>
+      <section className="card section-card owner-list"><div className="section-head"><div><h2 className="section-title">License keys</h2><p className="subtle" style={{ margin: "5px 0 0", fontSize: 11 }}>{licenses.length} key{licenses.length === 1 ? "" : "s"} · Recover or renew access below.</p></div><KeyRound size={18} color="#5b52c7"/></div>{licenses.length === 0 ? <EmptyState icon={<KeyRound size={21}/>} title="No license keys yet" copy="Create the first key above to give a workspace access."/> : <div className="license-list">{licenses.map((license) => { const active = isLicenseActive(license); return <div className="license-row" key={license.licenseId}><div className="license-row-main"><div className="license-key-badge"><KeyRound size={15}/></div><div><strong>{license.name}</strong><span className="mono">{license.key}</span></div></div><div className={`status ${active ? "live" : "stopped"}`}><span className="status-dot"/>{active ? "Active" : "Expired"} · {new Date(license.expiresAt).toLocaleDateString()}</div><div className="actions"><button className="button secondary small" onClick={() => void recover(license)} disabled={busy}><KeyRound size={13}/> Recover</button><button className="button secondary small" onClick={() => void renew(license.licenseId)} disabled={busy}>Renew</button><button className="icon-button" onClick={() => void remove(license)} disabled={busy} title="Delete license" aria-label={`Delete ${license.name}`}><Trash2 size={13}/></button></div></div>; })}</div>}</section>
+    </main>
+    {showIncludedAnimations && <IncludedAnimationsModal ownerPassword={authorizedPassword} onClose={() => setShowIncludedAnimations(false)} />}
   </div>;
 }
 
@@ -4322,7 +4456,7 @@ function App() {
   if (isSignedIn && accountSession.error && !accountSession.account) return <div className="workspace-loading"><span>{accountSession.error}</span></div>;
   if (location === "/owner") {
     if (accountSession.account?.role === "owner") return <OwnerAccountPage account={accountSession.account} onSwitchToUser={() => setLocation("/dashboard")}/>;
-    return <OwnerPage/>;
+    return <OwnerConsolePage/>;
   }
   if (location === "/" && !isLicenseActive(activeLicense)) return <LandingPage />;
   const openMobileRoom = () => { setMobileGiftKey(""); setLocation("/dashboard"); };
