@@ -11,7 +11,7 @@ import {
 } from "@phosphor-icons/react";
 import "./login.css";
 
-type LoginMethod = "phone" | "google" | "license";
+type LoginMethod = "phone" | "license";
 
 export type LoginPageProps = {
   expired: boolean;
@@ -224,15 +224,7 @@ export default function LoginPage({
           </div>
           <p className="streamly-login-copy">{expired ? "Renew your current license to keep your channels, videos, and settings exactly as you left them." : "Sign in to your account and start your broadcast."}</p>
           {shownError && <div className="streamly-login-error" role="alert"><WarningCircle size={17} weight="duotone" /><span>{shownError}</span></div>}
-          <div className="streamly-login-tabs" role="tablist" aria-label="Sign-in methods">
-            {([["phone", Phone, "Phone"], ["google", GoogleLogo, "Google"], ["license", Key, "License key"]] as const).map(([key, Icon, label]) => (
-              <button key={key} id={`login-tab-${key}`} type="button" role="tab" aria-selected={method === key} aria-controls="login-method-panel" tabIndex={method === key ? 0 : -1} className={method === key ? "active" : ""} onClick={() => { setMethod(key); setLocalError(""); setLicenseError(""); }}>
-                <Icon size={17} weight="duotone" /> <span>{label}</span>
-              </button>
-            ))}
-          </div>
-
-          <div id="login-method-panel" className="streamly-login-method-panel" role="tabpanel" aria-labelledby={`login-tab-${method}`}>
+          <div id="login-method-panel" className="streamly-login-method-panel" role="region" aria-label={method === "phone" ? "Phone sign-in" : "License key sign-in"}>
             {method === "phone" && (
               otpSent ? (
                 <form className="streamly-login-form" onSubmit={verifyOtp}>
@@ -257,10 +249,22 @@ export default function LoginPage({
               )
             )}
 
-            {method === "google" && <div className="streamly-google-panel"><button type="button" className="streamly-google-button" onClick={() => { void onGoogleLogin(); }} disabled={busy}><GoogleLogo size={21} weight="bold" /> Continue with Google <ArrowRight size={16} /></button><p><ShieldCheck size={15} weight="duotone" /> We only access your basic profile and YouTube channel info</p></div>}
-
-            {method === "license" && <form className="streamly-login-form" onSubmit={activateLicense}><label htmlFor="license-key">License key<div className={`streamly-key-field ${licenseError ? "has-error" : ""}`}><Key size={17} weight="duotone" aria-hidden="true" /><input id="license-key" value={licenseKey} onChange={(event) => { setLicenseKey(event.target.value.toUpperCase()); setLicenseError(""); }} placeholder="XXXX-XXXX-XXXX-XXXX" autoComplete="off" aria-invalid={Boolean(licenseError)} /></div><small>Find your license key in your purchase confirmation email.</small></label><button className="streamly-login-primary" type="submit" disabled={busy || !licenseKey.trim()}>{busy ? "Activating…" : expired ? "Renew & login" : "Activate & login"} <ArrowRight size={17} weight="bold" /></button></form>}
+            {method === "license" && <form className="streamly-login-form" onSubmit={activateLicense}><label htmlFor="license-key">License key<div className={`streamly-key-field ${licenseError ? "has-error" : ""}`}><Key size={17} weight="duotone" aria-hidden="true" /><input id="license-key" value={licenseKey} onChange={(event) => { setLicenseKey(event.target.value.toUpperCase()); setLicenseError(""); }} placeholder="XXXX-XXXX-XXXX-XXXX" autoComplete="off" aria-invalid={Boolean(licenseError)} /></div><small>Find your license key in your purchase confirmation email.</small></label><button className="streamly-login-primary" type="submit" disabled={busy || !licenseKey.trim()}>{busy ? "Activating…" : expired ? "Renew & login" : "Activate & login"} <ArrowRight size={17} weight="bold" /></button><button className="streamly-login-back" type="button" onClick={() => { setMethod("phone"); setLocalError(""); setLicenseError(""); }}>Back to phone sign-in</button></form>}
           </div>
+
+          {method === "phone" && !otpSent && (
+            <div className="streamly-login-alternatives" aria-label="Other sign-in options">
+              <div className="streamly-login-alternatives-divider"><span>or continue with</span></div>
+              <div className="streamly-login-alternative-grid">
+                <button className="streamly-login-alternative-button" type="button" onClick={() => { void onGoogleLogin(); }} disabled={busy}>
+                  <GoogleLogo size={18} weight="bold" /> Google
+                </button>
+                <button className="streamly-login-alternative-button" type="button" onClick={() => { setMethod("license"); setLocalError(""); setLicenseError(""); }} disabled={busy}>
+                  <Key size={18} weight="duotone" /> License key
+                </button>
+              </div>
+            </div>
+          )}
 
           <div className="streamly-login-trust"><ShieldCheck size={15} weight="duotone" /> Private workspace access, protected by secure sign-in</div>
         </section>
