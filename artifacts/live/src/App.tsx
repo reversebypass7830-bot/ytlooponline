@@ -4680,10 +4680,6 @@ function App() {
   }, [accountSession.account, profileGateId]);
   useEffect(() => {
     if (firebaseLoading || (isSignedIn && accountSession.loading)) return;
-    if (accountSession.account && accountSession.account.role !== "owner" && !accountSession.account.active && location !== "/subscription") {
-      setLocation("/subscription");
-      return;
-    }
     if (!mobileGiftKey && accountSession.account && (location === "/" || location === "/access" || location.startsWith("/sign-in") || location.startsWith("/sign-up"))) {
       setLocation(accountSession.account.role === "owner" ? "/owner" : "/dashboard");
       return;
