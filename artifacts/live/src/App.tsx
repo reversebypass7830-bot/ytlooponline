@@ -2,7 +2,7 @@ import { useEffect, useId, useMemo, useRef, useState, type CSSProperties, type C
 import { Link, Redirect, Route, Switch, useLocation, Router as WouterRouter } from "wouter";
 import {
   Activity as ActivityIcon, ArrowRight, BookOpen, Camera, Check, CircleHelp, Clipboard,
-  Download, FileVideo, FolderOpen, Gauge, Gift, Instagram, LayoutDashboard,
+  CalendarDays, Download, FileVideo, Filter, FolderOpen, Gauge, Gift, Instagram, LayoutDashboard,
   Image, Layers, Link2, Menu, MessageCircle, MonitorPlay, Pencil, Play, Plus, Radio, Scissors, Search, Send, Settings,
   UserRound, CreditCard, KeyRound, Mail, Receipt, Users,
   Mic, ShieldCheck, Smartphone, Sparkles, Square, Trash2, Type, Upload, Video, Wand2, X, Youtube,
@@ -2246,6 +2246,9 @@ function SubscriptionPage({ workspace, account, plans, onSelectPlan }: { workspa
   const [streamCounts, setStreamCounts] = useState({ standard: 9, premium: 9 });
   const [busyPlan, setBusyPlan] = useState("");
   const [message, setMessage] = useState("");
+  const [historyFilter, setHistoryFilter] = useState<"all" | "purchase" | "grant">("all");
+  const [historySearch, setHistorySearch] = useState("");
+  const [historyRange, setHistoryRange] = useState<"all" | "30" | "90" | "365">("all");
   const pricing = {
     Day: { unit: "day", limit: 30, standard: 35, standardCompare: 50, premium: 51, premiumCompare: 76, standardId: "day-standard", premiumId: "day-premium" },
     Month: { unit: "month", limit: 12, standard: 899, standardCompare: 1199, premium: 1299, premiumCompare: 1699, standardId: "monthly-standard", premiumId: "monthly-premium" },
@@ -2287,6 +2290,22 @@ function SubscriptionPage({ workspace, account, plans, onSelectPlan }: { workspa
   const active = account.active && new Date(account.accessEndsAt).getTime() > Date.now();
   const trial = findPlan("trial-1-day");
   const trialActive = account.activePlanId === trial?.id && active;
+  const dayMs = 24 * 60 * 60 * 1000;
+  const billingHistory = account.history.filter((item) => item.type === "purchase" || item.type === "grant");
+  const filteredHistory = billingHistory.filter((item) => {
+    const matchesType = historyFilter === "all" || item.type === historyFilter;
+    const plan = item.planId ? findPlan(item.planId) : undefined;
+    const searchValue = `${item.message} ${plan?.name || ""} ${item.planId || ""} ${item.id}`.toLowerCase();
+    const matchesSearch = !historySearch.trim() || searchValue.includes(historySearch.trim().toLowerCase());
+    const rangeDays = historyRange === "all" ? null : Number(historyRange);
+    const matchesRange = rangeDays === null || Date.now() - new Date(item.at).getTime() <= rangeDays * dayMs;
+    return matchesType && matchesSearch && matchesRange;
+  });
+  const clearHistoryFilters = () => {
+    setHistoryFilter("all");
+    setHistorySearch("");
+    setHistoryRange("all");
+  };
   const paidOptions = [
     { kind: "standard" as const, label: "STANDARD", title: "1080p Standard", id: selected.standardId, price: selected.standard, compare: selected.standardCompare, copy: "Simple. Stable. Reliable", bestFor: "Casual creators easing into live before going all-in", quality: "Standard broadcast quality", storage: "10 GB video storage/stream" },
     { kind: "premium" as const, label: "PREMIUM", title: "1080p Premium", id: selected.premiumId, price: selected.premium, compare: selected.premiumCompare, copy: "Professional quality. Total control", bestFor: "Always-on channels like news, devotional, games or lofi", quality: "Premium broadcast quality", storage: "20 GB video storage/stream" },
@@ -2317,7 +2336,20 @@ function SubscriptionPage({ workspace, account, plans, onSelectPlan }: { workspa
           return <article className={`subscription-plan-card ${option.kind} ${selectedPlan ? "selected" : ""}`} key={option.id}><div className="subscription-plan-top"><span className="plan-label">{option.label}</span>{selectedPlan && <span className="plan-active"><Check size={13}/> Active</span>}</div><h2>{option.title}</h2><p>{option.copy}</p><div className="subscription-price"><strong>₹{(option.price * duration * streams).toLocaleString("en-IN")}</strong><del>₹{(option.compare * duration * streams).toLocaleString("en-IN")}</del><span>/ {selected.unit}</span><em>{Math.round((1 - option.price / option.compare) * 100)}%<br/>OFF</em></div><div className="subscription-feature-tiles"><span><Radio size={16}/><b>Stream your<br/>videos as live</b></span><span><Sparkles size={16}/><b>{option.quality.split(" ")[0]}<br/>broadcast quality</b></span><span><Layers size={16}/><b>{option.storage.split(" ")[0]} GB video<br/>storage/stream</b></span></div><ul className="subscription-features"><li><Check size={12}/>Loop your videos endlessly</li><li><Check size={12}/>{option.kind === "premium" ? "Premium" : "Standard"} audio quality</li><li><Check size={12}/>Add and remove videos</li><li><Check size={12}/>Upload from cloud</li></ul><div className="subscription-best"><span>BEST FOR</span><p>{option.bestFor}</p></div><div className="stream-stepper"><span>Stream count</span><button type="button" onClick={() => changeStreams(option.kind, -1)} aria-label={`Decrease ${option.label} stream count`}>−</button><strong>{streams}</strong><button type="button" onClick={() => changeStreams(option.kind, 1)} aria-label={`Increase ${option.label} stream count`}>+</button></div><button className="button subscription-select" type="button" onClick={() => void activate(option.id, streams)} disabled={!plan || busyPlan === option.id || selectedPlan}>{busyPlan === option.id ? "Activating…" : selectedPlan ? "Current plan" : "Select now"} <ArrowRight size={15}/></button><small>Up to {streams} simultaneous streams. The {streams + 1}th stream will show “Please upgrade your plan.”</small></article>;
         })}</div>
       </section>
-      <section className="card subscription-history"><div className="section-head"><div><span className="metric-kicker">Billing record</span><h2 className="section-title">Subscription history</h2></div><Receipt size={17}/></div>{account.history.filter((item) => item.type === "purchase" || item.type === "grant").length === 0 ? <p className="subtle">Your subscription invoices will appear here after activation.</p> : <div className="subscription-history-list">{account.history.filter((item) => item.type === "purchase" || item.type === "grant").map((item) => <div className="subscription-history-row" key={item.id}><div><strong>{item.message}</strong><span>{new Date(item.at).toLocaleString()} · {item.days || 0} days · {item.streamLimit || account.streamLimit} streams</span></div><button className="button secondary small" onClick={() => downloadInvoice(item)}><Download size={13}/> Download invoice</button></div>)}</div>}</section>
+      <section className="card subscription-history">
+        <div className="subscription-history-header">
+          <div><span className="metric-kicker">Billing record</span><h2 className="section-title">Transaction history</h2><p>Review every subscription purchase and owner-granted extension on this account.</p></div>
+          <div className="subscription-history-count"><strong>{filteredHistory.length}</strong><span>of {billingHistory.length} records</span></div>
+        </div>
+        <div className="subscription-history-toolbar">
+          <label className="subscription-history-search"><Search size={15}/><input value={historySearch} onChange={(event) => setHistorySearch(event.target.value)} placeholder="Search plan or invoice reference" aria-label="Search transaction history"/></label>
+          <div className="subscription-history-filters" role="tablist" aria-label="Transaction type">
+            {([{ value: "all", label: "All" }, { value: "purchase", label: "Purchases" }, { value: "grant", label: "Grants" }] as const).map((filter) => <button key={filter.value} type="button" role="tab" aria-selected={historyFilter === filter.value} className={historyFilter === filter.value ? "active" : ""} onClick={() => setHistoryFilter(filter.value)}><Filter size={13}/>{filter.label}</button>)}
+          </div>
+          <label className="subscription-history-range"><CalendarDays size={14}/><span className="sr-only">Filter transactions by date</span><select value={historyRange} onChange={(event) => setHistoryRange(event.target.value as typeof historyRange)} aria-label="Filter transactions by date"><option value="all">Any time</option><option value="30">Last 30 days</option><option value="90">Last 90 days</option><option value="365">Last year</option></select></label>
+        </div>
+        {billingHistory.length === 0 ? <div className="subscription-history-empty"><Receipt size={22}/><strong>No billing transactions yet</strong><p>Your subscription invoices will appear here after activation.</p></div> : filteredHistory.length === 0 ? <div className="subscription-history-empty"><Search size={22}/><strong>No matching transactions</strong><p>Try a different search or remove one of the filters.</p><button className="button secondary small" type="button" onClick={clearHistoryFilters}>Clear filters</button></div> : <div className="subscription-history-list">{filteredHistory.map((item) => { const plan = item.planId ? findPlan(item.planId) : undefined; return <div className="subscription-history-row" key={item.id}><div className="subscription-history-row-main"><span className={`subscription-transaction-icon ${item.type}`}><Receipt size={16}/></span><div className="subscription-history-copy"><div className="subscription-history-title"><strong>{plan?.name || item.message}</strong><span className={`subscription-transaction-type ${item.type}`}>{item.type === "grant" ? "Owner grant" : "Purchase"}</span></div><p>{item.message} · {item.days || plan?.durationDays || 0} days · {item.streamLimit || account.streamLimit} streams</p><small><CalendarDays size={12}/>{new Date(item.at).toLocaleString()} <span>·</span> Ref {item.id.slice(0, 8)}</small></div></div><div className="subscription-history-row-action"><span className="subscription-transaction-status">Completed</span><button className="button secondary small" type="button" onClick={() => downloadInvoice(item)}><Download size={13}/> Download invoice</button></div></div>; })}</div>}
+      </section>
     </div>
   </AppShell>;
 }
