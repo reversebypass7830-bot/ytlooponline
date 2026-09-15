@@ -16,6 +16,7 @@ type PlanRecord = {
   description: string;
   durationDays: number;
   price: string;
+  streamLimit?: number;
   isTrial?: boolean;
   active: boolean;
   createdAt: string;
@@ -29,6 +30,7 @@ type AccountHistoryItem = {
   at: string;
   planId?: string;
   days?: number;
+  streamLimit?: number;
 };
 
 type AccountRecord = {
@@ -45,6 +47,7 @@ type AccountRecord = {
   trialEndsAt: string;
   activePlanId: string;
   accessEndsAt: string;
+  streamLimit?: number;
   createdAt: string;
   lastLoginAt: string;
   history: AccountHistoryItem[];
@@ -60,6 +63,7 @@ const defaultPlans: PlanRecord[] = [
     description: "Full workspace access for one day.",
     durationDays: 1,
     price: "FREE",
+    streamLimit: 1,
     isTrial: true,
     active: true,
     createdAt: "2026-01-01T00:00:00.000Z",
@@ -71,6 +75,7 @@ const defaultPlans: PlanRecord[] = [
     description: "Full broadcast toolkit for one month.",
     durationDays: 30,
     price: "₹799",
+    streamLimit: 9,
     active: true,
     createdAt: "2026-01-01T00:00:00.000Z",
     updatedAt: "2026-01-01T00:00:00.000Z",
@@ -81,6 +86,7 @@ const defaultPlans: PlanRecord[] = [
     description: "Creator access window for three months.",
     durationDays: 90,
     price: "Contact us",
+    streamLimit: 9,
     active: true,
     createdAt: "2026-01-01T00:00:00.000Z",
     updatedAt: "2026-01-01T00:00:00.000Z",
@@ -91,6 +97,7 @@ const defaultPlans: PlanRecord[] = [
     description: "A longer growth window for active channels.",
     durationDays: 180,
     price: "Contact us",
+    streamLimit: 9,
     active: true,
     createdAt: "2026-01-01T00:00:00.000Z",
     updatedAt: "2026-01-01T00:00:00.000Z",
@@ -101,6 +108,73 @@ const defaultPlans: PlanRecord[] = [
     description: "Best-value annual broadcast access.",
     durationDays: 365,
     price: "₹7,999",
+    streamLimit: 9,
+    active: true,
+    createdAt: "2026-01-01T00:00:00.000Z",
+    updatedAt: "2026-01-01T00:00:00.000Z",
+  },
+  {
+    id: "day-standard",
+    name: "1080p Standard",
+    description: "Standard broadcast quality for a focused day.",
+    durationDays: 1,
+    price: "₹35 / stream",
+    streamLimit: 10,
+    active: true,
+    createdAt: "2026-01-01T00:00:00.000Z",
+    updatedAt: "2026-01-01T00:00:00.000Z",
+  },
+  {
+    id: "day-premium",
+    name: "1080p Premium",
+    description: "Professional quality and control for a focused day.",
+    durationDays: 1,
+    price: "₹51 / stream",
+    streamLimit: 10,
+    active: true,
+    createdAt: "2026-01-01T00:00:00.000Z",
+    updatedAt: "2026-01-01T00:00:00.000Z",
+  },
+  {
+    id: "monthly-standard",
+    name: "1080p Standard Monthly",
+    description: "Standard broadcast quality for a month.",
+    durationDays: 30,
+    price: "₹899 / stream",
+    streamLimit: 10,
+    active: true,
+    createdAt: "2026-01-01T00:00:00.000Z",
+    updatedAt: "2026-01-01T00:00:00.000Z",
+  },
+  {
+    id: "monthly-premium",
+    name: "1080p Premium Monthly",
+    description: "Professional broadcast quality for a month.",
+    durationDays: 30,
+    price: "₹1,299 / stream",
+    streamLimit: 10,
+    active: true,
+    createdAt: "2026-01-01T00:00:00.000Z",
+    updatedAt: "2026-01-01T00:00:00.000Z",
+  },
+  {
+    id: "annual-standard",
+    name: "1080p Standard Annual",
+    description: "Standard broadcast quality for a year.",
+    durationDays: 365,
+    price: "₹8,999 / stream",
+    streamLimit: 10,
+    active: true,
+    createdAt: "2026-01-01T00:00:00.000Z",
+    updatedAt: "2026-01-01T00:00:00.000Z",
+  },
+  {
+    id: "annual-premium",
+    name: "1080p Premium Annual",
+    description: "Professional broadcast quality for a year.",
+    durationDays: 365,
+    price: "₹12,999 / stream",
+    streamLimit: 10,
     active: true,
     createdAt: "2026-01-01T00:00:00.000Z",
     updatedAt: "2026-01-01T00:00:00.000Z",
@@ -122,10 +196,11 @@ function ownerIds(): Set<string> {
 
 async function loadPlans(): Promise<PlanMap> {
   const existing = (await firebaseGet<PlanMap | null>("plans")) ?? {};
-  if (Object.keys(existing).length) return existing;
   const seeded = Object.fromEntries(defaultPlans.map((plan) => [plan.id, plan]));
-  await Promise.all(Object.values(seeded).map((plan) => firebasePut(planPath(plan.id), plan)));
-  return seeded;
+  const merged = { ...seeded, ...existing };
+  const missing = Object.values(seeded).filter((plan) => !existing[plan.id]);
+  if (missing.length) await Promise.all(missing.map((plan) => firebasePut(planPath(plan.id), plan)));
+  return merged;
 }
 
 async function loadAccount(userId: string): Promise<AccountRecord | null> {
@@ -134,6 +209,7 @@ async function loadAccount(userId: string): Promise<AccountRecord | null> {
 
 function publicAccount(account: AccountRecord, plans: PlanMap) {
   const plan = plans[account.activePlanId] || null;
+  const streamLimit = account.streamLimit || plan?.streamLimit || 1;
   return {
     id: account.id,
     displayName: account.displayName,
@@ -149,6 +225,7 @@ function publicAccount(account: AccountRecord, plans: PlanMap) {
     activePlanId: account.activePlanId,
     activePlan: plan,
     accessEndsAt: account.accessEndsAt,
+    streamLimit,
     active: isActive(account),
     createdAt: account.createdAt,
     history: account.history,
@@ -176,6 +253,7 @@ async function ensureAccount(req: Request): Promise<{ account: AccountRecord; pl
         { id: randomUUID(), type: "login" as const, message: "Signed in", at: now.toISOString() },
         ...(existing.history || []),
       ].slice(0, 50),
+      streamLimit: existing.streamLimit || plans[existing.activePlanId]?.streamLimit || 1,
     };
     await firebasePut(accountPath(userId), next);
     return { account: next, plans };
@@ -197,6 +275,7 @@ async function ensureAccount(req: Request): Promise<{ account: AccountRecord; pl
     trialEndsAt,
     activePlanId: trial.id,
     accessEndsAt: trialEndsAt,
+    streamLimit: trial.streamLimit || 1,
     createdAt: now.toISOString(),
     lastLoginAt: now.toISOString(),
     history: [
@@ -236,6 +315,7 @@ export async function ensureFirebaseAccount(identity: { userId: string; email: s
         { id: randomUUID(), type: "login" as const, message: "Signed in with Google", at: now.toISOString() },
         ...(existing.history || []),
       ].slice(0, 50),
+      streamLimit: existing.streamLimit || plans[existing.activePlanId]?.streamLimit || 1,
     };
     await firebasePut(accountPath(existing.id), next);
     return { account: next, plans };
@@ -257,6 +337,7 @@ export async function ensureFirebaseAccount(identity: { userId: string; email: s
     trialEndsAt,
     activePlanId: trial.id,
     accessEndsAt: trialEndsAt,
+    streamLimit: trial.streamLimit || 1,
     createdAt: now.toISOString(),
     lastLoginAt: now.toISOString(),
     history: [
@@ -302,6 +383,7 @@ export async function createMobileAccount(input: {
     trialEndsAt,
     activePlanId: trial.id,
     accessEndsAt: trialEndsAt,
+    streamLimit: trial.streamLimit || 1,
     createdAt: now.toISOString(),
     lastLoginAt: now.toISOString(),
     history: [
@@ -396,6 +478,58 @@ router.put("/account/profile", requireAccountAuth, async (req, res): Promise<voi
   }
 });
 
+router.post("/account/subscription/select", requireAccountAuth, async (req, res): Promise<void> => {
+  try {
+    const { account, plans } = await ensureAccount(req);
+    const planId = typeof req.body?.planId === "string" ? req.body.planId : "";
+    const plan = plans[planId];
+    if (!plan || !plan.active || plan.isTrial) {
+      res.status(400).json({ error: "Choose an active paid plan." });
+      return;
+    }
+    const multiplier = Number(req.body?.durationMultiplier);
+    const safeMultiplier = Number.isInteger(multiplier) && multiplier >= 1 && multiplier <= 30 ? multiplier : 1;
+    const requestedStreams = Number(req.body?.streamLimit);
+    const streamLimit = Number.isInteger(requestedStreams)
+      ? Math.min(plan.streamLimit || 10, Math.max(1, requestedStreams))
+      : plan.streamLimit || 1;
+    const now = Date.now();
+    const accessEndsAt = new Date(now + plan.durationDays * safeMultiplier * dayMs).toISOString();
+    const next: AccountRecord = {
+      ...account,
+      activePlanId: plan.id,
+      accessEndsAt,
+      streamLimit,
+      history: [
+        {
+          id: randomUUID(),
+          type: "purchase" as const,
+          message: `${plan.name} activated`,
+          at: new Date(now).toISOString(),
+          planId: plan.id,
+          days: plan.durationDays * safeMultiplier,
+          streamLimit,
+        },
+        ...(account.history || []),
+      ].slice(0, 50),
+    };
+    await Promise.all([
+      firebasePut(accountPath(account.id), next),
+      firebasePut(licensePath(account.licenseId), {
+        key: account.licenseKey,
+        name: next.displayName,
+        createdAt: next.createdAt,
+        expiresAt: next.accessEndsAt,
+        active: true,
+        accountId: account.id,
+      }),
+    ]);
+    res.json({ account: publicAccount(next, plans), plans: Object.values(plans).filter((item) => item.active) });
+  } catch (error) {
+    sendError(req, res, error, "Could not activate this subscription.");
+  }
+});
+
 router.post("/account/claim-owner", requireClerkAuth, async (req, res): Promise<void> => {
   if (!ownerAuthorized(req)) {
     res.status(401).json({ error: "Enter the owner password once to link this Google account." });
@@ -415,9 +549,10 @@ router.get("/owner/users", async (req, res): Promise<void> => {
   if (!(await requireAccountOwner(req, res))) return;
   try {
     const accounts = (await firebaseGet<AccountMap | null>("accounts")) ?? {};
+    const plans = await loadPlans();
     res.json({
       users: Object.values(accounts)
-        .map((account) => ({ ...publicAccount(account, {}), history: account.history || [] }))
+        .map((account) => ({ ...publicAccount(account, plans), history: account.history || [] }))
         .sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
     });
   } catch (error) {
@@ -443,8 +578,9 @@ router.post("/owner/users/:userId/grant", async (req, res): Promise<void> => {
       ...account,
       activePlanId: planId,
       accessEndsAt,
+        streamLimit: plans[planId]?.streamLimit || account.streamLimit || 1,
       history: [
-        { id: randomUUID(), type: "grant" as const, message: `Owner granted ${days} days`, at: new Date().toISOString(), planId, days },
+        { id: randomUUID(), type: "grant" as const, message: `Owner granted ${days} days`, at: new Date().toISOString(), planId, days, streamLimit: plans[planId]?.streamLimit || account.streamLimit || 1 },
         ...(account.history || []),
       ].slice(0, 50),
     };

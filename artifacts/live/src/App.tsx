@@ -4,7 +4,7 @@ import {
   Activity as ActivityIcon, ArrowRight, BookOpen, Camera, Check, CircleHelp, Clipboard,
   Download, FileVideo, FolderOpen, Gauge, Gift, Instagram, LayoutDashboard,
   Image, Layers, Link2, Menu, MessageCircle, MonitorPlay, Pencil, Play, Plus, Radio, Scissors, Search, Send, Settings,
-  UserRound, CreditCard, KeyRound, Mail,
+  UserRound, CreditCard, KeyRound, Mail, Receipt, Users,
   Mic, ShieldCheck, Smartphone, Sparkles, Square, Trash2, Type, Upload, Video, Wand2, X, Youtube,
 } from "lucide-react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -118,13 +118,13 @@ type EditorAsset = { id: string; fileId: string; title: string; playbackUrl: str
 type Activity = { id: string; type: string; message: string; time: string };
 type DataState = { channels: LiveChannel[]; videos: VideoItem[]; groups: VideoGroup[]; editorAssets: EditorAsset[]; activities: Activity[]; editorDraft?: EditorDraft };
 type LicenseSession = { licenseId: string; key: string; name: string; expiresAt: string; active: boolean; clientId?: string };
-type AccountPlan = { id: string; name: string; description: string; durationDays: number; price: string; isTrial?: boolean; active: boolean; createdAt: string; updatedAt: string };
-type AccountHistoryItem = { id: string; type: "trial_started" | "purchase" | "grant" | "login"; message: string; at: string; planId?: string; days?: number };
+type AccountPlan = { id: string; name: string; description: string; durationDays: number; price: string; streamLimit?: number; isTrial?: boolean; active: boolean; createdAt: string; updatedAt: string };
+type AccountHistoryItem = { id: string; type: "trial_started" | "purchase" | "grant" | "login"; message: string; at: string; planId?: string; days?: number; streamLimit?: number };
 type AccountSummary = {
   id: string; displayName: string; email: string; phone?: string; profileImagePath?: string; profileCompleted?: boolean; role: "owner" | "user";
   licenseId: string; licenseKey: string; trialStartedAt: string; trialEndsAt: string;
-  activePlanId: string; activePlan: AccountPlan | null; accessEndsAt: string; active: boolean;
-  history: AccountHistoryItem[];
+  activePlanId: string; activePlan: AccountPlan | null; accessEndsAt: string; active: boolean; streamLimit: number;
+  history: AccountHistoryItem[]; createdAt: string;
 };
 type AccountResponse = { account: AccountSummary; plans: AccountPlan[] };
 type OwnerUser = AccountSummary;
@@ -994,6 +994,16 @@ function useAccountSession(isSignedIn: boolean, userId?: string, authReady = tru
     setPlans(result.plans || []);
   };
 
+  const selectPlan = async (planId: string, streamLimit: number, durationMultiplier = 1) => {
+    const result = await apiJson<AccountResponse>("/api/account/subscription/select", {
+      method: "POST",
+      body: JSON.stringify({ planId, streamLimit, durationMultiplier }),
+    });
+    setAccount(result.account);
+    setPlans(result.plans || []);
+    return result.account;
+  };
+
   const clear = () => {
     requestIdRef.current += 1;
     setAccount(null);
@@ -1006,7 +1016,7 @@ function useAccountSession(isSignedIn: boolean, userId?: string, authReady = tru
     if (!nextAccount) throw new Error("Your session could not be restored. Please sign in again.");
   };
 
-  return { account, plans, loading, error, reload, saveProfile, savePhone, claimOwner, clear };
+  return { account, plans, loading, error, reload, saveProfile, savePhone, claimOwner, selectPlan, clear };
 }
 
 function useWorkspace(license: LicenseSession | null, clearLicense: () => void) {
@@ -1210,6 +1220,7 @@ function Sidebar({ path, open, onClose, user, photo, data }: { path:string; open
     { href:"/videos", label:"Video", icon:FileVideo },
     { href:"/live-preview", label:"Stream preview", icon:Radio, count:data.channels.filter(c=>c.status==="live").length || undefined },
     { href:"/editor", label:"Video editor", icon:Wand2 },
+    { href:"/subscription", label:"Subscription", icon:CreditCard },
   ];
   return <aside className={`sidebar ${open ? "open" : ""}`} data-testid="sidebar">
     <Brand />
@@ -1267,6 +1278,7 @@ function MobileNav({ path }: { path:string }) {
   const primary = [
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
     { href: "/analytics", label: "Analytics", icon: Gauge },
+    { href: "/subscription", label: "Subscription", icon: CreditCard },
     { href: "/profile", label: "Profile", icon: UserRound },
   ];
   return <div className="mobile-nav-wrap">
@@ -1705,7 +1717,7 @@ function IncludedAnimationsModal({ ownerPassword, onClose, folderName = included
     {message && <div className="file-picked"><Check size={13}/> {message}</div>}{error && <div className="error-note" style={{whiteSpace:"pre-line"}}>{error}</div>}<div className="form-note"><ShieldCheck size={14} style={{verticalAlign:"-3px",marginRight:6}}/>Only the owner can add or remove shared animations. License users can watch and use them, but cannot change them.</div></form></Modal>;
 }
 
-function OwnerFoldersPage({ ownerPassword, onBack, onKeys }: { ownerPassword: string; onBack: () => void; onKeys?: () => void }) {
+function OwnerFoldersPage({ ownerPassword, onBack, onKeys, onNavigate }: { ownerPassword: string; onBack: () => void; onKeys?: () => void; onNavigate?: (section: OwnerSection) => void }) {
   const [library, setLibrary] = useState<IncludedFoldersResponse | null>(null);
   const [selectedFolder, setSelectedFolder] = useState(includedFolderRoot);
   const [search, setSearch] = useState("");
@@ -1830,7 +1842,7 @@ function OwnerFoldersPage({ ownerPassword, onBack, onKeys }: { ownerPassword: st
     }
   };
 
-  return <div className="owner-page owner-folders-page">
+  return <div className="owner-page owner-folders-page">{onNavigate && <OwnerDesktopSidebar active="folders" onNavigate={onNavigate} />}
     <header className="owner-topbar"><div className="owner-topbar-title"><span className="owner-topbar-kicker">Slash Owner</span><strong>My Folder</strong></div><div className="actions"><button className="button secondary" onClick={onBack}><ArrowRight size={14} style={{ transform: "rotate(180deg)" }} /> Dashboard</button></div></header>
     <main className="owner-content">
       <div className="page-head owner-folder-page-head"><div><p className="eyebrow">Admin library control</p><h1>My folders</h1><p className="subtle">Organize the shared Included Animations library. Changes here are visible to every active license.</p></div><div className="owner-folder-summary"><strong>{folders.length}</strong><span>folders</span><strong>{files.length}</strong><span>videos · {formatBytes(totalBytes)}</span></div></div>
@@ -1858,7 +1870,32 @@ function OwnerMobileNav({ active, onDashboard, onKeys }: { active: "dashboard" |
   </nav>;
 }
 
-function OwnerKeysPanel({ tokens, tokenDraft, keyBusy, error, onDraftChange, onAdd, onRemove, onDashboard }: {
+type OwnerSection = "dashboard" | "folders" | "animations" | "licenses" | "users" | "keys";
+
+function OwnerDesktopSidebar({ active, onNavigate }: { active: OwnerSection; onNavigate: (section: OwnerSection) => void }) {
+  const [collapsed, setCollapsed] = useState(() => localStorage.getItem("loop-owner-sidebar") === "collapsed");
+  const items: Array<{ section: OwnerSection; label: string; icon: typeof LayoutDashboard }> = [
+    { section: "dashboard", label: "Dashboard", icon: LayoutDashboard },
+    { section: "folders", label: "My Folder", icon: FolderOpen },
+    { section: "animations", label: "Include Animation", icon: Upload },
+    { section: "licenses", label: "License key", icon: KeyRound },
+    { section: "users", label: "Users", icon: Users },
+    { section: "keys", label: "Key", icon: ShieldCheck },
+  ];
+  const toggle = () => setCollapsed((current) => {
+    const next = !current;
+    localStorage.setItem("loop-owner-sidebar", next ? "collapsed" : "expanded");
+    return next;
+  });
+  return <aside className={`owner-sidebar ${collapsed ? "collapsed" : ""}`} aria-label="Owner navigation">
+    <div className="owner-sidebar-brand"><span className="owner-sidebar-mark">S</span><div className="owner-sidebar-brand-copy"><strong>Slash Owner</strong><small>Control room</small></div><button className="owner-sidebar-toggle" type="button" onClick={toggle} aria-label={collapsed ? "Expand owner navigation" : "Minimize owner navigation"} aria-expanded={!collapsed}><Menu size={17}/></button></div>
+    <div className="owner-sidebar-label">Workspace</div>
+    <nav>{items.map(({ section, label, icon: Icon }) => <button key={section} className={active === section ? "active" : ""} onClick={() => onNavigate(section)} type="button"><Icon size={16}/><span>{label}</span></button>)}</nav>
+    <div className="owner-sidebar-footer"><ShieldCheck size={14}/><span>Private owner access</span></div>
+  </aside>;
+}
+
+function OwnerKeysPanel({ tokens, tokenDraft, keyBusy, error, onDraftChange, onAdd, onRemove, onDashboard, onNavigate }: {
   tokens: VidKrakenTokenStatus[];
   tokenDraft: string;
   keyBusy: boolean;
@@ -1867,8 +1904,9 @@ function OwnerKeysPanel({ tokens, tokenDraft, keyBusy, error, onDraftChange, onA
   onAdd: (event: FormEvent) => void;
   onRemove: (token: VidKrakenTokenStatus) => void;
   onDashboard: () => void;
+  onNavigate?: (section: OwnerSection) => void;
 }) {
-  return <div className="owner-page owner-key-page">
+  return <div className="owner-page owner-key-page">{onNavigate && <OwnerDesktopSidebar active="keys" onNavigate={onNavigate} />}
     <header className="owner-topbar"><div className="owner-topbar-title"><span className="owner-topbar-kicker">Slash Owner</span><strong>Key</strong></div></header>
     <main className="owner-content">
       <div className="page-head owner-page-heading"><div><p className="eyebrow">System access</p><h1>Key</h1><p className="subtle">Manage the secure VidKraken key pool used for YouTube downloads.</p></div><div className="owner-page-badge"><KeyRound size={16}/> {tokens.length} configured</div></div>
@@ -1879,7 +1917,7 @@ function OwnerKeysPanel({ tokens, tokenDraft, keyBusy, error, onDraftChange, onA
   </div>;
 }
 
-function OwnerLicensePage({ licenses, name, days, busy, error, message, onNameChange, onDaysChange, onCreate, onRenew, onRemove, onRecover, onDashboard, onKeys }: {
+function OwnerLicensePage({ licenses, name, days, busy, error, message, onNameChange, onDaysChange, onCreate, onRenew, onRemove, onRecover, onDashboard, onKeys, onNavigate }: {
   licenses: LicenseSession[];
   name: string;
   days: string;
@@ -1894,8 +1932,9 @@ function OwnerLicensePage({ licenses, name, days, busy, error, message, onNameCh
   onRecover: (license: LicenseSession) => void;
   onDashboard: () => void;
   onKeys: () => void;
+  onNavigate?: (section: OwnerSection) => void;
 }) {
-  return <div className="owner-page owner-license-page">
+  return <div className="owner-page owner-license-page">{onNavigate && <OwnerDesktopSidebar active="licenses" onNavigate={onNavigate} />}
     <header className="owner-topbar"><div className="owner-topbar-title"><span className="owner-topbar-kicker">Slash Owner</span><strong>License key</strong></div><button className="button secondary owner-desktop-back" onClick={onDashboard} type="button"><ArrowRight size={14} style={{ transform: "rotate(180deg)" }} /> Back to dashboard</button></header>
     <main className="owner-content">
       <div className="page-head owner-page-heading"><div><p className="eyebrow">Customer access</p><h1>License key</h1><p className="subtle">Create, recover, renew, and remove workspace access keys from one place.</p></div><div className="owner-page-badge"><KeyRound size={16}/> {licenses.length} configured</div></div>
@@ -1907,7 +1946,7 @@ function OwnerLicensePage({ licenses, name, days, busy, error, message, onNameCh
   </div>;
 }
 
-function OwnerDashboardPage({ ownerPassword, error, message, keyBusy, showIncludedAnimations, onFolder, onAnimations, onLicense, onKeys, onCloseAnimations }: {
+function OwnerDashboardPage({ ownerPassword, error, message, keyBusy, showIncludedAnimations, onFolder, onAnimations, onLicense, onKeys, onUsers, onNavigate, onCloseAnimations }: {
   ownerPassword: string;
   error: string;
   message: string;
@@ -1918,8 +1957,10 @@ function OwnerDashboardPage({ ownerPassword, error, message, keyBusy, showInclud
   onLicense: () => void;
   onKeys: () => void;
   onCloseAnimations: () => void;
+  onUsers?: () => void;
+  onNavigate?: (section: OwnerSection) => void;
 }) {
-  return <div className="owner-page owner-dashboard-page">
+  return <div className="owner-page owner-dashboard-page">{onNavigate && <OwnerDesktopSidebar active="dashboard" onNavigate={onNavigate} />}
     <header className="owner-topbar"><div className="owner-topbar-title"><span className="owner-topbar-kicker">Slash Owner</span><strong>Dashboard</strong></div><span className="owner-secure-label"><ShieldCheck size={15}/> Secure owner workspace</span></header>
     <main className="owner-content">
       <div className="page-head owner-page-heading"><div><p className="eyebrow">Owner workspace</p><h1>Dashboard</h1><p className="subtle">Choose a workspace area to manage your folders, animations, or system access.</p></div><div className="owner-page-badge"><ShieldCheck size={16}/> Connected</div></div>
@@ -1929,11 +1970,37 @@ function OwnerDashboardPage({ ownerPassword, error, message, keyBusy, showInclud
         <button className="owner-action-card folder" onClick={onFolder}><span className="owner-action-icon"><FolderOpen size={22}/></span><span><strong>My Folder</strong><small>Organize shared animation folders and videos.</small></span><ArrowRight size={17}/></button>
         <button className="owner-action-card animation" onClick={onAnimations}><span className="owner-action-icon"><Upload size={22}/></span><span><strong>Include Animation</strong><small>Add videos available to every active license.</small></span><ArrowRight size={17}/></button>
         <button className="owner-action-card license" onClick={onLicense}><span className="owner-action-icon"><KeyRound size={22}/></span><span><strong>License key</strong><small>Create and recover customer access keys.</small></span><ArrowRight size={17}/></button>
-        <button className="owner-action-card system-key" onClick={onKeys} disabled={keyBusy}><span className="owner-action-icon"><ShieldCheck size={22}/></span><span><strong>Key</strong><small>Manage the secure downloader key pool.</small></span><ArrowRight size={17}/></button>
+         <button className="owner-action-card system-key" onClick={onKeys} disabled={keyBusy}><span className="owner-action-icon"><ShieldCheck size={22}/></span><span><strong>Key</strong><small>Manage the secure downloader key pool.</small></span><ArrowRight size={17}/></button>
+         {onUsers && <button className="owner-action-card users" onClick={onUsers}><span className="owner-action-icon"><Users size={22}/></span><span><strong>Users</strong><small>Review account identity, plans, keys, and history.</small></span><ArrowRight size={17}/></button>}
       </section>
     </main>
     {showIncludedAnimations && <IncludedAnimationsModal ownerPassword={ownerPassword} onClose={onCloseAnimations} />}
   </div>;
+}
+
+function OwnerUsersPage({ ownerPassword, onNavigate }: { ownerPassword: string; onNavigate: (section: OwnerSection) => void }) {
+  const [users, setUsers] = useState<OwnerUser[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [selected, setSelected] = useState("");
+  const load = async () => {
+    setLoading(true);
+    try {
+      const result = await apiJson<{ users: OwnerUser[] }>("/api/owner/users", { headers: { "X-Owner-Password": ownerPassword } });
+      setUsers(result.users || []); setError("");
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "Could not load users.");
+    } finally {
+      setLoading(false);
+    }
+  };
+  useEffect(() => { void load(); }, [ownerPassword]);
+  const downloadUserInvoice = (user: OwnerUser, item: AccountHistoryItem) => {
+    const text = ["LOOP STREAM ACCOUNT INVOICE", "--------------------------", `Reference: ${item.id}`, `Date: ${new Date(item.at).toLocaleString()}`, `Customer: ${user.displayName || user.email}`, `Email: ${user.email}`, `Mobile: ${user.phone || "Not provided"}`, `License key: ${user.licenseKey}`, `Plan: ${user.activePlan?.name || item.planId || "Subscription"}`, `Access duration: ${item.days || 0} days`, `Stream limit: ${item.streamLimit || user.streamLimit}`].join("\n");
+    const url = URL.createObjectURL(new Blob([text], { type: "text/plain;charset=utf-8" }));
+    const anchor = document.createElement("a"); anchor.href = url; anchor.download = `invoice-${user.id}-${item.id}.txt`; anchor.click(); URL.revokeObjectURL(url);
+  };
+  return <div className="owner-page owner-users-page"><OwnerDesktopSidebar active="users" onNavigate={onNavigate}/><header className="owner-topbar"><div className="owner-topbar-title"><span className="owner-topbar-kicker">Slash Owner</span><strong>Users</strong></div><button className="button secondary" onClick={() => void load()} disabled={loading}>Refresh</button></header><main className="owner-content"><div className="page-head owner-page-heading"><div><p className="eyebrow">Customer accounts</p><h1>Users</h1><p className="subtle">Every account keeps one generated license key and one workspace. Renewals update the same access record.</p></div><div className="owner-page-badge"><Users size={16}/> {users.length} accounts</div></div>{error && <div className="error-note">{error}</div>}{loading ? <div className="owner-users-empty">Loading account records…</div> : users.length === 0 ? <div className="owner-users-empty">No user accounts yet.</div> : <div className="owner-users-list">{users.map((user) => { const expanded = selected === user.id; const history = user.history.filter((item) => item.type === "purchase" || item.type === "grant"); const active = user.active && new Date(user.accessEndsAt).getTime() > Date.now(); return <article className={`owner-user-card ${expanded ? "expanded" : ""}`} key={user.id}><div className="owner-user-card-main"><div className="account-avatar">{(user.displayName || user.email || "U").slice(0, 1).toUpperCase()}</div><div className="owner-user-identity"><strong>{user.displayName || "Unnamed account"}</strong><span>{user.email || "No email"}{user.phone ? ` · ${user.phone}` : ""}</span><small>Registered {new Date(user.createdAt).toLocaleDateString()}</small></div><div className={`status ${active ? "live" : "stopped"}`}><span className="status-dot"/>{active ? "Active" : "Expired"}</div><button className="button secondary small" onClick={() => setSelected(expanded ? "" : user.id)}>{expanded ? "Close" : "View account"}</button></div>{expanded && <div className="owner-user-detail-grid"><div><span className="metric-kicker">License key</span><strong className="mono">{user.licenseKey}</strong><small>One key for this account</small></div><div><span className="metric-kicker">Active subscription</span><strong>{user.activePlan?.name || user.activePlanId || "None"}</strong><small>Until {new Date(user.accessEndsAt).toLocaleString()}</small></div><div><span className="metric-kicker">Stream limit</span><strong>{user.streamLimit}</strong><small>simultaneous streams</small></div><div className="owner-user-history"><span className="metric-kicker">Subscription history</span>{history.length === 0 ? <small>No paid subscription history.</small> : history.map((item) => <div key={item.id}><span>{item.message} · {item.days || 0} days</span><small>{new Date(item.at).toLocaleString()}</small><button className="button ghost small" onClick={() => downloadUserInvoice(user, item)}><Download size={12}/> Invoice</button></div>)}</div></div>}</article>; })}</div>}</main></div>;
 }
 
 function OwnerConsolePage() {
@@ -1949,7 +2016,7 @@ function OwnerConsolePage() {
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [showIncludedAnimations, setShowIncludedAnimations] = useState(false);
-  const [ownerView, setOwnerView] = useState<"dashboard" | "licenses" | "keys" | "folders">("dashboard");
+  const [ownerView, setOwnerView] = useState<"dashboard" | "licenses" | "keys" | "folders" | "users">("dashboard");
 
   const load = async (ownerPassword: string) => {
     const result = await apiJson<{ licenses?: LicenseSession[] }>("/api/licenses", { headers: { "X-Owner-Password": ownerPassword } });
@@ -1972,6 +2039,17 @@ function OwnerConsolePage() {
     try { await loadVidKrakenTokens(authorizedPassword); setOwnerView("keys"); }
     catch (reason) { setError(reason instanceof Error ? reason.message : "Could not load keys."); }
     finally { setKeyBusy(false); }
+  };
+  const navigateOwner = (section: OwnerSection) => {
+    if (section === "animations") {
+      setShowIncludedAnimations(true);
+      return;
+    }
+    if (section === "keys") {
+      void openKeys();
+      return;
+    }
+    setOwnerView(section);
   };
   const addToken = async (event: FormEvent) => {
     event.preventDefault(); if (!tokenDraft.trim()) return;
@@ -2018,10 +2096,11 @@ function OwnerConsolePage() {
   const goDashboard = () => setOwnerView("dashboard");
 
   if (!authorizedPassword) return <div className="owner-login-page"><section className="owner-login-panel"><div className="owner-login-mark"><KeyRound size={22}/></div><p className="eyebrow">Slash Owner</p><h1>Owner console</h1><p className="subtle">Create license keys, manage shared animations, and keep system keys organized.</p>{error && <div className="error-note">{error}</div>}<form className="login-form" onSubmit={signIn}><div className="field"><label htmlFor="slash-owner-password">Owner password</label><input id="slash-owner-password" type="password" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="current-password" autoFocus data-testid="input-owner-password"/></div><button className="button login-submit" type="submit" disabled={busy || !password} data-testid="button-owner-login">{busy ? "Checking…" : "Open dashboard"} <ArrowRight size={16}/></button></form></section></div>;
-  if (ownerView === "folders") return <OwnerFoldersPage ownerPassword={authorizedPassword} onBack={goDashboard} onKeys={openKeys} />;
-  if (ownerView === "keys") return <OwnerKeysPanel tokens={vidKrakenTokens} tokenDraft={tokenDraft} keyBusy={keyBusy} error={error} onDraftChange={setTokenDraft} onAdd={(event) => void addToken(event)} onRemove={(token) => void removeToken(token)} onDashboard={goDashboard} />;
-  if (ownerView === "licenses") return <OwnerLicensePage licenses={licenses} name={name} days={days} busy={busy} error={error} message={message} onNameChange={setName} onDaysChange={setDays} onCreate={(event) => void create(event)} onRenew={(licenseId) => void renew(licenseId)} onRemove={(license) => void remove(license)} onRecover={(license) => void recover(license)} onDashboard={goDashboard} onKeys={openKeys} />;
-  if (ownerView === "dashboard") return <OwnerDashboardPage ownerPassword={authorizedPassword} error={error} message={message} keyBusy={keyBusy} showIncludedAnimations={showIncludedAnimations} onFolder={() => setOwnerView("folders")} onAnimations={() => setShowIncludedAnimations(true)} onLicense={() => setOwnerView("licenses")} onKeys={openKeys} onCloseAnimations={() => setShowIncludedAnimations(false)} />;
+  if (ownerView === "folders") return <OwnerFoldersPage ownerPassword={authorizedPassword} onBack={goDashboard} onKeys={openKeys} onNavigate={navigateOwner} />;
+  if (ownerView === "keys") return <OwnerKeysPanel tokens={vidKrakenTokens} tokenDraft={tokenDraft} keyBusy={keyBusy} error={error} onDraftChange={setTokenDraft} onAdd={(event) => void addToken(event)} onRemove={(token) => void removeToken(token)} onDashboard={goDashboard} onNavigate={navigateOwner} />;
+  if (ownerView === "licenses") return <OwnerLicensePage licenses={licenses} name={name} days={days} busy={busy} error={error} message={message} onNameChange={setName} onDaysChange={setDays} onCreate={(event) => void create(event)} onRenew={(licenseId) => void renew(licenseId)} onRemove={(license) => void remove(license)} onRecover={(license) => void recover(license)} onDashboard={goDashboard} onKeys={openKeys} onNavigate={navigateOwner} />;
+  if (ownerView === "users") return <OwnerUsersPage ownerPassword={authorizedPassword} onNavigate={navigateOwner} />;
+  if (ownerView === "dashboard") return <OwnerDashboardPage ownerPassword={authorizedPassword} error={error} message={message} keyBusy={keyBusy} showIncludedAnimations={showIncludedAnimations} onFolder={() => setOwnerView("folders")} onAnimations={() => setShowIncludedAnimations(true)} onLicense={() => setOwnerView("licenses")} onKeys={openKeys} onUsers={() => setOwnerView("users")} onNavigate={navigateOwner} onCloseAnimations={() => setShowIncludedAnimations(false)} />;
 
   return <div className="owner-page owner-dashboard-page">
     <header className="owner-topbar"><div className="owner-topbar-title"><span className="owner-topbar-kicker">Slash Owner</span><strong>Dashboard</strong></div><span className="owner-secure-label"><ShieldCheck size={15}/> Secure owner workspace</span></header>
@@ -2159,6 +2238,88 @@ function PhoneProfileCard({ onSave }: { onSave: (phone: string) => Promise<void>
     finally { setBusy(false); }
   };
   return <section className="account-profile-card"><div><p className="eyebrow">Account profile</p><h2>Add a mobile number</h2><p className="subtle">Keep it linked to this Google account. OTP login can use this same account when mobile sign-in is enabled.</p></div><form onSubmit={save}><input type="tel" value={phone} onChange={(event) => setPhone(event.target.value)} placeholder="+91 98765 43210" aria-label="Mobile number"/><button className="button" type="submit" disabled={busy || !phone.trim()}>{busy ? "Saving…" : "Save number"} <Check size={14}/></button></form>{message && <span className="form-hint">{message}</span>}</section>;
+}
+
+function SubscriptionPage({ workspace, account, plans, onSelectPlan }: { workspace: ReturnType<typeof useWorkspace>; account: AccountSummary; plans: AccountPlan[]; onSelectPlan: (planId: string, streamLimit: number, durationMultiplier?: number) => Promise<AccountSummary> }) {
+  const [billing, setBilling] = useState<"Day" | "Month" | "Year">("Day");
+  const [duration, setDuration] = useState(1);
+  const [streamCounts, setStreamCounts] = useState({ standard: 9, premium: 9 });
+  const [busyPlan, setBusyPlan] = useState("");
+  const [message, setMessage] = useState("");
+  const pricing = {
+    Day: { unit: "day", limit: 30, standard: 35, standardCompare: 50, premium: 51, premiumCompare: 76, standardId: "day-standard", premiumId: "day-premium" },
+    Month: { unit: "month", limit: 12, standard: 899, standardCompare: 1199, premium: 1299, premiumCompare: 1699, standardId: "monthly-standard", premiumId: "monthly-premium" },
+    Year: { unit: "year", limit: 5, standard: 8999, standardCompare: 11999, premium: 12999, premiumCompare: 16999, standardId: "annual-standard", premiumId: "annual-premium" },
+  } as const;
+  const selected = pricing[billing];
+  const findPlan = (id: string) => plans.find((plan) => plan.id === id);
+  const changeStreams = (kind: "standard" | "premium", change: number) => setStreamCounts((current) => ({ ...current, [kind]: Math.min(10, Math.max(1, current[kind] + change)) }));
+  const activate = async (planId: string, streams: number) => {
+    setBusyPlan(planId); setMessage("");
+    try {
+      await onSelectPlan(planId, streams, duration);
+      setMessage("Plan active. Your existing license key and workspace are unchanged.");
+    } catch (reason) {
+      setMessage(reason instanceof Error ? reason.message : "Could not activate this plan.");
+    } finally {
+      setBusyPlan("");
+    }
+  };
+  const downloadInvoice = (item: AccountHistoryItem) => {
+    const plan = item.planId ? findPlan(item.planId) : undefined;
+    const text = [
+      "LOOP STREAM INVOICE",
+      "-------------------",
+      `Invoice reference: ${item.id}`,
+      `Date: ${new Date(item.at).toLocaleString()}`,
+      `Customer: ${account.displayName || account.email}`,
+      `Email: ${account.email}`,
+      `License key: ${account.licenseKey}`,
+      `Plan: ${plan?.name || item.planId || "Subscription"}`,
+      `Access duration: ${item.days || plan?.durationDays || 0} days`,
+      `Stream limit: ${item.streamLimit || account.streamLimit}`,
+      "",
+      "Payment gateway receipt will replace this account invoice after Cashfree checkout is connected.",
+    ].join("\n");
+    const url = URL.createObjectURL(new Blob([text], { type: "text/plain;charset=utf-8" }));
+    const anchor = document.createElement("a"); anchor.href = url; anchor.download = `loop-stream-invoice-${item.id}.txt`; anchor.click(); URL.revokeObjectURL(url);
+  };
+  const active = account.active && new Date(account.accessEndsAt).getTime() > Date.now();
+  const trial = findPlan("trial-1-day");
+  const trialActive = account.activePlanId === trial?.id && active;
+  const paidOptions = [
+    { kind: "standard" as const, label: "STANDARD", title: "1080p Standard", id: selected.standardId, price: selected.standard, compare: selected.standardCompare, copy: "Simple. Stable. Reliable", bestFor: "Casual creators easing into live before going all-in", quality: "Standard broadcast quality", storage: "10 GB video storage/stream" },
+    { kind: "premium" as const, label: "PREMIUM", title: "1080p Premium", id: selected.premiumId, price: selected.premium, compare: selected.premiumCompare, copy: "Professional quality. Total control", bestFor: "Always-on channels like news, devotional, games or lofi", quality: "Premium broadcast quality", storage: "20 GB video storage/stream" },
+  ];
+  return <AppShell title="Subscription" account={account} workspace={workspace}>
+    <div className="page subscription-page">
+      <div className="page-head subscription-heading"><div><p className="eyebrow">Account billing</p><h1>Choose your subscription</h1><p className="subtle">Reuse the same landing-page pricing model inside your workspace. The selected plan activates on this account without creating another key or folder.</p></div><div className={`subscription-status ${active ? "active" : "expired"}`}><span className="status-dot"/>{active ? `${account.activePlan?.name || "Plan"} · ${account.streamLimit} streams` : "Please upgrade your plan"}</div></div>
+      {message && <div className="subscription-message"><Check size={15}/>{message}</div>}
+      <section className="subscription-current card"><div><span className="metric-kicker">Current access</span><strong>{account.activePlan?.name || "No active plan"}</strong><span>{active ? `Until ${new Date(account.accessEndsAt).toLocaleString()}` : "Your trial has ended. Choose a plan to continue."}</span></div><div><span className="metric-kicker">Stream limit</span><strong>{account.streamLimit}</strong><span>simultaneous live streams</span></div><div><span className="metric-kicker">License</span><strong className="mono">{account.licenseKey}</strong><span>same key on every renewal</span></div></section>
+      <section className="subscription-pricing">
+        <div className="subscription-controls"><div className="billing-switch">{(["Day", "Month", "Year"] as const).map((item) => <button key={item} type="button" className={billing === item ? "active" : ""} onClick={() => { setBilling(item); setDuration(1); }}>{item}</button>)}</div><div className="duration-control"><button type="button" onClick={() => setDuration((value) => Math.max(1, value - 1))} disabled={duration === 1} aria-label="Decrease duration">−</button><strong>{duration} {selected.unit}{duration === 1 ? "" : "s"}</strong><button type="button" onClick={() => setDuration((value) => Math.min(selected.limit, value + 1))} disabled={duration === selected.limit} aria-label="Increase duration">+</button></div></div>
+        <div className="subscription-plan-grid">
+          <article className={`subscription-plan-card trial ${trialActive ? "selected" : ""}`}>
+            <div className="subscription-plan-top"><span className="plan-label">FREE TRIAL</span>{trialActive && <span className="plan-active"><Check size={13}/> Active</span>}</div>
+            <h2>Try 24hrs Trial</h2>
+            <p>Explore Loop Stream risk-free before choosing a longer plan.</p>
+            <div className="subscription-price"><strong>FREE</strong><span>/ 24 hours</span></div>
+            <div className="subscription-feature-tiles"><span><Radio size={16}/><b>Stream your<br/>videos as live</b></span><span><Sparkles size={16}/><b>Premium<br/>broadcast quality</b></span><span><Layers size={16}/><b>20 GB video<br/>storage/stream</b></span></div>
+            <ul className="subscription-features"><li><Check size={12}/>Create and loop playlists</li><li><Check size={12}/>Premium audio clarity</li><li><Check size={12}/>Schedule in advance</li><li><Check size={12}/>Upload from cloud</li></ul>
+            <div className="subscription-best"><span>BEST FOR</span><p>Creators who want to try Loop Stream before choosing a plan</p></div>
+            <button className="button subscription-select secondary" type="button" disabled><Check size={15}/>{trialActive ? "Current plan" : "Trial already used"}</button>
+            <small>No card required. Your existing license key stays with this workspace.</small>
+          </article>
+          {paidOptions.map((option) => {
+          const plan = findPlan(option.id);
+          const selectedPlan = account.activePlanId === option.id && active;
+          const streams = streamCounts[option.kind];
+          return <article className={`subscription-plan-card ${option.kind} ${selectedPlan ? "selected" : ""}`} key={option.id}><div className="subscription-plan-top"><span className="plan-label">{option.label}</span>{selectedPlan && <span className="plan-active"><Check size={13}/> Active</span>}</div><h2>{option.title}</h2><p>{option.copy}</p><div className="subscription-price"><strong>₹{(option.price * duration * streams).toLocaleString("en-IN")}</strong><del>₹{(option.compare * duration * streams).toLocaleString("en-IN")}</del><span>/ {selected.unit}</span><em>{Math.round((1 - option.price / option.compare) * 100)}%<br/>OFF</em></div><div className="subscription-feature-tiles"><span><Radio size={16}/><b>Stream your<br/>videos as live</b></span><span><Sparkles size={16}/><b>{option.quality.split(" ")[0]}<br/>broadcast quality</b></span><span><Layers size={16}/><b>{option.storage.split(" ")[0]} GB video<br/>storage/stream</b></span></div><ul className="subscription-features"><li><Check size={12}/>Loop your videos endlessly</li><li><Check size={12}/>{option.kind === "premium" ? "Premium" : "Standard"} audio quality</li><li><Check size={12}/>Add and remove videos</li><li><Check size={12}/>Upload from cloud</li></ul><div className="subscription-best"><span>BEST FOR</span><p>{option.bestFor}</p></div><div className="stream-stepper"><span>Stream count</span><button type="button" onClick={() => changeStreams(option.kind, -1)} aria-label={`Decrease ${option.label} stream count`}>−</button><strong>{streams}</strong><button type="button" onClick={() => changeStreams(option.kind, 1)} aria-label={`Increase ${option.label} stream count`}>+</button></div><button className="button subscription-select" type="button" onClick={() => void activate(option.id, streams)} disabled={!plan || busyPlan === option.id || selectedPlan}>{busyPlan === option.id ? "Activating…" : selectedPlan ? "Current plan" : "Select now"} <ArrowRight size={15}/></button><small>Up to {streams} simultaneous streams. The {streams + 1}th stream will show “Please upgrade your plan.”</small></article>;
+        })}</div>
+      </section>
+      <section className="card subscription-history"><div className="section-head"><div><span className="metric-kicker">Billing record</span><h2 className="section-title">Subscription history</h2></div><Receipt size={17}/></div>{account.history.filter((item) => item.type === "purchase" || item.type === "grant").length === 0 ? <p className="subtle">Your subscription invoices will appear here after activation.</p> : <div className="subscription-history-list">{account.history.filter((item) => item.type === "purchase" || item.type === "grant").map((item) => <div className="subscription-history-row" key={item.id}><div><strong>{item.message}</strong><span>{new Date(item.at).toLocaleString()} · {item.days || 0} days · {item.streamLimit || account.streamLimit} streams</span></div><button className="button secondary small" onClick={() => downloadInvoice(item)}><Download size={13}/> Download invoice</button></div>)}</div>}</section>
+    </div>
+  </AppShell>;
 }
 
 function Dashboard({ workspace, account }: { workspace:ReturnType<typeof useWorkspace>; account?: AccountSummary | null }) {
@@ -2804,7 +2965,7 @@ function LiveOutputPreview({ src }: { src: string }) {
   </div>;
 }
 
-function LivePage({workspace}:{workspace:ReturnType<typeof useWorkspace>}) {
+function LivePage({workspace, account}:{workspace:ReturnType<typeof useWorkspace>; account?:AccountSummary|null}) {
   const {data,update}=workspace; const [location,setLocation]=useLocation(); const [editing,setEditing]=useState<LiveChannel|undefined>(); const [showForm,setShowForm]=useState(false); const [deleting,setDeleting]=useState<LiveChannel|undefined>(); const [busy,setBusy]=useState<string[]>([]); const [streamKeyChannel,setStreamKeyChannel]=useState<LiveChannel|undefined>(); const [streamKeyDraft,setStreamKeyDraft]=useState("");
   const playlistSignatures=useRef(new Map<string,string>());
   const save=(channel:LiveChannel)=>{const exists=data.channels.some(c=>c.id===channel.id); update({channels:exists?data.channels.map(c=>c.id===channel.id?channel:c):[channel,...data.channels]}, {message:exists?`${channel.title} was updated`:`${channel.title} was added`,type:"edit"}); setShowForm(false);setEditing(undefined);};
@@ -2817,7 +2978,7 @@ function LivePage({workspace}:{workspace:ReturnType<typeof useWorkspace>}) {
     setShowForm(true);
     setLocation("/live");
   }, [data.channels, location, setLocation]);
-  const start=async(c:LiveChannel)=>{if(busy.includes(c.id))return;if(!c.streamUrl?.trim()){setEditing(c);setShowForm(true);workspace.setToast("Paste the stream URL before starting.");return;}if(!c.streamKey?.trim()&&c.streamUrl.includes("{streamKey}")){setStreamKeyDraft("");setStreamKeyChannel(c);return;}setBusy(ids=>[...ids,c.id]);try{
+  const start=async(c:LiveChannel)=>{if(busy.includes(c.id))return;if(account && data.channels.filter((channel)=>channel.status==="live").length >= account.streamLimit){workspace.setToast("Please upgrade your plan to run more streams.");return;}if(!c.streamUrl?.trim()){setEditing(c);setShowForm(true);workspace.setToast("Paste the stream URL before starting.");return;}if(!c.streamKey?.trim()&&c.streamUrl.includes("{streamKey}")){setStreamKeyDraft("");setStreamKeyChannel(c);return;}setBusy(ids=>[...ids,c.id]);try{
      const playlist=playlistFor(c,data.groups,data.videos);
      const category=playlist.category;
      const faceCategory=playlist.faceCategory;
@@ -2853,7 +3014,7 @@ function LivePage({workspace}:{workspace:ReturnType<typeof useWorkspace>}) {
    useEffect(()=>{const liveChannels=data.channels.filter(c=>c.status==="live");if(!liveChannels.length)return;const timer=window.setInterval(()=>{void Promise.all(liveChannels.map(async c=>{try{const result=await getStreamStatus(streamIdFor(workspace.clientId,c.id));if(result.status!=="running"){update({channels:data.channels.map(x=>x.id===c.id?{...x,status:"stopped",viewers:0}:x)},{message:`${c.title} stream process ${result.status}`,type:"edit"});}}catch{ /* Keep the visible state until the API is reachable again. */ }}));},5000);return()=>window.clearInterval(timer);},[data.channels,update,workspace.clientId]);
      useEffect(()=>{const liveChannels=data.channels.filter(c=>c.status==="live");void Promise.all(liveChannels.map(async c=>{const scopedStreamId=streamIdFor(workspace.clientId,c.id);const playlist=playlistFor(c,data.groups,data.videos);if(!playlist.category)return;const composition=c.editorComposition;const liveAnimation=data.videos.find((video)=>video.id===c.liveAnimationId && video.serverSource);const signature=JSON.stringify({videoSources:playlist.videoSources,faceSources:composition?.webcamSource?[composition.webcamSource]:playlist.faceSources,liveAnimationId:c.liveAnimationId,liveAnimationX:(composition?.animationX ?? c.liveAnimationX) || 0,liveAnimationY:(composition?.animationY ?? c.liveAnimationY) || 0,liveAnimationScale:(composition?.animationScale ?? c.liveAnimationScale) || 0.25,composition});if(playlistSignatures.current.get(scopedStreamId)===signature)return;if(!playlist.videoSources.length){try{await stopStream({streamId:scopedStreamId});playlistSignatures.current.set(scopedStreamId,signature);update({channels:data.channels.map(x=>x.id===c.id?{...x,status:"stopped",viewers:0}:x)},{message:`${c.title} stopped because its playlist is empty`,type:"edit"});}catch(error){workspace.setToast(error instanceof Error?error.message:"The empty live playlist could not be stopped.");}return;}try{await updateStream({streamId:scopedStreamId,ingestUrl:resolveStreamIngestUrl(c.streamUrl,c.streamKey),category:playlist.category,videoSources:playlist.videoSources,videoSource:playlist.mainVideos[0]?.serverSource,faceCategory:composition?.webcamSource?"editor face cam":(playlist.faceSources.length?playlist.faceCategory:undefined),faceSource:composition?.webcamSource||playlist.faceVideos[0]?.serverSource,faceSources:composition?.webcamSource?[composition.webcamSource]:playlist.faceSources,playbackSpeed:c.playbackSpeed||1,quality:c.streamQuality||"1080p",aspectRatio:c.aspectRatio||"full",facePosition:c.facePosition||"bottom-right",faceScale:(c.faceSize||25)/100,durationMinutes:(c.durationHours||1)*60,autoRestart:Boolean(c.autoRestart),voiceAudio:true,liveAnimationSource:composition?.animationSource||liveAnimation?.serverSource,liveAnimationX:(composition?.animationX ?? c.liveAnimationX) || 0,liveAnimationY:(composition?.animationY ?? c.liveAnimationY) || 0,liveAnimationScale:(composition?.animationScale ?? c.liveAnimationScale) || 0.25,composition});playlistSignatures.current.set(scopedStreamId,signature);workspace.setToast(`${c.title} playlist updated while live`);}catch(error){workspace.setToast(error instanceof Error?error.message:"The live playlist could not be updated.");}}));},[data.channels,data.groups,data.videos,workspace.clientId,workspace.setToast,update]);
    const groupsById=useMemo(()=>Object.fromEntries(data.groups.map(g=>[g.id,g.name])),[data.groups]);
-   return <AppShell title="Live channels" workspace={workspace}><div className="page live-page"><div className="page-head"><div><p className="eyebrow">Broadcast operations / control room</p><h1>Live channels</h1><p className="subtle">Prepare your destinations, then take the room live with confidence.</p></div><div className="page-head-actions"><span className="page-live-indicator"><span className="status-dot"/>{data.channels.filter(c=>c.status==="live").length ? "Signal monitored" : "Room is ready"}</span><button className="button" onClick={()=>{setEditing(undefined);setShowForm(true)}} data-testid="button-add-channel"><Plus size={16}/> Add channel</button></div></div>
+    return <AppShell title="Live channels" account={account} workspace={workspace}><div className="page live-page"><div className="page-head"><div><p className="eyebrow">Broadcast operations / control room</p><h1>Live channels</h1><p className="subtle">Prepare your destinations, then take the room live with confidence.</p></div><div className="page-head-actions"><span className="page-live-indicator"><span className="status-dot"/>{data.channels.filter(c=>c.status==="live").length ? "Signal monitored" : "Room is ready"}</span><button className="button" onClick={()=>{setEditing(undefined);setShowForm(true)}} data-testid="button-add-channel"><Plus size={16}/> Add channel</button></div></div>
       <div className="live-overview-grid">
         <div className="live-overview-card live-overview-primary"><div className="metric-kicker">On air now</div><strong>{data.channels.filter(c=>c.status==="live").length}</strong><span>{data.channels.filter(c=>c.status==="live").length ? "Broadcasting channels" : "No active broadcast"}</span><div className="live-overview-meter"><i style={{width:`${Math.min(100, data.channels.length ? (data.channels.filter(c=>c.status==="live").length / data.channels.length) * 100 : 0)}%`}}/></div></div>
         <div className="live-overview-card"><div className="metric-kicker">Destinations</div><strong>{data.channels.length}</strong><span>{data.channels.length === 1 ? "Channel configured" : "Channels configured"}</span><Radio size={18}/></div>
@@ -4417,7 +4578,7 @@ function SettingsPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}) {
    </AppShell>;
 }
 
-function Routed({workspace, account, firebaseUser, profilePhoto, onProfilePhotoChange, onSaveProfile, onSavePhone, onLogout}:{workspace:ReturnType<typeof useWorkspace>; account:AccountSummary|null; firebaseUser:FirebaseUser|null; profilePhoto:string; onProfilePhotoChange:(photo:string)=>void; onSaveProfile:(profile:{displayName:string; email:string; phone?:string; profileImagePath?:string})=>Promise<void>; onSavePhone:(phone:string)=>Promise<void>; onLogout:()=>Promise<void>}) {
+function Routed({workspace, account, plans, onSelectPlan, firebaseUser, profilePhoto, onProfilePhotoChange, onSaveProfile, onSavePhone, onLogout}:{workspace:ReturnType<typeof useWorkspace>; account:AccountSummary|null; plans:AccountPlan[]; onSelectPlan:(planId:string, streamLimit:number, durationMultiplier?:number)=>Promise<AccountSummary>; firebaseUser:FirebaseUser|null; profilePhoto:string; onProfilePhotoChange:(photo:string)=>void; onSaveProfile:(profile:{displayName:string; email:string; phone?:string; profileImagePath?:string})=>Promise<void>; onSavePhone:(phone:string)=>Promise<void>; onLogout:()=>Promise<void>}) {
   let localProfile: { displayName?: string; email?: string } = {};
   try {
     localProfile = JSON.parse(localStorage.getItem(`reverse-bypass-profile:${workspace.licenseId}`) || "{}") as { displayName?: string; email?: string };
@@ -4437,9 +4598,11 @@ function Routed({workspace, account, firebaseUser, profilePhoto, onProfilePhotoC
     activePlan: null,
     accessEndsAt: "",
     active: true,
+    streamLimit: 1,
+    createdAt: "",
     history: [],
   };
-  return <Switch><Route path="/dashboard"><Dashboard workspace={workspace} account={account}/></Route><Route path="/analytics"><AnalyticsPage workspace={workspace} account={account} onSavePhone={onSavePhone}/></Route><Route path="/aesthetics"><Redirect to="/analytics"/></Route><Route path="/live"><LivePage workspace={workspace}/></Route><Route path="/live-preview"><LivePreviewPage workspace={workspace}/></Route><Route path="/videos"><VideosPage workspace={workspace}/></Route><Route path="/editor"><VideoEditorPage workspace={workspace}/></Route><Route path="/profile"><ProfilePage workspace={workspace} account={profileAccount} firebaseUser={firebaseUser} profilePhoto={profilePhoto} onProfilePhotoChange={onProfilePhotoChange} onSaveProfile={account ? onSaveProfile : undefined} onLogout={onLogout}/></Route><Route path="/settings"><Redirect to="/profile"/></Route><Route><NotFound/></Route></Switch>;
+  return <Switch><Route path="/dashboard"><Dashboard workspace={workspace} account={account}/></Route><Route path="/analytics"><AnalyticsPage workspace={workspace} account={account} onSavePhone={onSavePhone}/></Route><Route path="/aesthetics"><Redirect to="/analytics"/></Route><Route path="/live"><LivePage workspace={workspace} account={account}/></Route><Route path="/live-preview"><LivePreviewPage workspace={workspace}/></Route><Route path="/videos"><VideosPage workspace={workspace}/></Route><Route path="/editor"><VideoEditorPage workspace={workspace}/></Route><Route path="/subscription">{account ? <SubscriptionPage workspace={workspace} account={account} plans={plans} onSelectPlan={onSelectPlan}/> : <Redirect to="/sign-in"/>}</Route><Route path="/profile"><ProfilePage workspace={workspace} account={profileAccount} firebaseUser={firebaseUser} profilePhoto={profilePhoto} onProfilePhotoChange={onProfilePhotoChange} onSaveProfile={account ? onSaveProfile : undefined} onLogout={onLogout}/></Route><Route path="/settings"><Redirect to="/profile"/></Route><Route><NotFound/></Route></Switch>;
 }
 
 function App() {
@@ -4485,6 +4648,10 @@ function App() {
   }, [accountSession.account, profileGateId]);
   useEffect(() => {
     if (firebaseLoading || (isSignedIn && accountSession.loading)) return;
+    if (accountSession.account && accountSession.account.role !== "owner" && !accountSession.account.active && location !== "/subscription") {
+      setLocation("/subscription");
+      return;
+    }
     if (!mobileGiftKey && accountSession.account && (location === "/" || location === "/access" || location.startsWith("/sign-in") || location.startsWith("/sign-up"))) {
       setLocation(accountSession.account.role === "owner" ? "/owner" : "/dashboard");
       return;
@@ -4513,14 +4680,14 @@ function App() {
   if (isSignedIn && accountSession.loading) return <div className="workspace-loading"><Radio size={20}/><span>Preparing your account…</span></div>;
   if (isSignedIn && accountSession.error && !accountSession.account) return <div className="workspace-loading"><span>{accountSession.error}</span></div>;
   if (location === "/owner") {
-    if (accountSession.account?.role === "owner") return <OwnerAccountPage account={accountSession.account} onSwitchToUser={() => setLocation("/dashboard")}/>;
+    if (accountSession.account?.role === "owner") return <OwnerConsolePage/>;
     return <OwnerConsolePage/>;
   }
   if (location === "/" && !isLicenseActive(activeLicense)) return <LandingPage />;
   const openMobileRoom = () => { setMobileGiftKey(""); setLocation("/dashboard"); };
   if (location === "/access") return <LicenseGate license={activeLicense} busy={license.busy} error={license.error || firebaseError} signedIn={Boolean(isSignedIn || hasAccountSession)} onActivate={license.activate} onRenew={license.renew} onGoogleLogin={() => setLocation("/sign-in")} onMobileAccountLogin={accountSession.reload} onGiftReady={setMobileGiftKey} onOpenRoom={openMobileRoom}/>;
   if (!hasAccountSession && (!activeLicense || !isLicenseActive(activeLicense))) return <LicenseGate license={activeLicense} busy={license.busy} error={license.error || firebaseError} signedIn={Boolean(isSignedIn || hasAccountSession)} onActivate={license.activate} onRenew={license.renew} onGoogleLogin={() => setLocation("/sign-in")} onMobileAccountLogin={accountSession.reload} onGiftReady={setMobileGiftKey} onOpenRoom={openMobileRoom}/>;
-  if (!workspace.ready) return <div className="workspace-loading"><Radio size={20}/><span>Loading your private workspace…</span></div>;
+  if (!workspace.ready && !(accountSession.account && !accountSession.account.active && location === "/subscription")) return <div className="workspace-loading"><Radio size={20}/><span>Loading your private workspace…</span></div>;
   const handleLogout = async () => {
     if (user) {
       await signOut();
@@ -4528,7 +4695,7 @@ function App() {
     }
     workspace.logout();
   };
-  return <><Routed workspace={workspace} account={accountSession.account} firebaseUser={user} profilePhoto={profilePhoto} onProfilePhotoChange={handleProfilePhotoChange} onSaveProfile={accountSession.saveProfile} onSavePhone={accountSession.savePhone} onLogout={handleLogout}/>{accountSession.account && profileGateId === accountSession.account.id && <AccountCompletionDialog account={accountSession.account} onSave={accountSession.saveProfile} onClose={() => setProfileGateId(null)} />}</>;
+  return <><Routed workspace={workspace} account={accountSession.account} plans={accountSession.plans} onSelectPlan={accountSession.selectPlan} firebaseUser={user} profilePhoto={profilePhoto} onProfilePhotoChange={handleProfilePhotoChange} onSaveProfile={accountSession.saveProfile} onSavePhone={accountSession.savePhone} onLogout={handleLogout}/>{accountSession.account && profileGateId === accountSession.account.id && <AccountCompletionDialog account={accountSession.account} onSave={accountSession.saveProfile} onClose={() => setProfileGateId(null)} />}</>;
 }
 
 export default function RootApp() {
