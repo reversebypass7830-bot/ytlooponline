@@ -218,10 +218,6 @@ export default function LoginPage({
             <span className="streamly-login-card-wordmark" aria-label="YT Loop"><b>YT</b> Loop</span>
             <span>24/7 broadcast control</span>
           </div>
-          <div className="streamly-login-heading">
-            <div className="streamly-login-icon"><MaterialIcon name="bolt" /></div>
-            <div><span className="streamly-login-eyebrow">{expired ? "License needs attention" : "Private access"}</span><h1 id="login-title">{expired ? "Renew your room." : "Welcome back."}</h1></div>
-          </div>
           <p className="streamly-login-copy">{expired ? "Renew your current license to keep your channels, videos, and settings exactly as you left them." : "Sign in to your account and start your broadcast."}</p>
           {shownError && <div className="streamly-login-error" role="alert"><MaterialIcon name="warning" /><span>{shownError}</span></div>}
           <div id="login-method-panel" className="streamly-login-method-panel" role="region" aria-label={method === "phone" ? "Phone sign-in" : "License key sign-in"}>
