@@ -28,6 +28,11 @@ import videoNewFolderClay from "@assets/new_folder_blue_clay_1790013359167.png";
 import videoDownloadClay from "@assets/download_videos_clay_icon_1790013359168.png";
 import videoEditorClay from "@assets/magic_wand_film_clay_cutout_1790013359168.png";
 import videoTagClay from "@assets/tag_label_clay_cutout_1790013359169.png";
+import editorUploadFilmClay from "@assets/upload_film_icon_cutout_1790014911585.png";
+import editorLayersClay from "@assets/clay_layers_eye_cutout_1790014911587.png";
+import editorTextClay from "@assets/letter_T_yellow_clay_sparkles_1790014911588.png";
+import editorAudioClay from "@assets/music_waveform_green_clay_final_1790014911590.png";
+import editorTimelineClay from "@assets/timeline_scissors_wand_1790014911591.png";
 import liveYoutubeClay from "@assets/youtube_live_clay_(1)_1790012855640.png";
 import liveKeyClay from "@assets/clay_key_icon_cutout_1790012851655.png";
 import liveBroadcastClay from "@assets/green_dot_broadcast_1790012846968.png";
@@ -1313,7 +1318,7 @@ function MobileNav({ path }: { path:string }) {
 function AppShell({ children, title, account, profilePhoto, workspace }: { children:ReactNode; title:string; account?: AccountSummary | null; profilePhoto?: string; workspace:ReturnType<typeof useWorkspace> }) {
   const [path] = useLocation();
   const [menu, setMenu] = useState(false);
-  return <div className={`shell ${title === "Analytics" ? "analytics-surface" : title === "Live channels" ? "live-surface" : title === "Video library" ? "video-library-surface" : title === "Live Stream Preview" ? "live-preview-surface" : ""}`}>
+  return <div className={`shell ${title === "Analytics" ? "analytics-surface" : title === "Live channels" ? "live-surface" : title === "Video library" ? "video-library-surface" : title === "Live Stream Preview" ? "live-preview-surface" : title === "Video editor" ? "video-editor-surface" : ""}`}>
     {menu && <button className="sidebar-scrim" aria-label="Close navigation" onClick={() => setMenu(false)} data-testid="button-close-menu" />}
     <Sidebar path={path} open={menu} onClose={()=>setMenu(false)} user={account?.displayName || account?.email || workspace.user} photo={profilePhoto} data={workspace.data}/>
      <main className="main"><Header title={title} account={account} onMenu={()=>setMenu(true)}/><DownloadActivity downloads={workspace.youtubeDownloads} onDismiss={workspace.dismissYoutubeDownload}/>{children}</main>
@@ -3582,6 +3587,8 @@ function VideoEditorPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}
   const [logoId, setLogoId] = useState("");
   const [previewExpanded, setPreviewExpanded] = useState(false);
   const [mobileEditorPanel, setMobileEditorPanel] = useState<"files" | "timing" | "layers" | "effects">("files");
+  const [activeEditorTool, setActiveEditorTool] = useState<"media" | "text" | "animations" | "overlays" | "audio">("media");
+  const [timelinePosition, setTimelinePosition] = useState(38);
   const [error, setError] = useState("");
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [draftHydrated, setDraftHydrated] = useState(false);
@@ -3923,17 +3930,44 @@ function VideoEditorPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}
     );
     setLocation(`/live?editChannel=${encodeURIComponent(channelId)}`);
   };
+  const editorTools = [
+    { id: "media" as const, label: "Media", asset: editorUploadFilmClay, panel: "files" as const },
+    { id: "text" as const, label: "Text", asset: editorTextClay, panel: "timing" as const },
+    { id: "animations" as const, label: "Animations", asset: editorTimelineClay, panel: "effects" as const },
+    { id: "overlays" as const, label: "Overlays", asset: editorLayersClay, panel: "layers" as const },
+    { id: "audio" as const, label: "Audio", asset: editorAudioClay, panel: "effects" as const },
+  ];
   return <AppShell title="Video editor" workspace={workspace}>
     <div className="page editor-page">
       <div className="page-head">
-         <div><p className="eyebrow">Edit & compose</p><h1>Build your live signal</h1><p className="subtle">Shape the video, add layers, then send the finished composition directly to a stream channel.</p></div>
-        <div className="editor-head-badge"><Radio size={15}/> Direct to stream</div>
+         <div><p className="eyebrow">Edit & compose</p><h1>Video editor</h1><p className="subtle">Shape your clips, add layers, and prepare a polished composition for your next live channel.</p></div>
+        <div className="editor-head-actions">
+          <button type="button" className="button editor-save-button" onClick={() => setToast("Editor draft saved")}>Save</button>
+          <button type="button" className="button editor-preview-button" onClick={() => setPreviewExpanded(true)} disabled={!previewUrl}>Preview</button>
+          <button type="button" className="button editor-export-button" onClick={createStreamFromEditor} disabled={!selectedVideos.length}>Export</button>
+        </div>
       </div>
        <div className="editor-command-bar">
           <div className="editor-command-intro"><span className="editor-command-kicker">Production desk</span><strong>Shape the next signal</strong><span>Every choice is previewed here before the live encoder takes it on air.</span></div>
          <div className="editor-steps"><div className="editor-step active"><b>01</b><span>Choose clips</span></div><div className="editor-step"><b>02</b><span>Compose layers</span></div><div className="editor-step"><b>03</b><span>Send to live channel</span></div></div>
        </div>
       <form className="editor-layout" onSubmit={(event)=>event.preventDefault()}>
+         <aside className="editor-tool-rail" aria-label="Editor tools">
+           <div className="editor-tool-rail-heading">Tools</div>
+           <div className="editor-tool-list">
+             {editorTools.map((tool) => <button
+               key={tool.id}
+               type="button"
+               className={`editor-tool-button ${activeEditorTool === tool.id ? "active" : ""}`}
+               onClick={() => { setActiveEditorTool(tool.id); setMobileEditorPanel(tool.panel); }}
+               aria-label={tool.label}
+               aria-pressed={activeEditorTool === tool.id}
+             >
+               <img src={tool.asset} alt="" />
+               <span>{tool.label}</span>
+             </button>)}
+           </div>
+         </aside>
         <div className="editor-mobile-preview-stack">
           <section className="editor-stage card">
            <div className="editor-stage-head"><div><span className="metric-kicker">Live composition</span><strong>{selectedVideos.length ? `${selectedVideos.length} clips · ${loopEnabled ? `loops ${loopCount}` : "single pass"}` : "Choose videos to preview"}</strong></div><span className="editor-stage-status"><span className="status-dot"/>Preview</span></div>
@@ -4031,6 +4065,42 @@ function VideoEditorPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}
             <div className="form-note"><Sparkles size={14} style={{verticalAlign:"-3px",marginRight:6}}/>No intermediate MP4 is created. The selected composition is applied live by the stream encoder, including face cam, animation, logo, color, and microphone audio.</div>
         </aside>
       </form>
+       <section className="editor-timeline-shell" aria-label="Video timeline">
+         <div className="editor-timeline-head">
+           <div>
+             <span className="editor-timeline-kicker">Edit sequence</span>
+             <h2>Timeline</h2>
+             <p>Arrange clips, audio, and text before sending the composition live.</p>
+           </div>
+           <div className="editor-timeline-actions">
+             <button type="button" className="editor-timeline-tool" onClick={() => setTimelinePosition((current) => current >= 92 ? 8 : current + 8)}>
+               <span className="editor-timeline-play-icon">▶</span> Play
+             </button>
+             <button type="button" className="editor-timeline-tool editor-timeline-cut" onClick={() => setToast("Split tool ready at the playhead")}>
+               <img src={editorTimelineClay} alt="" /> Split
+             </button>
+           </div>
+         </div>
+         <div className="editor-timeline-track">
+           <div className="editor-timeline-body">
+             <div className="editor-timeline-labels" aria-hidden="true"><span>Video</span><span>Audio</span><span>Text</span></div>
+             <div className="editor-timeline-grid">
+               <div className="editor-timeline-ruler"><span>00:00</span><span>00:15</span><span>00:30</span><span>00:45</span><span>01:00</span><span>01:15</span></div>
+               <div className="editor-timeline-lane-content">
+                 {selectedVideos.length ? selectedVideos.map((video, index) => <div className="editor-timeline-block editor-timeline-video-block" key={video.id} style={{ flex: `${Math.max(1, 2.8 - index * .35)} 1 0` }}><strong>{video.title}</strong><span>{video.duration}</span></div>) : <div className="editor-timeline-empty-block">Drag your videos here</div>}
+               </div>
+               <div className="editor-timeline-lane-content">
+                 <div className="editor-timeline-block editor-timeline-audio-block"><img src={editorAudioClay} alt="" /><strong>Voice & music bed</strong><span>Auto mix</span></div>
+               </div>
+               <div className="editor-timeline-lane-content">
+                 <div className="editor-timeline-block editor-timeline-text-block"><img src={editorTextClay} alt="" /><strong>{title || "Add a title overlay"}</strong><span>{title ? "Title" : "Text layer"}</span></div>
+               </div>
+               <div className="editor-timeline-playhead" style={{ left: `${timelinePosition}%` }}><span /></div>
+             </div>
+           </div>
+         </div>
+         <div className="editor-timeline-footer"><span>{selectedVideos.length} clip{selectedVideos.length === 1 ? "" : "s"} in sequence</span><strong>Playhead {timelinePosition}%</strong><span>{loopEnabled ? `Loop ${loopCount}×` : "Single pass"}</span></div>
+       </section>
     </div>
   </AppShell>;
 }
@@ -4277,7 +4347,7 @@ function EditorCanvas({
           objectFit: cropMode === "crop" ? "cover" : "contain",
          filter: `brightness(${1 + colorAdjustments.brightness}) contrast(${colorAdjustments.contrast}) saturate(${colorAdjustments.saturation}) hue-rotate(${colorAdjustments.hue}deg)`,
        }}
-    /> : <div className="editor-empty"><Layers size={27}/><strong>Your composition appears here</strong><span>Choose a category and tick the clips you want to merge.</span></div>}
+     /> : <div className="editor-empty"><img src={editorTimelineClay} alt="" /><strong>Drag your videos to start editing</strong><span>Choose a category, then add clips to build your composition.</span></div>}
        {webcamUrl && (webcamChroma.enabled ? <ChromaKeyPreview
         src={webcamUrl}
         className={`editor-face-layer ${selectedLayer === "webcam" ? "active" : ""}`}

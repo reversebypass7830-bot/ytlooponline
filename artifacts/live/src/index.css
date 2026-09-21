@@ -8375,3 +8375,920 @@ select { height: 41px; }
     animation: none;
   }
 }
+
+/* Final white editor surface. The editor keeps its existing media, layer, and export behavior,
+   while its presentation matches the white dashboard and live preview pages. */
+.shell.video-editor-surface {
+  color: #111827;
+  background: #f9fafb;
+}
+
+.shell.video-editor-surface .sidebar {
+  border-right: 1px solid #e5e7eb;
+  background: #ffffff;
+  box-shadow: 10px 0 28px rgba(17, 24, 39, .035);
+}
+
+.shell.video-editor-surface .brand {
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.shell.video-editor-surface .nav-label {
+  color: #9ca3af;
+}
+
+.shell.video-editor-surface .nav-link {
+  color: #6b7280;
+}
+
+.shell.video-editor-surface .nav-link:hover {
+  color: #111827;
+  background: #f9fafb;
+}
+
+.shell.video-editor-surface .nav-link.active {
+  color: #111827;
+  border-color: #e5e7eb;
+  background: #f3f4f6;
+  box-shadow: inset 3px 0 #111827;
+}
+
+.shell.video-editor-surface .nav-link.active svg,
+.shell.video-editor-surface .nav-count {
+  color: #111827;
+}
+
+.shell.video-editor-surface .workspace-card {
+  border-color: #e5e7eb;
+  background: #f9fafb;
+}
+
+.shell.video-editor-surface .workspace-card strong,
+.shell.video-editor-surface .mini-user {
+  color: #374151;
+}
+
+.shell.video-editor-surface .workspace-card p {
+  color: #9ca3af;
+}
+
+.shell.video-editor-surface .mini-user {
+  border-top-color: #e5e7eb;
+}
+
+.shell.video-editor-surface .main {
+  background: #f9fafb;
+}
+
+.shell.video-editor-surface .topbar {
+  border-bottom-color: #e5e7eb;
+  background: rgba(255, 255, 255, .94);
+  box-shadow: 0 2px 12px rgba(17, 24, 39, .025);
+}
+
+.shell.video-editor-surface .crumb-label {
+  color: #9ca3af;
+}
+
+.shell.video-editor-surface .crumb-title,
+.shell.video-editor-surface h1,
+.shell.video-editor-surface h2,
+.shell.video-editor-surface h3,
+.shell.video-editor-surface .section-title {
+  color: #111827;
+}
+
+.shell.video-editor-surface .page {
+  max-width: 1600px;
+  padding-top: 29px;
+}
+
+.shell.video-editor-surface .page-head {
+  align-items: flex-start;
+  margin-bottom: 20px;
+}
+
+.shell.video-editor-surface .eyebrow {
+  color: #6b7280;
+  letter-spacing: .14em;
+}
+
+.shell.video-editor-surface .page-head h1 {
+  margin-top: 7px;
+  letter-spacing: -.055em;
+}
+
+.shell.video-editor-surface .page-head .subtle {
+  max-width: 630px;
+  color: #6b7280;
+  line-height: 1.6;
+}
+
+.shell.video-editor-surface .editor-head-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-top: 4px;
+}
+
+.shell.video-editor-surface .editor-head-actions .button {
+  min-height: 38px;
+  padding: 9px 15px;
+  border-radius: 999px;
+  box-shadow: none;
+}
+
+.shell.video-editor-surface .editor-save-button {
+  border: 1px solid #e5e7eb;
+  color: #374151;
+  background: #ffffff;
+}
+
+.shell.video-editor-surface .editor-save-button:hover {
+  border-color: #d1d5db;
+  color: #111827;
+  background: #f9fafb;
+}
+
+.shell.video-editor-surface .editor-preview-button {
+  border: 1px solid #e5e7eb;
+  color: #374151;
+  background: #f3f4f6;
+}
+
+.shell.video-editor-surface .editor-preview-button:hover {
+  border-color: #d1d5db;
+  color: #111827;
+  background: #e5e7eb;
+}
+
+.shell.video-editor-surface .editor-export-button {
+  border: 1px solid #111827;
+  color: #ffffff;
+  background: #111827;
+}
+
+.shell.video-editor-surface .editor-export-button:hover {
+  border-color: #000000;
+  background: #000000;
+  box-shadow: 0 8px 18px rgba(17, 24, 39, .14);
+}
+
+.shell.video-editor-surface .editor-export-button:disabled,
+.shell.video-editor-surface .editor-preview-button:disabled {
+  cursor: not-allowed;
+  opacity: .46;
+}
+
+.shell.video-editor-surface .editor-command-bar {
+  margin-bottom: 18px;
+  border-color: #e5e7eb;
+  border-radius: 14px;
+  background: #ffffff;
+  box-shadow: 0 7px 20px rgba(17, 24, 39, .04);
+}
+
+.shell.video-editor-surface .editor-command-kicker,
+.shell.video-editor-surface .editor-timeline-kicker {
+  color: #6b7280;
+}
+
+.shell.video-editor-surface .editor-command-intro strong,
+.shell.video-editor-surface .editor-command-intro > span:last-child {
+  color: #111827;
+}
+
+.shell.video-editor-surface .editor-command-intro > span:last-child {
+  color: #6b7280;
+}
+
+.shell.video-editor-surface .editor-step {
+  color: #9ca3af;
+}
+
+.shell.video-editor-surface .editor-step b {
+  border-color: #e5e7eb;
+  color: #6b7280;
+  background: #f9fafb;
+}
+
+.shell.video-editor-surface .editor-step.active {
+  color: #111827;
+}
+
+.shell.video-editor-surface .editor-step.active b {
+  border-color: #111827;
+  color: #ffffff;
+  background: #111827;
+}
+
+.shell.video-editor-surface .editor-layout {
+  display: grid;
+  grid-template-columns: 76px minmax(0, 1fr) 370px;
+  gap: 16px;
+  align-items: start;
+}
+
+.shell.video-editor-surface .editor-tool-rail {
+  position: sticky;
+  top: 18px;
+  display: flex;
+  min-height: 486px;
+  flex-direction: column;
+  align-items: center;
+  padding: 13px 8px;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  background: #ffffff;
+  box-shadow: 0 8px 24px rgba(17, 24, 39, .045);
+}
+
+.shell.video-editor-surface .editor-tool-rail-heading {
+  margin: 3px 0 12px;
+  color: #9ca3af;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+
+.shell.video-editor-surface .editor-tool-list {
+  display: grid;
+  width: 100%;
+  gap: 8px;
+}
+
+.shell.video-editor-surface .editor-tool-button {
+  display: grid;
+  min-height: 69px;
+  place-items: center;
+  gap: 3px;
+  padding: 7px 2px;
+  border: 1px solid transparent;
+  border-radius: 11px;
+  color: #9ca3af;
+  background: transparent;
+  cursor: pointer;
+  transition: background .18s, color .18s, transform .18s, box-shadow .18s;
+}
+
+.shell.video-editor-surface .editor-tool-button img {
+  width: 34px;
+  height: 34px;
+  object-fit: contain;
+  filter: saturate(.84);
+  transition: transform .18s, filter .18s;
+}
+
+.shell.video-editor-surface .editor-tool-button span {
+  font-size: 9px;
+  font-weight: 800;
+}
+
+.shell.video-editor-surface .editor-tool-button:hover {
+  color: #374151;
+  background: #f9fafb;
+  transform: translateY(-1px);
+}
+
+.shell.video-editor-surface .editor-tool-button:hover img {
+  filter: saturate(1);
+  transform: translateY(-2px);
+}
+
+.shell.video-editor-surface .editor-tool-button.active {
+  color: #ffffff;
+  background: #111827;
+  box-shadow: 0 7px 16px rgba(17, 24, 39, .13);
+}
+
+.shell.video-editor-surface .editor-tool-button.active img {
+  filter: saturate(1) brightness(1.08);
+}
+
+.shell.video-editor-surface .editor-mobile-preview-stack {
+  min-width: 0;
+}
+
+.shell.video-editor-surface .editor-stage,
+.shell.video-editor-surface .editor-panel {
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  background: #ffffff;
+  box-shadow: 0 8px 24px rgba(17, 24, 39, .045);
+}
+
+.shell.video-editor-surface .editor-stage {
+  padding: 18px;
+}
+
+.shell.video-editor-surface .editor-stage-head {
+  margin-bottom: 14px;
+}
+
+.shell.video-editor-surface .editor-stage-head strong {
+  color: #111827;
+}
+
+.shell.video-editor-surface .editor-stage .metric-kicker,
+.shell.video-editor-surface .editor-stage-foot {
+  color: #6b7280;
+}
+
+.shell.video-editor-surface .editor-stage-status {
+  color: #6b7280;
+}
+
+.shell.video-editor-surface .editor-stage-status .status-dot {
+  background: #22c55e;
+  box-shadow: 0 0 0 3px rgba(34, 197, 94, .1);
+}
+
+.shell.video-editor-surface .editor-canvas {
+  min-height: 0;
+  aspect-ratio: 16 / 9;
+  border: 1px solid #111827;
+  border-radius: 12px;
+  background: #111827;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .08);
+}
+
+.shell.video-editor-surface .editor-canvas:fullscreen {
+  background: #111827;
+}
+
+.shell.video-editor-surface .editor-empty {
+  color: #9ca3af;
+}
+
+.shell.video-editor-surface .editor-empty img {
+  width: 128px;
+  height: 128px;
+  object-fit: contain;
+  filter: drop-shadow(0 14px 14px rgba(167, 139, 250, .18));
+  animation: editor-clay-float 4.5s ease-in-out infinite;
+}
+
+.shell.video-editor-surface .editor-empty strong {
+  margin-top: 4px;
+  color: #ffffff;
+  font-size: 16px;
+}
+
+.shell.video-editor-surface .editor-empty span {
+  max-width: 290px;
+  color: #9ca3af;
+  line-height: 1.5;
+}
+
+.shell.video-editor-surface .editor-canvas-toolbar {
+  top: 10px;
+  left: 10px;
+  right: 10px;
+}
+
+.shell.video-editor-surface .editor-canvas-hint,
+.shell.video-editor-surface .editor-canvas-zoom,
+.shell.video-editor-surface .editor-canvas-button {
+  border-color: rgba(255, 255, 255, .16);
+  color: #e5e7eb;
+  background: rgba(17, 24, 39, .8);
+}
+
+.shell.video-editor-surface .editor-canvas-zoom button {
+  color: #ffffff;
+}
+
+.shell.video-editor-surface .editor-canvas-zoom button:hover,
+.shell.video-editor-surface .editor-canvas-button:hover {
+  border-color: #ffffff;
+  color: #ffffff;
+  background: rgba(17, 24, 39, .96);
+}
+
+.shell.video-editor-surface .editor-preview-actions {
+  border-color: #e5e7eb;
+  background: #f9fafb;
+}
+
+.shell.video-editor-surface .editor-preview-actions strong {
+  color: #111827;
+}
+
+.shell.video-editor-surface .editor-preview-actions span {
+  color: #6b7280;
+}
+
+.shell.video-editor-surface .editor-preview-actions .button {
+  border: 1px solid #111827;
+  color: #ffffff;
+  background: #111827;
+}
+
+.shell.video-editor-surface .editor-panel {
+  padding: 17px;
+}
+
+.shell.video-editor-surface .editor-panel .section-head {
+  margin-bottom: 14px;
+}
+
+.shell.video-editor-surface .editor-panel .section-title {
+  color: #111827;
+}
+
+.shell.video-editor-surface .editor-panel .subtle {
+  color: #6b7280;
+}
+
+.shell.video-editor-surface .editor-panel .section-head > svg {
+  color: #6b7280;
+}
+
+.shell.video-editor-surface .editor-panel .field label,
+.shell.video-editor-surface .editor-control-row label {
+  color: #6b7280;
+}
+
+.shell.video-editor-surface .editor-library-tabs button,
+.shell.video-editor-surface .editor-layer-tabs button {
+  border-color: #e5e7eb;
+  color: #6b7280;
+  background: #ffffff;
+}
+
+.shell.video-editor-surface .editor-library-tabs button:hover,
+.shell.video-editor-surface .editor-layer-tabs button:hover {
+  border-color: #d1d5db;
+  color: #111827;
+  background: #f9fafb;
+}
+
+.shell.video-editor-surface .editor-library-tabs button.active,
+.shell.video-editor-surface .editor-layer-tabs button.active {
+  border-color: #111827;
+  color: #ffffff;
+  background: #111827;
+  box-shadow: none;
+}
+
+.shell.video-editor-surface .editor-clip,
+.shell.video-editor-surface .editor-transform-controls,
+.shell.video-editor-surface .editor-readonly,
+.shell.video-editor-surface .editor-selected-folder,
+.shell.video-editor-surface .editor-category-lock,
+.shell.video-editor-surface .editor-animation-folder,
+.shell.video-editor-surface .check-control {
+  border-color: #e5e7eb;
+  color: #374151;
+  background: #f9fafb;
+}
+
+.shell.video-editor-surface .editor-clip:hover,
+.shell.video-editor-surface .editor-clip.previewing,
+.shell.video-editor-surface .editor-clip.selected,
+.shell.video-editor-surface .editor-animation-folder:hover,
+.shell.video-editor-surface .check-control:hover {
+  border-color: #c4b5fd;
+  background: #f5f3ff;
+  box-shadow: none;
+}
+
+.shell.video-editor-surface .editor-clip-copy strong,
+.shell.video-editor-surface .editor-category-lock strong {
+  color: #111827;
+}
+
+.shell.video-editor-surface .editor-clip-copy small,
+.shell.video-editor-surface .editor-clip-number,
+.shell.video-editor-surface .editor-clip-grip,
+.shell.video-editor-surface .editor-mini-empty,
+.shell.video-editor-surface .editor-readonly,
+.shell.video-editor-surface .editor-selected-folder,
+.shell.video-editor-surface .editor-layer-note,
+.shell.video-editor-surface .editor-control-actions,
+.shell.video-editor-surface .editor-reset-row,
+.shell.video-editor-surface .field-hint {
+  color: #6b7280;
+}
+
+.shell.video-editor-surface .editor-clip-check input {
+  accent-color: #111827;
+}
+
+.shell.video-editor-surface .editor-transform-controls {
+  background: #ffffff;
+}
+
+.shell.video-editor-surface .editor-reset-row {
+  border-top-color: #e5e7eb;
+}
+
+.shell.video-editor-surface .editor-control-row label strong {
+  color: #111827;
+}
+
+.shell.video-editor-surface .editor-control-row input[type="range"],
+.shell.video-editor-surface .editor-panel input[type="range"] {
+  accent-color: #111827;
+}
+
+.shell.video-editor-surface .editor-panel select,
+.shell.video-editor-surface .editor-panel input:not([type="range"]),
+.shell.video-editor-surface .editor-panel textarea {
+  border-color: #d1d5db;
+  color: #111827;
+  background: #ffffff;
+}
+
+.shell.video-editor-surface .editor-panel select:focus,
+.shell.video-editor-surface .editor-panel input:not([type="range"]):focus,
+.shell.video-editor-surface .editor-panel textarea:focus {
+  border-color: #111827;
+  box-shadow: 0 0 0 3px rgba(17, 24, 39, .08);
+}
+
+.shell.video-editor-surface .editor-file-button {
+  border-color: #e5e7eb;
+  color: #374151;
+  background: #ffffff;
+}
+
+.shell.video-editor-surface .editor-file-button:hover {
+  border-color: #d1d5db;
+  color: #111827;
+  background: #f9fafb;
+}
+
+.shell.video-editor-surface .editor-render-button {
+  border-color: #111827;
+  color: #ffffff;
+  background: #111827;
+}
+
+.shell.video-editor-surface .editor-render-button:hover {
+  border-color: #000000;
+  background: #000000;
+}
+
+.shell.video-editor-surface .form-note {
+  border-color: #e5e7eb;
+  color: #6b7280;
+  background: #f9fafb;
+}
+
+.shell.video-editor-surface .mobile-editor-tabs button {
+  border-color: #e5e7eb;
+  color: #6b7280;
+  background: #ffffff;
+}
+
+.shell.video-editor-surface .mobile-editor-tabs button.active {
+  border-color: #111827;
+  color: #ffffff;
+  background: #111827;
+}
+
+.shell.video-editor-surface .editor-timeline-shell {
+  margin-top: 17px;
+  padding: 18px 18px 14px;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  background: #ffffff;
+  box-shadow: 0 8px 24px rgba(17, 24, 39, .045);
+}
+
+.shell.video-editor-surface .editor-timeline-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+
+.shell.video-editor-surface .editor-timeline-kicker {
+  display: block;
+  margin-bottom: 5px;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+}
+
+.shell.video-editor-surface .editor-timeline-head h2 {
+  margin: 0;
+  font-size: 17px;
+  letter-spacing: -.03em;
+}
+
+.shell.video-editor-surface .editor-timeline-head p {
+  margin: 4px 0 0;
+  color: #6b7280;
+  font-size: 11px;
+}
+
+.shell.video-editor-surface .editor-timeline-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.shell.video-editor-surface .editor-timeline-tool {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 35px;
+  padding: 7px 11px;
+  border: 1px solid #e5e7eb;
+  border-radius: 9px;
+  color: #374151;
+  background: #ffffff;
+  font-size: 10px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.shell.video-editor-surface .editor-timeline-tool:hover {
+  border-color: #d1d5db;
+  color: #111827;
+  background: #f9fafb;
+}
+
+.shell.video-editor-surface .editor-timeline-play-icon {
+  font-size: 9px;
+}
+
+.shell.video-editor-surface .editor-timeline-cut img {
+  width: 25px;
+  height: 25px;
+  object-fit: contain;
+}
+
+.shell.video-editor-surface .editor-timeline-track {
+  overflow: hidden;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  background: #fbfbfc;
+}
+
+.shell.video-editor-surface .editor-timeline-body {
+  display: grid;
+  grid-template-columns: 70px minmax(0, 1fr);
+  min-width: 620px;
+}
+
+.shell.video-editor-surface .editor-timeline-labels {
+  display: grid;
+  grid-template-rows: 29px repeat(3, 51px);
+  border-right: 1px solid #e5e7eb;
+  background: #ffffff;
+}
+
+.shell.video-editor-surface .editor-timeline-labels span {
+  display: flex;
+  align-items: center;
+  padding-left: 12px;
+  border-bottom: 1px solid #e5e7eb;
+  color: #6b7280;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: .09em;
+  text-transform: uppercase;
+}
+
+.shell.video-editor-surface .editor-timeline-grid {
+  position: relative;
+  display: grid;
+  grid-template-rows: 29px repeat(3, 51px);
+  min-width: 0;
+}
+
+.shell.video-editor-surface .editor-timeline-ruler {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  border-bottom: 1px solid #e5e7eb;
+  background: #ffffff;
+}
+
+.shell.video-editor-surface .editor-timeline-ruler span {
+  padding: 8px 8px 0;
+  border-left: 1px solid #f3f4f6;
+  color: #9ca3af;
+  font: 9px var(--app-font-mono);
+}
+
+.shell.video-editor-surface .editor-timeline-lane-content {
+  display: flex;
+  min-width: 0;
+  gap: 6px;
+  align-items: center;
+  padding: 7px 8px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.shell.video-editor-surface .editor-timeline-block {
+  display: flex;
+  min-width: 80px;
+  height: 36px;
+  align-items: center;
+  gap: 7px;
+  overflow: hidden;
+  padding: 7px 9px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.shell.video-editor-surface .editor-timeline-block strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.shell.video-editor-surface .editor-timeline-block span {
+  flex: 0 0 auto;
+  color: #6b7280;
+  font: 9px var(--app-font-mono);
+}
+
+.shell.video-editor-surface .editor-timeline-video-block {
+  border-color: #c4b5fd;
+  color: #5b21b6;
+  background: #ddd6fe;
+}
+
+.shell.video-editor-surface .editor-timeline-audio-block {
+  width: 58%;
+  border-color: #6ee7b7;
+  color: #047857;
+  background: #a7f3d0;
+}
+
+.shell.video-editor-surface .editor-timeline-text-block {
+  width: 43%;
+  border-color: #fcd34d;
+  color: #92400e;
+  background: #fde68a;
+}
+
+.shell.video-editor-surface .editor-timeline-block img {
+  width: 24px;
+  height: 24px;
+  flex: 0 0 auto;
+  object-fit: contain;
+}
+
+.shell.video-editor-surface .editor-timeline-empty-block {
+  display: flex;
+  width: 100%;
+  height: 36px;
+  align-items: center;
+  justify-content: center;
+  border: 1px dashed #d1d5db;
+  border-radius: 8px;
+  color: #9ca3af;
+  font-size: 10px;
+}
+
+.shell.video-editor-surface .editor-timeline-playhead {
+  position: absolute;
+  z-index: 4;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: #111827;
+  pointer-events: none;
+}
+
+.shell.video-editor-surface .editor-timeline-playhead span {
+  position: absolute;
+  top: 22px;
+  left: 50%;
+  width: 9px;
+  height: 9px;
+  border: 2px solid #ffffff;
+  border-radius: 50%;
+  background: #ef4444;
+  box-shadow: 0 0 0 1px #111827;
+  transform: translateX(-50%);
+}
+
+.shell.video-editor-surface .editor-timeline-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding-top: 11px;
+  color: #9ca3af;
+  font: 9px var(--app-font-mono);
+}
+
+.shell.video-editor-surface .editor-timeline-footer strong {
+  color: #111827;
+  font-weight: 700;
+}
+
+@keyframes editor-clay-float {
+  0%, 100% { transform: translateY(0) rotate(-1deg); }
+  50% { transform: translateY(-6px) rotate(1deg); }
+}
+
+@media (max-width: 1180px) {
+  .shell.video-editor-surface .editor-layout {
+    grid-template-columns: 68px minmax(0, 1fr);
+  }
+
+  .shell.video-editor-surface .editor-controls {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+  }
+
+  .shell.video-editor-surface .editor-render-button,
+  .shell.video-editor-surface .editor-controls > .form-note {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 700px) {
+  .shell.video-editor-surface .page {
+    padding: 24px 17px 46px;
+  }
+
+  .shell.video-editor-surface .page-head {
+    gap: 15px;
+  }
+
+  .shell.video-editor-surface .editor-head-actions {
+    width: 100%;
+  }
+
+  .shell.video-editor-surface .editor-head-actions .button {
+    flex: 1;
+    justify-content: center;
+    padding-inline: 10px;
+  }
+
+  .shell.video-editor-surface .editor-command-bar {
+    display: none;
+  }
+
+  .shell.video-editor-surface .editor-layout {
+    display: block;
+  }
+
+  .shell.video-editor-surface .editor-tool-rail {
+    display: none;
+  }
+
+  .shell.video-editor-surface .editor-stage {
+    padding: 13px;
+  }
+
+  .shell.video-editor-surface .editor-canvas {
+    min-height: 0;
+    height: auto;
+  }
+
+  .shell.video-editor-surface .editor-empty img {
+    width: 104px;
+    height: 104px;
+  }
+
+  .shell.video-editor-surface .editor-empty strong {
+    font-size: 14px;
+  }
+
+  .shell.video-editor-surface .editor-timeline-shell {
+    padding: 15px 13px 13px;
+  }
+
+  .shell.video-editor-surface .editor-timeline-head {
+    flex-direction: column;
+  }
+
+  .shell.video-editor-surface .editor-timeline-actions {
+    width: 100%;
+  }
+
+  .shell.video-editor-surface .editor-timeline-tool {
+    flex: 1;
+    justify-content: center;
+  }
+
+  .shell.video-editor-surface .editor-timeline-track {
+    overflow-x: auto;
+  }
+
+  .shell.video-editor-surface .editor-timeline-footer {
+    flex-wrap: wrap;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shell.video-editor-surface .editor-empty img {
+    animation: none;
+  }
+}
