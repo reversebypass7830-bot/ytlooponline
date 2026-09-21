@@ -218,7 +218,7 @@ export default function LoginPage({
             <span className="streamly-login-card-wordmark" aria-label="YT Loop"><b>YT</b> Loop</span>
             <span>24/7 broadcast control</span>
           </div>
-          <p className="streamly-login-copy text-center text-[25px]">{expired ? "Renew your current license to keep your channels, videos, and settings exactly as you left them." : "Login"}</p>
+          <p className="streamly-login-copy text-center text-[25px]">{expired ? "Renew your current license to keep your channels, videos, and settings exactly as you left them." : "Access your workspace"}</p>
           {shownError && <div className="streamly-login-error" role="alert"><MaterialIcon name="warning" /><span>{shownError}</span></div>}
           <div id="login-method-panel" className="streamly-login-method-panel" role="region" aria-label={method === "phone" ? "Phone sign-in" : "License key sign-in"}>
             {method === "phone" && (

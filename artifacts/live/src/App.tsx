@@ -1208,7 +1208,9 @@ function useWorkspace(license: LicenseSession | null, clearLicense: () => void) 
 
 function Brand({ compact = false }: { compact?: boolean }) {
   return <div className="brand" data-testid="brand">
-    <div className="brand-mark"><img src="/images/logo/loop-logo.webp" alt="Loop Stream" /></div>
+    <div className="brand-mark">
+      <span className="brand-wordmark" aria-label="YT LOOP"><b>YT</b><span>LOOP</span></span>
+    </div>
   </div>;
 }
 
@@ -1224,11 +1226,11 @@ function Sidebar({ path, open, onClose, user, photo, data }: { path:string; open
   ];
   return <aside className={`sidebar ${open ? "open" : ""}`} data-testid="sidebar">
     <Brand />
-    <div className="nav-label">Reverse Bypass</div>
+     <div className="nav-label">Workspace</div>
     <nav className="nav">
       {nav.map(({href,label,icon:Icon,count}) => <Link key={href} href={href} onClick={onClose} className={`nav-link ${path === href ? "active" : ""}`} data-testid={`link-${label.toLowerCase().replaceAll(" ","-")}`}><Icon size={16}/><span>{label}</span>{count !== undefined && <span className="nav-count">{count}</span>}</Link>)}
     </nav>
-    <div className="nav-label" style={{marginTop:28}}>Workspace</div>
+     <div className="nav-label" style={{marginTop:28}}>Account</div>
     <nav className="nav">
       <Link href="/profile" onClick={onClose} className={`nav-link ${path === "/profile" ? "active" : ""}`} data-testid="link-profile"><UserRound size={16}/><span>Profile</span></Link>
     </nav>
@@ -2356,16 +2358,16 @@ function SubscriptionPage({ workspace, account, plans, onSelectPlan }: { workspa
 
 function Dashboard({ workspace, account }: { workspace:ReturnType<typeof useWorkspace>; account?: AccountSummary | null }) {
   const actions = [
-    { href: "/live", label: "Live", description: "Manage live channels and start a broadcast.", icon: MonitorPlay, tone: "live" },
-    { href: "/videos", label: "Video", description: "Browse your video library and categories.", icon: FileVideo, tone: "video" },
-    { href: "/live-preview", label: "Stream preview", description: "Check the live composition before it goes out.", icon: Radio, tone: "preview" },
-    { href: "/editor", label: "Video editor", description: "Build a polished stream composition.", icon: Wand2, tone: "editor" },
+    { href: "/live", label: "Live", description: "Manage live channels and start a broadcast.", image: `${basePath}/images/dashboard/live.png`, tone: "live" },
+    { href: "/videos", label: "Video", description: "Browse your video library and categories.", image: `${basePath}/images/dashboard/video-library.png`, tone: "video" },
+    { href: "/live-preview", label: "Stream preview", description: "Check the live composition before it goes out.", image: `${basePath}/images/dashboard/stream-preview.png`, tone: "preview" },
+    { href: "/editor", label: "Video editor", description: "Build a polished stream composition.", image: `${basePath}/images/dashboard/editor.png`, tone: "editor" },
   ];
   return <AppShell title="Dashboard" account={account} workspace={workspace}>
     <div className="page dashboard-home-page">
       <div className="page-head"><div><p className="eyebrow">Workspace</p><h1>Dashboard</h1><p className="subtle">Choose what you want to work on.</p></div></div>
       <div className="dashboard-action-grid">
-        {actions.map(({ href, label, description, icon: Icon, tone }) => <Link key={href} href={href} className={`dashboard-action-card dashboard-action-${tone}`}><span className="dashboard-action-icon"><Icon size={23}/></span><span className="dashboard-action-copy"><strong>{label}</strong><small>{description}</small></span><ArrowRight size={17} className="dashboard-action-arrow"/></Link>)}
+         {actions.map(({ href, label, description, image, tone }) => <Link key={href} href={href} className={`dashboard-action-card dashboard-action-${tone}`} data-testid={`link-dashboard-action-${tone}`} aria-label={`${label}: ${description}`}><span className="dashboard-action-art"><img src={image} alt="" /></span><span className="dashboard-action-copy"><strong>{label}</strong><small>{description}</small></span><ArrowRight size={17} className="dashboard-action-arrow"/></Link>)}
       </div>
     </div>
   </AppShell>;
