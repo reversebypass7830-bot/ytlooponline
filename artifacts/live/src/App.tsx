@@ -32,6 +32,9 @@ import liveYoutubeClay from "@assets/youtube_live_clay_(1)_1790012855640.png";
 import liveKeyClay from "@assets/clay_key_icon_cutout_1790012851655.png";
 import liveBroadcastClay from "@assets/green_dot_broadcast_1790012846968.png";
 import livePowerClay from "@assets/power_button_clay_cutout_1790012840748.png";
+import livePreviewEyeClay from "@assets/eye_play_broadcast_1790014126923.png";
+import liveChannelListClay from "@assets/clay_tv_list_cutout_1790014126924.png";
+import liveChannelSettingsClay from "@assets/settings_tv_channels_clay_1790014126925.png";
 import { type AccessGateProfile } from "./components/AccessGate";
 import LoginPage from "./pages/login";
 import { firebaseAuth } from "./lib/firebase-auth";
@@ -1310,7 +1313,7 @@ function MobileNav({ path }: { path:string }) {
 function AppShell({ children, title, account, profilePhoto, workspace }: { children:ReactNode; title:string; account?: AccountSummary | null; profilePhoto?: string; workspace:ReturnType<typeof useWorkspace> }) {
   const [path] = useLocation();
   const [menu, setMenu] = useState(false);
-  return <div className={`shell ${title === "Analytics" ? "analytics-surface" : title === "Live channels" ? "live-surface" : title === "Video library" ? "video-library-surface" : ""}`}>
+  return <div className={`shell ${title === "Analytics" ? "analytics-surface" : title === "Live channels" ? "live-surface" : title === "Video library" ? "video-library-surface" : title === "Live Stream Preview" ? "live-preview-surface" : ""}`}>
     {menu && <button className="sidebar-scrim" aria-label="Close navigation" onClick={() => setMenu(false)} data-testid="button-close-menu" />}
     <Sidebar path={path} open={menu} onClose={()=>setMenu(false)} user={account?.displayName || account?.email || workspace.user} photo={profilePhoto} data={workspace.data}/>
      <main className="main"><Header title={title} account={account} onMenu={()=>setMenu(true)}/><DownloadActivity downloads={workspace.youtubeDownloads} onDismiss={workspace.dismissYoutubeDownload}/>{children}</main>
@@ -3197,17 +3200,17 @@ function LivePreviewPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}
           <p className="subtle">Watch the active stream composition separately from normal video editing. Camera, microphone, and live animations are controlled here.</p>
         </div>
         <div className="page-head-actions">
-          <span className={`page-live-indicator ${selectedChannel?.status === "live" ? "is-live" : ""}`}><span className="status-dot"/>{selectedChannel?.status === "live" ? "Live signal running" : "Preview only"}</span>
-          <Link className="button secondary" href="/live"><MonitorPlay size={15}/> Manage channels</Link>
+          <span className="preview-only-badge"><span className="preview-only-dot"/>Preview only</span>
+          <Link className="button secondary preview-manage-button" href="/live"><img src={liveChannelSettingsClay} alt="" /> Manage channels</Link>
         </div>
       </div>
 
       <div className="live-preview-toolbar card">
-        <div className="field"><label>Preview channel</label><select value={selectedChannelId} onChange={(event) => setSelectedChannelId(event.target.value)} data-testid="select-live-preview-channel"><option value="">Choose a channel</option>{data.channels.map((channel) => <option key={channel.id} value={channel.id}>{channel.title} · {channel.status}</option>)}</select></div>
+        <div className="field"><label className="preview-channel-label"><img src={liveChannelListClay} alt="" />Preview channel</label><select value={selectedChannelId} onChange={(event) => setSelectedChannelId(event.target.value)} data-testid="select-live-preview-channel"><option value="">Choose a channel</option>{data.channels.map((channel) => <option key={channel.id} value={channel.id}>{channel.title} · {channel.status}</option>)}</select></div>
         <div className="live-preview-toolbar-copy"><span className={`status ${selectedChannel?.status === "live" ? "live" : "stopped"}`}><span className="status-dot"/>{selectedChannel?.status === "live" ? "Broadcasting" : "Not on air"}</span><small>{selectedChannel?.status === "live" ? "This preview follows the selected live channel." : "Start the channel to apply preview controls to the stream."}</small></div>
       </div>
 
-      {!selectedChannel ? <div className="card live-preview-empty"><Radio size={26}/><h2>No live channel configured</h2><p>Create a channel and select a playlist before opening the live preview.</p><Link className="button" href="/live">Open live channels <ArrowRight size={14}/></Link></div> : <div className="live-preview-stack">
+      {!selectedChannel ? <div className="card live-preview-empty"><div className="live-preview-empty-art"><img src={livePreviewEyeClay} alt="" /></div><h2>No live channel configured</h2><p>Create a channel and select a playlist before opening the live preview.</p><Link className="button" href="/live">Open live channels <ArrowRight size={14}/></Link></div> : <div className="live-preview-stack">
        <section className="card live-output-card">
            <div className="section-head"><div><h2 className="section-title">Actual live output</h2><p className="subtle">This is the same encoded composition sent to the live destination, including playlist, camera, animation, and voice.</p></div><Radio size={17} color="#b0d84a"/></div>
            <LiveOutputPreview src={livePreviewUrl}/>

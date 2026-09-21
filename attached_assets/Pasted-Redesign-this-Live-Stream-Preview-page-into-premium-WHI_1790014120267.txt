@@ -1,0 +1,31 @@
+Redesign this Live Stream Preview page into premium WHITE THEME for YT LOOP.
+
+KEEP SAME LAYOUT:
+- Breadcrumb "Reverse Bypass / Live Stream Preview"
+- Header: Left - label "Broadcast preview / live studio", Title "Live Stream Preview", Subtitle "Watch the active stream composition separately from normal video editing. Camera, microphone, and live animations are controlled here."
+- Right side - 2 buttons: Badge "PREVIEW ONLY" and button "Manage channels"
+- Middle bar: "PREVIEW CHANNEL" label with dropdown "Choose a channel" and status "NOT ON AIR" with helper text
+- Main big card: Empty state dark purple card with ((o)) icon, text "No live channel configured" and "Create a channel and select a playlist before opening the live preview." and pink button "Open live channels"
+
+**NEW WHITE PREMIUM DESIGN:**
+
+1.  **Theme:** Remove dark purple. Full white #FFFFFF background. Main content #F9FAFB.
+2.  **Header Buttons:**
+    - "PREVIEW ONLY" badge: Soft blue #EEF2FF background with blue dot #6366F1 and blue text, rounded full 20px.
+    - "Manage channels": White button with grey border #E5E7EB, black text, 12px radius.
+3.  **Channel Selector Bar:**
+    - Make it a white card #FFFFFF, 16px radius, 1px border #E5E7EB, soft shadow.
+    - Dropdown "Choose a channel": White input with grey border, black text, dropdown arrow.
+    - "NOT ON AIR": Red dot #EF4444 with grey text #6B7280.
+4.  **Main Preview Card [Most Important]:**
+    - Background: White #FFFFFF, 24px radius, border #E5E7EB, big soft shadow, aspect ratio 16:9 for video preview.
+    - Empty State Center:
+      - Replace ((o)) icon with my BIG 3D clay eye + broadcast icon on white marble pedestal, size 120x120 floating.
+      - Title "No live channel configured" -> Bold black #111827 20px.
+      - Subtitle grey #6B7280 14px centered.
+      - Button "Open live channels": Change pink to Black #111827 primary button, white text, rounded full 12px, with right arrow.
+    - When live is active, this same card will show the actual video player with controls.
+
+5.  **Overall:** Clean, professional broadcast studio look like OBS + Linear white mode. Inter font.
+
+Replace all icons with my 3D clay icons. Code in React + Tailwind + shadcn. Match with all previous white pages.
