@@ -1,0 +1,25 @@
+Redesign this Billing Record page into PREMIUM WHITE THEME for YT LOOP.
+
+KEEP LAYOUT FROM SCREENSHOT:
+- Left sidebar: Subscription (active black), ACCOUNT label, Profile, bottom card "Private workspace"
+- Right main: Bottom part of pricing page with 2 cards - top partial pricing cards, bottom full "BILLING RECORD" card
+- Billing card has: Title "Transaction history", subtitle "Review every subscription purchase...", top right badge "0 of 0 records", search bar "Search plan or invoice reference", filters All/Purchases/Grants, time dropdown "Any time", empty state "No billing transactions yet"
+
+**NEW WHITE PREMIUM DESIGN:**
+
+1.  **Sidebar:** White #FFFFFF, Subscription active = Black #111827 white text 12px radius, Profile inactive grey #6B7280. Bottom "Private workspace" card: White with 1px border #E5E7EB 16px radius, soft shadow, title bold black, subtitle grey.
+2.  **Main Billing Card:**
+    - Background White #FFFFFF, 24px radius, border #E5E7EB, shadow 0px 8px 32px rgba(0,0,0,0.06)
+    - Header: "BILLING RECORD" label small grey uppercase #9CA3AF 10px, "Transaction history" bold black #111827 18px, subtitle grey #6B7280 13px
+    - Right badge "0 of 0 records": Light grey #F3F4F6 background, number bold black, rounded full 12px
+3.  **Filters Bar:**
+    - Search bar: White #FFFFFF, border #E5E7EB, 12px radius, placeholder grey #9CA3AF, search icon grey
+    - Filter pills "All, Purchases, Grants": All active = Black #111827 white text rounded full, others white with grey border
+    - Time dropdown "Any time": White with border, black text, 12px radius
+4.  **Empty State:**
+    - Background #FAFAFA light grey inside card, 16px radius
+    - Icon: Replace with my BIG 3D clay receipt icon on marble pedestal 80x80 floating
+    - Text "No billing transactions yet" Bold Black #111827 14px, subtitle grey #6B7280 12px
+5.  **Overall:** Stripe dashboard style, Inter font, no dark green #0F2A20, no dark purple #1A0B2E.
+
+Replace icons with my 3D clay icons. Code in React + Tailwind + shadcn. Must match all previous white pages - Dashboard, Analytics, Video Library, Live Preview, Pricing.

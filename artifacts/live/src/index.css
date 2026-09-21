@@ -9292,3 +9292,1013 @@ select { height: 41px; }
     animation: none;
   }
 }
+
+/* Subscription and Profile: shared white account surfaces. */
+.shell.subscription-surface,
+.shell.profile-surface {
+  color: #111827;
+  background: #f9fafb;
+}
+
+.shell.subscription-surface .sidebar,
+.shell.profile-surface .sidebar {
+  border-right-color: #e5e7eb;
+  background: #ffffff;
+  box-shadow: 10px 0 28px rgba(17, 24, 39, .035);
+}
+
+.shell.subscription-surface .brand,
+.shell.profile-surface .brand {
+  border-bottom-color: #f3f4f6;
+}
+
+.shell.subscription-surface .nav-label,
+.shell.profile-surface .nav-label {
+  color: #9ca3af;
+}
+
+.shell.subscription-surface .nav-link,
+.shell.profile-surface .nav-link {
+  color: #6b7280;
+}
+
+.shell.subscription-surface .nav-link:hover,
+.shell.profile-surface .nav-link:hover {
+  color: #111827;
+  background: #f9fafb;
+}
+
+.shell.subscription-surface .nav-link.active,
+.shell.profile-surface .nav-link.active {
+  color: #111827;
+  border-color: #e5e7eb;
+  background: #f3f4f6;
+  box-shadow: inset 3px 0 #111827;
+}
+
+.shell.subscription-surface .nav-link.active svg,
+.shell.profile-surface .nav-link.active svg,
+.shell.subscription-surface .nav-count,
+.shell.profile-surface .nav-count {
+  color: #111827;
+}
+
+.shell.subscription-surface .workspace-card,
+.shell.profile-surface .workspace-card {
+  border-color: #e5e7eb;
+  background: #f9fafb;
+}
+
+.shell.subscription-surface .workspace-card strong,
+.shell.profile-surface .workspace-card strong,
+.shell.subscription-surface .mini-user,
+.shell.profile-surface .mini-user {
+  color: #374151;
+}
+
+.shell.subscription-surface .workspace-card p,
+.shell.profile-surface .workspace-card p {
+  color: #9ca3af;
+}
+
+.shell.subscription-surface .mini-user,
+.shell.profile-surface .mini-user {
+  border-top-color: #e5e7eb;
+}
+
+.shell.subscription-surface .main,
+.shell.profile-surface .main {
+  background: #f9fafb;
+}
+
+.shell.subscription-surface .topbar,
+.shell.profile-surface .topbar {
+  border-bottom-color: #e5e7eb;
+  background: rgba(255, 255, 255, .94);
+  box-shadow: 0 2px 12px rgba(17, 24, 39, .025);
+}
+
+.shell.subscription-surface .crumb-label,
+.shell.profile-surface .crumb-label {
+  color: #9ca3af;
+}
+
+.shell.subscription-surface .crumb-title,
+.shell.profile-surface .crumb-title,
+.shell.subscription-surface h1,
+.shell.profile-surface h1,
+.shell.subscription-surface h2,
+.shell.profile-surface h2,
+.shell.subscription-surface h3,
+.shell.profile-surface h3 {
+  color: #111827;
+}
+
+.shell.subscription-surface .page,
+.shell.profile-surface .page {
+  max-width: 1420px;
+  padding-top: 30px;
+}
+
+.shell.subscription-surface .page-head,
+.shell.profile-surface .page-head {
+  align-items: flex-start;
+  margin-bottom: 20px;
+}
+
+.shell.subscription-surface .eyebrow,
+.shell.profile-surface .eyebrow {
+  color: #6b7280;
+  letter-spacing: .14em;
+}
+
+.shell.subscription-surface .page-head h1,
+.shell.profile-surface .page-head h1 {
+  margin-top: 7px;
+  letter-spacing: -.055em;
+}
+
+.shell.subscription-surface .page-head .subtle,
+.shell.profile-surface .page-head .subtle {
+  max-width: 760px;
+  color: #6b7280;
+  line-height: 1.6;
+}
+
+.shell.subscription-surface .subscription-account-email,
+.shell.profile-surface .profile-account-email {
+  color: #111827;
+  font-weight: 800;
+}
+
+.shell.subscription-surface .subscription-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 35px;
+  padding: 0 12px;
+  border: 1px solid #d1fae5;
+  border-radius: 999px;
+  color: #047857;
+  background: #ecfdf5;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.shell.subscription-surface .subscription-status.expired {
+  border-color: #fecaca;
+  color: #b91c1c;
+  background: #fef2f2;
+}
+
+.shell.subscription-surface .subscription-status .status-dot {
+  background: currentColor;
+}
+
+.shell.subscription-surface .subscription-message {
+  margin: -5px 0 16px;
+  border-color: #bbf7d0;
+  color: #047857;
+  background: #f0fdf4;
+}
+
+.shell.subscription-surface .subscription-trial-banner {
+  display: grid;
+  grid-template-columns: 92px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 18px;
+  margin-bottom: 16px;
+  padding: 14px 18px 14px 12px;
+  border: 1px solid #e5e7eb;
+  border-left: 4px solid #f59e0b;
+  border-radius: 16px;
+  background: #ffffff;
+  box-shadow: 0 8px 28px rgba(17, 24, 39, .05);
+}
+
+.shell.subscription-surface .subscription-trial-banner.is-active {
+  border-left-color: #10b981;
+}
+
+.shell.subscription-surface .subscription-trial-banner.is-covered {
+  border-left-color: #111827;
+}
+
+.shell.subscription-surface .subscription-trial-banner > img {
+  width: 82px;
+  height: 82px;
+  object-fit: contain;
+  filter: drop-shadow(0 10px 9px rgba(245, 158, 11, .13));
+}
+
+.shell.subscription-surface .subscription-banner-label {
+  color: #9ca3af;
+  font: 800 9px var(--app-font-mono);
+  letter-spacing: .12em;
+}
+
+.shell.subscription-surface .subscription-trial-banner h2 {
+  margin: 5px 0 4px;
+  font-size: 19px;
+  letter-spacing: -.035em;
+}
+
+.shell.subscription-surface .subscription-trial-banner p {
+  margin: 0;
+  color: #6b7280;
+  font-size: 11px;
+  line-height: 1.55;
+}
+
+.shell.subscription-surface .subscription-banner-button {
+  min-height: 38px;
+  border: 1px solid #111827;
+  border-radius: 999px;
+  color: #ffffff;
+  background: #111827;
+  white-space: nowrap;
+}
+
+.shell.subscription-surface .subscription-banner-button:hover {
+  border-color: #000000;
+  background: #000000;
+  box-shadow: 0 8px 18px rgba(17, 24, 39, .14);
+}
+
+.shell.subscription-surface .subscription-current {
+  display: grid;
+  grid-template-columns: 1.1fr .8fr 1.2fr;
+  margin-bottom: 18px;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  background: #ffffff;
+  box-shadow: 0 8px 24px rgba(17, 24, 39, .04);
+}
+
+.shell.subscription-surface .subscription-current > div {
+  display: grid;
+  align-content: center;
+  gap: 6px;
+  min-width: 0;
+  padding: 16px 19px;
+  border-right: 1px solid #e5e7eb;
+}
+
+.shell.subscription-surface .subscription-current > div:last-child {
+  border-right: 0;
+}
+
+.shell.subscription-surface .subscription-current .metric-kicker {
+  color: #9ca3af;
+}
+
+.shell.subscription-surface .subscription-current strong {
+  overflow: hidden;
+  color: #111827;
+  font-size: 18px;
+  letter-spacing: -.035em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.shell.subscription-surface .subscription-current span:not(.metric-kicker) {
+  overflow: hidden;
+  color: #6b7280;
+  font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.shell.subscription-surface .subscription-current .mono {
+  font-size: 13px;
+}
+
+.shell.subscription-surface .subscription-pricing {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.shell.subscription-surface .subscription-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.shell.subscription-surface .billing-switch {
+  padding: 4px;
+  border: 1px solid #e5e7eb;
+  border-radius: 999px;
+  background: #ffffff;
+}
+
+.shell.subscription-surface .billing-switch button {
+  min-height: 31px;
+  border-radius: 999px;
+  color: #6b7280;
+  background: transparent;
+}
+
+.shell.subscription-surface .billing-switch button.active {
+  color: #ffffff;
+  background: #111827;
+  box-shadow: none;
+}
+
+.shell.subscription-surface .duration-control {
+  border-color: #e5e7eb;
+  color: #111827;
+  background: #ffffff;
+}
+
+.shell.subscription-surface .duration-control button {
+  color: #374151;
+  background: #f3f4f6;
+}
+
+.shell.subscription-surface .duration-control button:disabled {
+  color: #d1d5db;
+  background: #f9fafb;
+}
+
+.shell.subscription-surface .subscription-plan-grid {
+  gap: 16px;
+}
+
+.shell.subscription-surface .subscription-plan-card {
+  position: relative;
+  min-height: 715px;
+  padding: 22px;
+  overflow: hidden;
+  border: 1px solid #e5e7eb;
+  border-radius: 24px;
+  color: #374151;
+  background: #ffffff;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, .06);
+}
+
+.shell.subscription-surface .subscription-plan-card.trial,
+.shell.subscription-surface .subscription-plan-card.premium {
+  border-color: #e5e7eb;
+  background: #ffffff;
+}
+
+.shell.subscription-surface .subscription-plan-card.standard {
+  border: 2px solid #111827;
+}
+
+.shell.subscription-surface .subscription-plan-card.selected {
+  outline: 2px solid #10b981;
+  outline-offset: 3px;
+}
+
+.shell.subscription-surface .subscription-popular-badge {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  min-height: 25px;
+  padding: 6px 13px;
+  border-radius: 0 0 10px 10px;
+  color: #ffffff;
+  background: #111827;
+  font: 800 9px var(--app-font-mono);
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  transform: translateX(-50%);
+}
+
+.shell.subscription-surface .subscription-plan-card.standard .subscription-plan-top {
+  padding-top: 14px;
+}
+
+.shell.subscription-surface .subscription-plan-top {
+  position: relative;
+  z-index: 1;
+}
+
+.shell.subscription-surface .plan-label {
+  color: #6b7280;
+}
+
+.shell.subscription-surface .plan-active {
+  color: #059669;
+}
+
+.shell.subscription-surface .subscription-plan-art {
+  display: grid;
+  width: 96px;
+  height: 96px;
+  margin: 7px auto 0;
+  place-items: center;
+}
+
+.shell.subscription-surface .subscription-plan-art img {
+  width: 96px;
+  height: 96px;
+  object-fit: contain;
+  filter: drop-shadow(0 12px 10px rgba(17, 24, 39, .12));
+}
+
+.shell.subscription-surface .subscription-plan-card h2 {
+  margin: 8px 0 7px;
+  color: #111827;
+  font-size: 26px;
+  text-align: center;
+}
+
+.shell.subscription-surface .subscription-plan-card > p {
+  min-height: 38px;
+  color: #6b7280;
+  text-align: center;
+}
+
+.shell.subscription-surface .subscription-price {
+  justify-content: center;
+  margin: 20px 0 4px;
+}
+
+.shell.subscription-surface .subscription-price strong {
+  color: #111827;
+  font-size: 36px;
+}
+
+.shell.subscription-surface .subscription-price del {
+  color: #9ca3af;
+}
+
+.shell.subscription-surface .subscription-price span {
+  color: #6b7280;
+}
+
+.shell.subscription-surface .subscription-price em {
+  color: #059669;
+}
+
+.shell.subscription-surface .subscription-feature-tiles {
+  margin: 18px 0 15px;
+}
+
+.shell.subscription-surface .subscription-feature-tiles span {
+  min-height: 76px;
+  border-color: #e5e7eb;
+  color: #111827;
+  background: #f9fafb;
+}
+
+.shell.subscription-surface .subscription-feature-tiles span img {
+  width: 31px;
+  height: 31px;
+  object-fit: contain;
+}
+
+.shell.subscription-surface .subscription-feature-tiles b {
+  color: #374151;
+}
+
+.shell.subscription-surface .subscription-features {
+  color: #374151;
+}
+
+.shell.subscription-surface .subscription-features li {
+  min-height: 24px;
+}
+
+.shell.subscription-surface .subscription-features li img {
+  width: 22px;
+  height: 22px;
+  flex: 0 0 auto;
+  object-fit: contain;
+}
+
+.shell.subscription-surface .subscription-best {
+  border-color: #e5e7eb;
+  background: #f9fafb;
+}
+
+.shell.subscription-surface .subscription-best span {
+  color: #6b7280;
+}
+
+.shell.subscription-surface .subscription-best p {
+  color: #6b7280;
+}
+
+.shell.subscription-surface .stream-stepper {
+  border-color: #e5e7eb;
+  background: #ffffff;
+}
+
+.shell.subscription-surface .stream-stepper span {
+  color: #6b7280;
+}
+
+.shell.subscription-surface .stream-stepper button {
+  border-color: #e5e7eb;
+  color: #111827;
+  background: #f9fafb;
+}
+
+.shell.subscription-surface .stream-stepper strong {
+  color: #111827;
+}
+
+.shell.subscription-surface .subscription-select {
+  min-height: 42px;
+  border: 1px solid #111827;
+  border-radius: 999px;
+  color: #ffffff;
+  background: #111827;
+}
+
+.shell.subscription-surface .subscription-select:hover {
+  border-color: #000000;
+  background: #000000;
+}
+
+.shell.subscription-surface .subscription-plan-card.trial .subscription-select {
+  border-color: #d1d5db;
+  color: #374151;
+  background: #ffffff;
+}
+
+.shell.subscription-surface .subscription-plan-card small {
+  color: #9ca3af;
+  text-align: center;
+}
+
+.shell.subscription-surface .subscription-history {
+  margin-top: 18px;
+  border-color: #e5e7eb;
+  border-radius: 20px;
+  background: #ffffff;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, .05);
+}
+
+.shell.subscription-surface .subscription-history-header {
+  border-bottom-color: #e5e7eb;
+  background: #f9fafb;
+}
+
+.shell.subscription-surface .subscription-history-header .metric-kicker {
+  color: #6b7280;
+}
+
+.shell.subscription-surface .subscription-history-header .section-title {
+  color: #111827;
+}
+
+.shell.subscription-surface .subscription-history-header p,
+.shell.subscription-surface .subscription-history-count {
+  color: #6b7280;
+}
+
+.shell.subscription-surface .subscription-history-count {
+  border-color: #e5e7eb;
+  background: #ffffff;
+}
+
+.shell.subscription-surface .subscription-history-count strong {
+  color: #111827;
+}
+
+.shell.subscription-surface .subscription-history-toolbar {
+  border-bottom-color: #e5e7eb;
+  background: #ffffff;
+}
+
+.shell.subscription-surface .subscription-history-search,
+.shell.subscription-surface .subscription-history-range {
+  border-color: #e5e7eb;
+  color: #6b7280;
+  background: #ffffff;
+}
+
+.shell.subscription-surface .subscription-history-search:focus-within {
+  border-color: #111827;
+  box-shadow: 0 0 0 3px rgba(17, 24, 39, .08);
+}
+
+.shell.subscription-surface .subscription-history-search input,
+.shell.subscription-surface .subscription-history-range select {
+  color: #111827;
+  background: transparent;
+}
+
+.shell.subscription-surface .subscription-history-filters {
+  border-color: #e5e7eb;
+  background: #f9fafb;
+}
+
+.shell.subscription-surface .subscription-history-filters button {
+  color: #6b7280;
+}
+
+.shell.subscription-surface .subscription-history-filters button.active {
+  color: #111827;
+  background: #ffffff;
+  box-shadow: 0 2px 7px rgba(17, 24, 39, .08);
+}
+
+.shell.subscription-surface .subscription-history-row {
+  border-top-color: #e5e7eb;
+}
+
+.shell.subscription-surface .subscription-transaction-icon {
+  color: #047857;
+  background: #d1fae5;
+}
+
+.shell.subscription-surface .subscription-transaction-icon.grant {
+  color: #b45309;
+  background: #fef3c7;
+}
+
+.shell.subscription-surface .subscription-history-title strong {
+  color: #111827;
+}
+
+.shell.subscription-surface .subscription-history-copy p {
+  color: #6b7280;
+}
+
+.shell.subscription-surface .subscription-history-copy small {
+  color: #9ca3af;
+}
+
+.shell.subscription-surface .subscription-transaction-type.purchase,
+.shell.subscription-surface .subscription-transaction-status {
+  color: #047857;
+  background: #d1fae5;
+}
+
+.shell.subscription-surface .subscription-transaction-type.grant {
+  color: #b45309;
+  background: #fef3c7;
+}
+
+.shell.subscription-surface .subscription-history-empty {
+  color: #6b7280;
+}
+
+.shell.subscription-surface .subscription-history-empty > svg {
+  color: #10b981;
+}
+
+.shell.subscription-surface .subscription-history-empty strong {
+  color: #111827;
+}
+
+.shell.subscription-surface .subscription-history-empty p {
+  color: #6b7280;
+}
+
+/* Profile surface */
+.shell.profile-surface .profile-page-head-art {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  color: #6b7280;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.shell.profile-surface .profile-page-head-art img {
+  width: 62px;
+  height: 62px;
+  object-fit: contain;
+  filter: drop-shadow(0 9px 8px rgba(17, 24, 39, .12));
+}
+
+.shell.profile-surface .profile-single-card {
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr);
+  grid-template-areas:
+    "avatar identity"
+    "avatar actions"
+    "avatar panel";
+  align-items: start;
+  width: min(100%, 980px);
+  margin: 0 auto;
+  padding: 28px;
+  border: 1px solid #e5e7eb;
+  border-radius: 20px;
+  background: #ffffff;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, .06);
+  text-align: left;
+}
+
+.shell.profile-surface .profile-avatar-wrap {
+  grid-area: avatar;
+  justify-self: center;
+  margin-top: 13px;
+}
+
+.shell.profile-surface .profile-avatar {
+  border-color: #e5e7eb;
+  box-shadow: 0 12px 24px rgba(17, 24, 39, .1);
+}
+
+.shell.profile-surface .profile-avatar-edit {
+  border-color: #ffffff;
+  color: #ffffff;
+  background: #111827;
+  box-shadow: 0 5px 14px rgba(17, 24, 39, .18);
+}
+
+.shell.profile-surface .profile-avatar-edit:hover {
+  background: #000000;
+}
+
+.shell.profile-surface .profile-identity-copy {
+  grid-area: identity;
+  padding: 2px 0 17px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.shell.profile-surface .profile-identity-copy strong {
+  color: #111827;
+  font-size: 24px;
+  letter-spacing: -.045em;
+}
+
+.shell.profile-surface .profile-identity-copy p {
+  margin-top: 6px;
+  color: #6b7280;
+  font-size: 12px;
+}
+
+.shell.profile-surface .profile-action-list {
+  grid-area: actions;
+  width: 100%;
+  gap: 9px;
+  margin-top: 18px;
+}
+
+.shell.profile-surface .profile-action-button {
+  min-height: 54px;
+  padding: 0 14px;
+  border-color: #e5e7eb;
+  border-radius: 12px;
+  color: #374151;
+  background: #ffffff;
+}
+
+.shell.profile-surface .profile-action-button img {
+  width: 31px;
+  height: 31px;
+  object-fit: contain;
+  filter: drop-shadow(0 5px 5px rgba(17, 24, 39, .1));
+}
+
+.shell.profile-surface .profile-action-button:hover,
+.shell.profile-surface .profile-action-button.active {
+  border-color: #111827;
+  color: #111827;
+  background: #f9fafb;
+  transform: translateY(-1px);
+}
+
+.shell.profile-surface .profile-action-button.danger-button {
+  color: #b91c1c;
+  background: #fffafa;
+}
+
+.shell.profile-surface .profile-action-button.danger-button:hover {
+  border-color: #fecaca;
+  background: #fef2f2;
+}
+
+.shell.profile-surface .profile-action-panel {
+  grid-area: panel;
+  width: 100%;
+  margin-top: 18px;
+  padding: 20px;
+  border-color: #e5e7eb;
+  border-radius: 14px;
+  background: #f9fafb;
+}
+
+.shell.profile-surface .profile-action-panel-head h2 {
+  color: #111827;
+}
+
+.shell.profile-surface .profile-action-panel-head > svg {
+  color: #6b7280;
+}
+
+.shell.profile-surface .profile-form {
+  gap: 15px;
+}
+
+.shell.profile-surface .profile-form .field label {
+  color: #6b7280;
+  font: 800 9px var(--app-font-mono);
+  letter-spacing: .1em;
+  text-transform: uppercase;
+}
+
+.shell.profile-surface .profile-form input,
+.shell.profile-surface .profile-provider-note {
+  border-color: #e5e7eb;
+  border-radius: 12px;
+  color: #111827;
+  background: #ffffff;
+}
+
+.shell.profile-surface .profile-form input:focus {
+  border-color: #111827;
+  box-shadow: 0 0 0 3px rgba(17, 24, 39, .08);
+}
+
+.shell.profile-surface .profile-form .button,
+.shell.profile-surface .profile-provider-note .button {
+  min-height: 40px;
+  border: 1px solid #111827;
+  border-radius: 999px;
+  color: #ffffff;
+  background: #111827;
+}
+
+.shell.profile-surface .profile-message {
+  color: #047857;
+}
+
+@media (max-width: 900px) {
+  .shell.subscription-surface .subscription-current {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .shell.subscription-surface .subscription-current > div:nth-child(2) {
+    border-right: 0;
+  }
+
+  .shell.subscription-surface .subscription-current > div:last-child {
+    grid-column: 1 / -1;
+    border-top: 1px solid #e5e7eb;
+    border-right: 0;
+  }
+}
+
+@media (max-width: 700px) {
+  .shell.subscription-surface .page,
+  .shell.profile-surface .page {
+    padding: 24px 17px 46px;
+  }
+
+  .shell.subscription-surface .page-head,
+  .shell.profile-surface .page-head {
+    gap: 15px;
+  }
+
+  .shell.subscription-surface .subscription-status {
+    align-self: flex-start;
+  }
+
+  .shell.subscription-surface .subscription-trial-banner {
+    grid-template-columns: 65px minmax(0, 1fr);
+    gap: 11px;
+    padding: 12px;
+  }
+
+  .shell.subscription-surface .subscription-trial-banner > img {
+    width: 62px;
+    height: 62px;
+  }
+
+  .shell.subscription-surface .subscription-trial-banner h2 {
+    font-size: 16px;
+  }
+
+  .shell.subscription-surface .subscription-banner-button {
+    grid-column: 1 / -1;
+    width: 100%;
+    justify-content: center;
+  }
+
+  .shell.subscription-surface .subscription-current {
+    grid-template-columns: 1fr;
+    gap: 0;
+    padding: 16px;
+  }
+
+  .shell.subscription-surface .subscription-current > div,
+  .shell.subscription-surface .subscription-current > div:nth-child(2),
+  .shell.subscription-surface .subscription-current > div:last-child {
+    grid-column: auto;
+    padding: 0 0 13px;
+    border-top: 0;
+    border-right: 0;
+    border-bottom: 1px solid #e5e7eb;
+  }
+
+  .shell.subscription-surface .subscription-current > div + div {
+    padding-top: 13px;
+  }
+
+  .shell.subscription-surface .subscription-current > div:last-child {
+    padding-bottom: 0;
+    border-bottom: 0;
+  }
+
+  .shell.subscription-surface .subscription-controls {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .shell.subscription-surface .billing-switch,
+  .shell.subscription-surface .duration-control {
+    justify-content: space-between;
+  }
+
+  .shell.subscription-surface .billing-switch button {
+    flex: 1;
+  }
+
+  .shell.subscription-surface .subscription-plan-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .shell.subscription-surface .subscription-plan-card {
+    min-height: 0;
+    padding: 20px;
+  }
+
+  .shell.subscription-surface .subscription-history-header {
+    display: block;
+    padding: 18px 16px 15px;
+  }
+
+  .shell.subscription-surface .subscription-history-count {
+    width: max-content;
+    margin-top: 14px;
+    text-align: left;
+  }
+
+  .shell.subscription-surface .subscription-history-toolbar {
+    align-items: stretch;
+    flex-direction: column;
+    padding: 12px 16px;
+  }
+
+  .shell.subscription-surface .subscription-history-search,
+  .shell.subscription-surface .subscription-history-range {
+    width: 100%;
+  }
+
+  .shell.subscription-surface .subscription-history-filters {
+    width: 100%;
+  }
+
+  .shell.subscription-surface .subscription-history-filters button {
+    flex: 1;
+    justify-content: center;
+  }
+
+  .shell.subscription-surface .subscription-history-list {
+    padding: 0 16px;
+  }
+
+  .shell.subscription-surface .subscription-history-row {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .shell.subscription-surface .subscription-history-row-action {
+    align-items: stretch;
+    width: 100%;
+  }
+
+  .shell.subscription-surface .subscription-history-row-action .button {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .shell.profile-surface .profile-page-head-art {
+    align-self: flex-start;
+  }
+
+  .shell.profile-surface .profile-single-card {
+    display: flex;
+    width: 100%;
+    padding: 22px 17px;
+    text-align: center;
+  }
+
+  .shell.profile-surface .profile-avatar-wrap {
+    margin-top: 0;
+  }
+
+  .shell.profile-surface .profile-identity-copy {
+    width: 100%;
+    text-align: center;
+  }
+
+  .shell.profile-surface .profile-action-list,
+  .shell.profile-surface .profile-action-panel {
+    width: 100%;
+  }
+}

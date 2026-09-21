@@ -33,6 +33,10 @@ import editorLayersClay from "@assets/clay_layers_eye_cutout_1790014911587.png";
 import editorTextClay from "@assets/letter_T_yellow_clay_sparkles_1790014911588.png";
 import editorAudioClay from "@assets/music_waveform_green_clay_final_1790014911590.png";
 import editorTimelineClay from "@assets/timeline_scissors_wand_1790014911591.png";
+import subscriptionCrownClay from "@assets/crown_card_final_1790015218137.png";
+import subscriptionHourglassClay from "@assets/clay_hourglass_coins_cutout_1790015218139.png";
+import subscriptionShieldClay from "@assets/checkmark_shield_dollar_green_clay_v2_1790015218139.png";
+import profileSettingsClay from "@assets/user_avatar_settings_clay2_1790015218140.png";
 import liveYoutubeClay from "@assets/youtube_live_clay_(1)_1790012855640.png";
 import liveKeyClay from "@assets/clay_key_icon_cutout_1790012851655.png";
 import liveBroadcastClay from "@assets/green_dot_broadcast_1790012846968.png";
@@ -1318,7 +1322,7 @@ function MobileNav({ path }: { path:string }) {
 function AppShell({ children, title, account, profilePhoto, workspace }: { children:ReactNode; title:string; account?: AccountSummary | null; profilePhoto?: string; workspace:ReturnType<typeof useWorkspace> }) {
   const [path] = useLocation();
   const [menu, setMenu] = useState(false);
-  return <div className={`shell ${title === "Analytics" ? "analytics-surface" : title === "Live channels" ? "live-surface" : title === "Video library" ? "video-library-surface" : title === "Live Stream Preview" ? "live-preview-surface" : title === "Video editor" ? "video-editor-surface" : ""}`}>
+  return <div className={`shell ${title === "Analytics" ? "analytics-surface" : title === "Live channels" ? "live-surface" : title === "Video library" ? "video-library-surface" : title === "Live Stream Preview" ? "live-preview-surface" : title === "Video editor" ? "video-editor-surface" : title === "Subscription" ? "subscription-surface" : title === "Profile" ? "profile-surface" : ""}`}>
     {menu && <button className="sidebar-scrim" aria-label="Close navigation" onClick={() => setMenu(false)} data-testid="button-close-menu" />}
     <Sidebar path={path} open={menu} onClose={()=>setMenu(false)} user={account?.displayName || account?.email || workspace.user} photo={profilePhoto} data={workspace.data}/>
      <main className="main"><Header title={title} account={account} onMenu={()=>setMenu(true)}/><DownloadActivity downloads={workspace.youtubeDownloads} onDismiss={workspace.dismissYoutubeDownload}/>{children}</main>
@@ -2322,6 +2326,16 @@ function SubscriptionPage({ workspace, account, plans, onSelectPlan }: { workspa
   const active = account.active && new Date(account.accessEndsAt).getTime() > Date.now();
   const trial = findPlan("trial-1-day");
   const trialActive = account.activePlanId === trial?.id && active;
+  const trialBannerTitle = trialActive
+    ? "Your free trial is active"
+    : active
+      ? "Your free trial has ended"
+      : "Free trial — Expired";
+  const trialBannerCopy = trialActive
+    ? `Your 24-hour trial is active until ${new Date(account.accessEndsAt).toLocaleString()}.`
+    : active
+      ? `${account.activePlan?.name || "Your plan"} is keeping this workspace active. Upgrade or renew any time.`
+      : "Your 24-hour trial has ended. Choose a plan to keep your workspace, library, and live channels ready.";
   const dayMs = 24 * 60 * 60 * 1000;
   const billingHistory = account.history.filter((item) => item.type === "purchase" || item.type === "grant");
   const filteredHistory = billingHistory.filter((item) => {
@@ -2339,24 +2353,30 @@ function SubscriptionPage({ workspace, account, plans, onSelectPlan }: { workspa
     setHistoryRange("all");
   };
   const paidOptions = [
-    { kind: "standard" as const, label: "STANDARD", title: "1080p Standard", id: selected.standardId, price: selected.standard, compare: selected.standardCompare, copy: "Simple. Stable. Reliable", bestFor: "Casual creators easing into live before going all-in", quality: "Standard broadcast quality", storage: "10 GB video storage/stream" },
-    { kind: "premium" as const, label: "PREMIUM", title: "1080p Premium", id: selected.premiumId, price: selected.premium, compare: selected.premiumCompare, copy: "Professional quality. Total control", bestFor: "Always-on channels like news, devotional, games or lofi", quality: "Premium broadcast quality", storage: "20 GB video storage/stream" },
+    { kind: "standard" as const, label: "PRO", title: "Pro", id: selected.standardId, price: selected.standard, compare: selected.standardCompare, copy: "Simple. Stable. Reliable", bestFor: "Casual creators easing into live before going all-in", quality: "Standard broadcast quality", storage: "10 GB video storage/stream" },
+    { kind: "premium" as const, label: "PREMIUM", title: "Premium", id: selected.premiumId, price: selected.premium, compare: selected.premiumCompare, copy: "Professional quality. Total control", bestFor: "Always-on channels like news, devotional, games or lofi", quality: "Premium broadcast quality", storage: "20 GB video storage/stream" },
   ];
   return <AppShell title="Subscription" account={account} workspace={workspace}>
     <div className="page subscription-page">
-      <div className="page-head subscription-heading"><div><p className="eyebrow">Account billing</p><h1>Choose your subscription</h1><p className="subtle">Reuse the same landing-page pricing model inside your workspace. The selected plan activates on this account without creating another key or folder.</p></div><div className={`subscription-status ${active ? "active" : "expired"}`}><span className="status-dot"/>{active ? `${account.activePlan?.name || "Plan"} · ${account.streamLimit} streams` : "Please upgrade your plan"}</div></div>
+      <div className="page-head subscription-heading"><div><p className="eyebrow">Subscription / Profile</p><h1>Subscription</h1><p className="subtle">Manage access, billing, and your live-stream plan for <strong className="subscription-account-email">{account.email}</strong>.</p></div><div className={`subscription-status ${active ? "active" : "expired"}`}><span className="status-dot"/>{active ? `${account.activePlan?.name || "Plan"} · ${account.streamLimit} streams` : "Please upgrade your plan"}</div></div>
       {message && <div className="subscription-message"><Check size={15}/>{message}</div>}
+       <section className={`subscription-trial-banner ${trialActive ? "is-active" : active ? "is-covered" : "is-expired"}`}>
+         <img src={subscriptionHourglassClay} alt="" />
+         <div><span className="subscription-banner-label">{trialActive ? "TRIAL IN PROGRESS" : active ? "TRIAL COMPLETE · PLAN ACTIVE" : "FREE TRIAL · EXPIRED"}</span><h2>{trialBannerTitle}</h2><p>{trialBannerCopy}</p></div>
+         <button type="button" className="button subscription-banner-button" onClick={() => document.getElementById("subscription-plans")?.scrollIntoView({ behavior: "smooth", block: "start" })}>{active ? "Compare plans" : "Choose a plan"} <ArrowRight size={14}/></button>
+       </section>
       <section className="subscription-current card"><div><span className="metric-kicker">Current access</span><strong>{account.activePlan?.name || "No active plan"}</strong><span>{active ? `Until ${new Date(account.accessEndsAt).toLocaleString()}` : "Your trial has ended. Choose a plan to continue."}</span></div><div><span className="metric-kicker">Stream limit</span><strong>{account.streamLimit}</strong><span>simultaneous live streams</span></div><div><span className="metric-kicker">License</span><strong className="mono">{account.licenseKey}</strong><span>same key on every renewal</span></div></section>
-      <section className="subscription-pricing">
+       <section className="subscription-pricing" id="subscription-plans">
         <div className="subscription-controls"><div className="billing-switch">{(["Day", "Month", "Year"] as const).map((item) => <button key={item} type="button" className={billing === item ? "active" : ""} onClick={() => { setBilling(item); setDuration(1); }}>{item}</button>)}</div><div className="duration-control"><button type="button" onClick={() => setDuration((value) => Math.max(1, value - 1))} disabled={duration === 1} aria-label="Decrease duration">−</button><strong>{duration} {selected.unit}{duration === 1 ? "" : "s"}</strong><button type="button" onClick={() => setDuration((value) => Math.min(selected.limit, value + 1))} disabled={duration === selected.limit} aria-label="Increase duration">+</button></div></div>
         <div className="subscription-plan-grid">
-          <article className={`subscription-plan-card trial ${trialActive ? "selected" : ""}`}>
-            <div className="subscription-plan-top"><span className="plan-label">FREE TRIAL</span>{trialActive && <span className="plan-active"><Check size={13}/> Active</span>}</div>
-            <h2>Try 24hrs Trial</h2>
+           <article className={`subscription-plan-card trial ${trialActive ? "selected" : ""}`}>
+             <div className="subscription-plan-top"><span className="plan-label">FREE</span>{trialActive && <span className="plan-active"><Check size={13}/> Active</span>}</div>
+             <div className="subscription-plan-art"><img src={subscriptionCrownClay} alt="" /></div>
+             <h2>Free</h2>
             <p>Explore Loop Stream risk-free before choosing a longer plan.</p>
             <div className="subscription-price"><strong>FREE</strong><span>/ 24 hours</span></div>
-            <div className="subscription-feature-tiles"><span><Radio size={16}/><b>Stream your<br/>videos as live</b></span><span><Sparkles size={16}/><b>Premium<br/>broadcast quality</b></span><span><Layers size={16}/><b>20 GB video<br/>storage/stream</b></span></div>
-            <ul className="subscription-features"><li><Check size={12}/>Create and loop playlists</li><li><Check size={12}/>Premium audio clarity</li><li><Check size={12}/>Schedule in advance</li><li><Check size={12}/>Upload from cloud</li></ul>
+             <div className="subscription-feature-tiles"><span><img src={subscriptionCrownClay} alt="" /><b>Stream your<br/>videos as live</b></span><span><img src={subscriptionShieldClay} alt="" /><b>Premium<br/>broadcast quality</b></span><span><img src={subscriptionHourglassClay} alt="" /><b>20 GB video<br/>storage/stream</b></span></div>
+             <ul className="subscription-features"><li><img src={subscriptionShieldClay} alt="" />Create and loop playlists</li><li><img src={subscriptionShieldClay} alt="" />Premium audio clarity</li><li><img src={subscriptionShieldClay} alt="" />Schedule in advance</li><li><img src={subscriptionShieldClay} alt="" />Upload from cloud</li></ul>
             <div className="subscription-best"><span>BEST FOR</span><p>Creators who want to try Loop Stream before choosing a plan</p></div>
             <button className="button subscription-select secondary" type="button" disabled><Check size={15}/>{trialActive ? "Current plan" : "Trial already used"}</button>
             <small>No card required. Your existing license key stays with this workspace.</small>
@@ -2365,7 +2385,7 @@ function SubscriptionPage({ workspace, account, plans, onSelectPlan }: { workspa
           const plan = findPlan(option.id);
           const selectedPlan = account.activePlanId === option.id && active;
           const streams = streamCounts[option.kind];
-          return <article className={`subscription-plan-card ${option.kind} ${selectedPlan ? "selected" : ""}`} key={option.id}><div className="subscription-plan-top"><span className="plan-label">{option.label}</span>{selectedPlan && <span className="plan-active"><Check size={13}/> Active</span>}</div><h2>{option.title}</h2><p>{option.copy}</p><div className="subscription-price"><strong>₹{(option.price * duration * streams).toLocaleString("en-IN")}</strong><del>₹{(option.compare * duration * streams).toLocaleString("en-IN")}</del><span>/ {selected.unit}</span><em>{Math.round((1 - option.price / option.compare) * 100)}%<br/>OFF</em></div><div className="subscription-feature-tiles"><span><Radio size={16}/><b>Stream your<br/>videos as live</b></span><span><Sparkles size={16}/><b>{option.quality.split(" ")[0]}<br/>broadcast quality</b></span><span><Layers size={16}/><b>{option.storage.split(" ")[0]} GB video<br/>storage/stream</b></span></div><ul className="subscription-features"><li><Check size={12}/>Loop your videos endlessly</li><li><Check size={12}/>{option.kind === "premium" ? "Premium" : "Standard"} audio quality</li><li><Check size={12}/>Add and remove videos</li><li><Check size={12}/>Upload from cloud</li></ul><div className="subscription-best"><span>BEST FOR</span><p>{option.bestFor}</p></div><div className="stream-stepper"><span>Stream count</span><button type="button" onClick={() => changeStreams(option.kind, -1)} aria-label={`Decrease ${option.label} stream count`}>−</button><strong>{streams}</strong><button type="button" onClick={() => changeStreams(option.kind, 1)} aria-label={`Increase ${option.label} stream count`}>+</button></div><button className="button subscription-select" type="button" onClick={() => void activate(option.id, streams)} disabled={!plan || busyPlan === option.id || selectedPlan}>{busyPlan === option.id ? "Activating…" : selectedPlan ? "Current plan" : "Select now"} <ArrowRight size={15}/></button><small>Up to {streams} simultaneous streams. The {streams + 1}th stream will show “Please upgrade your plan.”</small></article>;
+           return <article className={`subscription-plan-card ${option.kind} ${selectedPlan ? "selected" : ""}`} key={option.id}>{option.kind === "standard" && <span className="subscription-popular-badge">Most Popular</span>}<div className="subscription-plan-top"><span className="plan-label">{option.label}</span>{selectedPlan && <span className="plan-active"><Check size={13}/> Active</span>}</div><div className="subscription-plan-art"><img src={subscriptionCrownClay} alt="" /></div><h2>{option.title}</h2><p>{option.copy}</p><div className="subscription-price"><strong>₹{(option.price * duration * streams).toLocaleString("en-IN")}</strong><del>₹{(option.compare * duration * streams).toLocaleString("en-IN")}</del><span>/ {selected.unit}</span><em>{Math.round((1 - option.price / option.compare) * 100)}%<br/>OFF</em></div><div className="subscription-feature-tiles"><span><img src={subscriptionCrownClay} alt="" /><b>Stream your<br/>videos as live</b></span><span><img src={subscriptionShieldClay} alt="" /><b>{option.quality.split(" ")[0]}<br/>broadcast quality</b></span><span><img src={subscriptionHourglassClay} alt="" /><b>{option.storage.split(" ")[0]} GB video<br/>storage/stream</b></span></div><ul className="subscription-features"><li><img src={subscriptionShieldClay} alt="" />Loop your videos endlessly</li><li><img src={subscriptionShieldClay} alt="" />{option.kind === "premium" ? "Premium" : "Standard"} audio quality</li><li><img src={subscriptionShieldClay} alt="" />Add and remove videos</li><li><img src={subscriptionShieldClay} alt="" />Upload from cloud</li></ul><div className="subscription-best"><span>BEST FOR</span><p>{option.bestFor}</p></div><div className="stream-stepper"><span>Stream count</span><button type="button" onClick={() => changeStreams(option.kind, -1)} aria-label={`Decrease ${option.label} stream count`}>−</button><strong>{streams}</strong><button type="button" onClick={() => changeStreams(option.kind, 1)} aria-label={`Increase ${option.label} stream count`}>+</button></div><button className="button subscription-select" type="button" onClick={() => void activate(option.id, streams)} disabled={!plan || busyPlan === option.id || selectedPlan}>{busyPlan === option.id ? "Activating…" : selectedPlan ? "Current plan" : "Select now"} <ArrowRight size={15}/></button><small>Up to {streams} simultaneous streams. The {streams + 1}th stream will show “Please upgrade your plan.”</small></article>;
         })}</div>
       </section>
       <section className="card subscription-history">
@@ -4655,14 +4675,14 @@ function ProfilePage({ workspace, account, firebaseUser, profilePhoto, onProfile
 
   return <AppShell title="Profile" account={account} profilePhoto={profilePhoto} workspace={workspace}>
     <div className="page profile-page">
-      <div className="page-head"><div><p className="eyebrow">Account</p><h1>Profile</h1><p className="subtle">Manage your account details and sign-in security.</p></div></div>
+      <div className="page-head"><div><p className="eyebrow">Subscription / Profile</p><h1>Profile</h1><p className="subtle">Manage your account details and sign-in security for <strong className="profile-account-email">{email}</strong>.</p></div><div className="profile-page-head-art"><img src={profileSettingsClay} alt="" /><span>Account settings</span></div></div>
       <section className="card profile-single-card">
         <div className="profile-avatar-wrap"><WaterFillAvatar src={displayPhoto} alt={`${name || "Your"} profile`} animate={photoAnimationKey > 0} animationKey={photoAnimationKey} /><label className={`profile-avatar-edit ${photoBusy ? "is-busy" : ""}`} title="Change profile photo" aria-label="Change profile photo"><Pencil size={13}/><input type="file" accept="image/jpeg,image/png,image/webp,image/gif" onChange={(event) => void uploadPhoto(event)} disabled={photoBusy} /></label></div>
         <div className="profile-identity-copy"><strong>{name || "Your profile"}</strong>{email && <p>{email}</p>}</div>
         <div className="profile-action-list">
-          <button type="button" className={`profile-action-button ${profilePanel === "details" ? "active" : ""}`} onClick={() => setProfilePanel(profilePanel === "details" ? null : "details")}><UserRound size={16}/><span>Personal details</span><ArrowRight size={14}/></button>
-          <button type="button" className={`profile-action-button ${profilePanel === "password" ? "active" : ""}`} onClick={() => setProfilePanel(profilePanel === "password" ? null : "password")}><KeyRound size={16}/><span>Change password</span><ArrowRight size={14}/></button>
-          <button type="button" className="profile-action-button danger-button" onClick={() => void onLogout()} data-testid="button-profile-logout"><ShieldCheck size={16}/><span>Logout</span><ArrowRight size={14}/></button>
+          <button type="button" className={`profile-action-button ${profilePanel === "details" ? "active" : ""}`} onClick={() => setProfilePanel(profilePanel === "details" ? null : "details")}><img src={profileSettingsClay} alt="" /><span>Personal details</span><ArrowRight size={14}/></button>
+          <button type="button" className={`profile-action-button ${profilePanel === "password" ? "active" : ""}`} onClick={() => setProfilePanel(profilePanel === "password" ? null : "password")}><img src={profileSettingsClay} alt="" /><span>Change password</span><ArrowRight size={14}/></button>
+          <button type="button" className="profile-action-button danger-button" onClick={() => void onLogout()} data-testid="button-profile-logout"><img src={subscriptionShieldClay} alt="" /><span>Logout</span><ArrowRight size={14}/></button>
         </div>
         {profilePanel === "details" && <div className="profile-action-panel">
           <div className="profile-action-panel-head"><div><h2>Personal details</h2><p className="subtle">These details are used for your workspace account.</p></div><UserRound size={18}/></div>

@@ -1,0 +1,28 @@
+Redesign this Subscription Pricing page into PREMIUM WHITE THEME for YT LOOP. This is exact screenshot.
+
+CURRENT LAYOUT TO KEEP:
+- Top bar: Toggle Day/Month/Year on left, "1 day" counter with +/- on right
+- 3 pricing cards in row: FREE TRIAL (purple dark), STANDARD ₹315/day (greenish dark), PREMIUM ₹459/day (brown dark)
+- Each card has: Label FREE TRIAL/STANDARD/PREMIUM, Title Try 24hrs Trial / 1080p Standard / 1080p Premium, subtitle, FREE / ₹315 / ₹459 price, 3 feature icons in small boxes, 4-5 checkmarks list, BEST FOR box, Stream count selector with +/- 9, Select now pink button, footer note
+
+**NEW WHITE PREMIUM DESIGN - STRIPE + LINEAR STYLE:**
+
+1.  **Background:** Full page #F9FAFB light grey, top toggles white pill.
+2.  **Day/Month/Year Toggle:** White pill #FFFFFF with border #E5E7EB, active tab Black #111827 with white text, 999px rounded full, soft shadow.
+3.  **Pricing Cards - ALL WHITE:**
+    - All 3 cards: Background White #FFFFFF, 24px radius, border 1px #E5E7EB, shadow 0px 8px 32px rgba(0,0,0,0.06)
+    - MIDDLE CARD (STANDARD) is Most Popular: Add Black border 2px #111827, and top badge "Most Popular" Black background white text.
+    - Card header: Label small grey uppercase #9CA3AF 10px, Title Bold Black #111827 20px, Subtitle Grey #6B7280 14px
+    - Price: FREE / ₹315 / ₹459 Bold Black 32px, "/ day" grey, original price ₹480 / ₹684 strikethrough grey, 30%/33% OFF badge soft green #ECFDF5 green text #10B981 rounded full.
+4.  **Feature Icon Boxes:** The 3 small boxes (Stream as live, Premium quality, 20GB) - Make them white with grey border #E5E7EB 12px radius, icon inside use my 3D clay icons 32x32, label small black 10px centered.
+5.  **Checklist:** Green checkmarks #10B981 circle, text black #111827 13px.
+6.  **BEST FOR Box:** Light grey #F9FAFB background 12px radius, border #E5E7EB, Label Yellow/Orange uppercase #F59E0B 9px, Text Black 12px.
+7.  **Stream Count & Button:**
+    - Stream count selector: White input with grey border, +/- buttons white circle with border.
+    - "Select now" button: Change PINK to BLACK #111827 primary, white text, rounded full 12px, right arrow. Hover dark grey.
+    - FREE card button "Trial already used": Disabled grey #F3F4F6 grey text.
+8.  **Typography:** Inter, clean. No dark purple, no pink anywhere.
+
+Replace old small icons with my 3D clay icons on white marble pedestal.
+
+Code in React + Tailwind + shadcn. This page must match my white landing page. Make it look like Stripe pricing - trustworthy and premium.
