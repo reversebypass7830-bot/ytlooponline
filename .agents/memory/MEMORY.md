@@ -29,3 +29,4 @@
 - [Publish image size](publish-image-size.md) — large local runtime media can bypass gitignore during publishing; use root .replitignore for deployment-only exclusions.
 - [Cloudflare preview fallback](cloudflare-preview-fallback.md) — the public quick tunnel is optional; local live preview must survive transient tunnel failures.
 - [Subscription access UX](subscription-access-ux.md) — keep subscription management dark and readable, while allowing inactive users to reach workspace routes.
+- [Static landing and SPA routes](static-landing-spa-routes.md) — the live artifact has a static root landing, so standalone React routes need explicit HTML entry points.

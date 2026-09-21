@@ -1,0 +1,26 @@
+Redesign this Analytics page screenshot into premium WHITE THEME for brand YT LOOP.
+
+KEEP SAME LAYOUT - Do not change structure:
+- Left sidebar same as before (white theme with black active Analytics menu)
+- Top: Breadcrumb "Reverse Bypass / Analytics", title "Analytics" with subtitle "Your live channels, library, categories, and recent activity in one view."
+- Top 3 small cards: ON AIR NOW, LIBRARY VIDEOS, CATEGORIES
+- Middle row: Left big card "Workspace volume" with 4 bar graphs (Live channels, Library videos, Categories, Activities) and Right card "Library Breakdown" with Published/Draft/Archived progress bars
+- Bottom row: Live channels card and Recent activity card
+
+**NEW WHITE PREMIUM DESIGN:**
+
+1.  **Theme:** Full white #FFFFFF, no dark purple #1A0B2E. All dark cards in screenshot must become white cards.
+2.  **Top 3 Cards:** 
+    - White background #FFFFFF, 20px border radius, soft shadow 0px 4px 24px rgba(0,0,0,0.05), 1px border #E5E7EB
+    - Inside icon: Replace with my attached 3D clay icons on marble pedestal (64x64), add floating animation
+    - Text: Label small grey uppercase #9CA3AF 10px, Number bold black 32px, Subtext pink replaced with grey #6B7280
+3.  **Middle Graph Cards:**
+    - White cards with 24px radius. Title "Workspace volume" bold black, subtitle grey.
+    - Inside bars: Change dark bars to soft pastel clay bars - Live channels = pink clay #FECDD3, Library videos = purple #DDD6FE, Categories = green #A7F3D0, Activities = orange #FED7AA. Bars should have rounded top and soft 3D look.
+    - Library Breakdown card: Progress bars with thin height 6px, rounded full, colors pastel - Published = teal #14B8A6, Draft = orange #F59E0B, Archived = purple #8B5CF6.
+4.  **Bottom Cards:** Same white cards with View all arrow.
+5.  **Overall:** Clean, minimal, Notion + Linear style. Inter font. No pink, no dark background anywhere.
+
+Replace all old small icons with my 3D clay icons on white marble. Use Tailwind + shadcn.
+
+Make it match my white landing page and white dashboard.

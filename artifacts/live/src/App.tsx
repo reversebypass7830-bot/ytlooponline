@@ -4669,6 +4669,8 @@ function App() {
   } satisfies LicenseSession : null;
   const activeLicense = hasAccountSession ? accountLicense : license.license;
   const [location, setLocation] = useLocation();
+  const browserPath = window.location.pathname.replace(/\/+$/, "") || "/";
+  const isOwnerRoute = ["/owner", "/owner.html"].includes(location) || ["/owner", "/owner.html"].includes(browserPath);
   const workspace = useWorkspace(activeLicense, () => {
     license.clear();
     accountSession.clear();
@@ -4691,6 +4693,7 @@ function App() {
     }
   }, [accountSession.account, accountSession.loading, firebaseLoading, hasAccountSession, isSignedIn, license.license, location, mobileGiftKey, setLocation]);
   if (firebaseLoading) return <div className="workspace-loading"><Radio size={20}/><span>Connecting secure sign-in…</span></div>;
+  if (isOwnerRoute) return <OwnerConsolePage/>;
   if (location.startsWith("/sign-in") || location.startsWith("/sign-up")) {
     return <LicenseGate
       license={activeLicense}
@@ -4709,10 +4712,6 @@ function App() {
   if (location === "/gateway") return <GatewayPage />;
   if (isSignedIn && accountSession.loading) return <div className="workspace-loading"><Radio size={20}/><span>Preparing your account…</span></div>;
   if (isSignedIn && accountSession.error && !accountSession.account) return <div className="workspace-loading"><span>{accountSession.error}</span></div>;
-  if (location === "/owner") {
-    if (accountSession.account?.role === "owner") return <OwnerConsolePage/>;
-    return <OwnerConsolePage/>;
-  }
   if (location === "/" && !isLicenseActive(activeLicense)) return <LandingPage />;
   const openMobileRoom = () => { setMobileGiftKey(""); setLocation("/dashboard"); };
   if (location === "/access") return <LicenseGate license={activeLicense} busy={license.busy} error={license.error || firebaseError} signedIn={Boolean(isSignedIn || hasAccountSession)} onActivate={license.activate} onRenew={license.renew} onGoogleLogin={() => setLocation("/sign-in")} onMobileAccountLogin={accountSession.reload} onGiftReady={setMobileGiftKey} onOpenRoom={openMobileRoom}/>;
