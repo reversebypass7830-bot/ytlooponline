@@ -1,0 +1,40 @@
+Fix the mobile navigation glitch shown in screenshot - rainbow lines and R$ 68,20 repeating.
+
+This is mobile responsive view of subscription pricing page. Fix it into premium WHITE MOBILE DESIGN for YT LOOP.
+
+**CURRENT ISSUE:**
+- Mobile view is broken with colorful glitch lines, cards overlapping, price R$ 68,20 repeating
+- Navigation not visible clearly
+
+**NEW MOBILE FIX:**
+
+1.  **Mobile Container:**
+    - Background #F9FAFB, full width, no horizontal scroll
+    - Pricing cards stack vertically one below other, not in row, gap 20px
+
+2.  **Navigation:**
+    - Top bar: White #FFFFFF, 56px height, border bottom #E5E7EB
+    - Left: YT LOOP logo black #111827
+    - Right: Hamburger menu or Profile avatar
+    - Toggle Day/Month/Year: Make it full width white pill, 44px height, touch friendly, active black #111827
+
+3.  **Pricing Cards Mobile:**
+    - Each card full width #FFFFFF, 20px radius, border #E5E7EB, padding 20px, shadow 0 4px 16px rgba(0,0,0,0.06)
+    - Crown icon top 48x48 centered
+    - Price ₹315 / ₹459 bold 28px black, OFF badge green small
+    - Feature 3 icons in row, each 33% width, box white border #E5E7EB 12px radius, icon 32x32, label 10px
+    - Checklist: Font 13px, gap 8px
+    - Stream count selector: Large touch targets 40px buttons, input center 40px height
+    - Select now button: Full width, height 48px, Black #111827, white text, rounded full 12px, sticky bottom on mobile if possible
+
+4.  **Fix Glitch:**
+    - Remove all rainbow colors, remove R$ (Brazil currency) - use only Indian ₹
+    - Remove any duplicate price text
+    - Ensure background white #FFFFFF not colorful
+    - Text color black #111827, grey #6B7280 only
+
+5.  **Bottom Navigation (if exists):**
+    - White #FFFFFF, 72px height, top border #E5E7EB, icons grey #9CA3AF inactive, black #111827 active
+    - 4 tabs: Home, Library, Live, Profile
+
+Test on iPhone 14 / Android 360px width. Code in React + Tailwind responsive. Must be clean white premium like Stripe mobile.

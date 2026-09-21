@@ -1269,6 +1269,413 @@ input:focus, textarea:focus, select:focus { border-color:#5fa49d; box-shadow:0 0
     grid-template-columns:repeat(2,minmax(0,1fr));
   }
 }
+
+/* Subscription phone layout: keep the pricing surface deliberately white and
+   isolated from the older dark control-room theme above. */
+@media (max-width: 700px) {
+  .shell.subscription-surface,
+  .shell.subscription-surface .main,
+  .shell.subscription-surface .page {
+    min-width: 0;
+    overflow-x: clip;
+  }
+
+  .shell.subscription-surface .topbar {
+    height: 56px;
+    padding: 0 16px;
+    border-bottom-color: #e5e7eb;
+    background: #ffffff;
+    box-shadow: none;
+  }
+
+  .shell.subscription-surface .crumb {
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    gap: 0;
+  }
+
+  .shell.subscription-surface .crumb-label,
+  .shell.subscription-surface .crumb-title,
+  .shell.subscription-surface .top-actions {
+    display: none;
+  }
+
+  .shell.subscription-surface .subscription-mobile-logo {
+    display: inline-flex;
+    align-items: baseline;
+    order: 1;
+    margin-right: auto;
+    color: #111827;
+    font-size: 16px;
+    font-weight: 900;
+    letter-spacing: -.055em;
+    line-height: 1;
+  }
+
+  .shell.subscription-surface .subscription-mobile-logo b {
+    color: #dc2626;
+    font-weight: 900;
+  }
+
+  .shell.subscription-surface .subscription-mobile-logo span {
+    color: #111827;
+    font-weight: 900;
+  }
+
+  .shell.subscription-surface .mobile-menu {
+    display: grid;
+    order: 2;
+    width: 40px;
+    height: 40px;
+    margin-left: auto;
+    border: 0;
+    color: #111827;
+    background: transparent;
+  }
+
+  .shell.subscription-surface .page {
+    padding: 22px 16px calc(92px + env(safe-area-inset-bottom));
+    background: #f9fafb;
+  }
+
+  .shell.subscription-surface .page-head {
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  .shell.subscription-surface .page-head h1 {
+    font-size: 28px;
+  }
+
+  .shell.subscription-surface .page-head .subtle {
+    font-size: 11px;
+  }
+
+  .shell.subscription-surface .subscription-status {
+    min-height: 32px;
+    padding: 0 10px;
+    font-size: 9px;
+  }
+
+  .shell.subscription-surface .subscription-trial-banner {
+    grid-template-columns: 52px minmax(0, 1fr);
+    gap: 10px;
+    padding: 12px;
+    border-left-width: 3px;
+    border-radius: 14px;
+    box-shadow: 0 4px 16px rgba(17, 24, 39, .04);
+  }
+
+  .shell.subscription-surface .subscription-trial-banner > img {
+    width: 52px;
+    height: 52px;
+  }
+
+  .shell.subscription-surface .subscription-trial-banner h2 {
+    font-size: 14px;
+  }
+
+  .shell.subscription-surface .subscription-trial-banner p {
+    font-size: 10px;
+  }
+
+  .shell.subscription-surface .subscription-banner-button {
+    min-height: 44px;
+  }
+
+  .shell.subscription-surface .subscription-current {
+    margin-bottom: 20px;
+    border-radius: 16px;
+    box-shadow: 0 4px 16px rgba(17, 24, 39, .04);
+  }
+
+  .shell.subscription-surface .subscription-pricing {
+    padding: 0;
+    background: transparent;
+  }
+
+  .shell.subscription-surface .subscription-controls {
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+
+  .shell.subscription-surface .billing-switch {
+    display: flex;
+    width: 100%;
+    min-height: 44px;
+    padding: 4px;
+    border-color: #e5e7eb;
+    border-radius: 999px;
+    background: #ffffff;
+  }
+
+  .shell.subscription-surface .billing-switch button {
+    flex: 1;
+    min-height: 36px;
+    padding: 0 8px;
+    color: #6b7280;
+    font-size: 11px;
+  }
+
+  .shell.subscription-surface .billing-switch button.active {
+    color: #ffffff;
+    background: #111827;
+  }
+
+  .shell.subscription-surface .duration-control {
+    min-height: 44px;
+    padding: 4px 8px;
+    border-color: #e5e7eb;
+    border-radius: 12px;
+    background: #ffffff;
+  }
+
+  .shell.subscription-surface .duration-control button {
+    width: 36px;
+    height: 36px;
+    border-radius: 9px;
+    color: #111827;
+    background: #f3f4f6;
+    font-size: 21px;
+  }
+
+  .shell.subscription-surface .duration-control strong {
+    min-width: 0;
+    flex: 1;
+    font-size: 11px;
+  }
+
+  .shell.subscription-surface .subscription-plan-grid {
+    grid-template-columns: 1fr;
+    gap: 20px;
+    width: 100%;
+  }
+
+  .shell.subscription-surface .subscription-plan-card,
+  .shell.subscription-surface .subscription-plan-card.trial,
+  .shell.subscription-surface .subscription-plan-card.premium {
+    width: 100%;
+    min-height: 0;
+    padding: 20px;
+    border: 1px solid #e5e7eb;
+    border-radius: 20px;
+    color: #111827;
+    background: #ffffff;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, .06);
+  }
+
+  .shell.subscription-surface .subscription-plan-card.standard {
+    border: 1px solid #e5e7eb;
+  }
+
+  .shell.subscription-surface .subscription-plan-card.selected {
+    outline: 2px solid #111827;
+    outline-offset: 2px;
+  }
+
+  .shell.subscription-surface .subscription-plan-card::before,
+  .shell.subscription-surface .subscription-plan-card::after {
+    display: none;
+  }
+
+  .shell.subscription-surface .subscription-popular-badge {
+    top: 0;
+    min-height: 24px;
+    padding: 5px 11px;
+    border-radius: 0 0 10px 10px;
+    color: #ffffff;
+    background: #111827;
+    font-size: 8px;
+  }
+
+  .shell.subscription-surface .subscription-plan-card.standard .subscription-plan-top {
+    padding-top: 12px;
+  }
+
+  .shell.subscription-surface .subscription-plan-art,
+  .shell.subscription-surface .subscription-plan-art img {
+    width: 48px;
+    height: 48px;
+  }
+
+  .shell.subscription-surface .subscription-plan-art {
+    margin-top: 10px;
+  }
+
+  .shell.subscription-surface .subscription-plan-card h2 {
+    margin: 11px 0 6px;
+    color: #111827;
+    font-size: 22px;
+  }
+
+  .shell.subscription-surface .subscription-plan-card > p {
+    min-height: 0;
+    color: #6b7280;
+    font-size: 11px;
+    line-height: 1.5;
+  }
+
+  .shell.subscription-surface .subscription-price {
+    justify-content: flex-start;
+    gap: 7px;
+    margin: 18px 0 4px;
+  }
+
+  .shell.subscription-surface .subscription-price strong {
+    color: #111827;
+    font-size: 28px;
+  }
+
+  .shell.subscription-surface .subscription-price del,
+  .shell.subscription-surface .subscription-price span {
+    color: #6b7280;
+    font-size: 10px;
+  }
+
+  .shell.subscription-surface .subscription-price em {
+    margin-left: auto;
+    padding: 4px 6px;
+    border-radius: 999px;
+    color: #047857;
+    background: #d1fae5;
+    font-size: 9px;
+    line-height: 1.1;
+  }
+
+  .shell.subscription-surface .subscription-feature-tiles {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+    margin: 18px 0 18px;
+  }
+
+  .shell.subscription-surface .subscription-feature-tiles span {
+    min-height: 82px;
+    gap: 7px;
+    padding: 9px 4px;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    color: #111827;
+    background: #ffffff;
+  }
+
+  .shell.subscription-surface .subscription-feature-tiles span img {
+    width: 32px;
+    height: 32px;
+  }
+
+  .shell.subscription-surface .subscription-feature-tiles b {
+    color: #111827;
+    font-size: 10px;
+    line-height: 1.25;
+  }
+
+  .shell.subscription-surface .subscription-features {
+    gap: 8px;
+    color: #111827;
+    font-size: 13px;
+  }
+
+  .shell.subscription-surface .subscription-features li {
+    min-height: 20px;
+    gap: 8px;
+  }
+
+  .shell.subscription-surface .subscription-features li img {
+    width: 20px;
+    height: 20px;
+  }
+
+  .shell.subscription-surface .subscription-best {
+    margin-top: 18px;
+    padding: 11px 12px;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    background: #f9fafb;
+  }
+
+  .shell.subscription-surface .subscription-best span,
+  .shell.subscription-surface .subscription-best p {
+    color: #6b7280;
+  }
+
+  .shell.subscription-surface .subscription-best p {
+    font-size: 10px;
+  }
+
+  .shell.subscription-surface .stream-stepper {
+    min-height: 56px;
+    gap: 10px;
+    margin: 18px 0 14px;
+    padding: 8px;
+    border-color: #e5e7eb;
+    border-radius: 12px;
+    background: #ffffff;
+  }
+
+  .shell.subscription-surface .stream-stepper span {
+    color: #6b7280;
+    font-size: 11px;
+  }
+
+  .shell.subscription-surface .stream-stepper button {
+    width: 40px;
+    height: 40px;
+    border-color: #e5e7eb;
+    border-radius: 10px;
+    color: #111827;
+    background: #f9fafb;
+    font-size: 20px;
+  }
+
+  .shell.subscription-surface .stream-stepper strong {
+    min-width: 40px;
+    color: #111827;
+    font-size: 15px;
+  }
+
+  .shell.subscription-surface .subscription-select {
+    min-height: 48px;
+    margin-top: 16px;
+    border-radius: 12px;
+    color: #ffffff;
+    background: #111827;
+    font-size: 13px;
+  }
+
+  .shell.subscription-surface .subscription-plan-card small {
+    margin-top: 10px;
+    color: #6b7280;
+    font-size: 9px;
+  }
+
+  .shell.subscription-surface .mobile-nav {
+    height: 72px;
+    padding: 8px 8px calc(8px + env(safe-area-inset-bottom));
+    border-top: 1px solid #e5e7eb;
+    background: #ffffff;
+    box-shadow: 0 -6px 18px rgba(17, 24, 39, .06);
+    backdrop-filter: none;
+  }
+
+  .shell.subscription-surface .mobile-nav-link {
+    min-height: 44px;
+    border-radius: 10px;
+    color: #9ca3af;
+    background: transparent;
+    font-size: 9px;
+  }
+
+  .shell.subscription-surface .mobile-nav-link.active {
+    color: #111827;
+    background: #f3f4f6;
+    box-shadow: none;
+  }
+}
+
+.subscription-mobile-logo {
+  display: none;
+}
 @media (max-width: 620px) {
   .plan-offer-grid {
     display:flex;

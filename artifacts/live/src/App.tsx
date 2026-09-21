@@ -1274,8 +1274,8 @@ function Sidebar({ path, open, onClose, user, photo, data }: { path:string; open
 }
 
 function Header({ title, account, onMenu }: { title:string; account?: AccountSummary | null; onMenu:()=>void }) {
-  return <header className="topbar">
-    <div className="crumb"><button className="icon-button mobile-menu" onClick={onMenu} data-testid="button-open-menu"><Menu size={18}/></button><span className="crumb-label">Reverse Bypass /</span><span className="crumb-title">{title}</span></div>
+  return <header className={`topbar ${title === "Subscription" ? "subscription-topbar" : ""}`}>
+    <div className="crumb"><button className="icon-button mobile-menu" onClick={onMenu} data-testid="button-open-menu"><Menu size={18}/></button>{title === "Subscription" && <span className="subscription-mobile-logo" aria-label="YT LOOP"><b>YT</b><span>LOOP</span></span>}<span className="crumb-label">Reverse Bypass /</span><span className="crumb-title">{title}</span></div>
     <div className="top-actions"><AccountAccessTimer account={account}/></div>
   </header>;
 }
@@ -1310,9 +1310,9 @@ function DownloadActivity({ downloads, onDismiss }: { downloads: YoutubeDownload
 
 function MobileNav({ path }: { path:string }) {
   const primary = [
-    { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-    { href: "/analytics", label: "Analytics", icon: Gauge },
-    { href: "/subscription", label: "Subscription", icon: CreditCard },
+    { href: "/dashboard", label: "Home", icon: LayoutDashboard },
+    { href: "/videos", label: "Library", icon: FileVideo },
+    { href: "/live", label: "Live", icon: MonitorPlay },
     { href: "/profile", label: "Profile", icon: UserRound },
   ];
   return <div className="mobile-nav-wrap">
