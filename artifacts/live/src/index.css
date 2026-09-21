@@ -1668,8 +1668,8 @@ input:focus, textarea:focus, select:focus { border-color:#5fa49d; box-shadow:0 0
   }
 
   .shell.subscription-surface .mobile-nav-link.active {
-    color: #111827;
-    background: #f3f4f6;
+    color: #ffffff;
+    background: #111827;
     box-shadow: none;
   }
 }
