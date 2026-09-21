@@ -1,0 +1,25 @@
+Redesign this Video Library page from the screenshot into premium WHITE THEME for brand YT LOOP.
+
+KEEP SAME STRUCTURE:
+- Breadcrumb "Reverse Bypass / Video library"
+- Header: Left side - small label "Archive & distribution", Title "Video library", Subtitle "Personal videos live here. Shared YouTube animations are available only inside Video editor."
+- Right side - 5 buttons in 2 rows: "Video editor", "New category", "Add folder", "Bulk YouTube download", and primary "Add video" (pink in old)
+- Below: Tabs "Videos" and "Folders" (Folders active)
+- Main big empty card: Dark purple in screenshot with folder icon, text "No content in this category. Create a category to organize your personal videos..." and button "Create category"
+
+**NEW WHITE PREMIUM DESIGN:**
+
+1.  **Theme:** Full white #FFFFFF. Remove all dark purple #1A0B2E and all pink #FF2E93.
+2.  **Header Buttons:**
+    - "Add video" - Make it primary Black #111827 background white text, rounded full 12px, with plus icon.
+    - Other 4 buttons - Make them white #FFFFFF with 1px grey border #E5E7EB, black text #111827, 12px radius, soft shadow.
+3.  **Tabs:** "Folders" active = Black background #111827 white text rounded full. "Videos" inactive = white with grey border.
+4.  **Main Empty Card:** This is most important.
+    - Background: White #FFFFFF, 24px border radius, 1px border #E5E7EB, soft shadow 0px 8px 32px rgba(0,0,0,0.06)
+    - Center Icon: REPLACE the old small pink folder icon with my big attached 3D clay folder video icon on white marble pedestal. Size 120x120, floating with soft shadow.
+    - Text: Title "No content in this category" bold black #111827 18px, Subtitle grey #6B7280 14px.
+    - Button: "Create category" - Black button with white text and right arrow, rounded full.
+5.  **Future Grid:** When videos are added, cards should be white with 16px radius, thumbnail on top, title below, soft shadow.
+6.  **Font:** Inter, clean minimal. Overall style like Linear + Notion white mode.
+
+Replace old icons with my 3D clay icons. Code in React + Tailwind + shadcn. Match my white landing page, dashboard, and analytics page design.
