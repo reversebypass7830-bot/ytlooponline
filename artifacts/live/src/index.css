@@ -7556,7 +7556,7 @@ select { height: 41px; }
 }
 
 .shell.video-library-surface .video-library-tabs button:not(.inactive) img {
-  filter: brightness(0) invert(1);
+  filter: drop-shadow(0 2px 2px rgba(17, 24, 39, .2));
 }
 
 .shell.video-library-surface .video-library-content,
@@ -7810,6 +7810,86 @@ select { height: 41px; }
   border-color: #e5e7eb;
   color: #374151;
   background: #fff;
+}
+
+.shell.video-library-surface .modal-backdrop {
+  background: rgba(17, 24, 39, .28);
+  backdrop-filter: blur(6px);
+}
+
+.shell.video-library-surface .modal {
+  color: #111827;
+  border-color: #e5e7eb;
+  background: #fff;
+  box-shadow: 0 24px 70px rgba(17, 24, 39, .18);
+}
+
+.shell.video-library-surface .modal-head,
+.shell.video-library-surface .modal-foot {
+  border-color: #e5e7eb;
+}
+
+.shell.video-library-surface .modal-foot {
+  background: #fff;
+}
+
+.shell.video-library-surface .modal-head h2,
+.shell.video-library-surface .modal .field label {
+  color: #111827;
+}
+
+.shell.video-library-surface .modal .field input,
+.shell.video-library-surface .modal .field select {
+  border-color: #d1d5db;
+  color: #111827;
+  background: #fff;
+}
+
+.shell.video-library-surface .modal .field input:focus,
+.shell.video-library-surface .modal .field select:focus {
+  border-color: #111827;
+  box-shadow: 0 0 0 3px rgba(17, 24, 39, .08);
+}
+
+.shell.video-library-surface .modal .form-note {
+  border: 1px solid #e5e7eb;
+  color: #6b7280;
+  background: #f9fafb;
+}
+
+.shell.video-library-surface .modal .icon-button {
+  border-color: #e5e7eb;
+  color: #6b7280;
+  background: #fff;
+}
+
+.shell.video-library-surface .modal .icon-button:hover {
+  border-color: #111827;
+  color: #111827;
+  background: #f9fafb;
+}
+
+.shell.video-library-surface .modal-foot .button:not(.ghost) {
+  border-color: #111827;
+  color: #fff;
+  background: #111827;
+}
+
+.shell.video-library-surface .modal-foot .button:not(.ghost):hover {
+  border-color: #000;
+  background: #000;
+}
+
+.shell.video-library-surface .modal-foot .button.ghost {
+  border: 1px solid #e5e7eb;
+  color: #374151;
+  background: #fff;
+}
+
+.shell.video-library-surface .modal-foot .button.ghost:hover {
+  border-color: #d1d5db;
+  color: #111827;
+  background: #f9fafb;
 }
 
 @keyframes library-clay-float {
