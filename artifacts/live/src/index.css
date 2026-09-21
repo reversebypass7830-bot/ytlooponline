@@ -3070,6 +3070,8 @@ select { height: 41px; }
 .streamly-login-card { width: min(100%, 480px); padding: 32px; border: 1px solid var(--md-sys-color-outline-variant); border-radius: var(--md-sys-shape-corner-medium); background: var(--md-sys-color-surface-container-lowest); box-shadow: 0 1px 2px rgba(32,26,29,.12), 0 1px 3px 1px rgba(32,26,29,.08); }
 .streamly-login-card-brand { display: grid; justify-items: center; gap: 9px; margin-bottom: 29px; text-align: center; }
 .streamly-login-card-logo { display: block; width: 104px; height: auto; max-height: 52px; object-fit: contain; }
+.streamly-login-card-wordmark { display: block; color: #1d1b20 !important; font: 800 28px/1 'Inter', sans-serif !important; letter-spacing: -.07em !important; }
+.streamly-login-card-wordmark b { color: #d62f37; }
 .streamly-login-card-brand span { color: var(--md-sys-color-on-surface-variant); font: 500 11px 'Roboto', sans-serif; letter-spacing: .04em; }
 .streamly-login-card-top { display: flex; justify-content: space-between; padding-bottom: 23px; border-bottom: 1px solid var(--md-sys-color-outline-variant); color: var(--md-sys-color-on-surface-variant); font: 500 10px 'Roboto', sans-serif; letter-spacing: .04em; }
 .streamly-login-card-top span:first-child { display: inline-flex; align-items: center; gap: 8px; }

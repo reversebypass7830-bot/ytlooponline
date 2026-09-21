@@ -215,7 +215,7 @@ export default function LoginPage({
       <main className="streamly-login-main">
         <section className="streamly-login-card" aria-labelledby="login-title">
           <div className="streamly-login-card-brand">
-            <img className="streamly-login-card-logo" src="/images/logo/loop-logo.webp" alt="Loop Stream" />
+            <span className="streamly-login-card-wordmark" aria-label="YT Loop"><b>YT</b> Loop</span>
             <span>24/7 broadcast control</span>
           </div>
           <div className="streamly-login-heading">
