@@ -1311,8 +1311,7 @@ function DownloadActivity({ downloads, onDismiss }: { downloads: YoutubeDownload
 function MobileNav({ path }: { path:string }) {
   const primary = [
     { href: "/dashboard", label: "Home", icon: LayoutDashboard },
-    { href: "/videos", label: "Library", icon: FileVideo },
-    { href: "/live", label: "Live", icon: MonitorPlay },
+    { href: "/subscription", label: "Subscription", icon: CreditCard },
     { href: "/profile", label: "Profile", icon: UserRound },
   ];
   return <div className="mobile-nav-wrap">
