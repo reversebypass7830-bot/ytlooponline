@@ -9946,6 +9946,13 @@ select { height: 41px; }
   color: #10b981;
 }
 
+.shell.subscription-surface .subscription-history-empty > img {
+  width: 80px;
+  height: 80px;
+  object-fit: contain;
+  filter: drop-shadow(0 10px 9px rgba(59, 130, 246, .14));
+}
+
 .shell.subscription-surface .subscription-history-empty strong {
   color: #111827;
 }
