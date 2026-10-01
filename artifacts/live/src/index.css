@@ -1302,25 +1302,12 @@ input:focus, textarea:focus, select:focus { border-color:#5fa49d; box-shadow:0 0
   }
 
   .shell.subscription-surface .subscription-mobile-logo {
-    display: inline-flex;
-    align-items: baseline;
+    display: block;
+    width: 96px;
+    height: 25px;
+    object-fit: contain;
     order: 1;
     margin-right: auto;
-    color: #111827;
-    font-size: 16px;
-    font-weight: 900;
-    letter-spacing: -.055em;
-    line-height: 1;
-  }
-
-  .shell.subscription-surface .subscription-mobile-logo b {
-    color: #dc2626;
-    font-weight: 900;
-  }
-
-  .shell.subscription-surface .subscription-mobile-logo span {
-    color: #111827;
-    font-weight: 900;
   }
 
   .shell.subscription-surface .mobile-menu {
@@ -3477,9 +3464,7 @@ select { height: 41px; }
 .streamly-login-main { position: relative; z-index: 1; display: grid; place-items: center; width: 100%; min-height: 100dvh; padding: 40px 20px; }
 .streamly-login-card { width: min(100%, 480px); padding: 32px; border: 1px solid var(--md-sys-color-outline-variant); border-radius: var(--md-sys-shape-corner-medium); background: var(--md-sys-color-surface-container-lowest); box-shadow: 0 1px 2px rgba(32,26,29,.12), 0 1px 3px 1px rgba(32,26,29,.08); }
 .streamly-login-card-brand { display: grid; justify-items: center; gap: 9px; margin-bottom: 29px; text-align: center; }
-.streamly-login-card-logo { display: block; width: 104px; height: auto; max-height: 52px; object-fit: contain; }
-.streamly-login-card-wordmark { display: block; color: #1d1b20 !important; font: 800 28px/1 'Inter', sans-serif !important; letter-spacing: -.07em !important; }
-.streamly-login-card-wordmark b { color: #d62f37; }
+.streamly-login-card-logo { display: block; width: 164px; height: 36px; object-fit: contain; }
 .streamly-login-card-brand span { color: var(--md-sys-color-on-surface-variant); font: 500 11px 'Roboto', sans-serif; letter-spacing: .04em; }
 .streamly-login-card-top { display: flex; justify-content: space-between; padding-bottom: 23px; border-bottom: 1px solid var(--md-sys-color-outline-variant); color: var(--md-sys-color-on-surface-variant); font: 500 10px 'Roboto', sans-serif; letter-spacing: .04em; }
 .streamly-login-card-top span:first-child { display: inline-flex; align-items: center; gap: 8px; }
@@ -10716,4 +10701,30 @@ select { height: 41px; }
   .shell.profile-surface .profile-action-panel {
     width: 100%;
   }
+}
+
+.shell .brand .brand-mark {
+  width: 148px;
+  height: 38px;
+  padding: 3px 5px;
+  border: 1px solid rgba(15, 38, 36, .12);
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: none;
+}
+
+.owner-topbar .brand .brand-mark {
+  width: 148px;
+  height: 38px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.brand .brand-mark img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
 }

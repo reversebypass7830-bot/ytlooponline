@@ -215,7 +215,7 @@ export default function LoginPage({
       <main className="streamly-login-main">
         <section className="streamly-login-card" aria-labelledby="login-title">
           <div className="streamly-login-card-brand">
-            <span className="streamly-login-card-wordmark" aria-label="YT Loop"><b>YT</b> Loop</span>
+            <img className="streamly-login-card-logo" src="/images/ytloop-logo.png" alt="YT Loop" />
             <span>24/7 broadcast control</span>
           </div>
           <p className="streamly-login-copy text-center text-[25px]">{expired ? "Renew your current license to keep your channels, videos, and settings exactly as you left them." : "Access your workspace"}</p>

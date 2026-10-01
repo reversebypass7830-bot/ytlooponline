@@ -1,4 +1,4 @@
-import { useEffect, useId, useMemo, useRef, useState, type CSSProperties, type ChangeEvent, type FormEvent, type PointerEvent as ReactPointerEvent, type ReactNode, type SyntheticEvent } from "react";
+import { useCallback, useEffect, useId, useMemo, useRef, useState, type CSSProperties, type ChangeEvent, type FormEvent, type PointerEvent as ReactPointerEvent, type ReactNode, type SyntheticEvent } from "react";
 import { Link, Redirect, Route, Switch, useLocation, Router as WouterRouter } from "wouter";
 import {
   Activity as ActivityIcon, ArrowLeft, ArrowRight, BookOpen, Camera, Check, CircleHelp, Clipboard,
@@ -1061,6 +1061,8 @@ function useWorkspace(license: LicenseSession | null, clearLicense: () => void) 
   const [toast, setToast] = useState("");
   const [youtubeDownloads, setYoutubeDownloads] = useState<YoutubeDownloadTask[]>([]);
   const user = license?.name || "";
+  const licenseIdRef = useRef(license?.licenseId || "");
+  licenseIdRef.current = license?.licenseId || "";
   useEffect(() => {
     let cancelled = false;
     setReady(false);
@@ -1149,6 +1151,56 @@ function useWorkspace(license: LicenseSession | null, clearLicense: () => void) 
     });
     return () => { cancelled = true; };
   }, [license?.licenseId, license?.key, license?.clientId]);
+  const refreshIncludedAnimations = useCallback(async () => {
+    const requestedLicenseId = license?.licenseId;
+    if (!requestedLicenseId || !isLicenseActive(license)) return;
+    const [mediaResult, folderResult] = await Promise.all([
+      apiJson<{ files: MediaFileRecord[] }>(`/api/media/files?licenseId=${encodeURIComponent(requestedLicenseId)}`),
+      apiJson<IncludedFolderTreeResponse>("/api/media/included-folders"),
+    ]);
+    if (licenseIdRef.current !== requestedLicenseId) return;
+    const includedFiles = mediaResult.files.filter((file) => file.licenseId === includedMediaLicenseId);
+    setData((current) => {
+      let groups = [...current.groups];
+      for (const folder of folderResult.folders) {
+        groups = ensureFolderPath(groups, folder.path, folder.createdAt).groups;
+      }
+      const existingIncludedByFileId = new Map(
+        current.videos
+          .filter(isIncludedVideo)
+          .map((video) => [getMediaFileId(video), video] as const)
+          .filter((entry): entry is readonly [string, VideoItem] => Boolean(entry[0])),
+      );
+      const includedVideos = includedFiles.map((file, index): VideoItem => {
+        const folderResult = ensureFolderPath(groups, file.folderName, file.createdAt);
+        groups = folderResult.groups;
+        const existing = existingIncludedByFileId.get(file.fileId);
+        return {
+          ...existing,
+          id: existing?.id || `media-${file.fileId}`,
+          title: file.title || file.filename,
+          duration: file.duration || "00:00",
+          status: "published",
+          groupId: folderResult.group?.id || "",
+          sourceUrl: scopedMediaPlaybackUrl(file.playbackUrl, file.licenseId, requestedLicenseId),
+          serverSource: file.sourcePath,
+          thumbnailColor: existing?.thumbnailColor || colors[index % colors.length],
+          views: existing?.views || 0,
+          createdAt: file.createdAt,
+          licenseId: file.licenseId,
+          licenseName: file.licenseName,
+          folderName: file.folderName,
+          quality: file.quality,
+        };
+      });
+      const videos = [...current.videos.filter((video) => !isIncludedVideo(video)), ...includedVideos];
+      return normalizeWorkspace({
+        ...current,
+        groups: rebuildGroupMembership(groups, videos),
+        videos,
+      });
+    });
+  }, [license?.licenseId, license?.active, license?.expiresAt]);
   useEffect(() => {
     if (!ready || !license || !isLicenseActive(license)) return;
     const timer = window.setTimeout(() => {
@@ -1243,13 +1295,13 @@ function useWorkspace(license: LicenseSession | null, clearLicense: () => void) 
     })();
   };
   const logout = () => { clearLicense(); };
-  return { clientId: license?.clientId || "", licenseId: license?.licenseId || "", data, user, toast, ready, update, logout, setToast, youtubeDownloads, startYoutubeDownloads, dismissYoutubeDownload };
+  return { clientId: license?.clientId || "", licenseId: license?.licenseId || "", data, user, toast, ready, update, logout, setToast, youtubeDownloads, startYoutubeDownloads, dismissYoutubeDownload, refreshIncludedAnimations };
 }
 
 function Brand({ compact = false }: { compact?: boolean }) {
   return <div className="brand" data-testid="brand">
     <div className="brand-mark">
-      <span className="brand-wordmark" aria-label="YT LOOP"><b>YT</b><span>LOOP</span></span>
+      <img src="/images/ytloop-logo.png" alt="YT Loop" />
     </div>
   </div>;
 }
@@ -1284,7 +1336,7 @@ function Sidebar({ path, open, onClose, user, photo, data }: { path:string; open
 function Header({ title, account, onMenu, onBack }: { title:string; account?: AccountSummary | null; onMenu:()=>void; onBack:()=>void }) {
   const showMobileBack = title === "Video library" || title === "Video editor";
   return <header className={`topbar ${title === "Subscription" ? "subscription-topbar" : ""}`}>
-    <div className="crumb"><button className={`icon-button mobile-menu ${showMobileBack ? "mobile-back" : ""}`} onClick={showMobileBack ? onBack : onMenu} aria-label={showMobileBack ? "Back to home" : "Open navigation"} data-testid={showMobileBack ? "button-mobile-back" : "button-open-menu"}>{showMobileBack ? <ArrowLeft size={18}/> : <Menu size={18}/>}</button>{title === "Subscription" && <span className="subscription-mobile-logo" aria-label="YT LOOP"><b>YT</b><span>LOOP</span></span>}<span className="crumb-label">Reverse Bypass /</span><span className="crumb-title">{title}</span></div>
+    <div className="crumb"><button className={`icon-button mobile-menu ${showMobileBack ? "mobile-back" : ""}`} onClick={showMobileBack ? onBack : onMenu} aria-label={showMobileBack ? "Back to home" : "Open navigation"} data-testid={showMobileBack ? "button-mobile-back" : "button-open-menu"}>{showMobileBack ? <ArrowLeft size={18}/> : <Menu size={18}/>}</button>{title === "Subscription" && <img className="subscription-mobile-logo" src="/images/ytloop-logo.png" alt="YT Loop" />}<span className="crumb-label">Reverse Bypass /</span><span className="crumb-title">{title}</span></div>
     <div className="top-actions"><AccountAccessTimer account={account}/></div>
   </header>;
 }
@@ -3617,6 +3669,12 @@ function VideoEditorPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}
   const [animationTransform, setAnimationTransform] = useState<EditorTransform>({ x: 0, y: 0, scale: 0.25 });
   const [logoId, setLogoId] = useState("");
   const [previewExpanded, setPreviewExpanded] = useState(false);
+  useEffect(() => {
+    if (!workspace.ready) return;
+    void workspace.refreshIncludedAnimations().catch((reason) => {
+      setToast(reason instanceof Error ? reason.message : "Shared animations could not be refreshed.");
+    });
+  }, [workspace.ready, workspace.refreshIncludedAnimations, setToast]);
   const [mobileEditorPanel, setMobileEditorPanel] = useState<"files" | "timing" | "layers" | "effects">("files");
   const [activeEditorTool, setActiveEditorTool] = useState<"media" | "text" | "animations" | "overlays" | "audio">("media");
   const [timelinePosition, setTimelinePosition] = useState(38);
@@ -3817,6 +3875,11 @@ function VideoEditorPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}
     setEditorLibrary(nextLibrary);
     setAnimationId("");
     setSelectedLayer("main");
+    if (nextLibrary === "youtube") {
+      void workspace.refreshIncludedAnimations().catch((reason) => {
+        setToast(reason instanceof Error ? reason.message : "Shared animations could not be refreshed.");
+      });
+    }
   };
   const toggleVideo = (videoId: string) => {
     setSelectedIds((current) => {
@@ -4057,7 +4120,7 @@ function VideoEditorPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}
             {logo && <div className="form-grid"><div className="field"><label>Logo position</label><select value={logoPosition} onChange={(event) => setLogoPosition(event.target.value)}><option value="top-left">Top left</option><option value="top-right">Top right</option><option value="bottom-left">Bottom left</option><option value="bottom-right">Bottom right</option></select></div><div className="field"><label>Logo size · {overlayScale}%</label><input type="range" min="10" max="60" value={overlayScale} onChange={(event) => setOverlayScale(event.target.value)}/></div></div>}
               <div className="field"><label>Face cam video</label><select value={webcamId} onChange={(event) => { setWebcamId(event.target.value); setSelectedLayer(event.target.value ? "webcam" : "main"); }} data-testid="select-editor-facecam"><option value="">No face cam</option>{webcamVideos.map((video) => <option key={video.id} value={video.id}>{video.title}</option>)}</select><span className="field-hint">Only videos from this license workspace are available here.</span></div>
              {webcam && <div className="editor-layer-note"><span>Canvas face cam: {Math.round(webcamTransform.scale * 100)}%</span><button type="button" className="section-link" onClick={() => setSelectedLayer("webcam")}>Edit on canvas <ArrowRight size={12}/></button></div>}
-                <div className="field"><label>Animation overlay</label><select value={animationId} onChange={(event) => { setAnimationId(event.target.value); setSelectedLayer(event.target.value ? "animation" : "main"); }} data-testid="select-editor-animation-overlay"><option value="">No animation overlay</option>{includedAnimationVideos.length > 0 && <optgroup label="Admin · Included Animations">{includedAnimationVideos.map((video) => <option key={video.id} value={video.id}>{video.title}</option>)}</optgroup>}{myAnimationVideos.length > 0 && <optgroup label="My Animations">{myAnimationVideos.map((video) => <option key={video.id} value={video.id}>{video.title}</option>)}</optgroup>}</select><span className="field-hint">Admin and My Animations stay separate from Personal video and appear above it in the live signal.</span></div>
+                 <div className="field"><label>Animation overlay</label><select value={animationId} onChange={(event) => { setAnimationId(event.target.value); setSelectedLayer(event.target.value ? "animation" : "main"); }} data-testid="select-editor-animation-overlay"><option value="">No animation overlay</option>{includedAnimationVideos.length > 0 && <optgroup label="Admin · Included Animations">{includedAnimationVideos.map((video) => <option key={video.id} value={video.id}>{video.title}</option>)}</optgroup>}{myAnimationVideos.length > 0 && <optgroup label="My Animations">{myAnimationVideos.map((video) => <option key={video.id} value={video.id}>{video.title}</option>)}</optgroup>}</select></div>
               {animation && <div className="editor-layer-note"><span>Animation overlay: {Math.round(animationTransform.scale * 100)}%</span><button type="button" className="section-link" onClick={() => setSelectedLayer("animation")}>Edit on canvas <ArrowRight size={12}/></button></div>}
              <div className="field"><label>Animated callout</label><select value={animationPreset} onChange={(event) => setAnimationPreset(event.target.value as AnimationPreset)} data-testid="select-editor-animation"><option value="none">No animation</option><option value="subscribe">Subscribe pop-in</option><option value="like">Like burst</option><option value="follow">Follow pulse</option></select><span className="field-hint">The animation is previewed on the canvas and burned into the final MP4.</span></div>
              <EditorTransformControls
