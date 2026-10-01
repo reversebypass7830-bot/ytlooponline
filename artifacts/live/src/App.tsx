@@ -1385,6 +1385,9 @@ function MobileNav({ path }: { path:string }) {
 function AppShell({ children, title, account, profilePhoto, workspace }: { children:ReactNode; title:string; account?: AccountSummary | null; profilePhoto?: string; workspace:ReturnType<typeof useWorkspace> }) {
   const [path, setLocation] = useLocation();
   const [menu, setMenu] = useState(false);
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [path]);
   return <div className={`shell ${title === "Analytics" ? "analytics-surface" : title === "Live channels" ? "live-surface" : title === "Video library" ? "video-library-surface" : title === "Live Stream Preview" ? "live-preview-surface" : title === "Video editor" ? "video-editor-surface" : title === "Subscription" ? "subscription-surface" : title === "Profile" ? "profile-surface" : ""}`}>
     {menu && <button className="sidebar-scrim" aria-label="Close navigation" onClick={() => setMenu(false)} data-testid="button-close-menu" />}
     <Sidebar path={path} open={menu} onClose={()=>setMenu(false)} user={account?.displayName || account?.email || workspace.user} photo={profilePhoto} data={workspace.data}/>

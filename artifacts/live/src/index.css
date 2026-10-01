@@ -6359,7 +6359,7 @@ select { height: 41px; }
 }
 
 .shell .dashboard-home-page {
-  min-height: calc(100dvh - 76px);
+  min-height: calc(100dvh - 64px);
 }
 
 .shell .dashboard-home-page .page-head {
