@@ -238,9 +238,33 @@ async function apiJson<T>(path: string, init?: RequestInit): Promise<T> {
   }
   return payload;
 }
+function parseYoutubeHlsIngestUrl(value: string): URL | null {
+  try {
+    const url = new URL(value.trim());
+    if (url.protocol !== "https:" || !url.pathname.includes("http_upload_hls") || !url.searchParams.get("cid")?.trim()) {
+      return null;
+    }
+    url.searchParams.delete("stream_key");
+    return url;
+  } catch {
+    return null;
+  }
+}
+function normalizeStreamDestination(streamUrl: string, streamKey: string): { streamUrl: string; streamKey: string } {
+  const pastedHlsUrl = parseYoutubeHlsIngestUrl(streamKey);
+  if (pastedHlsUrl) {
+    return { streamUrl: pastedHlsUrl.toString(), streamKey: pastedHlsUrl.searchParams.get("cid") || "" };
+  }
+  return { streamUrl: streamUrl.trim(), streamKey: streamKey.trim() };
+}
 function resolveStreamIngestUrl(streamUrl: string, streamKey: string): string {
   const key = streamKey.trim();
   if (!key) return streamUrl.trim();
+  const pastedHlsUrl = parseYoutubeHlsIngestUrl(key);
+  if (pastedHlsUrl) return pastedHlsUrl.toString();
+  if (/^https?:\/\//i.test(key)) {
+    throw new Error("Paste a stream key, or a complete HTTPS YouTube HLS upload URL with a cid parameter.");
+  }
   if (streamUrl.includes("{streamKey}")) return streamUrl.replaceAll("{streamKey}", encodeURIComponent(key));
   let url: URL;
   try {
@@ -310,7 +334,12 @@ const fmtTime = (date: string | null) => {
   return mins < 60 ? `${mins}m` : `${Math.floor(mins / 60)}h ${mins % 60}m`;
 };
 const fmtNumber = (n: number) => new Intl.NumberFormat("en-US").format(n);
-const maskStreamKey = (key?: string) => key?.trim() ? `••••••••${key.trim().slice(-4)}` : "Not configured";
+const maskStreamKey = (key?: string) => {
+  if (!key?.trim()) return "Not configured";
+  const hlsUrl = parseYoutubeHlsIngestUrl(key);
+  const visibleKey = hlsUrl?.searchParams.get("cid") || key.trim();
+  return `••••••••${visibleKey.slice(-4)}`;
+};
 const colors = ["#2c8b88", "#da814b", "#607a98", "#788d52", "#9a6591", "#3f6d66"];
 // These demo files are intentionally not bundled in the public repository.
 // Users can add a video through the upload or YouTube download flow instead.
@@ -2617,7 +2646,11 @@ function ChannelModal({ channel, groups, videos, onSave, onClose }: {channel?:Li
     autoRestart:channel?.autoRestart||false,
     playlistVideoIds: channel?.playlistVideoIds?.length ? channel.playlistVideoIds : existingVideos.map((video) => video.id),
   });
-  const destinationProtocolStatus = getDestinationProtocolStatus(form.streamUrl);
+   const pastedHlsUrl = parseYoutubeHlsIngestUrl(form.streamKey);
+   const malformedFullUrl = /^https?:\/\//i.test(form.streamKey.trim()) && !pastedHlsUrl;
+   const destinationProtocolStatus = malformedFullUrl
+     ? { label: "Paste only a stream key or a complete HTTPS YouTube HLS upload URL.", issue: true }
+     : getDestinationProtocolStatus(pastedHlsUrl?.toString() || form.streamUrl);
   const set=(key:string,value:string|number|boolean)=>setForm(f=>({...f,[key]:value}));
   const selectedGroup = groups.find(g=>g.id===form.groupId);
   const faceGroup = groups.find(g=>g.id===form.faceGroupId);
@@ -2640,12 +2673,13 @@ function ChannelModal({ channel, groups, videos, onSave, onClose }: {channel?:Li
   };
   const submit=(e:FormEvent)=>{
     e.preventDefault();
-     if(!form.streamKey.trim() || !form.groupId || !form.playlistVideoIds.length) return;
-    const platform=platformFromUrl(form.streamUrl);
+     if(destinationProtocolStatus.issue || !form.streamKey.trim() || !form.groupId || !form.playlistVideoIds.length) return;
+    const destination = normalizeStreamDestination(form.streamUrl, form.streamKey);
+    const platform=platformFromUrl(destination.streamUrl);
     onSave({
       id:channel?.id||uid("ch"), title:channel?.title||`${platform} channel`, platform,
-      status:channel?.status||"stopped", groupId:form.groupId, streamUrl:form.streamUrl.trim(),
-      streamKey:form.streamKey.trim(), viewers:channel?.viewers||0, startedAt:channel?.startedAt||null,
+      status:channel?.status||"stopped", groupId:form.groupId, streamUrl:destination.streamUrl,
+      streamKey:destination.streamKey, viewers:channel?.viewers||0, startedAt:channel?.startedAt||null,
       thumbnailColor:channel?.thumbnailColor||colors[0], createdAt:channel?.createdAt||now(),
        aspectRatio:form.aspectRatio, playbackSpeed:Number(form.playbackSpeed), faceGroupId:form.faceGroupId || undefined,
       facePosition:form.facePosition, faceSize:Number(form.faceSize), durationHours:Number(form.durationHours),
@@ -2654,9 +2688,9 @@ function ChannelModal({ channel, groups, videos, onSave, onClose }: {channel?:Li
           editorComposition:channel?.editorComposition,
     });
   };
-   return <Modal title={channel ? "Update channel" : "Add live channel"} onClose={onClose} footer={<><button className="button ghost" onClick={onClose} data-testid="button-cancel-channel">Cancel</button><button className="button" type="submit" form="channel-form" disabled={!form.streamKey.trim() || !form.groupId || !form.playlistVideoIds.length} data-testid="button-save-channel">{channel ? "Save changes" : "Add channel"} <Check size={14}/></button></>}><form id="channel-form" onSubmit={submit}>
+    return <Modal title={channel ? "Update channel" : "Add live channel"} onClose={onClose} footer={<><button className="button ghost" onClick={onClose} data-testid="button-cancel-channel">Cancel</button><button className="button" type="submit" form="channel-form" disabled={destinationProtocolStatus.issue || !form.streamKey.trim() || !form.groupId || !form.playlistVideoIds.length} data-testid="button-save-channel">{channel ? "Save changes" : "Add channel"} <Check size={14}/></button></>}><form id="channel-form" onSubmit={submit}>
     <div className="form-grid">
-       <div className="field full"><label>Stream key</label><input autoFocus required type="password" autoComplete="new-password" value={form.streamKey} onChange={e=>set("streamKey",e.target.value)} placeholder="Paste your YouTube stream key" data-testid="input-channel-stream-key"/><span className="field-hint">Saved privately and never shown in the channel table.</span></div>
+        <div className="field full"><label>Stream key or HLS URL</label><input autoFocus required type="password" autoComplete="new-password" value={form.streamKey} onChange={e=>set("streamKey",e.target.value)} placeholder="Paste your stream key or full YouTube HLS URL" data-testid="input-channel-stream-key"/><span className="field-hint">Paste the key only, or the complete HTTPS YouTube HLS upload URL. Full HLS URLs are detected and kept masked.</span></div>
        <div className="field full">
          <label htmlFor="channel-destination-protocol">Destination protocol</label>
          <output id="channel-destination-protocol" className={destinationProtocolStatus.issue ? "error-note" : "form-note"} aria-live="polite" data-testid="text-channel-destination-protocol">{destinationProtocolStatus.label}</output>
@@ -2708,7 +2742,7 @@ function StreamKeyModal({
   onClose: () => void;
   busy?: boolean;
 }) {
-  return <Modal title={`Add stream key · ${channel.title}`} onClose={onClose} footer={<><button className="button ghost" onClick={onClose} disabled={busy} data-testid="button-cancel-stream-key">Cancel</button><button className="button" onClick={onContinue} disabled={busy || !value.trim()} data-testid="button-continue-stream-key">Continue to stream <ArrowRight size={14}/></button></>}><div className="stream-key-notice"><ShieldCheck size={18}/><div><strong>This channel needs its stream key before it can go live.</strong><p>The edited composition is already attached. Add the key, continue, then use Start on the channel.</p></div></div><div className="field"><label htmlFor="stream-key-prompt">Stream key</label><input id="stream-key-prompt" type="password" autoFocus autoComplete="new-password" value={value} onChange={(event) => onChange(event.target.value)} placeholder="Paste your platform stream key" data-testid="input-stream-key-prompt"/><span className="field-hint">The key is used only to build the private ingest request. It is never displayed in the channel list.</span></div></Modal>;
+  return <Modal title={`Add stream key · ${channel.title}`} onClose={onClose} footer={<><button className="button ghost" onClick={onClose} disabled={busy} data-testid="button-cancel-stream-key">Cancel</button><button className="button" onClick={onContinue} disabled={busy || !value.trim()} data-testid="button-continue-stream-key">Continue to stream <ArrowRight size={14}/></button></>}><div className="stream-key-notice"><ShieldCheck size={18}/><div><strong>This channel needs its stream key before it can go live.</strong><p>The edited composition is already attached. Add the key, continue, then use Start on the channel.</p></div></div><div className="field"><label htmlFor="stream-key-prompt">Stream key or HLS URL</label><input id="stream-key-prompt" type="password" autoFocus autoComplete="new-password" value={value} onChange={(event) => onChange(event.target.value)} placeholder="Paste your stream key or full YouTube HLS URL" data-testid="input-stream-key-prompt"/><span className="field-hint">A complete HTTPS YouTube HLS upload URL is detected automatically and stays masked.</span></div></Modal>;
 }
 
 function streamIdFor(clientId:string, channelId:string):string {
@@ -3318,9 +3352,9 @@ function LivePage({workspace, account}:{workspace:ReturnType<typeof useWorkspace
    }, [data.channels, data.groups, data.videos, workspace.clientId, workspace.setToast, update]);
    const groupsById=useMemo(()=>Object.fromEntries(data.groups.map(g=>[g.id,g.name])),[data.groups]);
       return <AppShell title="Live channels" account={account} workspace={workspace}><div className="page live-page"><div className="page-head"><div><p className="eyebrow">Live Channels</p><h1>Manage your 24/7 loop streams</h1><p className="subtle">Keep every YouTube destination ready, monitored, and looping from one calm control room.</p></div><div className="page-head-actions"><span className="page-live-indicator"><span className="status-dot"/>{data.channels.filter(c=>c.status==="live").length ? `${data.channels.filter(c=>c.status==="live").length} live now` : "No live streams"}</span><button className="button live-create-button" onClick={()=>{setEditing(undefined);setShowForm(true)}} data-testid="button-add-channel"><Plus size={16}/> Create New Live</button></div></div>
-        {data.channels.length===0 ? <section className="live-empty-card" data-testid="empty-live-channels"><div className="live-empty-art"><img src={liveYoutubeClay} alt="" /></div><div className="live-empty-copy"><p className="eyebrow">Your control room is ready</p><h2>No live channels yet, create your first 24/7 loop</h2><p>Set up a YouTube destination once and keep your best videos running around the clock.</p><button className="button live-create-button" onClick={()=>{setEditing(undefined);setShowForm(true)}} data-testid="button-empty-add-channel"><Plus size={16}/> Create New Live</button></div><div className="live-empty-orbit live-empty-orbit-one"><img src={livePowerClay} alt="" /></div><div className="live-empty-orbit live-empty-orbit-two"><img src={liveBroadcastClay} alt="" /></div></section> : <div className="live-channel-grid">{data.channels.map(c=>{const isLive=c.status==="live";const playlistCount=c.playlistVideoIds?.length || videosForGroup(c.groupId,data.groups,data.videos).length;const statusLabel=isLive ? "Live" : c.status==="scheduled" ? "Scheduled" : "Offline";return <article className={`live-channel-card ${isLive ? "is-live" : ""}`} key={c.id} data-testid={`row-channel-${c.id}`}><div className="live-card-visual" style={{"--channel-accent":c.thumbnailColor} as CSSProperties}><img src={liveYoutubeClay} alt="" /><span className={`live-status-badge ${isLive ? "active" : "offline"}`}><span className="live-status-dot"/>{statusLabel}</span><span className="live-card-platform">{c.platform}</span></div><div className="live-card-content"><div className="live-card-heading"><div><h2>{c.title}</h2><p>{isLive ? `Live for ${fmtTime(c.startedAt)}` : "Ready to broadcast"}</p></div><span className="live-card-signal"><img src={isLive ? liveBroadcastClay : livePowerClay} alt="" /></span></div><div className="live-card-facts"><div className="live-card-fact"><img src={liveKeyClay} alt="" /><div><span>RTMP key</span><strong>{maskStreamKey(c.streamKey)}</strong></div></div><div className="live-card-fact"><Radio size={16}/><div><span>Views</span><strong>{fmtNumber(c.viewers)} {c.viewers === 1 ? "viewer" : "viewers"}</strong></div></div></div><div className="live-card-meta"><span><FileVideo size={14}/>{playlistCount} playlist video{playlistCount === 1 ? "" : "s"}</span><span title={groupsById[c.groupId] || "Unassigned"}>{groupsById[c.groupId] || "Unassigned"}</span></div><div className="live-card-actions">{isLive?<button className="button live-stop-button" onClick={()=>stop(c)} disabled={busy.includes(c.id)} data-testid={`button-stop-${c.id}`}><img src={livePowerClay} alt="" />{busy.includes(c.id) ? "Stopping…" : "Stop Loop"}</button>:<button className="button live-start-button" onClick={()=>start(c)} disabled={busy.includes(c.id)} data-testid={`button-start-${c.id}`}><img src={livePowerClay} alt="" />{busy.includes(c.id) ? "Starting…" : "Start Loop"}</button>}<button className="button live-secondary-button" onClick={()=>{setEditing(c);setShowForm(true)}} data-testid={`button-edit-channel-${c.id}`}><Pencil size={14}/> Edit</button><button className="button live-delete-button" onClick={()=>setDeleting(c)} data-testid={`button-delete-channel-${c.id}`}><Trash2 size={14}/> Delete</button></div></div></article>;})}</div>}
+         {data.channels.length===0 ? <section className="live-empty-card" data-testid="empty-live-channels"><div className="live-empty-art"><img src={liveYoutubeClay} alt="" /></div><div className="live-empty-copy"><p className="eyebrow">Your control room is ready</p><h2>No live channels yet, create your first 24/7 loop</h2><p>Set up a YouTube destination once and keep your best videos running around the clock.</p><button className="button live-create-button" onClick={()=>{setEditing(undefined);setShowForm(true)}} data-testid="button-empty-add-channel"><Plus size={16}/> Create New Live</button></div><div className="live-empty-orbit live-empty-orbit-one"><img src={livePowerClay} alt="" /></div><div className="live-empty-orbit live-empty-orbit-two"><img src={liveBroadcastClay} alt="" /></div></section> : <div className="live-channel-grid">{data.channels.map(c=>{const isLive=c.status==="live";const playlistCount=c.playlistVideoIds?.length || videosForGroup(c.groupId,data.groups,data.videos).length;const statusLabel=isLive ? "Live" : c.status==="scheduled" ? "Scheduled" : "Offline";return <article className={`live-channel-card ${isLive ? "is-live" : ""}`} key={c.id} data-testid={`row-channel-${c.id}`}><div className="live-card-visual" style={{"--channel-accent":c.thumbnailColor} as CSSProperties}><img src={liveYoutubeClay} alt="" /><span className={`live-status-badge ${isLive ? "active" : "offline"}`}><span className="live-status-dot"/>{statusLabel}</span><span className="live-card-platform">{c.platform}</span></div><div className="live-card-content"><div className="live-card-heading"><div><h2>{c.title}</h2><p>{isLive ? `Live for ${fmtTime(c.startedAt)}` : "Ready to broadcast"}</p></div><span className="live-card-signal"><img src={isLive ? liveBroadcastClay : livePowerClay} alt="" /></span></div><div className="live-card-facts"><div className="live-card-fact"><img src={liveKeyClay} alt="" /><div><span>Stream key</span><strong>{maskStreamKey(c.streamKey)}</strong></div></div><div className="live-card-fact"><Radio size={16}/><div><span>Views</span><strong>{fmtNumber(c.viewers)} {c.viewers === 1 ? "viewer" : "viewers"}</strong></div></div></div><div className="live-card-meta"><span><FileVideo size={14}/>{playlistCount} playlist video{playlistCount === 1 ? "" : "s"}</span><span title={groupsById[c.groupId] || "Unassigned"}>{groupsById[c.groupId] || "Unassigned"}</span></div><div className="live-card-actions">{isLive?<button className="button live-stop-button" onClick={()=>stop(c)} disabled={busy.includes(c.id)} data-testid={`button-stop-${c.id}`}><img src={livePowerClay} alt="" />{busy.includes(c.id) ? "Stopping…" : "Stop Loop"}</button>:<button className="button live-start-button" onClick={()=>start(c)} disabled={busy.includes(c.id)} data-testid={`button-start-${c.id}`}><img src={livePowerClay} alt="" />{busy.includes(c.id) ? "Starting…" : "Start Loop"}</button>}<button className="button live-secondary-button" onClick={()=>{setEditing(c);setShowForm(true)}} data-testid={`button-edit-channel-${c.id}`}><Pencil size={14}/> Edit</button><button className="button live-delete-button" onClick={()=>setDeleting(c)} disabled={busy.includes(c.id)} data-testid={`button-delete-channel-${c.id}`}><Trash2 size={14}/> Delete</button></div></div></article>;})}</div>}
         <div className="live-surface-note"><img src={liveKeyClay} alt="" /><span>Stream keys stay masked in your workspace. Start a loop only after its playlist and destination are ready.</span></div>
-     </div>{showForm&&<ChannelModal channel={editing} groups={data.groups} videos={data.videos} onSave={save} onClose={()=>{setShowForm(false);setEditing(undefined)}}/>}{deleting&&<ConfirmModal title="Delete this channel?" copy={`“${deleting.title}” and its stream settings will be removed from this workspace. Any live signal must be stopped first.`} onClose={()=>setDeleting(undefined)} onConfirm={()=>{update({channels:data.channels.filter(c=>c.id!==deleting.id)},{message:`${deleting.title} was deleted`,type:"edit"});setDeleting(undefined)}}/>}{streamKeyChannel&&<StreamKeyModal channel={streamKeyChannel} value={streamKeyDraft} onChange={setStreamKeyDraft} onClose={()=>setStreamKeyChannel(undefined)} onContinue={()=>{const channel={...streamKeyChannel,streamKey:streamKeyDraft.trim()};update({channels:data.channels.map((item)=>item.id===channel.id?channel:item)},{message:`Stream key saved for ${channel.title}`,type:"edit"});setStreamKeyChannel(undefined);void start(channel);}}/>}</AppShell>;
+      </div>{showForm&&<ChannelModal channel={editing} groups={data.groups} videos={data.videos} onSave={save} onClose={()=>{setShowForm(false);setEditing(undefined)}}/>}{deleting&&<ConfirmModal title="Delete this channel?" copy={`“${deleting.title}” and its stream settings will be removed from this workspace. Any live signal must be stopped first.`} onClose={()=>setDeleting(undefined)} onConfirm={()=>{update({channels:data.channels.filter(c=>c.id!==deleting.id)},{message:`${deleting.title} was deleted`,type:"edit"});setDeleting(undefined)}}/>}{streamKeyChannel&&<StreamKeyModal channel={streamKeyChannel} value={streamKeyDraft} onChange={setStreamKeyDraft} onClose={()=>setStreamKeyChannel(undefined)} onContinue={()=>{const destination=normalizeStreamDestination(streamKeyChannel.streamUrl,streamKeyDraft);const channel={...streamKeyChannel,...destination};update({channels:data.channels.map((item)=>item.id===channel.id?channel:item)},{message:`Stream key saved for ${channel.title}`,type:"edit"});setStreamKeyChannel(undefined);void start(channel);}}/>}</AppShell>;
 }
 
 function LivePreviewPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}) {
@@ -3601,11 +3635,12 @@ function AddToStreamChannelModal({
   }, [channelId, channel?.streamKey]);
   const continueToStream = () => {
     if (!channel || !streamKey.trim() || !mainGroupId || !mainVideoIds.length) return;
-    onSave({
+     const destination = normalizeStreamDestination(channel.streamUrl, streamKey);
+     onSave({
       ...channel,
       groupId: mainGroupId,
       playlistVideoIds: mainVideoIds,
-      streamKey: streamKey.trim(),
+       ...destination,
       liveAnimationId: animationId || undefined,
       liveAnimationX: composition.animationX,
       liveAnimationY: composition.animationY,
@@ -3614,7 +3649,7 @@ function AddToStreamChannelModal({
     });
   };
   return <Modal title="Add edited stream to a channel" onClose={onClose} footer={channels.length ? <><button className="button ghost" onClick={onClose} data-testid="button-cancel-add-stream">Cancel</button><button className="button" onClick={continueToStream} disabled={!channel || !streamKey.trim() || !mainGroupId || !mainVideoIds.length} data-testid="button-continue-add-stream">Continue to stream channel <ArrowRight size={14}/></button></> : <Link className="button" href="/live" onClick={onClose}>Create a stream channel <ArrowRight size={14}/></Link>}>
-    {!channels.length ? <div className="stream-key-notice"><Radio size={18}/><div><strong>Create a stream channel first.</strong><p>Your edited composition will be ready to attach as soon as a destination is configured.</p></div></div> : <><div className="stream-key-notice"><Check size={18}/><div><strong>{title || "Edited composition"} is ready.</strong><p>The selected clips, face cam, animation, logo, color adjustments, and canvas positions will be used by the live encoder without creating a slow rendered copy.</p></div></div><div className="field"><label>Stream channel</label><select value={channelId} onChange={(event) => setChannelId(event.target.value)} data-testid="select-add-stream-channel">{channels.map((item) => <option key={item.id} value={item.id}>{item.title} · {item.status}</option>)}</select></div><div className="field"><label>Stream key</label><input type="password" autoFocus autoComplete="new-password" value={streamKey} onChange={(event) => setStreamKey(event.target.value)} placeholder="Paste your platform stream key" data-testid="input-add-stream-key"/><span className="field-hint">The key is required before Continue. It is used only when this channel starts.</span></div><div className="form-note"><ShieldCheck size={14} style={{verticalAlign:"-3px",marginRight:6}}/>After Continue, open the channel, press Start, then use Live Stream Preview for the live composition, face cam, and voice-over.</div></>}
+     {!channels.length ? <div className="stream-key-notice"><Radio size={18}/><div><strong>Create a stream channel first.</strong><p>Your edited composition will be ready to attach as soon as a destination is configured.</p></div></div> : <><div className="stream-key-notice"><Check size={18}/><div><strong>{title || "Edited composition"} is ready.</strong><p>The selected clips, face cam, animation, logo, color adjustments, and canvas positions will be used by the live encoder without creating a slow rendered copy.</p></div></div><div className="field"><label>Stream channel</label><select value={channelId} onChange={(event) => setChannelId(event.target.value)} data-testid="select-add-stream-channel">{channels.map((item) => <option key={item.id} value={item.id}>{item.title} · {item.status}</option>)}</select></div><div className="field"><label>Stream key or HLS URL</label><input type="password" autoFocus autoComplete="new-password" value={streamKey} onChange={(event) => setStreamKey(event.target.value)} placeholder="Paste your stream key or full YouTube HLS URL" data-testid="input-add-stream-key"/><span className="field-hint">A full HTTPS YouTube HLS URL is detected automatically and stays masked.</span></div><div className="form-note"><ShieldCheck size={14} style={{verticalAlign:"-3px",marginRight:6}}/>After Continue, open the channel, press Start, then use Live Stream Preview for the live composition, face cam, and voice-over.</div></>}
   </Modal>;
 }
 
