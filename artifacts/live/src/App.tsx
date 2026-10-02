@@ -3211,7 +3211,81 @@ function LivePage({workspace, account}:{workspace:ReturnType<typeof useWorkspace
   }catch(error){workspace.setToast(error instanceof Error?error.message:"Could not start the real stream.");}finally{setBusy(ids=>ids.filter(id=>id!==c.id));}};
    const stop=async(c:LiveChannel)=>{if(busy.includes(c.id))return;setBusy(ids=>[...ids,c.id]);try{const scopedStreamId=streamIdFor(workspace.clientId,c.id);await stopStream({streamId:scopedStreamId});playlistSignatures.current.delete(scopedStreamId);update({channels:data.channels.map(x=>x.id===c.id?{...x,status:"stopped",viewers:0}:x)},{message:`${c.title} was taken off air`,type:"edit"});}catch(error){workspace.setToast(error instanceof Error?error.message:"Could not stop the stream.");}finally{setBusy(ids=>ids.filter(id=>id!==c.id));}};
    useEffect(()=>{const liveChannels=data.channels.filter(c=>c.status==="live");if(!liveChannels.length)return;const timer=window.setInterval(()=>{void Promise.all(liveChannels.map(async c=>{try{const result=await getStreamStatus(streamIdFor(workspace.clientId,c.id));if(result.status!=="running"){update({channels:data.channels.map(x=>x.id===c.id?{...x,status:"stopped",viewers:0}:x)},{message:`${c.title} stream process ${result.status}`,type:"edit"});}}catch{ /* Keep the visible state until the API is reachable again. */ }}));},5000);return()=>window.clearInterval(timer);},[data.channels,update,workspace.clientId]);
-     useEffect(()=>{const liveChannels=data.channels.filter(c=>c.status==="live");void Promise.all(liveChannels.map(async c=>{const scopedStreamId=streamIdFor(workspace.clientId,c.id);const playlist=playlistFor(c,data.groups,data.videos);if(!playlist.category)return;const composition=c.editorComposition;const liveAnimation=data.videos.find((video)=>video.id===c.liveAnimationId && video.serverSource);const signature=JSON.stringify({videoSources:playlist.videoSources,faceSources:composition?.webcamSource?[composition.webcamSource]:playlist.faceSources,liveAnimationId:c.liveAnimationId,liveAnimationX:(composition?.animationX ?? c.liveAnimationX) || 0,liveAnimationY:(composition?.animationY ?? c.liveAnimationY) || 0,liveAnimationScale:(composition?.animationScale ?? c.liveAnimationScale) || 0.25,composition});if(playlistSignatures.current.get(scopedStreamId)===signature)return;if(!playlist.videoSources.length){try{await stopStream({streamId:scopedStreamId});playlistSignatures.current.set(scopedStreamId,signature);update({channels:data.channels.map(x=>x.id===c.id?{...x,status:"stopped",viewers:0}:x)},{message:`${c.title} stopped because its playlist is empty`,type:"edit"});}catch(error){workspace.setToast(error instanceof Error?error.message:"The empty live playlist could not be stopped.");}return;}try{await updateStream({streamId:scopedStreamId,ingestUrl:resolveStreamIngestUrl(c.streamUrl,c.streamKey),category:playlist.category,videoSources:playlist.videoSources,videoSource:playlist.mainVideos[0]?.serverSource,faceCategory:composition?.webcamSource?"editor face cam":(playlist.faceSources.length?playlist.faceCategory:undefined),faceSource:composition?.webcamSource||playlist.faceVideos[0]?.serverSource,faceSources:composition?.webcamSource?[composition.webcamSource]:playlist.faceSources,playbackSpeed:c.playbackSpeed||1,quality:c.streamQuality||"1080p",aspectRatio:c.aspectRatio||"full",facePosition:c.facePosition||"bottom-right",faceScale:(c.faceSize||25)/100,durationMinutes:(c.durationHours||1)*60,autoRestart:Boolean(c.autoRestart),voiceAudio:true,liveAnimationSource:composition?.animationSource||liveAnimation?.serverSource,liveAnimationX:(composition?.animationX ?? c.liveAnimationX) || 0,liveAnimationY:(composition?.animationY ?? c.liveAnimationY) || 0,liveAnimationScale:(composition?.animationScale ?? c.liveAnimationScale) || 0.25,composition});playlistSignatures.current.set(scopedStreamId,signature);workspace.setToast(`${c.title} playlist updated while live`);}catch(error){workspace.setToast(error instanceof Error?error.message:"The live playlist could not be updated.");}}));},[data.channels,data.groups,data.videos,workspace.clientId,workspace.setToast,update]);
+   useEffect(() => {
+     const liveChannels = data.channels.filter((channel) => channel.status === "live");
+     void Promise.all(liveChannels.map(async (channel) => {
+       const scopedStreamId = streamIdFor(workspace.clientId, channel.id);
+       const playlist = playlistFor(channel, data.groups, data.videos);
+       if (!playlist.category) return;
+
+       const composition = channel.editorComposition;
+       const liveAnimation = data.videos.find((video) => video.id === channel.liveAnimationId && video.serverSource);
+       const signature = JSON.stringify({
+         videoSources: playlist.videoSources,
+         faceSources: composition?.webcamSource ? [composition.webcamSource] : playlist.faceSources,
+         liveAnimationId: channel.liveAnimationId,
+         liveAnimationX: (composition?.animationX ?? channel.liveAnimationX) || 0,
+         liveAnimationY: (composition?.animationY ?? channel.liveAnimationY) || 0,
+         liveAnimationScale: (composition?.animationScale ?? channel.liveAnimationScale) || 0.25,
+         composition,
+       });
+       if (playlistSignatures.current.get(scopedStreamId) === signature) return;
+
+       if (!playlist.videoSources.length) {
+         try {
+           await stopStream({ streamId: scopedStreamId });
+           playlistSignatures.current.set(scopedStreamId, signature);
+           update(
+             { channels: data.channels.map((item) => item.id === channel.id ? { ...item, status: "stopped", viewers: 0 } : item) },
+             { message: `${channel.title} stopped because its playlist is empty`, type: "edit" },
+           );
+         } catch (error) {
+           workspace.setToast(error instanceof Error ? error.message : "The empty live playlist could not be stopped.");
+         }
+         return;
+       }
+
+       try {
+         await updateStream({
+           streamId: scopedStreamId,
+           ingestUrl: resolveStreamIngestUrl(channel.streamUrl, channel.streamKey),
+           category: playlist.category,
+           videoSources: playlist.videoSources,
+           videoSource: playlist.mainVideos[0]?.serverSource,
+           faceCategory: composition?.webcamSource ? "editor face cam" : (playlist.faceSources.length ? playlist.faceCategory : undefined),
+           faceSource: composition?.webcamSource || playlist.faceVideos[0]?.serverSource,
+           faceSources: composition?.webcamSource ? [composition.webcamSource] : playlist.faceSources,
+           playbackSpeed: channel.playbackSpeed || 1,
+           quality: channel.streamQuality || "1080p",
+           aspectRatio: channel.aspectRatio || "full",
+           facePosition: channel.facePosition || "bottom-right",
+           faceScale: (channel.faceSize || 25) / 100,
+           durationMinutes: (channel.durationHours || 1) * 60,
+           autoRestart: Boolean(channel.autoRestart),
+           voiceAudio: true,
+           liveAnimationSource: composition?.animationSource || liveAnimation?.serverSource,
+           liveAnimationX: (composition?.animationX ?? channel.liveAnimationX) || 0,
+           liveAnimationY: (composition?.animationY ?? channel.liveAnimationY) || 0,
+           liveAnimationScale: (composition?.animationScale ?? channel.liveAnimationScale) || 0.25,
+           composition,
+         });
+         playlistSignatures.current.set(scopedStreamId, signature);
+         workspace.setToast(`${channel.title} playlist updated while live`);
+       } catch (error) {
+         const status = typeof error === "object" && error !== null && "status" in error ? error.status : undefined;
+         if (status === 404) {
+           playlistSignatures.current.set(scopedStreamId, signature);
+           update(
+             { channels: data.channels.map((item) => item.id === channel.id ? { ...item, status: "stopped", viewers: 0 } : item) },
+             { message: `${channel.title} stream process stopped unexpectedly`, type: "edit" },
+           );
+           workspace.setToast(`${channel.title} is no longer streaming. Check its destination settings before restarting.`);
+           return;
+         }
+         workspace.setToast(error instanceof Error ? error.message : "The live playlist could not be updated.");
+       }
+     }));
+   }, [data.channels, data.groups, data.videos, workspace.clientId, workspace.setToast, update]);
    const groupsById=useMemo(()=>Object.fromEntries(data.groups.map(g=>[g.id,g.name])),[data.groups]);
       return <AppShell title="Live channels" account={account} workspace={workspace}><div className="page live-page"><div className="page-head"><div><p className="eyebrow">Live Channels</p><h1>Manage your 24/7 loop streams</h1><p className="subtle">Keep every YouTube destination ready, monitored, and looping from one calm control room.</p></div><div className="page-head-actions"><span className="page-live-indicator"><span className="status-dot"/>{data.channels.filter(c=>c.status==="live").length ? `${data.channels.filter(c=>c.status==="live").length} live now` : "No live streams"}</span><button className="button live-create-button" onClick={()=>{setEditing(undefined);setShowForm(true)}} data-testid="button-add-channel"><Plus size={16}/> Create New Live</button></div></div>
         {data.channels.length===0 ? <section className="live-empty-card" data-testid="empty-live-channels"><div className="live-empty-art"><img src={liveYoutubeClay} alt="" /></div><div className="live-empty-copy"><p className="eyebrow">Your control room is ready</p><h2>No live channels yet, create your first 24/7 loop</h2><p>Set up a YouTube destination once and keep your best videos running around the clock.</p><button className="button live-create-button" onClick={()=>{setEditing(undefined);setShowForm(true)}} data-testid="button-empty-add-channel"><Plus size={16}/> Create New Live</button></div><div className="live-empty-orbit live-empty-orbit-one"><img src={livePowerClay} alt="" /></div><div className="live-empty-orbit live-empty-orbit-two"><img src={liveBroadcastClay} alt="" /></div></section> : <div className="live-channel-grid">{data.channels.map(c=>{const isLive=c.status==="live";const playlistCount=c.playlistVideoIds?.length || videosForGroup(c.groupId,data.groups,data.videos).length;const statusLabel=isLive ? "Live" : c.status==="scheduled" ? "Scheduled" : "Offline";return <article className={`live-channel-card ${isLive ? "is-live" : ""}`} key={c.id} data-testid={`row-channel-${c.id}`}><div className="live-card-visual" style={{"--channel-accent":c.thumbnailColor} as CSSProperties}><img src={liveYoutubeClay} alt="" /><span className={`live-status-badge ${isLive ? "active" : "offline"}`}><span className="live-status-dot"/>{statusLabel}</span><span className="live-card-platform">{c.platform}</span></div><div className="live-card-content"><div className="live-card-heading"><div><h2>{c.title}</h2><p>{isLive ? `Live for ${fmtTime(c.startedAt)}` : "Ready to broadcast"}</p></div><span className="live-card-signal"><img src={isLive ? liveBroadcastClay : livePowerClay} alt="" /></span></div><div className="live-card-facts"><div className="live-card-fact"><img src={liveKeyClay} alt="" /><div><span>RTMP key</span><strong>{maskStreamKey(c.streamKey)}</strong></div></div><div className="live-card-fact"><Radio size={16}/><div><span>Views</span><strong>{fmtNumber(c.viewers)} {c.viewers === 1 ? "viewer" : "viewers"}</strong></div></div></div><div className="live-card-meta"><span><FileVideo size={14}/>{playlistCount} playlist video{playlistCount === 1 ? "" : "s"}</span><span title={groupsById[c.groupId] || "Unassigned"}>{groupsById[c.groupId] || "Unassigned"}</span></div><div className="live-card-actions">{isLive?<button className="button live-stop-button" onClick={()=>stop(c)} disabled={busy.includes(c.id)} data-testid={`button-stop-${c.id}`}><img src={livePowerClay} alt="" />{busy.includes(c.id) ? "Stopping…" : "Stop Loop"}</button>:<button className="button live-start-button" onClick={()=>start(c)} disabled={busy.includes(c.id)} data-testid={`button-start-${c.id}`}><img src={livePowerClay} alt="" />{busy.includes(c.id) ? "Starting…" : "Start Loop"}</button>}<button className="button live-secondary-button" onClick={()=>{setEditing(c);setShowForm(true)}} data-testid={`button-edit-channel-${c.id}`}><Pencil size={14}/> Edit</button><button className="button live-delete-button" onClick={()=>setDeleting(c)} data-testid={`button-delete-channel-${c.id}`}><Trash2 size={14}/> Delete</button></div></div></article>;})}</div>}

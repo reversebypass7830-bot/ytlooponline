@@ -3,8 +3,8 @@ name: YouTube HLS ingest
 description: Non-obvious requirements for sending prerecorded video to YouTube HLS ingestion.
 ---
 
-YouTube HLS ingestion URLs are templates ending in an empty `file=` query parameter. The encoder must use the same endpoint with a concrete playlist filename and concrete segment filenames, sending each playlist and segment with HTTP PUT. The media must be muxed as MPEG-TS with H.264 or HEVC video and AAC audio.
+YouTube HLS ingestion URLs are templates ending in an empty `file=` query parameter. The encoder must use the same endpoint with a concrete playlist filename and concrete segment filenames, sending each playlist and segment with HTTP PUT. Use a rolling media playlist with no more than five outstanding segments, update the playlist for every segment, and keep segment filenames unique across stream restarts. Segments should be 1–4 seconds and must not exceed 5 seconds. Media must be muxed in M2TS with H.264 or HEVC video and AAC audio.
 
-**Why:** A normal HLS output URL or an RTMP-style publish command does not satisfy YouTube’s HLS upload contract.
+**Why:** YouTube rejects playlists that violate its rolling-window and segment naming requirements; FFmpeg's `event` playlist type overrides `hls_list_size`, so the apparent five-segment limit is not applied.
 
-**How to apply:** When changing the stream runner, preserve the per-file `file=` URL construction and avoid logging the full ingest URL because it contains the stream credential.
+**How to apply:** When changing the stream runner, preserve per-file `file=` URL construction, use rolling playlists and session-unique segment names, and never log the full ingest URL because it contains the stream credential. See [YouTube's HLS ingestion requirements](https://developers.google.com/youtube/v3/live/guides/hls-ingestion).

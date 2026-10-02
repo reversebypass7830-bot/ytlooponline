@@ -436,7 +436,7 @@ function startPublisher(process: StreamProcess): ChildProcess {
     return process.child;
   }
 
-  const publisher = spawn("ffmpeg", buildPublisherArgs(process.input), {
+  const publisher = spawn("ffmpeg", buildPublisherArgs(process.input, `signal_desk_${randomUUID()}`), {
     stdio: ["pipe", "ignore", "pipe"],
   });
   const publisherInput = new PassThrough({ highWaterMark: 2 * 1024 * 1024 });
@@ -910,14 +910,16 @@ function buildFfmpegArgs(
   ];
 }
 
-function buildPublisherArgs(input: StreamRunnerInput): string[] {
+function buildPublisherArgs(input: StreamRunnerInput, sessionPrefix: string): string[] {
   const ingestUrl = validateIngestUrl(input.ingestUrl);
   const inputArgs = ["-hide_banner", "-loglevel", "warning", "-thread_queue_size", "1024", "-f", "mpegts", "-i", "pipe:0"];
   const outputArgs = ["-map", "0:v:0", "-map", "0:a:0?", "-c", "copy"];
 
   if (ingestUrl.pathname.includes("http_upload_hls")) {
-    const playlistUrl = setFile(ingestUrl, "signal_desk.m3u8");
-    const segmentUrl = setFile(ingestUrl, "signal_desk_%05d.ts");
+    // YouTube HLS requires a rolling playlist capped at five entries and
+    // distinct segment filenames across encoder restarts. Do not use EVENT.
+    const playlistUrl = setFile(ingestUrl, `${sessionPrefix}.m3u8`);
+    const segmentUrl = setFile(ingestUrl, `${sessionPrefix}_%05d.ts`);
     return [
       ...inputArgs,
       ...outputArgs,
@@ -929,8 +931,6 @@ function buildPublisherArgs(input: StreamRunnerInput): string[] {
       "2",
       "-hls_list_size",
       "5",
-      "-hls_playlist_type",
-      "event",
       "-hls_segment_filename",
       segmentUrl,
       // YouTube's HLS endpoint accepts each playlist and segment as an
