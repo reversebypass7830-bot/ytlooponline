@@ -20,7 +20,14 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
+  AccountPaymentQuote,
+  AccountPaymentQuoteInput,
+  AccountPaymentRequestInput,
   AddVidKrakenTokenInput,
+  BillingPlanInput,
+  BillingPlanListResponse,
+  BillingPlanResponse,
+  BillingPlanUpdate,
   ComposeMediaInput,
   CreateLicenseInput,
   DeleteIncludedFolderParams,
@@ -42,10 +49,16 @@ import type {
   LicenseWorkspaceResponse,
   ListMediaFiles400,
   ListMediaFilesParams,
+  ListOwnerPaymentRequestsParams,
   MediaDeleteResponse,
   MediaFileListResponse,
   MediaTrimResponse,
   MediaUploadResponse,
+  PaymentRequestListResponse,
+  PaymentRequestResponse,
+  PaymentReviewInput,
+  PaymentSettings,
+  PaymentSettingsInput,
   RenewLicenseForUserInput,
   RenewLicenseInput,
   SaveLicenseWorkspaceInput,
@@ -2507,5 +2520,748 @@ export const useRenewLicenseForUser = <TError = ErrorType<void>,
         TContext
       > => {
       return useMutation(getRenewLicenseForUserMutationOptions(options));
+    }
+
+export const getQuoteAccountPaymentUrl = () => {
+
+
+
+
+  return `/api/account/payment-quote`
+}
+
+/**
+ * @summary Calculate a subscription price before payment
+ */
+export const quoteAccountPayment = async (accountPaymentQuoteInput: AccountPaymentQuoteInput, options?: Parameters<typeof customFetch>[1]): Promise<AccountPaymentQuote> => {
+
+  return customFetch<AccountPaymentQuote>(getQuoteAccountPaymentUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(accountPaymentQuoteInput)
+  }
+);}
+
+
+
+
+
+export const getQuoteAccountPaymentMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof quoteAccountPayment>>, TError,{data: BodyType<AccountPaymentQuoteInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof quoteAccountPayment>>, TError,{data: BodyType<AccountPaymentQuoteInput>}, TContext> => {
+
+const mutationKey = ['quoteAccountPayment'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof quoteAccountPayment>>, {data: BodyType<AccountPaymentQuoteInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  quoteAccountPayment(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type QuoteAccountPaymentMutationResult = NonNullable<Awaited<ReturnType<typeof quoteAccountPayment>>>
+    export type QuoteAccountPaymentMutationBody = BodyType<AccountPaymentQuoteInput>
+    export type QuoteAccountPaymentMutationError = ErrorType<void>
+
+    /**
+ * @summary Calculate a subscription price before payment
+ */
+export const useQuoteAccountPayment = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof quoteAccountPayment>>, TError,{data: BodyType<AccountPaymentQuoteInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof quoteAccountPayment>>,
+        TError,
+        {data: BodyType<AccountPaymentQuoteInput>},
+        TContext
+      > => {
+      return useMutation(getQuoteAccountPaymentMutationOptions(options));
+    }
+
+export const getListAccountPaymentRequestsUrl = () => {
+
+
+
+
+  return `/api/account/payment-requests`
+}
+
+/**
+ * @summary List the signed-in user's manual payment requests
+ */
+export const listAccountPaymentRequests = async ( options?: Parameters<typeof customFetch>[1]): Promise<PaymentRequestListResponse> => {
+
+  return customFetch<PaymentRequestListResponse>(getListAccountPaymentRequestsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListAccountPaymentRequestsQueryKey = () => {
+    return [
+    `/api/account/payment-requests`
+    ] as const;
+    }
+
+
+export const getListAccountPaymentRequestsQueryOptions = <TData = Awaited<ReturnType<typeof listAccountPaymentRequests>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAccountPaymentRequests>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListAccountPaymentRequestsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listAccountPaymentRequests>>> = ({ signal }) => listAccountPaymentRequests({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listAccountPaymentRequests>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListAccountPaymentRequestsQueryResult = NonNullable<Awaited<ReturnType<typeof listAccountPaymentRequests>>>
+export type ListAccountPaymentRequestsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List the signed-in user's manual payment requests
+ */
+
+export function useListAccountPaymentRequests<TData = Awaited<ReturnType<typeof listAccountPaymentRequests>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAccountPaymentRequests>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListAccountPaymentRequestsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCreateAccountPaymentRequestUrl = () => {
+
+
+
+
+  return `/api/account/payment-requests`
+}
+
+/**
+ * @summary Submit a UPI transaction reference for owner review
+ */
+export const createAccountPaymentRequest = async (accountPaymentRequestInput: AccountPaymentRequestInput, options?: Parameters<typeof customFetch>[1]): Promise<PaymentRequestResponse> => {
+
+  return customFetch<PaymentRequestResponse>(getCreateAccountPaymentRequestUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(accountPaymentRequestInput)
+  }
+);}
+
+
+
+
+
+export const getCreateAccountPaymentRequestMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createAccountPaymentRequest>>, TError,{data: BodyType<AccountPaymentRequestInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createAccountPaymentRequest>>, TError,{data: BodyType<AccountPaymentRequestInput>}, TContext> => {
+
+const mutationKey = ['createAccountPaymentRequest'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createAccountPaymentRequest>>, {data: BodyType<AccountPaymentRequestInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createAccountPaymentRequest(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateAccountPaymentRequestMutationResult = NonNullable<Awaited<ReturnType<typeof createAccountPaymentRequest>>>
+    export type CreateAccountPaymentRequestMutationBody = BodyType<AccountPaymentRequestInput>
+    export type CreateAccountPaymentRequestMutationError = ErrorType<void>
+
+    /**
+ * @summary Submit a UPI transaction reference for owner review
+ */
+export const useCreateAccountPaymentRequest = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createAccountPaymentRequest>>, TError,{data: BodyType<AccountPaymentRequestInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createAccountPaymentRequest>>,
+        TError,
+        {data: BodyType<AccountPaymentRequestInput>},
+        TContext
+      > => {
+      return useMutation(getCreateAccountPaymentRequestMutationOptions(options));
+    }
+
+export const getListBillingPlansUrl = () => {
+
+
+
+
+  return `/api/owner/plans`
+}
+
+/**
+ * @summary List subscription pricing templates
+ */
+export const listBillingPlans = async ( options?: Parameters<typeof customFetch>[1]): Promise<BillingPlanListResponse> => {
+
+  return customFetch<BillingPlanListResponse>(getListBillingPlansUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListBillingPlansQueryKey = () => {
+    return [
+    `/api/owner/plans`
+    ] as const;
+    }
+
+
+export const getListBillingPlansQueryOptions = <TData = Awaited<ReturnType<typeof listBillingPlans>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listBillingPlans>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListBillingPlansQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listBillingPlans>>> = ({ signal }) => listBillingPlans({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listBillingPlans>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListBillingPlansQueryResult = NonNullable<Awaited<ReturnType<typeof listBillingPlans>>>
+export type ListBillingPlansQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List subscription pricing templates
+ */
+
+export function useListBillingPlans<TData = Awaited<ReturnType<typeof listBillingPlans>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listBillingPlans>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListBillingPlansQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCreateBillingPlanUrl = () => {
+
+
+
+
+  return `/api/owner/plans`
+}
+
+/**
+ * @summary Create a subscription pricing template
+ */
+export const createBillingPlan = async (billingPlanInput: BillingPlanInput, options?: Parameters<typeof customFetch>[1]): Promise<BillingPlanResponse> => {
+
+  return customFetch<BillingPlanResponse>(getCreateBillingPlanUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(billingPlanInput)
+  }
+);}
+
+
+
+
+
+export const getCreateBillingPlanMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createBillingPlan>>, TError,{data: BodyType<BillingPlanInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createBillingPlan>>, TError,{data: BodyType<BillingPlanInput>}, TContext> => {
+
+const mutationKey = ['createBillingPlan'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createBillingPlan>>, {data: BodyType<BillingPlanInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createBillingPlan(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateBillingPlanMutationResult = NonNullable<Awaited<ReturnType<typeof createBillingPlan>>>
+    export type CreateBillingPlanMutationBody = BodyType<BillingPlanInput>
+    export type CreateBillingPlanMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Create a subscription pricing template
+ */
+export const useCreateBillingPlan = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createBillingPlan>>, TError,{data: BodyType<BillingPlanInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createBillingPlan>>,
+        TError,
+        {data: BodyType<BillingPlanInput>},
+        TContext
+      > => {
+      return useMutation(getCreateBillingPlanMutationOptions(options));
+    }
+
+export const getUpdateBillingPlanUrl = (planId: string,) => {
+
+
+
+
+  return `/api/owner/plans/${planId}`
+}
+
+/**
+ * @summary Update a subscription pricing template
+ */
+export const updateBillingPlan = async (planId: string,
+    billingPlanUpdate: BillingPlanUpdate, options?: Parameters<typeof customFetch>[1]): Promise<BillingPlanResponse> => {
+
+  return customFetch<BillingPlanResponse>(getUpdateBillingPlanUrl(planId),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(billingPlanUpdate)
+  }
+);}
+
+
+
+
+
+export const getUpdateBillingPlanMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateBillingPlan>>, TError,{planId: string;data: BodyType<BillingPlanUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateBillingPlan>>, TError,{planId: string;data: BodyType<BillingPlanUpdate>}, TContext> => {
+
+const mutationKey = ['updateBillingPlan'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateBillingPlan>>, {planId: string;data: BodyType<BillingPlanUpdate>}> = (props) => {
+          const {planId,data} = props ?? {};
+
+          return  updateBillingPlan(planId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateBillingPlanMutationResult = NonNullable<Awaited<ReturnType<typeof updateBillingPlan>>>
+    export type UpdateBillingPlanMutationBody = BodyType<BillingPlanUpdate>
+    export type UpdateBillingPlanMutationError = ErrorType<void>
+
+    /**
+ * @summary Update a subscription pricing template
+ */
+export const useUpdateBillingPlan = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateBillingPlan>>, TError,{planId: string;data: BodyType<BillingPlanUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateBillingPlan>>,
+        TError,
+        {planId: string;data: BodyType<BillingPlanUpdate>},
+        TContext
+      > => {
+      return useMutation(getUpdateBillingPlanMutationOptions(options));
+    }
+
+export const getGetOwnerPaymentSettingsUrl = () => {
+
+
+
+
+  return `/api/owner/payment-settings`
+}
+
+/**
+ * @summary Get the UPI payee details used for checkout
+ */
+export const getOwnerPaymentSettings = async ( options?: Parameters<typeof customFetch>[1]): Promise<PaymentSettings> => {
+
+  return customFetch<PaymentSettings>(getGetOwnerPaymentSettingsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetOwnerPaymentSettingsQueryKey = () => {
+    return [
+    `/api/owner/payment-settings`
+    ] as const;
+    }
+
+
+export const getGetOwnerPaymentSettingsQueryOptions = <TData = Awaited<ReturnType<typeof getOwnerPaymentSettings>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getOwnerPaymentSettings>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetOwnerPaymentSettingsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getOwnerPaymentSettings>>> = ({ signal }) => getOwnerPaymentSettings({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getOwnerPaymentSettings>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetOwnerPaymentSettingsQueryResult = NonNullable<Awaited<ReturnType<typeof getOwnerPaymentSettings>>>
+export type GetOwnerPaymentSettingsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Get the UPI payee details used for checkout
+ */
+
+export function useGetOwnerPaymentSettings<TData = Awaited<ReturnType<typeof getOwnerPaymentSettings>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getOwnerPaymentSettings>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetOwnerPaymentSettingsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getUpdateOwnerPaymentSettingsUrl = () => {
+
+
+
+
+  return `/api/owner/payment-settings`
+}
+
+/**
+ * @summary Set the UPI ID and payee name displayed to customers
+ */
+export const updateOwnerPaymentSettings = async (paymentSettingsInput: PaymentSettingsInput, options?: Parameters<typeof customFetch>[1]): Promise<PaymentSettings> => {
+
+  return customFetch<PaymentSettings>(getUpdateOwnerPaymentSettingsUrl(),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(paymentSettingsInput)
+  }
+);}
+
+
+
+
+
+export const getUpdateOwnerPaymentSettingsMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateOwnerPaymentSettings>>, TError,{data: BodyType<PaymentSettingsInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateOwnerPaymentSettings>>, TError,{data: BodyType<PaymentSettingsInput>}, TContext> => {
+
+const mutationKey = ['updateOwnerPaymentSettings'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateOwnerPaymentSettings>>, {data: BodyType<PaymentSettingsInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  updateOwnerPaymentSettings(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateOwnerPaymentSettingsMutationResult = NonNullable<Awaited<ReturnType<typeof updateOwnerPaymentSettings>>>
+    export type UpdateOwnerPaymentSettingsMutationBody = BodyType<PaymentSettingsInput>
+    export type UpdateOwnerPaymentSettingsMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Set the UPI ID and payee name displayed to customers
+ */
+export const useUpdateOwnerPaymentSettings = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateOwnerPaymentSettings>>, TError,{data: BodyType<PaymentSettingsInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateOwnerPaymentSettings>>,
+        TError,
+        {data: BodyType<PaymentSettingsInput>},
+        TContext
+      > => {
+      return useMutation(getUpdateOwnerPaymentSettingsMutationOptions(options));
+    }
+
+export const getListOwnerPaymentRequestsUrl = (params?: ListOwnerPaymentRequestsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/owner/payment-requests?${stringifiedParams}` : `/api/owner/payment-requests`
+}
+
+/**
+ * @summary List manual UPI requests awaiting or completed review
+ */
+export const listOwnerPaymentRequests = async (params?: ListOwnerPaymentRequestsParams, options?: Parameters<typeof customFetch>[1]): Promise<PaymentRequestListResponse> => {
+
+  return customFetch<PaymentRequestListResponse>(getListOwnerPaymentRequestsUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListOwnerPaymentRequestsQueryKey = (params?: ListOwnerPaymentRequestsParams,) => {
+    return [
+    `/api/owner/payment-requests`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getListOwnerPaymentRequestsQueryOptions = <TData = Awaited<ReturnType<typeof listOwnerPaymentRequests>>, TError = ErrorType<unknown>>(params?: ListOwnerPaymentRequestsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listOwnerPaymentRequests>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListOwnerPaymentRequestsQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listOwnerPaymentRequests>>> = ({ signal }) => listOwnerPaymentRequests(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listOwnerPaymentRequests>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListOwnerPaymentRequestsQueryResult = NonNullable<Awaited<ReturnType<typeof listOwnerPaymentRequests>>>
+export type ListOwnerPaymentRequestsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List manual UPI requests awaiting or completed review
+ */
+
+export function useListOwnerPaymentRequests<TData = Awaited<ReturnType<typeof listOwnerPaymentRequests>>, TError = ErrorType<unknown>>(
+ params?: ListOwnerPaymentRequestsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listOwnerPaymentRequests>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListOwnerPaymentRequestsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getReviewOwnerPaymentRequestUrl = (requestId: string,) => {
+
+
+
+
+  return `/api/owner/payment-requests/${requestId}/review`
+}
+
+/**
+ * @summary Approve or reject a submitted UPI payment
+ */
+export const reviewOwnerPaymentRequest = async (requestId: string,
+    paymentReviewInput: PaymentReviewInput, options?: Parameters<typeof customFetch>[1]): Promise<PaymentRequestResponse> => {
+
+  return customFetch<PaymentRequestResponse>(getReviewOwnerPaymentRequestUrl(requestId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(paymentReviewInput)
+  }
+);}
+
+
+
+
+
+export const getReviewOwnerPaymentRequestMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof reviewOwnerPaymentRequest>>, TError,{requestId: string;data: BodyType<PaymentReviewInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof reviewOwnerPaymentRequest>>, TError,{requestId: string;data: BodyType<PaymentReviewInput>}, TContext> => {
+
+const mutationKey = ['reviewOwnerPaymentRequest'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof reviewOwnerPaymentRequest>>, {requestId: string;data: BodyType<PaymentReviewInput>}> = (props) => {
+          const {requestId,data} = props ?? {};
+
+          return  reviewOwnerPaymentRequest(requestId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ReviewOwnerPaymentRequestMutationResult = NonNullable<Awaited<ReturnType<typeof reviewOwnerPaymentRequest>>>
+    export type ReviewOwnerPaymentRequestMutationBody = BodyType<PaymentReviewInput>
+    export type ReviewOwnerPaymentRequestMutationError = ErrorType<void>
+
+    /**
+ * @summary Approve or reject a submitted UPI payment
+ */
+export const useReviewOwnerPaymentRequest = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof reviewOwnerPaymentRequest>>, TError,{requestId: string;data: BodyType<PaymentReviewInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof reviewOwnerPaymentRequest>>,
+        TError,
+        {requestId: string;data: BodyType<PaymentReviewInput>},
+        TContext
+      > => {
+      return useMutation(getReviewOwnerPaymentRequestMutationOptions(options));
     }
 

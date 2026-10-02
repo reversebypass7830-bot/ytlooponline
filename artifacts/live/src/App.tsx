@@ -16,6 +16,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import NotFound from "@/pages/not-found";
 import { GatewayPage, LandingPage, PricingPage } from "@/pages/public";
 import { extractYoutubeChannelLinks, getStreamStatus, startStream, stopStream, trimMediaFile, updateStream } from "@workspace/api-client-react";
+import { ManualSubscriptionPage, OwnerPaymentPanel } from "./pages/ManualPayments";
 import logoImage from "@assets/image_1788788255512.png";
 import analyticsVideoIcon from "@assets/video_files_clay_icon_cutout_1790011470854.png";
 import analyticsFolderIcon from "@assets/folder_tag_clay_cutout_1790011484726.png";
@@ -1112,16 +1113,6 @@ function useAccountSession(isSignedIn: boolean, userId?: string, authReady = tru
     setPlans(result.plans || []);
   };
 
-  const selectPlan = async (planId: string, streamLimit: number, durationMultiplier = 1) => {
-    const result = await apiJson<AccountResponse>("/api/account/subscription/select", {
-      method: "POST",
-      body: JSON.stringify({ planId, streamLimit, durationMultiplier }),
-    });
-    setAccount(result.account);
-    setPlans(result.plans || []);
-    return result.account;
-  };
-
   const clear = () => {
     requestIdRef.current += 1;
     setAccount(null);
@@ -1135,7 +1126,7 @@ function useAccountSession(isSignedIn: boolean, userId?: string, authReady = tru
     if (!nextAccount) throw new Error("Your session could not be restored. Please sign in again.");
   };
 
-  return { account, plans, loading, error, reload, saveProfile, savePhone, claimOwner, selectPlan, clear };
+  return { account, plans, loading, error, reload, saveProfile, claimOwner, clear };
 }
 
 function useWorkspace(license: LicenseSession | null, clearLicense: () => void, allowSharedOnly = false) {
@@ -2123,7 +2114,7 @@ function OwnerMobileNav({ active, onDashboard, onKeys }: { active: "dashboard" |
   </nav>;
 }
 
-type OwnerSection = "dashboard" | "folders" | "animations" | "licenses" | "users" | "keys";
+type OwnerSection = "dashboard" | "folders" | "animations" | "licenses" | "users" | "keys" | "payments";
 
 function OwnerDesktopSidebar({ active, onNavigate }: { active: OwnerSection; onNavigate: (section: OwnerSection) => void }) {
   const [collapsed, setCollapsed] = useState(() => localStorage.getItem("loop-owner-sidebar") === "collapsed");
@@ -2134,6 +2125,7 @@ function OwnerDesktopSidebar({ active, onNavigate }: { active: OwnerSection; onN
     { section: "licenses", label: "License key", icon: KeyRound },
     { section: "users", label: "Users", icon: Users },
     { section: "keys", label: "Key", icon: ShieldCheck },
+    { section: "payments", label: "Payments", icon: Receipt },
   ];
   const toggle = () => setCollapsed((current) => {
     const next = !current;
@@ -2199,7 +2191,7 @@ function OwnerLicensePage({ licenses, name, days, busy, error, message, onNameCh
   </div>;
 }
 
-function OwnerDashboardPage({ ownerPassword, error, message, keyBusy, showIncludedAnimations, onFolder, onAnimations, onLicense, onKeys, onUsers, onNavigate, onCloseAnimations }: {
+function OwnerDashboardPage({ ownerPassword, error, message, keyBusy, showIncludedAnimations, onFolder, onAnimations, onLicense, onKeys, onUsers, onPayments, onNavigate, onCloseAnimations }: {
   ownerPassword: string;
   error: string;
   message: string;
@@ -2211,6 +2203,7 @@ function OwnerDashboardPage({ ownerPassword, error, message, keyBusy, showInclud
   onKeys: () => void;
   onCloseAnimations: () => void;
   onUsers?: () => void;
+  onPayments?: () => void;
   onNavigate?: (section: OwnerSection) => void;
 }) {
   return <div className="owner-page owner-dashboard-page">{onNavigate && <OwnerDesktopSidebar active="dashboard" onNavigate={onNavigate} />}
@@ -2225,6 +2218,7 @@ function OwnerDashboardPage({ ownerPassword, error, message, keyBusy, showInclud
         <button className="owner-action-card license" onClick={onLicense}><span className="owner-action-icon"><KeyRound size={22}/></span><span><strong>License key</strong><small>Create and recover customer access keys.</small></span><ArrowRight size={17}/></button>
          <button className="owner-action-card system-key" onClick={onKeys} disabled={keyBusy}><span className="owner-action-icon"><ShieldCheck size={22}/></span><span><strong>Key</strong><small>Manage the secure downloader key pool.</small></span><ArrowRight size={17}/></button>
          {onUsers && <button className="owner-action-card users" onClick={onUsers}><span className="owner-action-icon"><Users size={22}/></span><span><strong>Users</strong><small>Review account identity, plans, keys, and history.</small></span><ArrowRight size={17}/></button>}
+          {onPayments && <button className="owner-action-card payments" onClick={onPayments}><span className="owner-action-icon"><Receipt size={22}/></span><span><strong>Payments</strong><small>Configure UPI plans and review customer UTRs.</small></span><ArrowRight size={17}/></button>}
       </section>
     </main>
     {showIncludedAnimations && <IncludedAnimationsModal ownerPassword={ownerPassword} onClose={onCloseAnimations} />}
@@ -2269,7 +2263,7 @@ function OwnerConsolePage() {
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [showIncludedAnimations, setShowIncludedAnimations] = useState(false);
-  const [ownerView, setOwnerView] = useState<"dashboard" | "licenses" | "keys" | "folders" | "users">("dashboard");
+  const [ownerView, setOwnerView] = useState<"dashboard" | "licenses" | "keys" | "folders" | "users" | "payments">("dashboard");
 
   const load = async (ownerPassword: string) => {
     const result = await apiJson<{ licenses?: LicenseSession[] }>("/api/licenses", { headers: { "X-Owner-Password": ownerPassword } });
@@ -2353,7 +2347,8 @@ function OwnerConsolePage() {
   if (ownerView === "keys") return <OwnerKeysPanel tokens={vidKrakenTokens} tokenDraft={tokenDraft} keyBusy={keyBusy} error={error} onDraftChange={setTokenDraft} onAdd={(event) => void addToken(event)} onRemove={(token) => void removeToken(token)} onDashboard={goDashboard} onNavigate={navigateOwner} />;
   if (ownerView === "licenses") return <OwnerLicensePage licenses={licenses} name={name} days={days} busy={busy} error={error} message={message} onNameChange={setName} onDaysChange={setDays} onCreate={(event) => void create(event)} onRenew={(licenseId) => void renew(licenseId)} onRemove={(license) => void remove(license)} onRecover={(license) => void recover(license)} onDashboard={goDashboard} onKeys={openKeys} onNavigate={navigateOwner} />;
   if (ownerView === "users") return <OwnerUsersPage ownerPassword={authorizedPassword} onNavigate={navigateOwner} />;
-  if (ownerView === "dashboard") return <OwnerDashboardPage ownerPassword={authorizedPassword} error={error} message={message} keyBusy={keyBusy} showIncludedAnimations={showIncludedAnimations} onFolder={() => setOwnerView("folders")} onAnimations={() => setShowIncludedAnimations(true)} onLicense={() => setOwnerView("licenses")} onKeys={openKeys} onUsers={() => setOwnerView("users")} onNavigate={navigateOwner} onCloseAnimations={() => setShowIncludedAnimations(false)} />;
+  if (ownerView === "payments") return <div className="owner-page owner-payment-page"><OwnerDesktopSidebar active="payments" onNavigate={navigateOwner}/><header className="owner-topbar"><div className="owner-topbar-title"><span className="owner-topbar-kicker">Slash Owner</span><strong>Payments</strong></div><button className="button secondary small owner-payment-mobile-back" onClick={goDashboard} type="button"><ArrowLeft size={14}/> Dashboard</button></header><OwnerPaymentPanel ownerPassword={authorizedPassword}/></div>;
+  if (ownerView === "dashboard") return <OwnerDashboardPage ownerPassword={authorizedPassword} error={error} message={message} keyBusy={keyBusy} showIncludedAnimations={showIncludedAnimations} onFolder={() => setOwnerView("folders")} onAnimations={() => setShowIncludedAnimations(true)} onLicense={() => setOwnerView("licenses")} onKeys={openKeys} onUsers={() => setOwnerView("users")} onPayments={() => setOwnerView("payments")} onNavigate={navigateOwner} onCloseAnimations={() => setShowIncludedAnimations(false)} />;
 
   return <div className="owner-page owner-dashboard-page">
     <header className="owner-topbar"><div className="owner-topbar-title"><span className="owner-topbar-kicker">Slash Owner</span><strong>Dashboard</strong></div><span className="owner-secure-label"><ShieldCheck size={15}/> Secure owner workspace</span></header>
@@ -2483,7 +2478,7 @@ function AccountAccessTimer({ account }: { account?: AccountSummary | null }) {
   return <div className={`account-access-timer ${remaining === "Expired" ? "expired" : ""}`}><span className="status-dot"/><span>{account.activePlan?.name || "Access"} · {remaining}</span></div>;
 }
 
-function SubscriptionPage({ workspace, account, plans, onSelectPlan }: { workspace: ReturnType<typeof useWorkspace>; account: AccountSummary; plans: AccountPlan[]; onSelectPlan: (planId: string, streamLimit: number, durationMultiplier?: number) => Promise<AccountSummary> }) {
+function SubscriptionPage({ workspace, account, plans }: { workspace: ReturnType<typeof useWorkspace>; account: AccountSummary; plans: AccountPlan[] }) {
   const [billing, setBilling] = useState<"Day" | "Month" | "Year">("Day");
   const [duration, setDuration] = useState(1);
   const [streamCounts, setStreamCounts] = useState({ standard: 9, premium: 9 });
@@ -2500,16 +2495,10 @@ function SubscriptionPage({ workspace, account, plans, onSelectPlan }: { workspa
   const selected = pricing[billing];
   const findPlan = (id: string) => plans.find((plan) => plan.id === id);
   const changeStreams = (kind: "standard" | "premium", change: number) => setStreamCounts((current) => ({ ...current, [kind]: Math.min(10, Math.max(1, current[kind] + change)) }));
-  const activate = async (planId: string, streams: number) => {
-    setBusyPlan(planId); setMessage("");
-    try {
-      await onSelectPlan(planId, streams, duration);
-      setMessage("Plan active. Your existing license key and workspace are unchanged.");
-    } catch (reason) {
-      setMessage(reason instanceof Error ? reason.message : "Could not activate this plan.");
-    } finally {
-      setBusyPlan("");
-    }
+  const activate = async (planId: string, _streams: number) => {
+    setBusyPlan(planId);
+    setMessage("Subscriptions are paid by UPI and remain pending until an owner reviews your UTR. Use the manual payment flow above.");
+    setBusyPlan("");
   };
   const downloadInvoice = (item: AccountHistoryItem) => {
     const plan = item.planId ? findPlan(item.planId) : undefined;
@@ -5142,7 +5131,7 @@ function SettingsPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}) {
    </AppShell>;
 }
 
-function Routed({workspace, account, plans, onSelectPlan, firebaseUser, profilePhoto, onProfilePhotoChange, onSaveProfile, onSavePhone, onLogout}:{workspace:ReturnType<typeof useWorkspace>; account:AccountSummary|null; plans:AccountPlan[]; onSelectPlan:(planId:string, streamLimit:number, durationMultiplier?:number)=>Promise<AccountSummary>; firebaseUser:FirebaseUser|null; profilePhoto:string; onProfilePhotoChange:(photo:string)=>void; onSaveProfile:(profile:{displayName:string; email:string; phone?:string; profileImagePath?:string})=>Promise<void>; onSavePhone:(phone:string)=>Promise<void>; onLogout:()=>Promise<void>}) {
+function Routed({workspace, account, onRefreshAccount, firebaseUser, profilePhoto, onProfilePhotoChange, onSaveProfile, onLogout}:{workspace:ReturnType<typeof useWorkspace>; account:AccountSummary|null; onRefreshAccount:()=>Promise<void>; firebaseUser:FirebaseUser|null; profilePhoto:string; onProfilePhotoChange:(photo:string)=>void; onSaveProfile:(profile:{displayName:string; email:string; phone?:string; profileImagePath?:string})=>Promise<void>; onLogout:()=>Promise<void>}) {
   let localProfile: { displayName?: string; email?: string } = {};
   try {
     localProfile = JSON.parse(localStorage.getItem(`reverse-bypass-profile:${workspace.licenseId}`) || "{}") as { displayName?: string; email?: string };
@@ -5166,7 +5155,7 @@ function Routed({workspace, account, plans, onSelectPlan, firebaseUser, profileP
     createdAt: "",
     history: [],
   };
-  return <Switch><Route path="/dashboard"><Dashboard workspace={workspace} account={account}/></Route><Route path="/analytics"><AnalyticsPage workspace={workspace} account={account} onSavePhone={onSavePhone}/></Route><Route path="/aesthetics"><Redirect to="/analytics"/></Route><Route path="/live"><LivePage workspace={workspace} account={account}/></Route><Route path="/live-preview"><LivePreviewPage workspace={workspace}/></Route><Route path="/videos"><VideosPage workspace={workspace}/></Route><Route path="/editor"><VideoEditorPage workspace={workspace}/></Route><Route path="/subscription">{account ? <SubscriptionPage workspace={workspace} account={account} plans={plans} onSelectPlan={onSelectPlan}/> : <Redirect to="/sign-in"/>}</Route><Route path="/profile"><ProfilePage workspace={workspace} account={profileAccount} firebaseUser={firebaseUser} profilePhoto={profilePhoto} onProfilePhotoChange={onProfilePhotoChange} onSaveProfile={account ? onSaveProfile : undefined} onLogout={onLogout}/></Route><Route path="/settings"><Redirect to="/profile"/></Route><Route><NotFound/></Route></Switch>;
+  return <Switch><Route path="/dashboard"><Dashboard workspace={workspace} account={account}/></Route><Route path="/analytics"><AnalyticsPage workspace={workspace} account={account}/></Route><Route path="/aesthetics"><Redirect to="/analytics"/></Route><Route path="/live"><LivePage workspace={workspace} account={account}/></Route><Route path="/live-preview"><LivePreviewPage workspace={workspace}/></Route><Route path="/videos"><VideosPage workspace={workspace}/></Route><Route path="/editor"><VideoEditorPage workspace={workspace}/></Route><Route path="/subscription">{account ? <ManualSubscriptionPage account={account} onRefresh={() => void onRefreshAccount()}/> : <Redirect to="/sign-in"/>}</Route><Route path="/profile"><ProfilePage workspace={workspace} account={profileAccount} firebaseUser={firebaseUser} profilePhoto={profilePhoto} onProfilePhotoChange={onProfilePhotoChange} onSaveProfile={account ? onSaveProfile : undefined} onLogout={onLogout}/></Route><Route path="/settings"><Redirect to="/profile"/></Route><Route><NotFound/></Route></Switch>;
 }
 
 function useMinimumLoadingDuration(pending: boolean, durationMs = 2000) {
@@ -5295,7 +5284,7 @@ function App() {
     }
     workspace.logout();
   };
-  return <><Routed workspace={workspace} account={accountSession.account} plans={accountSession.plans} onSelectPlan={accountSession.selectPlan} firebaseUser={user} profilePhoto={profilePhoto} onProfilePhotoChange={handleProfilePhotoChange} onSaveProfile={accountSession.saveProfile} onSavePhone={accountSession.savePhone} onLogout={handleLogout}/>{accountSession.account && profileGateId === accountSession.account.id && <AccountCompletionDialog account={accountSession.account} onSave={accountSession.saveProfile} onClose={() => setProfileGateId(null)} />}</>;
+  return <><Routed workspace={workspace} account={accountSession.account} onRefreshAccount={accountSession.reload} firebaseUser={user} profilePhoto={profilePhoto} onProfilePhotoChange={handleProfilePhotoChange} onSaveProfile={accountSession.saveProfile} onLogout={handleLogout}/>{accountSession.account && profileGateId === accountSession.account.id && <AccountCompletionDialog account={accountSession.account} onSave={accountSession.saveProfile} onClose={() => setProfileGateId(null)} />}</>;
 }
 
 export default function RootApp() {

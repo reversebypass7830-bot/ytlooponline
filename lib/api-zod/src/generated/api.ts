@@ -1214,3 +1214,398 @@ export const RenewLicenseForUserResponse = zod.object({
 })
 
 
+/**
+ * @summary Calculate a subscription price before payment
+ */
+
+export const quoteAccountPaymentBodyDurationDaysMax = 3650;
+
+export const quoteAccountPaymentBodyStreamLimitMax = 100;
+
+export const quoteAccountPaymentBodyDownloadsPerDayMax = 1000000;
+
+
+
+export const QuoteAccountPaymentBody = zod.object({
+  "planId": zod.string().min(1),
+  "durationDays": zod.number().min(1).max(quoteAccountPaymentBodyDurationDaysMax),
+  "streamLimit": zod.number().min(1).max(quoteAccountPaymentBodyStreamLimitMax),
+  "downloadsPerDay": zod.number().min(1).max(quoteAccountPaymentBodyDownloadsPerDayMax)
+})
+
+export const QuoteAccountPaymentResponse = zod.object({
+  "planId": zod.string(),
+  "planName": zod.string(),
+  "durationDays": zod.number(),
+  "streamLimit": zod.number(),
+  "downloadsPerDay": zod.number(),
+  "totalDownloads": zod.number(),
+  "amountPaise": zod.number(),
+  "amountRupees": zod.number(),
+  "upiId": zod.string(),
+  "payeeName": zod.string(),
+  "features": zod.array(zod.string())
+})
+
+
+/**
+ * @summary List the signed-in user's manual payment requests
+ */
+export const ListAccountPaymentRequestsResponse = zod.object({
+  "requests": zod.array(zod.object({
+  "id": zod.string(),
+  "accountId": zod.string(),
+  "accountName": zod.string(),
+  "accountEmail": zod.string(),
+  "planId": zod.string(),
+  "planName": zod.string(),
+  "durationDays": zod.number(),
+  "streamLimit": zod.number(),
+  "downloadsPerDay": zod.number(),
+  "totalDownloads": zod.number(),
+  "amountPaise": zod.number(),
+  "amountRupees": zod.number(),
+  "features": zod.array(zod.string()),
+  "utr": zod.string(),
+  "status": zod.enum(['pending', 'approved', 'rejected']),
+  "createdAt": zod.coerce.date(),
+  "reviewedAt": zod.coerce.date().nullable(),
+  "reviewNote": zod.string().nullable()
+}))
+})
+
+
+/**
+ * @summary Submit a UPI transaction reference for owner review
+ */
+
+export const createAccountPaymentRequestBodyOneDurationDaysMax = 3650;
+
+export const createAccountPaymentRequestBodyOneStreamLimitMax = 100;
+
+export const createAccountPaymentRequestBodyOneDownloadsPerDayMax = 1000000;
+
+export const createAccountPaymentRequestBodyTwoUtrRegExp = new RegExp('^[A-Za-z0-9]{6,32}$');
+
+
+export const CreateAccountPaymentRequestBody = zod.object({
+  "planId": zod.string().min(1),
+  "durationDays": zod.number().min(1).max(createAccountPaymentRequestBodyOneDurationDaysMax),
+  "streamLimit": zod.number().min(1).max(createAccountPaymentRequestBodyOneStreamLimitMax),
+  "downloadsPerDay": zod.number().min(1).max(createAccountPaymentRequestBodyOneDownloadsPerDayMax)
+}).and(zod.object({
+  "utr": zod.string().regex(createAccountPaymentRequestBodyTwoUtrRegExp)
+}))
+
+export const CreateAccountPaymentRequestResponse = zod.object({
+  "request": zod.object({
+  "id": zod.string(),
+  "accountId": zod.string(),
+  "accountName": zod.string(),
+  "accountEmail": zod.string(),
+  "planId": zod.string(),
+  "planName": zod.string(),
+  "durationDays": zod.number(),
+  "streamLimit": zod.number(),
+  "downloadsPerDay": zod.number(),
+  "totalDownloads": zod.number(),
+  "amountPaise": zod.number(),
+  "amountRupees": zod.number(),
+  "features": zod.array(zod.string()),
+  "utr": zod.string(),
+  "status": zod.enum(['pending', 'approved', 'rejected']),
+  "createdAt": zod.coerce.date(),
+  "reviewedAt": zod.coerce.date().nullable(),
+  "reviewNote": zod.string().nullable()
+})
+})
+
+
+/**
+ * @summary List subscription pricing templates
+ */
+export const ListBillingPlansHeader = zod.object({
+  "X-Owner-Password": zod.string()
+})
+
+
+export const listBillingPlansResponsePlansItemPricePerStreamDayPaiseMin = 0;
+
+
+
+
+
+export const ListBillingPlansResponse = zod.object({
+  "plans": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "description": zod.string(),
+  "durationDays": zod.number().min(1),
+  "price": zod.string(),
+  "pricePerStreamDayPaise": zod.number().min(listBillingPlansResponsePlansItemPricePerStreamDayPaiseMin),
+  "downloadsPerDay": zod.number().min(1),
+  "streamLimit": zod.number().min(1),
+  "features": zod.array(zod.string()),
+  "isTrial": zod.boolean().optional(),
+  "active": zod.boolean(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+}))
+})
+
+
+/**
+ * @summary Create a subscription pricing template
+ */
+export const CreateBillingPlanHeader = zod.object({
+  "X-Owner-Password": zod.string()
+})
+
+export const createBillingPlanBodyNameMax = 80;
+
+export const createBillingPlanBodyDescriptionMax = 400;
+
+export const createBillingPlanBodyDurationDaysMax = 3650;
+
+export const createBillingPlanBodyPriceMax = 80;
+
+export const createBillingPlanBodyPricePerStreamDayPaiseMin = 0;
+export const createBillingPlanBodyPricePerStreamDayPaiseMax = 100000000;
+
+export const createBillingPlanBodyDownloadsPerDayMax = 1000000;
+
+export const createBillingPlanBodyStreamLimitMax = 100;
+
+export const createBillingPlanBodyFeaturesItemMax = 120;
+
+export const createBillingPlanBodyFeaturesMax = 30;
+
+
+
+export const CreateBillingPlanBody = zod.object({
+  "name": zod.string().min(1).max(createBillingPlanBodyNameMax),
+  "description": zod.string().max(createBillingPlanBodyDescriptionMax),
+  "durationDays": zod.number().min(1).max(createBillingPlanBodyDurationDaysMax),
+  "price": zod.string().max(createBillingPlanBodyPriceMax),
+  "pricePerStreamDayPaise": zod.number().min(createBillingPlanBodyPricePerStreamDayPaiseMin).max(createBillingPlanBodyPricePerStreamDayPaiseMax),
+  "downloadsPerDay": zod.number().min(1).max(createBillingPlanBodyDownloadsPerDayMax),
+  "streamLimit": zod.number().min(1).max(createBillingPlanBodyStreamLimitMax),
+  "features": zod.array(zod.string().max(createBillingPlanBodyFeaturesItemMax)).max(createBillingPlanBodyFeaturesMax),
+  "active": zod.boolean().optional()
+})
+
+
+export const createBillingPlanResponsePlanPricePerStreamDayPaiseMin = 0;
+
+
+
+
+
+export const CreateBillingPlanResponse = zod.object({
+  "plan": zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "description": zod.string(),
+  "durationDays": zod.number().min(1),
+  "price": zod.string(),
+  "pricePerStreamDayPaise": zod.number().min(createBillingPlanResponsePlanPricePerStreamDayPaiseMin),
+  "downloadsPerDay": zod.number().min(1),
+  "streamLimit": zod.number().min(1),
+  "features": zod.array(zod.string()),
+  "isTrial": zod.boolean().optional(),
+  "active": zod.boolean(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+})
+})
+
+
+/**
+ * @summary Update a subscription pricing template
+ */
+export const UpdateBillingPlanParams = zod.object({
+  "planId": zod.coerce.string()
+})
+
+export const UpdateBillingPlanHeader = zod.object({
+  "X-Owner-Password": zod.string()
+})
+
+export const updateBillingPlanBodyNameMax = 80;
+
+export const updateBillingPlanBodyDescriptionMax = 400;
+
+export const updateBillingPlanBodyDurationDaysMax = 3650;
+
+export const updateBillingPlanBodyPriceMax = 80;
+
+export const updateBillingPlanBodyPricePerStreamDayPaiseMin = 0;
+export const updateBillingPlanBodyPricePerStreamDayPaiseMax = 100000000;
+
+export const updateBillingPlanBodyDownloadsPerDayMax = 1000000;
+
+export const updateBillingPlanBodyStreamLimitMax = 100;
+
+export const updateBillingPlanBodyFeaturesItemMax = 120;
+
+export const updateBillingPlanBodyFeaturesMax = 30;
+
+
+
+export const UpdateBillingPlanBody = zod.object({
+  "name": zod.string().min(1).max(updateBillingPlanBodyNameMax).optional(),
+  "description": zod.string().max(updateBillingPlanBodyDescriptionMax).optional(),
+  "durationDays": zod.number().min(1).max(updateBillingPlanBodyDurationDaysMax).optional(),
+  "price": zod.string().max(updateBillingPlanBodyPriceMax).optional(),
+  "pricePerStreamDayPaise": zod.number().min(updateBillingPlanBodyPricePerStreamDayPaiseMin).max(updateBillingPlanBodyPricePerStreamDayPaiseMax).optional(),
+  "downloadsPerDay": zod.number().min(1).max(updateBillingPlanBodyDownloadsPerDayMax).optional(),
+  "streamLimit": zod.number().min(1).max(updateBillingPlanBodyStreamLimitMax).optional(),
+  "features": zod.array(zod.string().max(updateBillingPlanBodyFeaturesItemMax)).max(updateBillingPlanBodyFeaturesMax).optional(),
+  "active": zod.boolean().optional()
+})
+
+
+export const updateBillingPlanResponsePlanPricePerStreamDayPaiseMin = 0;
+
+
+
+
+
+export const UpdateBillingPlanResponse = zod.object({
+  "plan": zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "description": zod.string(),
+  "durationDays": zod.number().min(1),
+  "price": zod.string(),
+  "pricePerStreamDayPaise": zod.number().min(updateBillingPlanResponsePlanPricePerStreamDayPaiseMin),
+  "downloadsPerDay": zod.number().min(1),
+  "streamLimit": zod.number().min(1),
+  "features": zod.array(zod.string()),
+  "isTrial": zod.boolean().optional(),
+  "active": zod.boolean(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+})
+})
+
+
+/**
+ * @summary Get the UPI payee details used for checkout
+ */
+export const GetOwnerPaymentSettingsHeader = zod.object({
+  "X-Owner-Password": zod.string()
+})
+
+export const GetOwnerPaymentSettingsResponse = zod.object({
+  "upiId": zod.string(),
+  "payeeName": zod.string(),
+  "updatedAt": zod.coerce.date().nullable()
+})
+
+
+/**
+ * @summary Set the UPI ID and payee name displayed to customers
+ */
+export const UpdateOwnerPaymentSettingsHeader = zod.object({
+  "X-Owner-Password": zod.string()
+})
+
+export const updateOwnerPaymentSettingsBodyUpiIdMin = 3;
+export const updateOwnerPaymentSettingsBodyUpiIdMax = 100;
+
+export const updateOwnerPaymentSettingsBodyPayeeNameMax = 100;
+
+
+
+export const UpdateOwnerPaymentSettingsBody = zod.object({
+  "upiId": zod.string().min(updateOwnerPaymentSettingsBodyUpiIdMin).max(updateOwnerPaymentSettingsBodyUpiIdMax),
+  "payeeName": zod.string().min(1).max(updateOwnerPaymentSettingsBodyPayeeNameMax)
+})
+
+export const UpdateOwnerPaymentSettingsResponse = zod.object({
+  "upiId": zod.string(),
+  "payeeName": zod.string(),
+  "updatedAt": zod.coerce.date().nullable()
+})
+
+
+/**
+ * @summary List manual UPI requests awaiting or completed review
+ */
+export const ListOwnerPaymentRequestsQueryParams = zod.object({
+  "status": zod.enum(['pending', 'approved', 'rejected']).optional()
+})
+
+export const ListOwnerPaymentRequestsHeader = zod.object({
+  "X-Owner-Password": zod.string()
+})
+
+export const ListOwnerPaymentRequestsResponse = zod.object({
+  "requests": zod.array(zod.object({
+  "id": zod.string(),
+  "accountId": zod.string(),
+  "accountName": zod.string(),
+  "accountEmail": zod.string(),
+  "planId": zod.string(),
+  "planName": zod.string(),
+  "durationDays": zod.number(),
+  "streamLimit": zod.number(),
+  "downloadsPerDay": zod.number(),
+  "totalDownloads": zod.number(),
+  "amountPaise": zod.number(),
+  "amountRupees": zod.number(),
+  "features": zod.array(zod.string()),
+  "utr": zod.string(),
+  "status": zod.enum(['pending', 'approved', 'rejected']),
+  "createdAt": zod.coerce.date(),
+  "reviewedAt": zod.coerce.date().nullable(),
+  "reviewNote": zod.string().nullable()
+}))
+})
+
+
+/**
+ * @summary Approve or reject a submitted UPI payment
+ */
+export const ReviewOwnerPaymentRequestParams = zod.object({
+  "requestId": zod.coerce.string()
+})
+
+export const ReviewOwnerPaymentRequestHeader = zod.object({
+  "X-Owner-Password": zod.string()
+})
+
+export const reviewOwnerPaymentRequestBodyNoteMax = 500;
+
+
+
+export const ReviewOwnerPaymentRequestBody = zod.object({
+  "action": zod.enum(['approve', 'reject']),
+  "note": zod.string().max(reviewOwnerPaymentRequestBodyNoteMax).optional()
+})
+
+export const ReviewOwnerPaymentRequestResponse = zod.object({
+  "request": zod.object({
+  "id": zod.string(),
+  "accountId": zod.string(),
+  "accountName": zod.string(),
+  "accountEmail": zod.string(),
+  "planId": zod.string(),
+  "planName": zod.string(),
+  "durationDays": zod.number(),
+  "streamLimit": zod.number(),
+  "downloadsPerDay": zod.number(),
+  "totalDownloads": zod.number(),
+  "amountPaise": zod.number(),
+  "amountRupees": zod.number(),
+  "features": zod.array(zod.string()),
+  "utr": zod.string(),
+  "status": zod.enum(['pending', 'approved', 'rejected']),
+  "createdAt": zod.coerce.date(),
+  "reviewedAt": zod.coerce.date().nullable(),
+  "reviewNote": zod.string().nullable()
+})
+})
+
+

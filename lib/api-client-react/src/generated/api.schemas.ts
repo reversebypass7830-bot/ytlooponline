@@ -742,6 +742,223 @@ export interface WorkspaceSaveResponse {
   saved: boolean;
 }
 
+export interface BillingPlan {
+  id: string;
+  name: string;
+  description: string;
+  /** @minimum 1 */
+  durationDays: number;
+  price: string;
+  /** @minimum 0 */
+  pricePerStreamDayPaise: number;
+  /** @minimum 1 */
+  downloadsPerDay: number;
+  /** @minimum 1 */
+  streamLimit: number;
+  features: string[];
+  isTrial?: boolean;
+  active: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface BillingPlanInput {
+  /**
+     * @minLength 1
+     * @maxLength 80
+     */
+  name: string;
+  /** @maxLength 400 */
+  description: string;
+  /**
+     * @minimum 1
+     * @maximum 3650
+     */
+  durationDays: number;
+  /** @maxLength 80 */
+  price: string;
+  /**
+     * @minimum 0
+     * @maximum 100000000
+     */
+  pricePerStreamDayPaise: number;
+  /**
+     * @minimum 1
+     * @maximum 1000000
+     */
+  downloadsPerDay: number;
+  /**
+     * @minimum 1
+     * @maximum 100
+     */
+  streamLimit: number;
+  /**
+     * @maxItems 30
+     * @items.maxLength 120
+     */
+  features: string[];
+  active?: boolean;
+}
+
+export interface BillingPlanUpdate {
+  /**
+     * @minLength 1
+     * @maxLength 80
+     */
+  name?: string;
+  /** @maxLength 400 */
+  description?: string;
+  /**
+     * @minimum 1
+     * @maximum 3650
+     */
+  durationDays?: number;
+  /** @maxLength 80 */
+  price?: string;
+  /**
+     * @minimum 0
+     * @maximum 100000000
+     */
+  pricePerStreamDayPaise?: number;
+  /**
+     * @minimum 1
+     * @maximum 1000000
+     */
+  downloadsPerDay?: number;
+  /**
+     * @minimum 1
+     * @maximum 100
+     */
+  streamLimit?: number;
+  /**
+     * @maxItems 30
+     * @items.maxLength 120
+     */
+  features?: string[];
+  active?: boolean;
+}
+
+export interface BillingPlanListResponse {
+  plans: BillingPlan[];
+}
+
+export interface BillingPlanResponse {
+  plan: BillingPlan;
+}
+
+export interface PaymentSettings {
+  upiId: string;
+  payeeName: string;
+  /** @nullable */
+  updatedAt: string | null;
+}
+
+export interface PaymentSettingsInput {
+  /**
+     * @minLength 3
+     * @maxLength 100
+     */
+  upiId: string;
+  /**
+     * @minLength 1
+     * @maxLength 100
+     */
+  payeeName: string;
+}
+
+export interface AccountPaymentQuoteInput {
+  /** @minLength 1 */
+  planId: string;
+  /**
+     * @minimum 1
+     * @maximum 3650
+     */
+  durationDays: number;
+  /**
+     * @minimum 1
+     * @maximum 100
+     */
+  streamLimit: number;
+  /**
+     * @minimum 1
+     * @maximum 1000000
+     */
+  downloadsPerDay: number;
+}
+
+export interface AccountPaymentQuote {
+  planId: string;
+  planName: string;
+  durationDays: number;
+  streamLimit: number;
+  downloadsPerDay: number;
+  totalDownloads: number;
+  amountPaise: number;
+  amountRupees: number;
+  upiId: string;
+  payeeName: string;
+  features: string[];
+}
+
+export type AccountPaymentRequestInput = AccountPaymentQuoteInput & {
+  /** @pattern ^[A-Za-z0-9]{6,32}$ */
+  utr: string;
+};
+
+export type PaymentReviewInputAction = typeof PaymentReviewInputAction[keyof typeof PaymentReviewInputAction];
+
+
+export const PaymentReviewInputAction = {
+  approve: 'approve',
+  reject: 'reject',
+} as const;
+
+export interface PaymentReviewInput {
+  action: PaymentReviewInputAction;
+  /** @maxLength 500 */
+  note?: string;
+}
+
+export type PaymentRequestStatus = typeof PaymentRequestStatus[keyof typeof PaymentRequestStatus];
+
+
+export const PaymentRequestStatus = {
+  pending: 'pending',
+  approved: 'approved',
+  rejected: 'rejected',
+} as const;
+
+export interface PaymentRequest {
+  id: string;
+  accountId: string;
+  accountName: string;
+  accountEmail: string;
+  planId: string;
+  planName: string;
+  durationDays: number;
+  streamLimit: number;
+  downloadsPerDay: number;
+  totalDownloads: number;
+  amountPaise: number;
+  amountRupees: number;
+  features: string[];
+  utr: string;
+  status: PaymentRequestStatus;
+  createdAt: string;
+  /** @nullable */
+  reviewedAt: string | null;
+  /** @nullable */
+  reviewNote: string | null;
+}
+
+export interface PaymentRequestListResponse {
+  requests: PaymentRequest[];
+}
+
+export interface PaymentRequestResponse {
+  request: PaymentRequest;
+}
+
 export type OwnerPasswordParameter = string;
 
 export type ListMediaFilesParams = {
@@ -758,4 +975,17 @@ export type ListMediaFiles400 = {
 export type DeleteIncludedFolderParams = {
 folderName: string;
 };
+
+export type ListOwnerPaymentRequestsParams = {
+status?: ListOwnerPaymentRequestsStatus;
+};
+
+export type ListOwnerPaymentRequestsStatus = typeof ListOwnerPaymentRequestsStatus[keyof typeof ListOwnerPaymentRequestsStatus];
+
+
+export const ListOwnerPaymentRequestsStatus = {
+  pending: 'pending',
+  approved: 'approved',
+  rejected: 'rejected',
+} as const;
 

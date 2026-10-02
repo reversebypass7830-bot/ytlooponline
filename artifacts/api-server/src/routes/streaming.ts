@@ -8,6 +8,8 @@ import {
   StopStreamBody,
   StopStreamResponse,
 } from "@workspace/api-zod";
+import { accountIdentity } from "../middlewares/requireClerkAuth";
+import { getAccountStreamAccess } from "./accounts";
 import {
   getStreamStatus,
   getStreamPreviewFile,
@@ -20,8 +22,9 @@ import {
 } from "../lib/stream-runner";
 
 const router: IRouter = Router();
+const accountStreamOwners = new Map<string, string>();
 
-router.post("/stream/start", (req, res): void => {
+router.post("/stream/start", async (req, res): Promise<void> => {
   const parsed = StartStreamBody.safeParse(req.body);
   if (!parsed.success) {
     req.log.warn({ errors: parsed.error.message }, "Invalid stream start request");
@@ -30,6 +33,27 @@ router.post("/stream/start", (req, res): void => {
   }
 
   try {
+    const identity = accountIdentity(req);
+    if (identity) {
+      const access = await getAccountStreamAccess(identity.userId);
+      if (!access.active) {
+        res.status(403).json({ error: "Your access has ended. Please upgrade your plan." });
+        return;
+      }
+      let ownedActiveCount = 0;
+      for (const [streamId, ownerId] of accountStreamOwners) {
+        if (getStreamStatus(streamId).status !== "running") {
+          accountStreamOwners.delete(streamId);
+        } else if (ownerId === identity.userId) {
+          ownedActiveCount += 1;
+        }
+      }
+      const isAlreadyCounted = accountStreamOwners.get(parsed.data.streamId) === identity.userId;
+      if (!isAlreadyCounted && ownedActiveCount >= access.streamLimit) {
+        res.status(429).json({ error: `Your plan allows up to ${access.streamLimit} simultaneous streams. Please upgrade your plan.` });
+        return;
+      }
+    }
     const result = startStream({
       streamId: parsed.data.streamId,
       ingestUrl: parsed.data.ingestUrl,
@@ -53,6 +77,7 @@ router.post("/stream/start", (req, res): void => {
       liveAnimationScale: parsed.data.liveAnimationScale,
       composition: parsed.data.composition,
     });
+    if (identity) accountStreamOwners.set(parsed.data.streamId, identity.userId);
     res.status(202).json(StartStreamResponse.parse(result));
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unable to start stream.";

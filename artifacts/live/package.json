@@ -82,6 +82,7 @@
     "@material/material-color-utilities": "^0.4.0",
     "@material/web": "^2.5.0",
     "firebase": "^12.19.0",
-    "hls.js": "^1.7.2"
+    "hls.js": "^1.7.2",
+    "qrcode.react": "^4.2.0"
   }
 }

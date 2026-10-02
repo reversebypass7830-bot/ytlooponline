@@ -6,6 +6,7 @@ import { pipeline } from "node:stream/promises";
 import { Router, type IRouter, type Request } from "express";
 import { randomUUID } from "node:crypto";
 import { Readable } from "node:stream";
+import { accountIdentity } from "../middlewares/requireClerkAuth";
 import {
   DownloadYoutubeVideoBody,
   DownloadYoutubeVideoResponse,
@@ -18,6 +19,7 @@ import {
   TrimMediaFileResponse,
 } from "@workspace/api-zod";
 import { cleanupVidKrakenDownload, downloadVidKraken, getVidKrakenInfo } from "../lib/vidkraken";
+import { accountLicenseExists, releaseAccountDownload, reserveAccountDownload } from "./accounts";
 
 const router: IRouter = Router();
 const mediaDir = path.resolve(process.cwd(), "attached_assets", "live-media");
@@ -258,6 +260,11 @@ type YoutubeDownloadJob = {
   result?: YoutubeDownloadResult;
   error?: string;
 };
+
+type QuotaReservation = { accountId: string; dayKey: string };
+type YoutubeQuotaCheck =
+  | { ok: true; reservation?: QuotaReservation }
+  | { ok: false; status: number; error: string };
 
 const youtubeDownloadJobs = new Map<string, YoutubeDownloadJob>();
 
@@ -595,7 +602,22 @@ async function performYoutubeDownload(input: YoutubeDownloadInput): Promise<Yout
   });
 }
 
-async function runYoutubeDownloadJob(jobId: string, input: YoutubeDownloadInput): Promise<void> {
+async function reserveYoutubeDownloadQuota(req: Request, licenseId: string): Promise<YoutubeQuotaCheck> {
+  if (licenseId === includedMediaLicenseId) return { ok: true };
+  if (!licenseId.trim()) return { ok: false, status: 400, error: "A license or account is required to download." };
+  const identity = accountIdentity(req);
+  if (!identity) {
+    if (licenseId.startsWith("acct-") || await accountLicenseExists(licenseId)) {
+      return { ok: false, status: 401, error: "Sign in to use the download limit on this account." };
+    }
+    return { ok: true };
+  }
+  const reservation = await reserveAccountDownload(identity.userId, licenseId);
+  if (!reservation.ok) return reservation;
+  return { ok: true, reservation };
+}
+
+async function runYoutubeDownloadJob(jobId: string, input: YoutubeDownloadInput, reservation?: QuotaReservation): Promise<void> {
   const job = youtubeDownloadJobs.get(jobId);
   if (!job) return;
   job.status = "running";
@@ -606,6 +628,13 @@ async function runYoutubeDownloadJob(jobId: string, input: YoutubeDownloadInput)
   } catch (error) {
     job.error = youtubeDownloadError(error);
     job.status = "failed";
+    if (reservation) {
+      try {
+        await releaseAccountDownload(reservation.accountId, reservation.dayKey);
+      } catch {
+        job.error += " The failed download's quota could not be restored; contact support.";
+      }
+    }
   } finally {
     job.updatedAt = new Date().toISOString();
   }
@@ -965,6 +994,7 @@ router.post("/media/youtube-channel-links", async (req, res): Promise<void> => {
 });
 
 router.post("/media/youtube-download", async (req, res): Promise<void> => {
+  let reservation: QuotaReservation | undefined;
   try {
     const parsed = DownloadYoutubeVideoBody.safeParse(req.body);
     if (!parsed.success) {
@@ -975,8 +1005,21 @@ router.post("/media/youtube-download", async (req, res): Promise<void> => {
       res.status(403).json({ error: "Only the owner can add included animations." });
       return;
     }
+    const quota = await reserveYoutubeDownloadQuota(req, parsed.data.licenseId || "");
+    if (!quota.ok) {
+      res.status(quota.status).json({ error: quota.error });
+      return;
+    }
+    reservation = quota.reservation;
     res.status(201).json(await performYoutubeDownload(parsed.data));
   } catch (error) {
+    if (reservation) {
+      try {
+        await releaseAccountDownload(reservation.accountId, reservation.dayKey);
+      } catch (releaseError) {
+        req.log.error({ error: releaseError instanceof Error ? releaseError.message : "unknown" }, "Could not restore download quota");
+      }
+    }
     const message = youtubeDownloadError(error);
     req.log.warn({ error: message }, "YouTube download failed");
     res.status(400).json({ error: message });
@@ -999,11 +1042,22 @@ router.post("/media/youtube-download/jobs", async (req, res): Promise<void> => {
     res.status(400).json({ error: youtubeDownloadError(error) });
     return;
   }
-  const now = new Date().toISOString();
-  const jobId = randomUUID();
-  youtubeDownloadJobs.set(jobId, { jobId, status: "queued", createdAt: now, updatedAt: now });
-  void runYoutubeDownloadJob(jobId, parsed.data);
-  res.status(202).json({ jobId, status: "queued" });
+  try {
+    const quota = await reserveYoutubeDownloadQuota(req, parsed.data.licenseId || "");
+    if (!quota.ok) {
+      res.status(quota.status).json({ error: quota.error });
+      return;
+    }
+    const now = new Date().toISOString();
+    const jobId = randomUUID();
+    youtubeDownloadJobs.set(jobId, { jobId, status: "queued", createdAt: now, updatedAt: now });
+    void runYoutubeDownloadJob(jobId, parsed.data, quota.reservation);
+    res.status(202).json({ jobId, status: "queued" });
+  } catch (error) {
+    const message = youtubeDownloadError(error);
+    req.log.warn({ error: message }, "Could not queue YouTube download");
+    res.status(400).json({ error: message });
+  }
 });
 
 router.get("/media/youtube-download/jobs/:jobId", (req, res): void => {

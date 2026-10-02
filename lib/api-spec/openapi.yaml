@@ -16,6 +16,8 @@ tags:
     description: Local media upload operations
   - name: licenses
     description: License access and workspace operations
+  - name: billing
+    description: Manual UPI payments, subscription pricing, and owner review
 paths:
   /healthz:
     get:
@@ -755,6 +757,197 @@ paths:
                 $ref: "#/components/schemas/LicenseAccess"
         "404":
           description: License key not found
+  /account/payment-quote:
+    post:
+      operationId: quoteAccountPayment
+      tags: [billing]
+      summary: Calculate a subscription price before payment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AccountPaymentQuoteInput"
+      responses:
+        "200":
+          description: Server-calculated payment quote
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccountPaymentQuote"
+        "400":
+          description: Invalid plan or requested entitlements
+  /account/payment-requests:
+    get:
+      operationId: listAccountPaymentRequests
+      tags: [billing]
+      summary: List the signed-in user's manual payment requests
+      responses:
+        "200":
+          description: User payment requests
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaymentRequestListResponse"
+    post:
+      operationId: createAccountPaymentRequest
+      tags: [billing]
+      summary: Submit a UPI transaction reference for owner review
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AccountPaymentRequestInput"
+      responses:
+        "201":
+          description: Payment request submitted; access remains unchanged until approval
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaymentRequestResponse"
+        "400":
+          description: Invalid transaction reference or payment details
+  /owner/plans:
+    get:
+      operationId: listBillingPlans
+      tags: [billing]
+      summary: List subscription pricing templates
+      parameters:
+        - $ref: "#/components/parameters/OwnerPassword"
+      responses:
+        "200":
+          description: Pricing templates
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BillingPlanListResponse"
+    post:
+      operationId: createBillingPlan
+      tags: [billing]
+      summary: Create a subscription pricing template
+      parameters:
+        - $ref: "#/components/parameters/OwnerPassword"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BillingPlanInput"
+      responses:
+        "201":
+          description: Pricing template created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BillingPlanResponse"
+  /owner/plans/{planId}:
+    put:
+      operationId: updateBillingPlan
+      tags: [billing]
+      summary: Update a subscription pricing template
+      parameters:
+        - $ref: "#/components/parameters/OwnerPassword"
+        - name: planId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BillingPlanUpdate"
+      responses:
+        "200":
+          description: Pricing template updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BillingPlanResponse"
+        "404":
+          description: Pricing template not found
+  /owner/payment-settings:
+    get:
+      operationId: getOwnerPaymentSettings
+      tags: [billing]
+      summary: Get the UPI payee details used for checkout
+      parameters:
+        - $ref: "#/components/parameters/OwnerPassword"
+      responses:
+        "200":
+          description: UPI payment settings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaymentSettings"
+    put:
+      operationId: updateOwnerPaymentSettings
+      tags: [billing]
+      summary: Set the UPI ID and payee name displayed to customers
+      parameters:
+        - $ref: "#/components/parameters/OwnerPassword"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PaymentSettingsInput"
+      responses:
+        "200":
+          description: UPI payment settings saved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaymentSettings"
+  /owner/payment-requests:
+    get:
+      operationId: listOwnerPaymentRequests
+      tags: [billing]
+      summary: List manual UPI requests awaiting or completed review
+      parameters:
+        - $ref: "#/components/parameters/OwnerPassword"
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [pending, approved, rejected]
+      responses:
+        "200":
+          description: Payment requests for owner review
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaymentRequestListResponse"
+  /owner/payment-requests/{requestId}/review:
+    post:
+      operationId: reviewOwnerPaymentRequest
+      tags: [billing]
+      summary: Approve or reject a submitted UPI payment
+      parameters:
+        - $ref: "#/components/parameters/OwnerPassword"
+        - name: requestId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PaymentReviewInput"
+      responses:
+        "200":
+          description: Review saved; approved purchases activate account access
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaymentRequestResponse"
+        "404":
+          description: Payment request not found
 components:
   parameters:
     OwnerPassword:
@@ -1688,4 +1881,328 @@ components:
           type: boolean
       required:
         - saved
+    BillingPlan:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        durationDays:
+          type: number
+          minimum: 1
+        price:
+          type: string
+        pricePerStreamDayPaise:
+          type: number
+          minimum: 0
+        downloadsPerDay:
+          type: number
+          minimum: 1
+        streamLimit:
+          type: number
+          minimum: 1
+        features:
+          type: array
+          items:
+            type: string
+        isTrial:
+          type: boolean
+        active:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - name
+        - description
+        - durationDays
+        - price
+        - pricePerStreamDayPaise
+        - downloadsPerDay
+        - streamLimit
+        - features
+        - active
+        - createdAt
+        - updatedAt
+    BillingPlanInput:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 80
+        description:
+          type: string
+          maxLength: 400
+        durationDays:
+          type: number
+          minimum: 1
+          maximum: 3650
+        price:
+          type: string
+          maxLength: 80
+        pricePerStreamDayPaise:
+          type: number
+          minimum: 0
+          maximum: 100000000
+        downloadsPerDay:
+          type: number
+          minimum: 1
+          maximum: 1000000
+        streamLimit:
+          type: number
+          minimum: 1
+          maximum: 100
+        features:
+          type: array
+          items:
+            type: string
+            maxLength: 120
+          maxItems: 30
+        active:
+          type: boolean
+      required:
+        - name
+        - description
+        - durationDays
+        - price
+        - pricePerStreamDayPaise
+        - downloadsPerDay
+        - streamLimit
+        - features
+    BillingPlanUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 80
+        description:
+          type: string
+          maxLength: 400
+        durationDays:
+          type: number
+          minimum: 1
+          maximum: 3650
+        price:
+          type: string
+          maxLength: 80
+        pricePerStreamDayPaise:
+          type: number
+          minimum: 0
+          maximum: 100000000
+        downloadsPerDay:
+          type: number
+          minimum: 1
+          maximum: 1000000
+        streamLimit:
+          type: number
+          minimum: 1
+          maximum: 100
+        features:
+          type: array
+          items:
+            type: string
+            maxLength: 120
+          maxItems: 30
+        active:
+          type: boolean
+    BillingPlanListResponse:
+      type: object
+      properties:
+        plans:
+          type: array
+          items:
+            $ref: "#/components/schemas/BillingPlan"
+      required: [plans]
+    BillingPlanResponse:
+      type: object
+      properties:
+        plan:
+          $ref: "#/components/schemas/BillingPlan"
+      required: [plan]
+    PaymentSettings:
+      type: object
+      properties:
+        upiId:
+          type: string
+        payeeName:
+          type: string
+        updatedAt:
+          type: ["string", "null"]
+          format: date-time
+      required: [upiId, payeeName, updatedAt]
+    PaymentSettingsInput:
+      type: object
+      properties:
+        upiId:
+          type: string
+          minLength: 3
+          maxLength: 100
+        payeeName:
+          type: string
+          minLength: 1
+          maxLength: 100
+      required: [upiId, payeeName]
+    AccountPaymentQuoteInput:
+      type: object
+      properties:
+        planId:
+          type: string
+          minLength: 1
+        durationDays:
+          type: number
+          minimum: 1
+          maximum: 3650
+        streamLimit:
+          type: number
+          minimum: 1
+          maximum: 100
+        downloadsPerDay:
+          type: number
+          minimum: 1
+          maximum: 1000000
+      required: [planId, durationDays, streamLimit, downloadsPerDay]
+    AccountPaymentQuote:
+      type: object
+      properties:
+        planId:
+          type: string
+        planName:
+          type: string
+        durationDays:
+          type: number
+        streamLimit:
+          type: number
+        downloadsPerDay:
+          type: number
+        totalDownloads:
+          type: number
+        amountPaise:
+          type: number
+        amountRupees:
+          type: number
+        upiId:
+          type: string
+        payeeName:
+          type: string
+        features:
+          type: array
+          items:
+            type: string
+      required:
+        - planId
+        - planName
+        - durationDays
+        - streamLimit
+        - downloadsPerDay
+        - totalDownloads
+        - amountPaise
+        - amountRupees
+        - upiId
+        - payeeName
+        - features
+    AccountPaymentRequestInput:
+      allOf:
+        - $ref: "#/components/schemas/AccountPaymentQuoteInput"
+        - type: object
+          properties:
+            utr:
+              type: string
+              pattern: "^[A-Za-z0-9]{6,32}$"
+          required: [utr]
+    PaymentReviewInput:
+      type: object
+      properties:
+        action:
+          type: string
+          enum: [approve, reject]
+        note:
+          type: string
+          maxLength: 500
+      required: [action]
+    PaymentRequest:
+      type: object
+      properties:
+        id:
+          type: string
+        accountId:
+          type: string
+        accountName:
+          type: string
+        accountEmail:
+          type: string
+        planId:
+          type: string
+        planName:
+          type: string
+        durationDays:
+          type: number
+        streamLimit:
+          type: number
+        downloadsPerDay:
+          type: number
+        totalDownloads:
+          type: number
+        amountPaise:
+          type: number
+        amountRupees:
+          type: number
+        features:
+          type: array
+          items:
+            type: string
+        utr:
+          type: string
+        status:
+          type: string
+          enum: [pending, approved, rejected]
+        createdAt:
+          type: string
+          format: date-time
+        reviewedAt:
+          type: ["string", "null"]
+          format: date-time
+        reviewNote:
+          type: ["string", "null"]
+      required:
+        - id
+        - accountId
+        - accountName
+        - accountEmail
+        - planId
+        - planName
+        - durationDays
+        - streamLimit
+        - downloadsPerDay
+        - totalDownloads
+        - amountPaise
+        - amountRupees
+        - features
+        - utr
+        - status
+        - createdAt
+        - reviewedAt
+        - reviewNote
+    PaymentRequestListResponse:
+      type: object
+      properties:
+        requests:
+          type: array
+          items:
+            $ref: "#/components/schemas/PaymentRequest"
+      required: [requests]
+    PaymentRequestResponse:
+      type: object
+      properties:
+        request:
+          $ref: "#/components/schemas/PaymentRequest"
+      required: [request]
 
