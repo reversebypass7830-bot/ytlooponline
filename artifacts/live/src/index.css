@@ -423,12 +423,7 @@ input:focus, textarea:focus, select:focus { border-color:#5fa49d; box-shadow:0 0
 .account-access-timer .status-dot { background:#7ebc62; }
 .account-access-timer.expired { color:#a45342; background:#fbeae2; border-color:#f0c7b5; }
 .account-access-timer.expired .status-dot { background:#d96e55; }
-.account-profile-card { display:flex; align-items:flex-end; justify-content:space-between; gap:18px; margin:0 0 18px; padding:18px; border:1px solid #dbe8d8; border-radius:12px; background:linear-gradient(135deg,#f5faed,#fbfcf6); }
-.account-profile-card h2 { margin:4px 0 5px; font-size:16px; letter-spacing:-.04em; }
-.account-profile-card form { display:flex; align-items:center; gap:8px; min-width:min(420px,100%); }
-.account-profile-card input { min-height:39px; flex:1; }
 .owner-claim-card { background:linear-gradient(135deg,#f0f6ed,#f9f8ef); }
-.form-hint { color:#4d7a6b; font-size:10px; }
 .owner-page { min-height:100dvh; background:hsl(var(--background)); }
 .owner-topbar { height:76px; display:flex; align-items:center; justify-content:space-between; padding:0 38px; border-bottom:1px solid hsl(var(--border)); background:#fbfaf6; }
 .owner-topbar .brand { padding:0; }
@@ -509,8 +504,6 @@ input:focus, textarea:focus, select:focus { border-color:#5fa49d; box-shadow:0 0
   .auth-page-intro .access-brand { margin-bottom:44px; }
   .auth-page-intro h1 { font-size:clamp(46px,13vw,72px); }
   .auth-card { width:min(100%,520px); justify-self:center; }
-  .account-profile-card { align-items:stretch; flex-direction:column; }
-  .account-profile-card form { min-width:0; }
   .plan-create-form { grid-template-columns:1fr 1fr; }
   .plan-create-form .field:nth-child(4) { grid-column:1 / -1; }
   .plan-create-form .button { grid-column:1 / -1; }
@@ -523,7 +516,6 @@ input:focus, textarea:focus, select:focus { border-color:#5fa49d; box-shadow:0 0
   .auth-card { padding:3px; }
   .dashboard-head-actions { align-items:stretch; flex-direction:column; }
   .account-access-timer { justify-content:center; }
-  .account-profile-card form { align-items:stretch; flex-direction:column; }
   .owner-topbar { height:auto; align-items:flex-start; flex-direction:column; gap:14px; padding:18px; }
   .owner-topbar .actions { width:100%; justify-content:space-between; }
   .owner-content { padding:22px 18px; }
@@ -4735,15 +4727,6 @@ select { height: 41px; }
   border-color: rgba(255, 123, 109, .5);
   color: #ffd2ce;
   background: rgba(133, 35, 57, .38);
-}
-
-.shell .account-profile-card {
-  border-color: #4a2d5b;
-  background: linear-gradient(135deg, #2b193b, #21122e);
-}
-
-.shell .form-hint {
-  color: #ff8fc2;
 }
 
 .shell .modal-backdrop {

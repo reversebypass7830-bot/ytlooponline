@@ -12,6 +12,7 @@ import { EmailAuthProvider, GoogleAuthProvider, onAuthStateChanged, reauthentica
 import Hls from "hls.js";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/toaster";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import NotFound from "@/pages/not-found";
 import { GatewayPage, LandingPage, PricingPage } from "@/pages/public";
 import { extractYoutubeChannelLinks, getStreamStatus, startStream, stopStream, trimMediaFile, updateStream } from "@workspace/api-client-react";
@@ -1102,14 +1103,6 @@ function useAccountSession(isSignedIn: boolean, userId?: string, authReady = tru
     setPlans(result.plans || []);
   };
 
-  const savePhone = async (phone: string) => {
-    await saveProfile({
-      displayName: account?.displayName || "",
-      email: account?.email || "",
-      phone,
-    });
-  };
-
   const claimOwner = async (password: string) => {
     const result = await apiJson<AccountResponse>("/api/account/claim-owner", {
       method: "POST",
@@ -1703,21 +1696,25 @@ function AccountCompletionDialog({ account, onSave, onClose }: {
   onSave: (profile: { displayName: string; email: string; phone?: string }) => Promise<void>;
   onClose: () => void;
 }) {
-  const [displayName, setDisplayName] = useState(account.displayName.startsWith("Workspace ") ? "" : account.displayName);
-  const [email, setEmail] = useState(account.email);
+  const [phone, setPhone] = useState(account.phone || "");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [saved, setSaved] = useState(false);
   const [revealed, setRevealed] = useState(false);
+  const [phoneTouched, setPhoneTouched] = useState(false);
+  const isNewAccount = account.profileCompleted === false;
+  const validPhone = phone.replace(/\D/g, "").length >= 10;
 
   const save = async (event: FormEvent) => {
     event.preventDefault();
-    if (!displayName.trim() || !email.trim()) return;
+    setPhoneTouched(true);
+    if (!validPhone) return;
     setBusy(true);
     setError("");
     try {
-      await onSave({ displayName: displayName.trim(), email: email.trim(), phone: account.phone });
-      setSaved(true);
+      await onSave({ displayName: account.displayName, email: account.email, phone: phone.trim() });
+      if (isNewAccount) setSaved(true);
+      else onClose();
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Could not save your profile.");
     } finally {
@@ -1725,23 +1722,47 @@ function AccountCompletionDialog({ account, onSave, onClose }: {
     }
   };
 
-  return <div className="profile-completion-backdrop" role="presentation">
-    <section className="profile-completion-dialog" role="dialog" aria-modal="true" aria-labelledby="profile-completion-title">
-      <div className="profile-completion-icon"><Gift size={25}/></div>
+  return <Dialog open onOpenChange={() => undefined}>
+    <DialogContent
+      className="profile-completion-dialog"
+      onEscapeKeyDown={(event) => event.preventDefault()}
+      onPointerDownOutside={(event) => event.preventDefault()}
+    >
       {!saved ? <>
-        <p className="eyebrow">One last detail</p>
-        <h2 id="profile-completion-title">Make the room yours.</h2>
-        <p className="profile-completion-copy">Your Google account is connected. Add your name and email so your private workspace and license are easy to recover.</p>
+        <div className="profile-completion-icon"><Smartphone size={24}/></div>
+        <p className="eyebrow">Complete your account</p>
+        <DialogHeader>
+          <DialogTitle id="profile-completion-title">Please enter your number</DialogTitle>
+          <DialogDescription className="profile-completion-copy">Add a mobile number to finish setting up your account. You can update it anytime from Profile.</DialogDescription>
+        </DialogHeader>
         {error && <div className="error-note" role="alert">{error}</div>}
         <form className="profile-completion-form" onSubmit={save}>
-          <label className="field"><span>Your name</span><input value={displayName} onChange={(event) => setDisplayName(event.target.value)} autoComplete="name" placeholder="Your name" /></label>
-          <label className="field"><span>Email address</span><input type="email" value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="email" placeholder="you@example.com" /></label>
-          <button className="button login-submit" type="submit" disabled={busy || !displayName.trim() || !email.trim()}>{busy ? "Saving profile…" : "Save and continue"} <ArrowRight size={15}/></button>
+          <label className="field">
+            <span>Mobile number</span>
+            <input
+              value={phone}
+              onChange={(event) => setPhone(event.target.value)}
+              onBlur={() => setPhoneTouched(true)}
+              autoComplete="tel"
+              inputMode="tel"
+              type="tel"
+              placeholder="+91 98765 43210"
+              aria-invalid={phoneTouched && !validPhone}
+              aria-describedby={phoneTouched && !validPhone ? "required-phone-error" : undefined}
+              data-testid="input-required-mobile-number"
+              autoFocus
+            />
+            {phoneTouched && !validPhone && <span id="required-phone-error" className="profile-completion-error" role="alert">Enter a valid mobile number with at least 10 digits.</span>}
+          </label>
+          <button className="button login-submit" type="submit" disabled={busy || !validPhone} data-testid="button-save-required-mobile-number">{busy ? "Saving number…" : "Save and continue"} <ArrowRight size={15}/></button>
         </form>
       </> : <>
+        <div className="profile-completion-icon"><Gift size={25}/></div>
         <p className="eyebrow">Your room is ready</p>
-        <h2 id="profile-completion-title">A license, made for you.</h2>
-        <p className="profile-completion-copy">Your trial workspace and its license have been created. Tap the gift to reveal the key, then open your room.</p>
+        <DialogHeader>
+          <DialogTitle id="profile-completion-title">A license, made for you.</DialogTitle>
+          <DialogDescription className="profile-completion-copy">Your trial workspace and its license have been created. Tap the gift to reveal the key, then open your room.</DialogDescription>
+        </DialogHeader>
         <button className={`profile-completion-gift ${revealed ? "revealed" : ""}`} type="button" onClick={() => setRevealed(true)} aria-label={revealed ? "License revealed" : "Reveal license"}>
           <Gift size={30}/>
           <span>{revealed ? account.licenseKey : "Tap to reveal your license"}</span>
@@ -1750,8 +1771,8 @@ function AccountCompletionDialog({ account, onSave, onClose }: {
         {revealed && <button className="button login-submit" type="button" onClick={onClose}>Open my room <ArrowRight size={15}/></button>}
         {!revealed && <p className="profile-completion-footnote"><ShieldCheck size={14}/> Generated securely for this account.</p>}
       </>}
-    </section>
-  </div>;
+    </DialogContent>
+  </Dialog>;
 }
 
 function OwnerAccountPage({ account, onSwitchToUser }: { account: AccountSummary; onSwitchToUser: () => void }) {
@@ -2462,21 +2483,6 @@ function AccountAccessTimer({ account }: { account?: AccountSummary | null }) {
   return <div className={`account-access-timer ${remaining === "Expired" ? "expired" : ""}`}><span className="status-dot"/><span>{account.activePlan?.name || "Access"} · {remaining}</span></div>;
 }
 
-function PhoneProfileCard({ onSave }: { onSave: (phone: string) => Promise<void> }) {
-  const [phone, setPhone] = useState("");
-  const [busy, setBusy] = useState(false);
-  const [message, setMessage] = useState("");
-  const save = async (event: FormEvent) => {
-    event.preventDefault();
-    if (!phone.trim()) return;
-    setBusy(true); setMessage("");
-    try { await onSave(phone.trim()); setMessage("Mobile number saved to this account."); }
-    catch (reason) { setMessage(reason instanceof Error ? reason.message : "Could not save the number."); }
-    finally { setBusy(false); }
-  };
-  return <section className="account-profile-card"><div><p className="eyebrow">Account profile</p><h2>Add a mobile number</h2><p className="subtle">Keep it linked to this Google account. OTP login can use this same account when mobile sign-in is enabled.</p></div><form onSubmit={save}><input type="tel" value={phone} onChange={(event) => setPhone(event.target.value)} placeholder="+91 98765 43210" aria-label="Mobile number"/><button className="button" type="submit" disabled={busy || !phone.trim()}>{busy ? "Saving…" : "Save number"} <Check size={14}/></button></form>{message && <span className="form-hint">{message}</span>}</section>;
-}
-
 function SubscriptionPage({ workspace, account, plans, onSelectPlan }: { workspace: ReturnType<typeof useWorkspace>; account: AccountSummary; plans: AccountPlan[]; onSelectPlan: (planId: string, streamLimit: number, durationMultiplier?: number) => Promise<AccountSummary> }) {
   const [billing, setBilling] = useState<"Day" | "Month" | "Year">("Day");
   const [duration, setDuration] = useState(1);
@@ -2624,7 +2630,7 @@ function Dashboard({ workspace, account }: { workspace:ReturnType<typeof useWork
   </AppShell>;
 }
 
-function AnalyticsPage({ workspace, account, onSavePhone }: { workspace:ReturnType<typeof useWorkspace>; account?: AccountSummary | null; onSavePhone?: (phone: string) => Promise<void> }) {
+function AnalyticsPage({ workspace, account }: { workspace:ReturnType<typeof useWorkspace>; account?: AccountSummary | null }) {
   const {data} = workspace;
   const live = data.channels.filter(c=>c.status==="live");
   const volumeData = [
@@ -2637,7 +2643,7 @@ function AnalyticsPage({ workspace, account, onSavePhone }: { workspace:ReturnTy
   const publishedVideos = data.videos.filter((video) => video.status === "published").length;
   const draftVideos = data.videos.filter((video) => video.status === "draft").length;
   const archivedVideos = data.videos.filter((video) => video.status === "archived").length;
-  return <AppShell title="Analytics" account={account} workspace={workspace}><div className="page analytics-page"><div className="page-head"><div><p className="eyebrow">Workspace overview</p><h1>Analytics</h1><p className="subtle">Your live channels, library, categories, and recent activity in one view.</p></div></div>{account && !account.phone && onSavePhone && <PhoneProfileCard onSave={onSavePhone} />}
+  return <AppShell title="Analytics" account={account} workspace={workspace}><div className="page analytics-page"><div className="page-head"><div><p className="eyebrow">Workspace overview</p><h1>Analytics</h1><p className="subtle">Your live channels, library, categories, and recent activity in one view.</p></div></div>
     <div className="metric-grid"><Metric label="On air now" value={live.length} detail={live.length ? "Signal is healthy" : "Nothing is live"} image={analyticsTowerIcon} /><Metric label="Library videos" value={data.videos.length} detail={`${data.videos.filter(v=>v.status==="published").length} published`} image={analyticsVideoIcon} /><Metric label="Categories" value={data.groups.length} detail="Playlist folders" image={analyticsFolderIcon} /> </div>
      <div className="analytics-chart-grid">
        <section className="card section-card analytics-chart-card"><div className="section-head"><div><h2 className="section-title">Workspace volume</h2><p className="subtle" style={{margin: "5px 0 0", fontSize:11}}>A quick view of the content in your workspace.</p></div><img className="analytics-heading-art" src={analyticsBarIcon} alt="" /></div><div className="analytics-bars" aria-label="Workspace volume chart">{volumeData.map((item) => <div className="analytics-bar-column" key={item.label}><div className="analytics-bar-value">{item.value}</div><div className="analytics-bar-track"><div className="analytics-bar-fill" style={{ height: `${Math.max(item.value ? 10 : 3, (item.value / maxVolume) * 100)}%`, background: item.color }} /></div><span>{item.label}</span></div>)}</div></section>
