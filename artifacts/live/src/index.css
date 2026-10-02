@@ -8481,6 +8481,179 @@ select { height: 41px; }
   padding-top: 6px;
 }
 
+/* The live-channel flow follows the light live-room surface, not the legacy
+   dark shell palette used by older dashboard routes. */
+.shell.live-surface .live-create-button {
+  border: 1px solid #d1d5db;
+  color: #111827;
+  background: #fff;
+  box-shadow: 0 3px 10px rgba(17, 24, 39, .06);
+}
+
+.shell.live-surface .live-create-button:hover,
+.shell.live-surface .live-create-button:focus-visible {
+  border-color: #9ca3af;
+  color: #111827;
+  background: #f9fafb;
+  box-shadow: 0 5px 14px rgba(17, 24, 39, .1);
+}
+
+.shell.live-surface .live-create-button:focus-visible {
+  outline: 2px solid rgba(17, 24, 39, .3);
+  outline-offset: 2px;
+}
+
+.shell.live-surface .modal-backdrop {
+  background: rgba(17, 24, 39, .38);
+}
+
+.shell.live-surface .modal {
+  border-color: #e5e7eb;
+  color: #111827;
+  background: #fff;
+  box-shadow: 0 24px 70px rgba(17, 24, 39, .2);
+}
+
+.shell.live-surface .modal-head,
+.shell.live-surface .modal-foot {
+  border-color: #e5e7eb;
+}
+
+.shell.live-surface .modal-foot {
+  background: #fff;
+}
+
+.shell.live-surface .modal-head h2 {
+  color: #111827;
+}
+
+.shell.live-surface .modal .icon-button {
+  border-color: #d1d5db;
+  color: #4b5563;
+  background: #fff;
+}
+
+.shell.live-surface .modal .icon-button:hover {
+  border-color: #9ca3af;
+  color: #111827;
+  background: #f3f4f6;
+}
+
+.shell.live-surface .modal .button {
+  border-color: #d1d5db;
+  color: #111827;
+  background: #fff;
+  box-shadow: none;
+}
+
+.shell.live-surface .modal .button:hover {
+  border-color: #9ca3af;
+  color: #111827;
+  background: #f3f4f6;
+  box-shadow: none;
+}
+
+.shell.live-surface .modal .button:not(.ghost):not(.danger) {
+  border-color: #111827;
+  color: #fff;
+  background: #111827;
+}
+
+.shell.live-surface .modal .button:not(.ghost):not(.danger):hover {
+  border-color: #374151;
+  color: #fff;
+  background: #374151;
+}
+
+.shell.live-surface .modal .button:focus-visible,
+.shell.live-surface .modal :is(input, select, textarea):focus-visible {
+  outline: 2px solid rgba(17, 24, 39, .28);
+  outline-offset: 2px;
+}
+
+.shell.live-surface .modal .button:focus-visible {
+  box-shadow: 0 0 0 3px rgba(17, 24, 39, .08);
+}
+
+.shell.live-surface .modal .button.ghost {
+  border-color: #d1d5db;
+  color: #374151;
+  background: #fff;
+}
+
+.shell.live-surface .modal .button.ghost:hover {
+  border-color: #9ca3af;
+  color: #111827;
+  background: #f3f4f6;
+}
+
+.shell.live-surface .modal .field label {
+  color: #4b5563;
+}
+
+.shell.live-surface .modal .field-hint,
+.shell.live-surface .modal .label-optional {
+  color: #6b7280;
+}
+
+.shell.live-surface .modal :is(input, select, textarea) {
+  border-color: #d1d5db;
+  color: #111827;
+  background-color: #fff;
+  color-scheme: light;
+}
+
+.shell.live-surface .modal :is(input, select, textarea)::placeholder {
+  color: #9ca3af;
+}
+
+.shell.live-surface .modal :is(input, select, textarea):focus {
+  border-color: #6b7280;
+  box-shadow: 0 0 0 3px rgba(17, 24, 39, .08);
+}
+
+.shell.live-surface .modal input[type="checkbox"],
+.shell.live-surface .modal input[type="range"] {
+  accent-color: #374151;
+}
+
+.shell.live-surface .modal .check-control,
+.shell.live-surface .modal .playlist-picker,
+.shell.live-surface .modal .playlist-empty {
+  border-color: #e5e7eb;
+  background: #f9fafb;
+}
+
+.shell.live-surface .modal .check-control:hover,
+.shell.live-surface .modal .playlist-item:hover {
+  border-color: #d1d5db;
+  background: #f3f4f6;
+}
+
+.shell.live-surface .modal .check-control strong,
+.shell.live-surface .modal .check-control small,
+.shell.live-surface .modal .playlist-copy small,
+.shell.live-surface .modal .playlist-empty {
+  color: #6b7280;
+}
+
+.shell.live-surface .modal .playlist-item.selected {
+  border-color: #9ca3af;
+  background: #f3f4f6;
+}
+
+.shell.live-surface .modal .playlist-number,
+.shell.live-surface .modal .playlist-item.selected .playlist-number,
+.shell.live-surface .modal .playlist-item > svg {
+  color: #374151;
+}
+
+.shell.live-surface .modal .form-note {
+  border-color: #e5e7eb;
+  color: #4b5563;
+  background: #f9fafb;
+}
+
 .shell.live-preview-surface .preview-only-badge {
   display: inline-flex;
   align-items: center;

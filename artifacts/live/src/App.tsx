@@ -321,6 +321,7 @@ const platformFromUrl = (url: string) => {
   if (value.includes("vimeo")) return "Vimeo";
   return "Custom RTMP";
 };
+const defaultYoutubeIngestUrl = "rtmp://a.rtmp.youtube.com/live2";
 
 const seed: DataState = {
   channels: [],
@@ -2576,7 +2577,7 @@ function ChannelModal({ channel, groups, videos, onSave, onClose }: {channel?:Li
   const existingVideos = channel ? videosForGroup(channel.groupId, groups, videos) : [];
   const [form,setForm] = useState({
     groupId:channel?.groupId||"",
-    streamUrl:channel?.streamUrl||"",
+    streamUrl:channel?.streamUrl||defaultYoutubeIngestUrl,
     streamKey:channel?.streamKey||"",
     aspectRatio:channel?.aspectRatio||"full" as AspectRatio,
     playbackSpeed:channel?.playbackSpeed||1,
@@ -2610,7 +2611,7 @@ function ChannelModal({ channel, groups, videos, onSave, onClose }: {channel?:Li
   };
   const submit=(e:FormEvent)=>{
     e.preventDefault();
-    if(!form.streamUrl.trim() || !form.groupId || !form.playlistVideoIds.length) return;
+     if(!form.streamKey.trim() || !form.groupId || !form.playlistVideoIds.length) return;
     const platform=platformFromUrl(form.streamUrl);
     onSave({
       id:channel?.id||uid("ch"), title:channel?.title||`${platform} channel`, platform,
@@ -2624,10 +2625,9 @@ function ChannelModal({ channel, groups, videos, onSave, onClose }: {channel?:Li
           editorComposition:channel?.editorComposition,
     });
   };
-   return <Modal title={channel ? "Update channel" : "Add live channel"} onClose={onClose} footer={<><button className="button ghost" onClick={onClose} data-testid="button-cancel-channel">Cancel</button><button className="button" type="submit" form="channel-form" disabled={!form.streamUrl.trim() || !form.groupId || !form.playlistVideoIds.length} data-testid="button-save-channel">{channel ? "Save changes" : "Add channel"} <Check size={14}/></button></>}><form id="channel-form" onSubmit={submit}>
+   return <Modal title={channel ? "Update channel" : "Add live channel"} onClose={onClose} footer={<><button className="button ghost" onClick={onClose} data-testid="button-cancel-channel">Cancel</button><button className="button" type="submit" form="channel-form" disabled={!form.streamKey.trim() || !form.groupId || !form.playlistVideoIds.length} data-testid="button-save-channel">{channel ? "Save changes" : "Add channel"} <Check size={14}/></button></>}><form id="channel-form" onSubmit={submit}>
     <div className="form-grid">
-      <div className="field full"><label>Stream URL</label><input autoFocus required value={form.streamUrl} onChange={e=>set("streamUrl",e.target.value)} placeholder="Paste your platform stream URL" data-testid="input-stream-url"/><span className="field-hint">Paste the URL provided by your platform. The stream key can stay separate below, or be included in the full URL.</span></div>
-       <div className="field full"><label>Stream key</label><input type="password" autoComplete="new-password" value={form.streamKey} onChange={e=>set("streamKey",e.target.value)} placeholder="Paste the platform stream key" data-testid="input-channel-stream-key"/><span className="field-hint">Stored only in this workspace and never shown in the channel table.</span></div>
+       <div className="field full"><label>Stream key</label><input autoFocus required type="password" autoComplete="new-password" value={form.streamKey} onChange={e=>set("streamKey",e.target.value)} placeholder="Paste your YouTube stream key" data-testid="input-channel-stream-key"/><span className="field-hint">Saved privately and never shown in the channel table.</span></div>
        <div className="field"><label>Main video folder</label><select required value={form.groupId} onChange={e=>{const groupId=e.target.value;setForm(current=>({...current,groupId,playlistVideoIds:[]}));}} data-testid="select-channel-group"><option value="">Select a folder</option>{groups.map(g=><option key={g.id} value={g.id}>{g.name}</option>)}</select></div>
        <div className="field"><label>Live format</label><select value={form.aspectRatio} onChange={e=>set("aspectRatio",e.target.value as AspectRatio)} data-testid="select-channel-ratio"><option value="shorts">Shorts · 9:16 vertical</option><option value="full">Big live · 16:9 landscape</option><option value="square">Square · 1:1</option></select></div>
        <div className="field"><label>Video speed</label><select value={form.playbackSpeed} onChange={e=>set("playbackSpeed",Number(e.target.value))} data-testid="select-channel-speed"><option value="0.5">0.5× slow</option><option value="0.75">0.75×</option><option value="1">1× normal</option><option value="1.25">1.25×</option><option value="1.5">1.5×</option><option value="2">2× fast</option></select></div>
@@ -2643,7 +2643,7 @@ function ChannelModal({ channel, groups, videos, onSave, onClose }: {channel?:Li
              {checked && <Check size={14} />}
            </label>;
          })}</div>}
-          <span className="field-hint">Tick the first video, then the second, third, and so on. The live stream follows this queue, repeats from video 1 after the last one, and keeps looping until the selected stream duration ends.</span>
+           <span className="field-hint">Videos play in the selected order and loop until the stream duration ends.</span>
        </div>
       <div className="field full"><label>Face video category <span className="label-optional">optional overlay</span></label><select value={form.faceGroupId} onChange={e=>set("faceGroupId",e.target.value)} data-testid="select-channel-face-group"><option value="">No face overlay</option>{groups.map(g=><option key={g.id} value={g.id}>{g.name}</option>)}</select></div>
       <div className="field"><label>Face position</label><select disabled={!form.faceGroupId} value={form.facePosition} onChange={e=>set("facePosition",e.target.value as FacePosition)} data-testid="select-face-position"><option value="top-left">Top left</option><option value="top-right">Top right</option><option value="bottom-left">Bottom left</option><option value="bottom-right">Bottom right</option><option value="center">Center</option></select></div>
@@ -3173,7 +3173,7 @@ function LivePage({workspace, account}:{workspace:ReturnType<typeof useWorkspace
     setShowForm(true);
     setLocation("/live");
   }, [data.channels, location, setLocation]);
-  const start=async(c:LiveChannel)=>{if(busy.includes(c.id))return;if(account && data.channels.filter((channel)=>channel.status==="live").length >= account.streamLimit){workspace.setToast("Please upgrade your plan to run more streams.");return;}if(!c.streamUrl?.trim()){setEditing(c);setShowForm(true);workspace.setToast("Paste the stream URL before starting.");return;}if(!c.streamKey?.trim()&&c.streamUrl.includes("{streamKey}")){setStreamKeyDraft("");setStreamKeyChannel(c);return;}setBusy(ids=>[...ids,c.id]);try{
+  const start=async(c:LiveChannel)=>{if(busy.includes(c.id))return;if(account && data.channels.filter((channel)=>channel.status==="live").length >= account.streamLimit){workspace.setToast("Please upgrade your plan to run more streams.");return;}if(!c.streamUrl?.trim()){setEditing(c);setShowForm(true);workspace.setToast("Finish setting up this channel before starting.");return;}if(!c.streamKey?.trim()&&c.streamUrl.includes("{streamKey}")){setStreamKeyDraft("");setStreamKeyChannel(c);return;}setBusy(ids=>[...ids,c.id]);try{
      const playlist=playlistFor(c,data.groups,data.videos);
      const category=playlist.category;
      const faceCategory=playlist.faceCategory;
