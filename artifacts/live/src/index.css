@@ -5586,7 +5586,12 @@ select { height: 41px; }
   .mobile-nav-link { display:grid; justify-items:center; gap:4px; min-width:0; padding:6px 3px; border:0; border-radius:8px; color:#aa97b5; background:transparent; font-size:9px; font-weight:700; }
   .mobile-nav-link.active { color:#fff; background:linear-gradient(100deg,#f0187d,#d92a91); box-shadow:0 6px 15px rgba(227,25,127,.22); }
   .mobile-nav-link:hover { color:#fff; }
-  .shell .sidebar { display:none; }
+  .shell .sidebar {
+    display: flex;
+    overflow-y: auto;
+    overscroll-behavior-y: contain;
+    -webkit-overflow-scrolling: touch;
+  }
   .billing-summary { grid-template-columns:1fr; }
 }
 
