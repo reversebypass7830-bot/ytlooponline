@@ -436,6 +436,8 @@ function startPublisher(process: StreamProcess): ChildProcess {
     return process.child;
   }
 
+  const ingestUrl = validateIngestUrl(process.input.ingestUrl);
+  const publisherMode = getPublisherMode(ingestUrl);
   const publisher = spawn("ffmpeg", buildPublisherArgs(process.input, `signal_desk_${randomUUID()}`), {
     stdio: ["pipe", "ignore", "pipe"],
   });
@@ -477,12 +479,17 @@ function startPublisher(process: StreamProcess): ChildProcess {
             streamId: process.input.streamId,
             code,
             signal,
+            ingestProtocol: ingestUrl.protocol,
+            publisherMode,
             stderr: redactIngestUrl(publisherStderr.trim(), process.input.ingestUrl),
           },
           "Live publisher exited with diagnostics",
         );
       }
-      logger.error({ streamId: process.input.streamId, code, signal }, "Live publisher exited");
+      logger.error(
+        { streamId: process.input.streamId, code, signal, ingestProtocol: ingestUrl.protocol, publisherMode },
+        "Live publisher exited",
+      );
     }
   });
 
@@ -582,6 +589,23 @@ function validateIngestUrl(rawUrl: string): URL {
     throw new Error("This ingest URL must use HTTP, HTTPS, RTMP, or RTMPS.");
   }
   return url;
+}
+
+type PublisherMode = "youtube-hls" | "rtmp";
+
+function getPublisherMode(ingestUrl: URL): PublisherMode {
+  if (ingestUrl.pathname.includes("http_upload_hls")) {
+    if (ingestUrl.protocol !== "https:") {
+      throw new Error("This YouTube HLS destination must use HTTPS. Check the saved ingest URL protocol.");
+    }
+    return "youtube-hls";
+  }
+
+  if (ingestUrl.protocol === "rtmp:" || ingestUrl.protocol === "rtmps:") {
+    return "rtmp";
+  }
+
+  throw new Error("This URL is not a supported YouTube HLS or RTMP ingest URL.");
 }
 
 function setFile(url: URL, filename: string): string {
@@ -912,10 +936,11 @@ function buildFfmpegArgs(
 
 function buildPublisherArgs(input: StreamRunnerInput, sessionPrefix: string): string[] {
   const ingestUrl = validateIngestUrl(input.ingestUrl);
+  const publisherMode = getPublisherMode(ingestUrl);
   const inputArgs = ["-hide_banner", "-loglevel", "warning", "-thread_queue_size", "1024", "-f", "mpegts", "-i", "pipe:0"];
   const outputArgs = ["-map", "0:v:0", "-map", "0:a:0?", "-c", "copy"];
 
-  if (ingestUrl.pathname.includes("http_upload_hls")) {
+  if (publisherMode === "youtube-hls") {
     // YouTube HLS requires a rolling playlist capped at five entries and
     // distinct segment filenames across encoder restarts. Do not use EVENT.
     const playlistUrl = setFile(ingestUrl, `${sessionPrefix}.m3u8`);
@@ -942,11 +967,7 @@ function buildPublisherArgs(input: StreamRunnerInput, sessionPrefix: string): st
     ];
   }
 
-  if (ingestUrl.protocol === "rtmp:" || ingestUrl.protocol === "rtmps:") {
-    return [...inputArgs, ...outputArgs, "-f", "flv", ingestUrl.toString()];
-  }
-
-  throw new Error("This URL is not a supported YouTube HLS or RTMP ingest URL.");
+  return [...inputArgs, ...outputArgs, "-f", "flv", ingestUrl.toString()];
 }
 
 function resultFor(streamId: string, process: StreamProcess, message: string): StreamRunnerResult {
@@ -1203,6 +1224,7 @@ export function startStream(input: StreamRunnerInput): StreamRunnerResult {
     throw new Error("This channel is already streaming.");
   }
 
+  getPublisherMode(validateIngestUrl(input.ingestUrl));
   getVideoPaths(input.category, input.videoSources, input.videoSource);
   if (input.faceCategory) getVideoPaths(input.faceCategory, input.faceSources, input.faceSource);
   if (input.liveAnimationSource) getVideoPaths("live animation", undefined, input.liveAnimationSource);
