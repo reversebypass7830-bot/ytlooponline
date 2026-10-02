@@ -1135,7 +1135,7 @@ function useAccountSession(isSignedIn: boolean, userId?: string, authReady = tru
     if (!nextAccount) throw new Error("Your session could not be restored. Please sign in again.");
   };
 
-  return { account, plans, loading, error, reload, saveProfile, savePhone, claimOwner, selectPlan, clear };
+  return { account, plans, loading, error, reload, saveProfile, claimOwner, selectPlan, clear };
 }
 
 function useWorkspace(license: LicenseSession | null, clearLicense: () => void, allowSharedOnly = false) {
@@ -4973,6 +4973,7 @@ function ProfilePage({ workspace, account, firebaseUser, profilePhoto, onProfile
 }) {
   const [name, setName] = useState(account.displayName || "");
   const [email, setEmail] = useState(account.email || firebaseUser?.email || "");
+  const [phone, setPhone] = useState(account.phone || "");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [currentPassword, setCurrentPassword] = useState("");
@@ -4982,18 +4983,23 @@ function ProfilePage({ workspace, account, firebaseUser, profilePhoto, onProfile
   const [passwordNotice, setPasswordNotice] = useState("");
   const [photoBusy, setPhotoBusy] = useState(false);
   const [photoAnimationKey, setPhotoAnimationKey] = useState(0);
-  const [profilePanel, setProfilePanel] = useState<"details" | "password" | null>(null);
+  const [profileDialog, setProfileDialog] = useState<"details" | "password" | null>(null);
   const hasPasswordProvider = Boolean(firebaseUser?.providerData.some((provider) => provider.providerId === "password"));
   const displayPhoto = profilePhoto || defaultProfilePhoto(firebaseUser?.uid || workspace.licenseId || "profile");
 
   useEffect(() => {
     setName(account.displayName || "");
     setEmail(account.email || firebaseUser?.email || "");
-  }, [account.displayName, account.email, firebaseUser?.email]);
+    setPhone(account.phone || "");
+  }, [account.displayName, account.email, account.phone, firebaseUser?.email]);
 
   const saveDetails = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!name.trim() || (firebaseUser && !email.trim())) return;
+    if (phone.trim() && phone.replace(/\D/g, "").length < 10) {
+      setNotice("Enter a valid mobile number with at least 10 digits.");
+      return;
+    }
     setSaving(true);
     setNotice("");
     try {
@@ -5002,9 +5008,9 @@ function ProfilePage({ workspace, account, firebaseUser, profilePhoto, onProfile
         await updateProfile(firebaseUser, { displayName: name.trim() });
       }
       if (onSaveProfile) {
-        await onSaveProfile({ displayName: name.trim(), email: email.trim(), phone: account.phone });
+        await onSaveProfile({ displayName: name.trim(), email: email.trim(), phone: phone.trim() });
       } else {
-        localStorage.setItem(`reverse-bypass-profile:${workspace.licenseId}`, JSON.stringify({ displayName: name.trim(), email: email.trim() }));
+        localStorage.setItem(`reverse-bypass-profile:${workspace.licenseId}`, JSON.stringify({ displayName: name.trim(), email: email.trim(), phone: phone.trim() }));
       }
       setNotice("Your profile details were saved.");
     } catch (reason) {
@@ -5077,7 +5083,7 @@ function ProfilePage({ workspace, account, firebaseUser, profilePhoto, onProfile
       });
       const response = await fetch(upload.uploadURL, { method: "PUT", headers: { "Content-Type": file.type }, body: file });
       if (!response.ok) throw new Error("The image could not be stored.");
-      await onSaveProfile({ displayName: name.trim(), email: email.trim(), phone: account.phone, profileImagePath: upload.objectPath });
+      await onSaveProfile({ displayName: name.trim(), email: email.trim(), phone: phone.trim(), profileImagePath: upload.objectPath });
       const photo = profileImageUrl(upload.objectPath);
       onProfilePhotoChange(photo);
       setPhotoAnimationKey((value) => value + 1);
@@ -5098,32 +5104,43 @@ function ProfilePage({ workspace, account, firebaseUser, profilePhoto, onProfile
       <div className="page-head"><div><p className="eyebrow">Subscription / Profile</p><h1>Profile</h1><p className="subtle">Manage your account details and sign-in security for <strong className="profile-account-email">{email}</strong>.</p></div><div className="profile-page-head-art"><img src={profileSettingsClay} alt="" /><span>Account settings</span></div></div>
       <section className="card profile-single-card">
         <div className="profile-avatar-wrap"><WaterFillAvatar src={displayPhoto} alt={`${name || "Your"} profile`} animate={photoAnimationKey > 0} animationKey={photoAnimationKey} /><label className={`profile-avatar-edit ${photoBusy ? "is-busy" : ""}`} title="Change profile photo" aria-label="Change profile photo"><Pencil size={13}/><input type="file" accept="image/jpeg,image/png,image/webp,image/gif" onChange={(event) => void uploadPhoto(event)} disabled={photoBusy} /></label></div>
-        <div className="profile-identity-copy"><strong>{name || "Your profile"}</strong>{email && <p>{email}</p>}</div>
+        <div className="profile-identity-copy"><strong>{name || "Your profile"}</strong>{email && <p>{email}</p>}<p>{phone || "No mobile number added"}</p></div>
         <div className="profile-action-list">
-          <button type="button" className={`profile-action-button ${profilePanel === "details" ? "active" : ""}`} onClick={() => setProfilePanel(profilePanel === "details" ? null : "details")}><img src={profileSettingsClay} alt="" /><span>Personal details</span><ArrowRight size={14}/></button>
-          <button type="button" className={`profile-action-button ${profilePanel === "password" ? "active" : ""}`} onClick={() => setProfilePanel(profilePanel === "password" ? null : "password")}><img src={profileSettingsClay} alt="" /><span>Change password</span><ArrowRight size={14}/></button>
+          <button type="button" className="profile-action-button" onClick={() => { setNotice(""); setProfileDialog("details"); }}><img src={profileSettingsClay} alt="" /><span>Personal details</span><ArrowRight size={14}/></button>
+          <button type="button" className="profile-action-button" onClick={() => { setPasswordNotice(""); setProfileDialog("password"); }}><img src={profileSettingsClay} alt="" /><span>Change password</span><ArrowRight size={14}/></button>
           <button type="button" className="profile-action-button danger-button" onClick={() => void onLogout()} data-testid="button-profile-logout"><img src={subscriptionShieldClay} alt="" /><span>Logout</span><ArrowRight size={14}/></button>
         </div>
-        {profilePanel === "details" && <div className="profile-action-panel">
-          <div className="profile-action-panel-head"><div><h2>Personal details</h2><p className="subtle">These details are used for your workspace account.</p></div><UserRound size={18}/></div>
+      </section>
+      <Dialog open={profileDialog === "details"} onOpenChange={(open) => { if (!open) setProfileDialog(null); }}>
+        <DialogContent className="profile-settings-dialog" data-testid="dialog-profile-details">
+          <DialogHeader className="profile-settings-dialog-header">
+            <DialogTitle>Personal details</DialogTitle>
+            <DialogDescription>Update the contact details saved to your account.</DialogDescription>
+          </DialogHeader>
           <form className="profile-form" onSubmit={saveDetails}>
             <div className="field"><label htmlFor="profile-name">Name</label><input id="profile-name" value={name} onChange={(event) => setName(event.target.value)} placeholder="Your name" data-testid="input-profile-name" /></div>
             <div className="field"><label htmlFor="profile-email">Email</label><input id="profile-email" type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="you@example.com" data-testid="input-profile-email" /></div>
+            <div className="field"><label htmlFor="profile-phone">Mobile number</label><input id="profile-phone" type="tel" inputMode="tel" autoComplete="tel" value={phone} onChange={(event) => setPhone(event.target.value)} placeholder="+91 98765 43210" data-testid="input-profile-phone" /></div>
             <button className="button" type="submit" disabled={saving || !name.trim() || Boolean(firebaseUser && !email.trim())}>{saving ? "Saving…" : "Save changes"} <Check size={14}/></button>
-            {notice && <p className="profile-message">{notice}</p>}
+            {notice && <p className="profile-message" role="status">{notice}</p>}
           </form>
-        </div>}
-        {profilePanel === "password" && <div className="profile-action-panel">
-          <div className="profile-action-panel-head"><div><h2>Change password</h2><p className="subtle">Keep your account secure with a password only you know.</p></div><KeyRound size={18}/></div>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={profileDialog === "password"} onOpenChange={(open) => { if (!open) setProfileDialog(null); }}>
+        <DialogContent className="profile-settings-dialog" data-testid="dialog-profile-password">
+          <DialogHeader className="profile-settings-dialog-header">
+            <DialogTitle>Change password</DialogTitle>
+            <DialogDescription>Manage the password used to sign in to this account.</DialogDescription>
+          </DialogHeader>
           {hasPasswordProvider ? <form className="profile-form" onSubmit={savePassword}>
             <div className="field"><label htmlFor="current-password">Current password <span className="field-hint">(optional)</span></label><input id="current-password" type="password" value={currentPassword} onChange={(event) => setCurrentPassword(event.target.value)} autoComplete="current-password" /></div>
             <div className="field"><label htmlFor="new-password">New password</label><input id="new-password" type="password" value={newPassword} onChange={(event) => setNewPassword(event.target.value)} autoComplete="new-password" /></div>
             <div className="field"><label htmlFor="confirm-password">Confirm new password</label><input id="confirm-password" type="password" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} autoComplete="new-password" /></div>
             <button className="button" type="submit" disabled={passwordBusy}>{passwordBusy ? "Updating…" : "Change password"} <KeyRound size={14}/></button>
           </form> : <div className="profile-provider-note"><p>You signed in with Google, so password access is managed by Google.</p><button className="button secondary" onClick={() => void sendResetEmail()} disabled={passwordBusy}>{passwordBusy ? "Sending…" : "Email password reset link"} <Mail size={14}/></button></div>}
-          {passwordNotice && <p className="profile-message">{passwordNotice}</p>}
-        </div>}
-      </section>
+          {passwordNotice && <p className="profile-message" role="status">{passwordNotice}</p>}
+        </DialogContent>
+      </Dialog>
     </div>
   </AppShell>;
 }
@@ -5142,10 +5159,10 @@ function SettingsPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}) {
    </AppShell>;
 }
 
-function Routed({workspace, account, plans, onSelectPlan, firebaseUser, profilePhoto, onProfilePhotoChange, onSaveProfile, onSavePhone, onLogout}:{workspace:ReturnType<typeof useWorkspace>; account:AccountSummary|null; plans:AccountPlan[]; onSelectPlan:(planId:string, streamLimit:number, durationMultiplier?:number)=>Promise<AccountSummary>; firebaseUser:FirebaseUser|null; profilePhoto:string; onProfilePhotoChange:(photo:string)=>void; onSaveProfile:(profile:{displayName:string; email:string; phone?:string; profileImagePath?:string})=>Promise<void>; onSavePhone:(phone:string)=>Promise<void>; onLogout:()=>Promise<void>}) {
-  let localProfile: { displayName?: string; email?: string } = {};
+function Routed({workspace, account, plans, onSelectPlan, firebaseUser, profilePhoto, onProfilePhotoChange, onSaveProfile, onLogout}:{workspace:ReturnType<typeof useWorkspace>; account:AccountSummary|null; plans:AccountPlan[]; onSelectPlan:(planId:string, streamLimit:number, durationMultiplier?:number)=>Promise<AccountSummary>; firebaseUser:FirebaseUser|null; profilePhoto:string; onProfilePhotoChange:(photo:string)=>void; onSaveProfile:(profile:{displayName:string; email:string; phone?:string; profileImagePath?:string})=>Promise<void>; onLogout:()=>Promise<void>}) {
+  let localProfile: { displayName?: string; email?: string; phone?: string } = {};
   try {
-    localProfile = JSON.parse(localStorage.getItem(`reverse-bypass-profile:${workspace.licenseId}`) || "{}") as { displayName?: string; email?: string };
+    localProfile = JSON.parse(localStorage.getItem(`reverse-bypass-profile:${workspace.licenseId}`) || "{}") as { displayName?: string; email?: string; phone?: string };
   } catch {
     localProfile = {};
   }
@@ -5153,6 +5170,7 @@ function Routed({workspace, account, plans, onSelectPlan, firebaseUser, profileP
     id: `local-${workspace.licenseId || "profile"}`,
     displayName: localProfile.displayName || workspace.user || "Workspace user",
     email: localProfile.email || "",
+    phone: localProfile.phone || "",
     role: "user" as const,
     licenseId: workspace.licenseId,
     licenseKey: "",
@@ -5166,7 +5184,7 @@ function Routed({workspace, account, plans, onSelectPlan, firebaseUser, profileP
     createdAt: "",
     history: [],
   };
-  return <Switch><Route path="/dashboard"><Dashboard workspace={workspace} account={account}/></Route><Route path="/analytics"><AnalyticsPage workspace={workspace} account={account} onSavePhone={onSavePhone}/></Route><Route path="/aesthetics"><Redirect to="/analytics"/></Route><Route path="/live"><LivePage workspace={workspace} account={account}/></Route><Route path="/live-preview"><LivePreviewPage workspace={workspace}/></Route><Route path="/videos"><VideosPage workspace={workspace}/></Route><Route path="/editor"><VideoEditorPage workspace={workspace}/></Route><Route path="/subscription">{account ? <SubscriptionPage workspace={workspace} account={account} plans={plans} onSelectPlan={onSelectPlan}/> : <Redirect to="/sign-in"/>}</Route><Route path="/profile"><ProfilePage workspace={workspace} account={profileAccount} firebaseUser={firebaseUser} profilePhoto={profilePhoto} onProfilePhotoChange={onProfilePhotoChange} onSaveProfile={account ? onSaveProfile : undefined} onLogout={onLogout}/></Route><Route path="/settings"><Redirect to="/profile"/></Route><Route><NotFound/></Route></Switch>;
+  return <Switch><Route path="/dashboard"><Dashboard workspace={workspace} account={account}/></Route><Route path="/analytics"><AnalyticsPage workspace={workspace} account={account}/></Route><Route path="/aesthetics"><Redirect to="/analytics"/></Route><Route path="/live"><LivePage workspace={workspace} account={account}/></Route><Route path="/live-preview"><LivePreviewPage workspace={workspace}/></Route><Route path="/videos"><VideosPage workspace={workspace}/></Route><Route path="/editor"><VideoEditorPage workspace={workspace}/></Route><Route path="/subscription">{account ? <SubscriptionPage workspace={workspace} account={account} plans={plans} onSelectPlan={onSelectPlan}/> : <Redirect to="/sign-in"/>}</Route><Route path="/profile"><ProfilePage workspace={workspace} account={profileAccount} firebaseUser={firebaseUser} profilePhoto={profilePhoto} onProfilePhotoChange={onProfilePhotoChange} onSaveProfile={account ? onSaveProfile : undefined} onLogout={onLogout}/></Route><Route path="/settings"><Redirect to="/profile"/></Route><Route><NotFound/></Route></Switch>;
 }
 
 function useMinimumLoadingDuration(pending: boolean, durationMs = 2000) {
@@ -5243,7 +5261,9 @@ function App() {
     void signOut();
   }, Boolean(accountSession.account));
   useEffect(() => {
-    if (accountSession.account?.profileCompleted === false && !profileGateId) {
+    if (!accountSession.account) {
+      setProfileGateId(null);
+    } else if (!accountSession.account.phone || accountSession.account.profileCompleted === false) {
       setProfileGateId(accountSession.account.id);
     }
   }, [accountSession.account, profileGateId]);
@@ -5265,7 +5285,7 @@ function App() {
         : "Preparing your workspace…";
     return <WorkspaceLoading label={label} />;
   }
-  if (isOwnerRoute) return <OwnerConsolePage/>;
+  if (isOwnerRoute) return <><OwnerConsolePage/>{accountSession.account && profileGateId === accountSession.account.id && <AccountCompletionDialog account={accountSession.account} onSave={accountSession.saveProfile} onClose={() => setProfileGateId(null)} />}</>;
   if (location.startsWith("/sign-in") || location.startsWith("/sign-up")) {
     return <LicenseGate
       license={activeLicense}
@@ -5295,7 +5315,7 @@ function App() {
     }
     workspace.logout();
   };
-  return <><Routed workspace={workspace} account={accountSession.account} plans={accountSession.plans} onSelectPlan={accountSession.selectPlan} firebaseUser={user} profilePhoto={profilePhoto} onProfilePhotoChange={handleProfilePhotoChange} onSaveProfile={accountSession.saveProfile} onSavePhone={accountSession.savePhone} onLogout={handleLogout}/>{accountSession.account && profileGateId === accountSession.account.id && <AccountCompletionDialog account={accountSession.account} onSave={accountSession.saveProfile} onClose={() => setProfileGateId(null)} />}</>;
+  return <><Routed workspace={workspace} account={accountSession.account} plans={accountSession.plans} onSelectPlan={accountSession.selectPlan} firebaseUser={user} profilePhoto={profilePhoto} onProfilePhotoChange={handleProfilePhotoChange} onSaveProfile={accountSession.saveProfile} onLogout={handleLogout}/>{accountSession.account && profileGateId === accountSession.account.id && <AccountCompletionDialog account={accountSession.account} onSave={accountSession.saveProfile} onClose={() => setProfileGateId(null)} />}</>;
 }
 
 export default function RootApp() {
