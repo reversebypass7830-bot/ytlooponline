@@ -255,7 +255,8 @@ function resolveStreamIngestUrl(streamUrl: string, streamKey: string): string {
   }
   if (url.pathname.includes("http_upload_hls")) {
     if (!url.searchParams.get("cid")) url.searchParams.set("cid", key);
-    else if (!url.searchParams.get("stream_key")) url.searchParams.set("stream_key", key);
+    // YouTube's HLS URL already carries the stream key in `cid`.
+    url.searchParams.delete("stream_key");
   }
   return url.toString();
 }
