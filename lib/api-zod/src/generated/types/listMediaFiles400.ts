@@ -6,9 +6,6 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export type ListMediaFilesParams = {
-/**
- * @minLength 1
- */
-licenseId: string;
+export type ListMediaFiles400 = {
+  error: string;
 };

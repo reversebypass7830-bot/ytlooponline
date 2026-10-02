@@ -1055,9 +1055,10 @@ function useAccountSession(isSignedIn: boolean, userId?: string, authReady = tru
   return { account, plans, loading, error, reload, saveProfile, savePhone, claimOwner, selectPlan, clear };
 }
 
-function useWorkspace(license: LicenseSession | null, clearLicense: () => void) {
+function useWorkspace(license: LicenseSession | null, clearLicense: () => void, allowSharedOnly = false) {
   const [data, setData] = useState<DataState>(seed);
   const [ready, setReady] = useState(false);
+  const [privateWorkspaceLoaded, setPrivateWorkspaceLoaded] = useState(false);
   const [toast, setToast] = useState("");
   const [youtubeDownloads, setYoutubeDownloads] = useState<YoutubeDownloadTask[]>([]);
   const user = license?.name || "";
@@ -1066,103 +1067,141 @@ function useWorkspace(license: LicenseSession | null, clearLicense: () => void) 
   useEffect(() => {
     let cancelled = false;
     setReady(false);
-    if (!license || !isLicenseActive(license)) {
-      setData(seed); setReady(true);
+    setPrivateWorkspaceLoaded(false);
+    setData(seed);
+    const hasPrivateAccess = isLicenseActive(license);
+    if (!license || (!hasPrivateAccess && !allowSharedOnly)) {
+      setReady(true);
       return () => { cancelled = true; };
     }
+    const currentLicense = license;
+    const mediaScope = hasPrivateAccess ? currentLicense.licenseId : includedMediaLicenseId;
+    const workspaceClientId = currentLicense.clientId || getClientId();
+    const defaultIncludedFolder: IncludedFolderRecord = { path: includedFolderRoot, createdAt: now() };
     void Promise.all([
-      apiJson<{ data: DataState | null }>("/api/licenses/workspace/get", {
-        method: "POST",
-        body: JSON.stringify({ key: license.key, clientId: license.clientId }),
-      }),
-      apiJson<{ files: MediaFileRecord[] }>(`/api/media/files?licenseId=${encodeURIComponent(license.licenseId)}`).catch(() => ({ files: [] as MediaFileRecord[] })),
-      apiJson<IncludedFolderTreeResponse>("/api/media/included-folders").catch(() => ({ root: includedFolderRoot, folders: [] })),
-    ]).then(([workspaceResult, mediaResult, includedFolderResult]) => {
+      hasPrivateAccess
+        ? apiJson<{ data: DataState | null }>("/api/licenses/workspace/get", {
+            method: "POST",
+            body: JSON.stringify({ key: currentLicense.key, clientId: workspaceClientId }),
+          }).then((result) => ({ result, error: null as unknown }))
+            .catch((error: unknown) => ({ result: { data: null }, error }))
+        : Promise.resolve({ result: { data: null }, error: null as unknown }),
+      apiJson<{ files: MediaFileRecord[] }>(`/api/media/files?licenseId=${encodeURIComponent(mediaScope)}`)
+        .then((result) => ({ result, error: null as unknown }))
+        .catch((error: unknown) => ({ result: { files: [] as MediaFileRecord[] }, error })),
+      apiJson<IncludedFolderTreeResponse>("/api/media/included-folders")
+        .then((result) => ({ result, error: null as unknown }))
+        .catch((error: unknown) => ({ result: { root: includedFolderRoot, folders: [defaultIncludedFolder] }, error })),
+    ]).then(([workspaceOutcome, mediaOutcome, includedFolderOutcome]) => {
       if (cancelled) return;
-        const base = reconcileMediaFolders(
-          reconcileIncludedFolders(
-            normalizeWorkspace(workspaceResult.data),
-            includedFolderResult.folders,
-          ),
-         mediaResult.files,
-       );
-       const scopedBase = {
-         ...base,
-         videos: base.videos.map((video) => ({
-           ...video,
-           sourceUrl: scopedMediaPlaybackUrl(video.sourceUrl, video.licenseId, license.licenseId),
-         })),
-         editorAssets: base.editorAssets.map((asset) => ({
-           ...asset,
-           playbackUrl: scopedMediaPlaybackUrl(asset.playbackUrl, license.licenseId, license.licenseId),
-         })),
-       };
-      const availableMediaIds = new Set(mediaResult.files.map((file) => file.fileId));
-       const existingVideos = scopedBase.videos.filter((video) => {
-        const mediaFileId = getMediaFileId(video);
-        return !mediaFileId || availableMediaIds.has(mediaFileId);
-      });
-        const workspaceBase = existingVideos.length === scopedBase.videos.length
-          ? scopedBase
-          : reconcileMediaFolders(normalizeWorkspace({ ...scopedBase, videos: existingVideos }), mediaResult.files);
+      const mediaFiles = mediaOutcome.result.files;
+      const base = reconcileMediaFolders(
+        reconcileIncludedFolders(normalizeWorkspace(workspaceOutcome.result.data), includedFolderOutcome.result.folders),
+        mediaFiles,
+      );
+      const scopedBase = {
+        ...base,
+        videos: base.videos.map((video) => ({
+          ...video,
+          sourceUrl: scopedMediaPlaybackUrl(video.sourceUrl, video.licenseId, currentLicense.licenseId),
+        })),
+        editorAssets: base.editorAssets.map((asset) => ({
+          ...asset,
+          playbackUrl: scopedMediaPlaybackUrl(asset.playbackUrl, currentLicense.licenseId, currentLicense.licenseId),
+        })),
+      };
+      const availableMediaIds = new Set(mediaFiles.map((file) => file.fileId));
+      const existingVideos = mediaOutcome.error
+        ? scopedBase.videos
+        : scopedBase.videos.filter((video) => {
+            const mediaFileId = getMediaFileId(video);
+            return !mediaFileId || availableMediaIds.has(mediaFileId);
+          });
+      const workspaceBase = existingVideos.length === scopedBase.videos.length
+        ? scopedBase
+        : reconcileMediaFolders(normalizeWorkspace({ ...scopedBase, videos: existingVideos }), mediaFiles);
       const knownIds = new Set(workspaceBase.videos.map((video) => getMediaFileId(video)));
-      const extraFiles = mediaResult.files.filter((file) => !knownIds.has(file.fileId));
+      const extraFiles = mediaFiles.filter((file) => !knownIds.has(file.fileId));
       if (!extraFiles.length) {
         setData(workspaceBase);
+        setPrivateWorkspaceLoaded(hasPrivateAccess && !workspaceOutcome.error);
         setReady(true);
-        return;
+      } else {
+        let groups = [...workspaceBase.groups];
+        const extraVideos = extraFiles.map((file, index) => {
+          const folderName = file.folderName.trim();
+          const folderResult = ensureFolderPath(groups, folderName, file.createdAt);
+          groups = folderResult.groups;
+          const group = folderResult.group;
+          const video: VideoItem = {
+            id: `media-${file.fileId}`,
+            title: file.title || file.filename,
+            duration: file.duration || "00:00",
+            status: "published",
+            groupId: group?.id || "",
+            sourceUrl: scopedMediaPlaybackUrl(file.playbackUrl, file.licenseId, currentLicense.licenseId),
+            serverSource: file.sourcePath,
+            thumbnailColor: colors[index % colors.length],
+            views: 0,
+            createdAt: file.createdAt,
+            licenseId: file.licenseId,
+            licenseName: file.licenseName,
+            folderName: file.folderName,
+            quality: file.quality,
+          };
+          if (group && !group.videoIds.includes(video.id)) {
+            groups = groups.map((item) => item.id === group.id ? { ...item, videoIds: [...item.videoIds, video.id] } : item);
+          }
+          return video;
+        });
+        setData(normalizeWorkspace({ ...workspaceBase, groups, videos: [...workspaceBase.videos, ...extraVideos] }));
+        setPrivateWorkspaceLoaded(hasPrivateAccess && !workspaceOutcome.error);
+        setReady(true);
       }
-      let groups = [...workspaceBase.groups];
-      const extraVideos = extraFiles.map((file, index) => {
-        const folderName = file.folderName.trim();
-        const folderResult = ensureFolderPath(groups, folderName, file.createdAt);
-        groups = folderResult.groups;
-        const group = folderResult.group;
-        const video: VideoItem = {
-          id: `media-${file.fileId}`,
-          title: file.title || file.filename,
-          duration: file.duration || "00:00",
-          status: "published",
-          groupId: group?.id || "",
-          sourceUrl: scopedMediaPlaybackUrl(file.playbackUrl, file.licenseId, license.licenseId),
-          serverSource: file.sourcePath,
-          thumbnailColor: colors[index % colors.length],
-          views: 0,
-          createdAt: file.createdAt,
-          licenseId: file.licenseId,
-          licenseName: file.licenseName,
-          folderName: file.folderName,
-          quality: file.quality,
-        };
-        if (group && !group.videoIds.includes(video.id)) {
-          groups = groups.map((item) => item.id === group?.id ? { ...item, videoIds: [...item.videoIds, video.id] } : item);
-        }
-        return video;
-      });
-      setData(normalizeWorkspace({ ...workspaceBase, groups, videos: [...workspaceBase.videos, ...extraVideos] }));
-      setReady(true);
+
+      const loadWarnings = [
+        workspaceOutcome.error ? "Your workspace could not be loaded." : "",
+        mediaOutcome.error ? "Media files could not be refreshed; saved items were preserved." : "",
+        includedFolderOutcome.error ? "Some shared folders could not be loaded." : "",
+      ].filter(Boolean);
+      if (loadWarnings.length) {
+        const sharedStillLoaded = !mediaOutcome.error;
+        setToast(`${loadWarnings.join(" ")}${sharedStillLoaded ? " Available shared animations were kept." : ""}`);
+      }
     }).catch((reason) => {
       if (!cancelled) {
         setData(normalizeWorkspace(null));
-         const message = reason instanceof Error ? reason.message : "Could not load the workspace.";
-          if (!isLicenseRequirementMessage(message)) setToast(message);
+        setPrivateWorkspaceLoaded(false);
+        const message = reason instanceof Error ? reason.message : "Could not load the workspace.";
+        if (!isLicenseRequirementMessage(message)) setToast(message);
         setReady(true);
       }
     });
     return () => { cancelled = true; };
-  }, [license?.licenseId, license?.key, license?.clientId]);
+  }, [license?.licenseId, license?.key, license?.clientId, license?.active, license?.expiresAt, allowSharedOnly]);
   const refreshIncludedAnimations = useCallback(async () => {
     const requestedLicenseId = license?.licenseId;
-    if (!requestedLicenseId || !isLicenseActive(license)) return;
-    const [mediaResult, folderResult] = await Promise.all([
-      apiJson<{ files: MediaFileRecord[] }>(`/api/media/files?licenseId=${encodeURIComponent(requestedLicenseId)}`),
-      apiJson<IncludedFolderTreeResponse>("/api/media/included-folders"),
+    const hasPrivateAccess = isLicenseActive(license);
+    if (!requestedLicenseId || (!hasPrivateAccess && !(allowSharedOnly && license))) return;
+    const mediaScope = hasPrivateAccess ? requestedLicenseId : includedMediaLicenseId;
+    const [mediaOutcome, folderOutcome] = await Promise.all([
+      apiJson<{ files: MediaFileRecord[] }>(`/api/media/files?licenseId=${encodeURIComponent(mediaScope)}`)
+        .then((result) => ({ result, error: null as unknown }))
+        .catch((error: unknown) => ({ result: { files: [] as MediaFileRecord[] }, error })),
+      apiJson<IncludedFolderTreeResponse>("/api/media/included-folders")
+        .then((result) => ({ result, error: null as unknown }))
+        .catch((error: unknown) => ({ result: { root: includedFolderRoot, folders: [] }, error })),
     ]);
     if (licenseIdRef.current !== requestedLicenseId) return;
-    const includedFiles = mediaResult.files.filter((file) => file.licenseId === includedMediaLicenseId);
+    if (mediaOutcome.error && folderOutcome.error) {
+      throw mediaOutcome.error instanceof Error ? mediaOutcome.error : new Error("Shared animations could not be refreshed.");
+    }
+    const includedFiles = mediaOutcome.error
+      ? null
+      : mediaOutcome.result.files.filter((file) => file.licenseId === includedMediaLicenseId);
     setData((current) => {
       let groups = [...current.groups];
-      for (const folder of folderResult.folders) {
+      for (const folder of folderOutcome.result.folders) {
         groups = ensureFolderPath(groups, folder.path, folder.createdAt).groups;
       }
       const existingIncludedByFileId = new Map(
@@ -1171,7 +1210,7 @@ function useWorkspace(license: LicenseSession | null, clearLicense: () => void) 
           .map((video) => [getMediaFileId(video), video] as const)
           .filter((entry): entry is readonly [string, VideoItem] => Boolean(entry[0])),
       );
-      const includedVideos = includedFiles.map((file, index): VideoItem => {
+      const includedVideos = includedFiles?.map((file, index): VideoItem => {
         const folderResult = ensureFolderPath(groups, file.folderName, file.createdAt);
         groups = folderResult.groups;
         const existing = existingIncludedByFileId.get(file.fileId);
@@ -1193,27 +1232,33 @@ function useWorkspace(license: LicenseSession | null, clearLicense: () => void) 
           quality: file.quality,
         };
       });
-      const videos = [...current.videos.filter((video) => !isIncludedVideo(video)), ...includedVideos];
+      const videos = [
+        ...current.videos.filter((video) => !isIncludedVideo(video)),
+        ...(includedVideos || current.videos.filter(isIncludedVideo)),
+      ];
       return normalizeWorkspace({
         ...current,
         groups: rebuildGroupMembership(groups, videos),
         videos,
       });
     });
-  }, [license?.licenseId, license?.active, license?.expiresAt]);
+    if (mediaOutcome.error || folderOutcome.error) {
+      setToast("Shared animations were only partially refreshed. Existing animations remain available.");
+    }
+  }, [license?.licenseId, license?.active, license?.expiresAt, allowSharedOnly]);
   useEffect(() => {
-    if (!ready || !license || !isLicenseActive(license)) return;
+    if (!ready || !privateWorkspaceLoaded || !license || !isLicenseActive(license)) return;
     const timer = window.setTimeout(() => {
       void apiJson("/api/licenses/workspace", {
         method: "PUT",
-        body: JSON.stringify({ key: license.key, clientId: license.clientId, data }),
+        body: JSON.stringify({ key: license.key, clientId: license.clientId || getClientId(), data }),
        }).catch((reason) => {
          const message = reason instanceof Error ? reason.message : "Could not save the workspace.";
           if (!isLicenseRequirementMessage(message)) setToast(message);
        });
     }, 250);
     return () => window.clearTimeout(timer);
-  }, [data, ready, license?.licenseId, license?.key, license?.clientId]);
+  }, [data, ready, privateWorkspaceLoaded, license?.licenseId, license?.key, license?.clientId]);
   useEffect(() => { if (!toast) return; const timer = setTimeout(() => setToast(""), 2600); return () => clearTimeout(timer); }, [toast]);
   const addActivity = (message: string, type = "edit") => ({ id:uid("act"), type, message, time:"Just now" });
   const update = (next: Partial<DataState>, activity?: { message: string; type?: string }) => {
@@ -3702,6 +3747,11 @@ function VideoEditorPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}
       }),
     [data.groups, editorGroups],
   );
+  const includedRootFolder = useMemo(
+    () => animationFolders.find((group) => group.id === includedAnimationFolderId)
+      || animationFolders.find((group) => folderPathForGroup(group.id, data.groups).toLowerCase() === includedFolderRoot.toLowerCase()),
+    [animationFolders, data.groups],
+  );
   const personalGroupVideos = useMemo(
     () => selectedGroup
       ? videosForFolderScope(selectedGroup.id, data.groups, data.videos).filter((video) => video.serverSource)
@@ -3770,6 +3820,13 @@ function VideoEditorPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}
     }
     setDraftHydrated(true);
   }, [draftHydrated, editorDraft]);
+  useEffect(() => {
+    if (!draftHydrated || !workspace.ready || editorLibrary !== "youtube") return;
+    const selected = data.groups.find((group) => group.id === animationGroupId);
+    if (selected && isAnimationFolder(selected.id, data.groups)) return;
+    const fallbackFolder = includedRootFolder || animationFolders.find((group) => group.id === myAnimationFolderId);
+    setAnimationGroupId(fallbackFolder?.id || "");
+  }, [animationGroupId, animationFolders, data.groups, draftHydrated, editorLibrary, includedRootFolder, workspace.ready]);
   useEffect(() => {
     if (!draftHydrated) return;
     update({
@@ -3879,6 +3936,7 @@ function VideoEditorPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}
     setAnimationId("");
     setSelectedLayer("main");
     if (nextLibrary === "youtube") {
+      setAnimationGroupId(includedRootFolder?.id || "");
       void workspace.refreshIncludedAnimations().catch((reason) => {
         setToast(reason instanceof Error ? reason.message : "Shared animations could not be refreshed.");
       });
@@ -4101,14 +4159,14 @@ function VideoEditorPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}
          </div>}
          <aside className="editor-controls">
            <section className={mobilePanelClass("files")} data-mobile-editor-panel="files">
-              <div className="section-head"><div><h2 className="section-title">1. Choose files & source layers</h2><p className="subtle">Choose your files first. Personal videos and Admin + My animations stay in separate tabs.</p></div><FileVideo size={17} color="#6c8b83"/></div>
+              <div className="section-head"><div><h2 className="section-title">1. Choose files & source layers</h2><p className="subtle">Choose your files first. Personal videos and Included Animations stay in separate tabs.</p></div><FileVideo size={17} color="#6c8b83"/></div>
              <div className="editor-library-tabs" role="tablist" aria-label="Editor libraries">
                 <button type="button" className={editorLibrary === "personal" ? "active" : ""} onClick={() => chooseEditorLibrary("personal")} role="tab" aria-selected={editorLibrary === "personal"} data-testid="button-editor-personal-library"><FileVideo size={13}/> Personal video</button>
-                <button type="button" className={editorLibrary === "youtube" ? "active" : ""} onClick={() => chooseEditorLibrary("youtube")} role="tab" aria-selected={editorLibrary === "youtube"} data-testid="button-editor-youtube-animations"><Youtube size={13}/> Admin + My animations</button>
+                <button type="button" className={editorLibrary === "youtube" ? "active" : ""} onClick={() => chooseEditorLibrary("youtube")} role="tab" aria-selected={editorLibrary === "youtube"} data-testid="button-editor-youtube-animations"><Youtube size={13}/> Included + My animations</button>
              </div>
-              {editorLibrary === "youtube" ? <><div className="editor-category-lock"><FolderOpen size={15}/><div><strong>Animation overlays</strong><span>Admin Included + your My Animations · kept separate from Personal video</span></div><ShieldCheck size={14}/></div><div className="editor-animation-folders">{animationFolders.map((folder) => { const count = data.videos.filter((video) => video.serverSource && isVideoInFolderScope(video, folder.id, data.groups)).length; const label = folderPathForGroup(folder.id, data.groups).replace(`${youtubeAnimationRootName}/`, ""); return <button type="button" key={folder.id} className={`editor-animation-folder ${animationGroupId === folder.id ? "selected" : ""}`} onClick={() => setGroup(folder.id)} aria-label={`Open ${label}`}><FolderOpen size={17}/><span><strong>{folder.name}</strong><small>{label} · {count} video{count === 1 ? "" : "s"}</small></span><ArrowRight size={13}/></button>; })}</div></> : <select value={groupId} onChange={(event) => setGroup(event.target.value)} data-testid="select-editor-group"><option value="">Select personal category</option>{editorGroups.map((group) => <option key={group.id} value={group.id}>{folderPathForGroup(group.id, data.groups)}</option>)}</select>}
-            <div className="editor-clip-list">{groupVideos.length ? groupVideos.map((video, index) => <EditorClipCard key={video.id} video={video} index={index} licenseId={workspace.licenseId} animationMode={editorLibrary === "youtube"} selected={editorLibrary === "youtube" ? animationId === video.id : selectedIds.includes(video.id)} onToggle={() => editorLibrary === "youtube" ? selectAnimation(video.id) : toggleVideo(video.id)} />) : <div className="editor-mini-empty"><FolderOpen size={17}/>{editorLibrary === "youtube" ? "Choose Included Animations or My Animations to see overlay videos." : "Choose a personal category to see its videos."}</div>}</div>
-              <div className="editor-selected-folder">{editorLibrary === "youtube" ? (selectedAnimationGroup ? <><FolderOpen size={13}/><span>Overlay folder: <strong>{folderPathForGroup(selectedAnimationGroup.id, data.groups).replace(`${youtubeAnimationRootName}/`, "") || selectedAnimationGroup.name}</strong></span></> : <span>Choose Admin Included or My Animations.</span>) : (selectedGroup ? <><FolderOpen size={13}/><span>Main folder: <strong>{folderPathForGroup(selectedGroup.id, data.groups)}</strong></span></> : <span>Choose a personal category for the main video.</span>)}</div>
+              {editorLibrary === "youtube" ? <><div className="editor-category-lock"><FolderOpen size={15}/><div><strong>Animation overlays</strong><span>Included Animations + your private My Animations · kept separate from Personal video</span></div><ShieldCheck size={14}/></div><div className="editor-animation-folders">{animationFolders.map((folder) => { const count = data.videos.filter((video) => video.serverSource && isVideoInFolderScope(video, folder.id, data.groups)).length; const label = folderPathForGroup(folder.id, data.groups).replace(`${youtubeAnimationRootName}/`, ""); return <button type="button" key={folder.id} className={`editor-animation-folder ${animationGroupId === folder.id ? "selected" : ""}`} onClick={() => setGroup(folder.id)} aria-label={`Open ${label}`}><FolderOpen size={17}/><span><strong>{folder.name}</strong><small>{label} · {count} video{count === 1 ? "" : "s"}</small></span><ArrowRight size={13}/></button>; })}</div></> : <select value={groupId} onChange={(event) => setGroup(event.target.value)} data-testid="select-editor-group"><option value="">Select personal category</option>{editorGroups.map((group) => <option key={group.id} value={group.id}>{folderPathForGroup(group.id, data.groups)}</option>)}</select>}
+             <div className="editor-clip-list">{groupVideos.length ? groupVideos.map((video, index) => <EditorClipCard key={video.id} video={video} index={index} licenseId={workspace.licenseId} animationMode={editorLibrary === "youtube"} selected={editorLibrary === "youtube" ? animationId === video.id : selectedIds.includes(video.id)} onToggle={() => editorLibrary === "youtube" ? selectAnimation(video.id) : toggleVideo(video.id)} />) : <div className="editor-mini-empty"><FolderOpen size={17}/>{editorLibrary === "youtube" ? selectedAnimationGroup ? "No overlay videos are available in this folder or its subfolders yet." : "No shared or private animation folders are available." : "Choose a personal category to see its videos."}</div>}</div>
+               <div className="editor-selected-folder">{editorLibrary === "youtube" ? (selectedAnimationGroup ? <><FolderOpen size={13}/><span>Overlay folder: <strong>{folderPathForGroup(selectedAnimationGroup.id, data.groups).replace(`${youtubeAnimationRootName}/`, "") || selectedAnimationGroup.name}</strong></span></> : <span>Choose a shared or private animation folder.</span>) : (selectedGroup ? <><FolderOpen size={13}/><span>Main folder: <strong>{folderPathForGroup(selectedGroup.id, data.groups)}</strong></span></> : <span>Choose a personal category for the main video.</span>)}</div>
           </section>
           <section className={mobilePanelClass("timing")} data-mobile-editor-panel="timing">
              <div className="section-head"><div><h2 className="section-title">2. Timing & output</h2><p className="subtle">Choose whether this edit is a vertical Short or a landscape Long video.</p></div><Type size={17} color="#6c8b83"/></div>
@@ -4853,6 +4911,7 @@ function App() {
     name: accountSession.account.displayName || user?.email || "Workspace",
     expiresAt: accountSession.account.accessEndsAt,
     active: accountSession.account.active,
+    clientId: license.clientId,
   } satisfies LicenseSession : null;
   const activeLicense = hasAccountSession ? accountLicense : license.license;
   const [location, setLocation] = useLocation();
@@ -4863,7 +4922,7 @@ function App() {
     accountSession.clear();
     void apiJson("/api/mobile-auth/logout", { method: "POST" }).catch(() => undefined);
     void signOut();
-  });
+  }, Boolean(accountSession.account));
   useEffect(() => {
     if (accountSession.account?.profileCompleted === false && !profileGateId) {
       setProfileGateId(accountSession.account.id);
@@ -4903,7 +4962,7 @@ function App() {
   const openMobileRoom = () => { setMobileGiftKey(""); setLocation("/dashboard"); };
   if (location === "/access") return <LicenseGate license={activeLicense} busy={license.busy} error={license.error || firebaseError} signedIn={Boolean(isSignedIn || hasAccountSession)} onActivate={license.activate} onRenew={license.renew} onGoogleLogin={() => setLocation("/sign-in")} onMobileAccountLogin={accountSession.reload} onGiftReady={setMobileGiftKey} onOpenRoom={openMobileRoom}/>;
   if (!hasAccountSession && (!activeLicense || !isLicenseActive(activeLicense))) return <LicenseGate license={activeLicense} busy={license.busy} error={license.error || firebaseError} signedIn={Boolean(isSignedIn || hasAccountSession)} onActivate={license.activate} onRenew={license.renew} onGoogleLogin={() => setLocation("/sign-in")} onMobileAccountLogin={accountSession.reload} onGiftReady={setMobileGiftKey} onOpenRoom={openMobileRoom}/>;
-  if (!workspace.ready && !(accountSession.account && !accountSession.account.active && location === "/subscription")) return <div className="workspace-loading"><Radio size={20}/><span>Loading your private workspace…</span></div>;
+  if (!workspace.ready && !(accountSession.account && !accountSession.account.active && location === "/subscription")) return <div className="workspace-loading"><Radio size={20}/><span>Loading your media library…</span></div>;
   const handleLogout = async () => {
     if (user) {
       await signOut();

@@ -198,9 +198,10 @@ paths:
       parameters:
         - name: licenseId
           in: query
-          required: false
+          required: true
           schema:
             type: string
+            minLength: 1
       responses:
         "200":
           description: Stored media files
@@ -208,6 +209,16 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/MediaFileListResponse"
+        "400":
+          description: A license or shared-library scope is required
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [error]
+                properties:
+                  error:
+                    type: string
   /media/included-folders:
     get:
       operationId: listIncludedAnimationFolders

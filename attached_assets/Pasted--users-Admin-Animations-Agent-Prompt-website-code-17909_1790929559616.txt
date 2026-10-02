@@ -1,0 +1,64 @@
+# सभी users को Admin Animations दिखाने के लिए Agent Prompt
+
+नीचे दिए गए निर्देशों को website के codebase पर लागू करें:
+
+---
+
+## लक्ष्य
+
+Admin द्वारा साझा library में upload, download या import किए गए सभी animations हर मौजूदा और नए user account को दिखाई देने चाहिए और editor में overlay के रूप में इस्तेमाल किए जा सकें।
+
+Shared library का UI नाम `Admin Included` / `Included Animations` हो सकता है। इसे user की private `My Animations` और `Personal video` library से अलग रखें।
+
+## अभी दिख रही समस्या
+
+Admin के पास shared Included Animations और उसके subfolders में videos हैं, लेकिन user के editor में खाली सूची और ऐसे संदेश दिखते हैं:
+
+- “Choose Included Animations or My Animations to see overlay videos.”
+- “Choose Admin Included or My Animations.”
+
+केवल इन messages को बदलना या videos को हर user workspace में copy करना समाधान नहीं है। Admin से लेकर user के editor और video playback तक पूरा data flow trace करें।
+
+## पहले जाँचें
+
+1. Admin द्वारा animation upload/download/import होने के बाद file, metadata और folder path कहाँ save होते हैं।
+2. Media-list API किसी license/account के लिए user की अपनी media के साथ admin-shared media कैसे लौटाती है।
+3. Account sign-in और license sign-in दोनों से workspace loading में कौन-सा account ID, license ID और persistent browser/client ID भेजा जाता है।
+4. नए, पुराने और inactive signed-in accounts के लिए workspace loader और editor-folder initialization कैसे काम करते हैं।
+5. Editor में `Admin Included` चुनने पर संबंधित folder और उसके subfolders के videos कैसे filter और play होते हैं।
+
+## ज़रूरी व्यवहार
+
+- हर authorized user को सभी admin-shared animations दिखें—सिर्फ admin के account या एक खास license पर नहीं।
+- नए user को account बनाते ही और पुराने user को अगली बार editor खोलने या refresh करने पर shared animations मिलें; हर user के लिए अलग से copy/seed न बनानी पड़े।
+- Shared videos अपनी admin-managed Included folder hierarchy में रहें। `My Animations` और `Personal video` private और अलग रहें।
+- किसी user को दूसरे users की private media न मिले।
+- यदि inactive signed-in accounts को editor खोलने की अनुमति है, तो उन्हें shared Included media और उसके folders दिखाएँ, लेकिन उनकी private workspace/media को इस flow में न खोलें। मौजूदा access policy न बदलें।
+- Account-based workspace request को API के ज़रूरी persistent browser/client ID सहित भेजें; request fail होने पर successful shared-media response चुपचाप discard न हो।
+- Admin के पास shared media जोड़ने, बदलने और हटाने का अधिकार बना रहे। साधारण users को केवल देखने और इस्तेमाल करने दें—उनकी permissions न बढ़ाएँ।
+- Blank या stale folder selection पर editor `Included Animations` चुने, या उसे स्पष्ट रूप से उपलब्ध कराए। User को ऐसा empty state न मिले जिसमें चुनने के लिए कोई valid folder ही न हो।
+- Shared media के playback/preview URLs दूसरे authorized users के लिए काम करें।
+- बिना license/account scope वाला ऐसा API request न करें जो गलती से सभी users की private files लौटा दे।
+
+## स्वीकार्यता जाँच
+
+काम पूरा तभी मानें जब:
+
+1. एक नए account और एक पहले से मौजूद account—दोनों में admin-shared videos editor की `Animation overlays` सूची में दिखें।
+2. `Included Animations` चुनने पर उस folder के direct videos और subfolders के videos सही रूप से दिखाई दें और preview/playback हो।
+3. Admin द्वारा बाद में जोड़ा गया नया animation भी user को refresh/reopen के बाद दिखे।
+4. `My Animations` और `Personal video` अलग रहें; दूसरे users की private files कभी न दिखें।
+5. यदि inactive signed-in user editor खोल सकता है, तो उसे सिर्फ shared animations दिखें—private workspace नहीं।
+6. खाली, पुराने या किसी दूसरे account से आए folder IDs के कारण editor फिर से बिना चयन वाले empty state में न फँसे।
+7. संबंधित typecheck/build और उपलब्ध API/UI tests पास हों। सिर्फ API response देखकर feature complete न मानें; editor में videos दिखना भी जाँचें।
+
+## सीमाएँ
+
+- Authentication bypass न करें और shared media दिखाने के लिए login/license सुरक्षा न हटाएँ।
+- Admin permissions, private media rules या storage system को अनावश्यक रूप से न बदलें।
+- Videos के नाम hardcode न करें और हर account के लिए duplicate files न बनाएं।
+- किसी data migration या destructive change से पहले उसका असर स्पष्ट करें।
+
+काम के अंत में बताएं कि कौन-सी files बदलीं, नए और पुराने accounts में क्या verify किया, और क्या अभी भी sign-in या production access के कारण verify नहीं हो सका।
+
+---

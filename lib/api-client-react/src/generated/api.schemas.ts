@@ -724,7 +724,14 @@ export interface WorkspaceSaveResponse {
 export type OwnerPasswordParameter = string;
 
 export type ListMediaFilesParams = {
-licenseId?: string;
+/**
+ * @minLength 1
+ */
+licenseId: string;
+};
+
+export type ListMediaFiles400 = {
+  error: string;
 };
 
 export type DeleteIncludedFolderParams = {

@@ -391,6 +391,7 @@ export const UpdateStreamBody = zod.object({
   "logoPosition": zod.enum(['top-left', 'top-right', 'bottom-left', 'bottom-right']).default(updateStreamBodyCompositionLogoPositionDefault),
   "logoScale": zod.number().min(updateStreamBodyCompositionLogoScaleMin).max(updateStreamBodyCompositionLogoScaleMax).default(updateStreamBodyCompositionLogoScaleDefault),
   "animationPreset": zod.enum(['none', 'subscribe', 'like', 'follow']).default(updateStreamBodyCompositionAnimationPresetDefault),
+  "comingSoon": zod.boolean().optional().describe('Show a COMING SOON lower-third in the live composition.'),
   "brightness": zod.number().min(updateStreamBodyCompositionBrightnessMin).max(updateStreamBodyCompositionBrightnessMax).default(updateStreamBodyCompositionBrightnessDefault),
   "contrast": zod.number().min(updateStreamBodyCompositionContrastMin).max(updateStreamBodyCompositionContrastMax).default(updateStreamBodyCompositionContrastDefault),
   "saturation": zod.number().min(updateStreamBodyCompositionSaturationMin).max(updateStreamBodyCompositionSaturationMax).default(updateStreamBodyCompositionSaturationDefault),
@@ -489,8 +490,11 @@ export const DeleteMediaFileResponse = zod.object({
 /**
  * @summary List media files stored on the server
  */
+
+
+
 export const ListMediaFilesQueryParams = zod.object({
-  "licenseId": zod.coerce.string().optional()
+  "licenseId": zod.coerce.string().min(1)
 })
 
 export const ListMediaFilesResponse = zod.object({

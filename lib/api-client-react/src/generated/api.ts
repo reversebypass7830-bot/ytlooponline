@@ -40,6 +40,7 @@ import type {
   LicenseClientInput,
   LicenseListResponse,
   LicenseWorkspaceResponse,
+  ListMediaFiles400,
   ListMediaFilesParams,
   MediaDeleteResponse,
   MediaFileListResponse,
@@ -680,7 +681,7 @@ export const useDeleteMediaFile = <TError = ErrorType<void>,
       return useMutation(getDeleteMediaFileMutationOptions(options));
     }
 
-export const getListMediaFilesUrl = (params?: ListMediaFilesParams,) => {
+export const getListMediaFilesUrl = (params: ListMediaFilesParams,) => {
   const normalizedParams = new URLSearchParams();
 
   Object.entries(params || {}).forEach(([key, value]) => {
@@ -698,7 +699,7 @@ export const getListMediaFilesUrl = (params?: ListMediaFilesParams,) => {
 /**
  * @summary List media files stored on the server
  */
-export const listMediaFiles = async (params?: ListMediaFilesParams, options?: Parameters<typeof customFetch>[1]): Promise<MediaFileListResponse> => {
+export const listMediaFiles = async (params: ListMediaFilesParams, options?: Parameters<typeof customFetch>[1]): Promise<MediaFileListResponse> => {
 
   return customFetch<MediaFileListResponse>(getListMediaFilesUrl(params),
   {
@@ -720,7 +721,7 @@ export const getListMediaFilesQueryKey = (params?: ListMediaFilesParams,) => {
     }
 
 
-export const getListMediaFilesQueryOptions = <TData = Awaited<ReturnType<typeof listMediaFiles>>, TError = ErrorType<unknown>>(params?: ListMediaFilesParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listMediaFiles>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export const getListMediaFilesQueryOptions = <TData = Awaited<ReturnType<typeof listMediaFiles>>, TError = ErrorType<ListMediaFiles400>>(params: ListMediaFilesParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listMediaFiles>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
@@ -739,15 +740,15 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 }
 
 export type ListMediaFilesQueryResult = NonNullable<Awaited<ReturnType<typeof listMediaFiles>>>
-export type ListMediaFilesQueryError = ErrorType<unknown>
+export type ListMediaFilesQueryError = ErrorType<ListMediaFiles400>
 
 
 /**
  * @summary List media files stored on the server
  */
 
-export function useListMediaFiles<TData = Awaited<ReturnType<typeof listMediaFiles>>, TError = ErrorType<unknown>>(
- params?: ListMediaFilesParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listMediaFiles>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export function useListMediaFiles<TData = Awaited<ReturnType<typeof listMediaFiles>>, TError = ErrorType<ListMediaFiles400>>(
+ params: ListMediaFilesParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listMediaFiles>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 

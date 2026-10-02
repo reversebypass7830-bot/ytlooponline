@@ -612,6 +612,12 @@ async function runYoutubeDownloadJob(jobId: string, input: YoutubeDownloadInput)
 }
 
 router.get("/media/files", async (req, res): Promise<void> => {
+  const rawLicenseId = req.query.licenseId;
+  const licenseId = typeof rawLicenseId === "string" ? rawLicenseId.trim() : "";
+  if (!licenseId) {
+    res.status(400).json({ error: "A license or shared-library scope is required." });
+    return;
+  }
   await mediaIndexWrite;
   const records = await readMediaIndex();
   const indexed = new Map(records.map((record) => [record.fileId, record]));
@@ -641,10 +647,7 @@ router.get("/media/files", async (req, res): Promise<void> => {
       sizeBytes: fileStats.size,
     });
   }
-  const licenseId = typeof req.query.licenseId === "string" ? req.query.licenseId : "";
-  const filtered = licenseId
-    ? result.filter((file) => file.licenseId === licenseId || file.licenseId === includedMediaLicenseId)
-    : result;
+  const filtered = result.filter((file) => file.licenseId === licenseId || file.licenseId === includedMediaLicenseId);
   res.json(ListMediaFilesResponse.parse({ files: filtered.sort((a, b) => b.createdAt.localeCompare(a.createdAt)) }));
 });
 
