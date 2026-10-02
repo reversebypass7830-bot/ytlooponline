@@ -629,6 +629,11 @@ input:focus, textarea:focus, select:focus { border-color:#5fa49d; box-shadow:0 0
 .editor-library-tabs button.active { border-color:#287f7a; color:#145a56; background:#dff1e6; box-shadow:inset 0 -2px #287f7a; }
 .editor-layer-note { display:flex; justify-content:space-between; align-items:center; gap:10px; margin:-5px 0 4px; color:#55706b; font:10px var(--app-font-mono); }
 .editor-layer-note .section-link { display:inline-flex; align-items:center; gap:3px; border:0; background:none; padding:0; cursor:pointer; }
+.editor-animation-selection-list { display:grid; gap:8px; margin:10px 0 14px; }
+.editor-animation-selection-list > strong { color:#344540; font-size:11px; }
+.editor-animation-selection-list .editor-layer-note { margin:0; gap:12px; }
+.editor-animation-selection-list .editor-layer-note > span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.editor-animation-selection-list .editor-layer-note > div { display:flex; flex:0 0 auto; gap:10px; }
 .editor-transform-controls { display:grid; gap:10px; margin-top:13px; padding:12px; border:1px solid #d6e3d7; border-radius:10px; background:#f4f8ef; }
 .editor-toggle-control { margin:3px 0 12px; }
 .editor-effect-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:13px; }
@@ -9496,6 +9501,10 @@ select { height: 41px; }
   color: #6b7280;
 }
 
+.shell.video-editor-surface .editor-animation-selection-list > strong {
+  color: #111827;
+}
+
 .shell.video-editor-surface .editor-clip-check input {
   accent-color: #111827;
 }
@@ -9663,7 +9672,7 @@ select { height: 41px; }
 
 .shell.video-editor-surface .editor-timeline-labels {
   display: grid;
-  grid-template-rows: 29px repeat(3, 51px);
+  grid-template-rows: 29px repeat(4, 51px);
   border-right: 1px solid #e5e7eb;
   background: #ffffff;
 }
@@ -9683,7 +9692,7 @@ select { height: 41px; }
 .shell.video-editor-surface .editor-timeline-grid {
   position: relative;
   display: grid;
-  grid-template-rows: 29px repeat(3, 51px);
+  grid-template-rows: 29px repeat(4, 51px);
   min-width: 0;
 }
 
@@ -9740,6 +9749,17 @@ select { height: 41px; }
   border-color: #c4b5fd;
   color: #5b21b6;
   background: #ddd6fe;
+}
+
+.shell.video-editor-surface .editor-timeline-animation-lane {
+  overflow-x: auto;
+}
+
+.shell.video-editor-surface .editor-timeline-animation-block {
+  max-width: 220px;
+  border-color: #93c5fd;
+  color: #1d4ed8;
+  background: #dbeafe;
 }
 
 .shell.video-editor-surface .editor-timeline-audio-block {

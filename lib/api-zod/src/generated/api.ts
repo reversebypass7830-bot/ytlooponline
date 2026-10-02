@@ -89,12 +89,25 @@ export const startStreamBodyCompositionAnimationScaleDefault = 0.25;
 export const startStreamBodyCompositionAnimationScaleMin = 0.1;
 export const startStreamBodyCompositionAnimationScaleMax = 0.8;
 
+export const startStreamBodyCompositionAnimationLayersItemXDefault = 0;
+export const startStreamBodyCompositionAnimationLayersItemXMin = -48;
+export const startStreamBodyCompositionAnimationLayersItemXMax = 48;
+
+export const startStreamBodyCompositionAnimationLayersItemYDefault = 0;
+export const startStreamBodyCompositionAnimationLayersItemYMin = -48;
+export const startStreamBodyCompositionAnimationLayersItemYMax = 48;
+
+export const startStreamBodyCompositionAnimationLayersItemScaleDefault = 0.25;
+export const startStreamBodyCompositionAnimationLayersItemScaleMin = 0.1;
+export const startStreamBodyCompositionAnimationLayersItemScaleMax = 0.8;
+
 export const startStreamBodyCompositionLogoPositionDefault = `bottom-right`;
 export const startStreamBodyCompositionLogoScaleDefault = 0.25;
 export const startStreamBodyCompositionLogoScaleMin = 0.1;
 export const startStreamBodyCompositionLogoScaleMax = 0.6;
 
 export const startStreamBodyCompositionAnimationPresetDefault = `none`;
+export const startStreamBodyCompositionComingSoonDefault = false;
 export const startStreamBodyCompositionBrightnessDefault = 0;
 export const startStreamBodyCompositionBrightnessMin = -1;
 export const startStreamBodyCompositionBrightnessMax = 1;
@@ -174,11 +187,17 @@ export const StartStreamBody = zod.object({
   "animationX": zod.number().min(startStreamBodyCompositionAnimationXMin).max(startStreamBodyCompositionAnimationXMax).default(startStreamBodyCompositionAnimationXDefault),
   "animationY": zod.number().min(startStreamBodyCompositionAnimationYMin).max(startStreamBodyCompositionAnimationYMax).default(startStreamBodyCompositionAnimationYDefault),
   "animationScale": zod.number().min(startStreamBodyCompositionAnimationScaleMin).max(startStreamBodyCompositionAnimationScaleMax).default(startStreamBodyCompositionAnimationScaleDefault),
+  "animationLayers": zod.array(zod.object({
+  "source": zod.string(),
+  "x": zod.number().min(startStreamBodyCompositionAnimationLayersItemXMin).max(startStreamBodyCompositionAnimationLayersItemXMax).default(startStreamBodyCompositionAnimationLayersItemXDefault),
+  "y": zod.number().min(startStreamBodyCompositionAnimationLayersItemYMin).max(startStreamBodyCompositionAnimationLayersItemYMax).default(startStreamBodyCompositionAnimationLayersItemYDefault),
+  "scale": zod.number().min(startStreamBodyCompositionAnimationLayersItemScaleMin).max(startStreamBodyCompositionAnimationLayersItemScaleMax).default(startStreamBodyCompositionAnimationLayersItemScaleDefault)
+})).optional().describe('Multiple animation overlays that play together in the editor composition.'),
   "logoSource": zod.string().optional(),
   "logoPosition": zod.enum(['top-left', 'top-right', 'bottom-left', 'bottom-right']).default(startStreamBodyCompositionLogoPositionDefault),
   "logoScale": zod.number().min(startStreamBodyCompositionLogoScaleMin).max(startStreamBodyCompositionLogoScaleMax).default(startStreamBodyCompositionLogoScaleDefault),
   "animationPreset": zod.enum(['none', 'subscribe', 'like', 'follow']).default(startStreamBodyCompositionAnimationPresetDefault),
-  "comingSoon": zod.boolean().optional().describe('Show a COMING SOON lower-third in the live composition.'),
+  "comingSoon": zod.boolean().default(startStreamBodyCompositionComingSoonDefault).describe('Show a COMING SOON lower-third in the live composition.'),
   "brightness": zod.number().min(startStreamBodyCompositionBrightnessMin).max(startStreamBodyCompositionBrightnessMax).default(startStreamBodyCompositionBrightnessDefault),
   "contrast": zod.number().min(startStreamBodyCompositionContrastMin).max(startStreamBodyCompositionContrastMax).default(startStreamBodyCompositionContrastDefault),
   "saturation": zod.number().min(startStreamBodyCompositionSaturationMin).max(startStreamBodyCompositionSaturationMax).default(startStreamBodyCompositionSaturationDefault),
@@ -302,12 +321,25 @@ export const updateStreamBodyCompositionAnimationScaleDefault = 0.25;
 export const updateStreamBodyCompositionAnimationScaleMin = 0.1;
 export const updateStreamBodyCompositionAnimationScaleMax = 0.8;
 
+export const updateStreamBodyCompositionAnimationLayersItemXDefault = 0;
+export const updateStreamBodyCompositionAnimationLayersItemXMin = -48;
+export const updateStreamBodyCompositionAnimationLayersItemXMax = 48;
+
+export const updateStreamBodyCompositionAnimationLayersItemYDefault = 0;
+export const updateStreamBodyCompositionAnimationLayersItemYMin = -48;
+export const updateStreamBodyCompositionAnimationLayersItemYMax = 48;
+
+export const updateStreamBodyCompositionAnimationLayersItemScaleDefault = 0.25;
+export const updateStreamBodyCompositionAnimationLayersItemScaleMin = 0.1;
+export const updateStreamBodyCompositionAnimationLayersItemScaleMax = 0.8;
+
 export const updateStreamBodyCompositionLogoPositionDefault = `bottom-right`;
 export const updateStreamBodyCompositionLogoScaleDefault = 0.25;
 export const updateStreamBodyCompositionLogoScaleMin = 0.1;
 export const updateStreamBodyCompositionLogoScaleMax = 0.6;
 
 export const updateStreamBodyCompositionAnimationPresetDefault = `none`;
+export const updateStreamBodyCompositionComingSoonDefault = false;
 export const updateStreamBodyCompositionBrightnessDefault = 0;
 export const updateStreamBodyCompositionBrightnessMin = -1;
 export const updateStreamBodyCompositionBrightnessMax = 1;
@@ -387,11 +419,17 @@ export const UpdateStreamBody = zod.object({
   "animationX": zod.number().min(updateStreamBodyCompositionAnimationXMin).max(updateStreamBodyCompositionAnimationXMax).default(updateStreamBodyCompositionAnimationXDefault),
   "animationY": zod.number().min(updateStreamBodyCompositionAnimationYMin).max(updateStreamBodyCompositionAnimationYMax).default(updateStreamBodyCompositionAnimationYDefault),
   "animationScale": zod.number().min(updateStreamBodyCompositionAnimationScaleMin).max(updateStreamBodyCompositionAnimationScaleMax).default(updateStreamBodyCompositionAnimationScaleDefault),
+  "animationLayers": zod.array(zod.object({
+  "source": zod.string(),
+  "x": zod.number().min(updateStreamBodyCompositionAnimationLayersItemXMin).max(updateStreamBodyCompositionAnimationLayersItemXMax).default(updateStreamBodyCompositionAnimationLayersItemXDefault),
+  "y": zod.number().min(updateStreamBodyCompositionAnimationLayersItemYMin).max(updateStreamBodyCompositionAnimationLayersItemYMax).default(updateStreamBodyCompositionAnimationLayersItemYDefault),
+  "scale": zod.number().min(updateStreamBodyCompositionAnimationLayersItemScaleMin).max(updateStreamBodyCompositionAnimationLayersItemScaleMax).default(updateStreamBodyCompositionAnimationLayersItemScaleDefault)
+})).optional().describe('Multiple animation overlays that play together in the editor composition.'),
   "logoSource": zod.string().optional(),
   "logoPosition": zod.enum(['top-left', 'top-right', 'bottom-left', 'bottom-right']).default(updateStreamBodyCompositionLogoPositionDefault),
   "logoScale": zod.number().min(updateStreamBodyCompositionLogoScaleMin).max(updateStreamBodyCompositionLogoScaleMax).default(updateStreamBodyCompositionLogoScaleDefault),
   "animationPreset": zod.enum(['none', 'subscribe', 'like', 'follow']).default(updateStreamBodyCompositionAnimationPresetDefault),
-  "comingSoon": zod.boolean().optional().describe('Show a COMING SOON lower-third in the live composition.'),
+  "comingSoon": zod.boolean().default(updateStreamBodyCompositionComingSoonDefault).describe('Show a COMING SOON lower-third in the live composition.'),
   "brightness": zod.number().min(updateStreamBodyCompositionBrightnessMin).max(updateStreamBodyCompositionBrightnessMax).default(updateStreamBodyCompositionBrightnessDefault),
   "contrast": zod.number().min(updateStreamBodyCompositionContrastMin).max(updateStreamBodyCompositionContrastMax).default(updateStreamBodyCompositionContrastDefault),
   "saturation": zod.number().min(updateStreamBodyCompositionSaturationMin).max(updateStreamBodyCompositionSaturationMax).default(updateStreamBodyCompositionSaturationDefault),

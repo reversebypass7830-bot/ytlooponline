@@ -45,6 +45,7 @@ export * from './renewLicenseForUserInput';
 export * from './renewLicenseInput';
 export * from './saveLicenseWorkspaceInput';
 export * from './streamCompositionInput';
+export * from './streamCompositionInputAnimationLayersItem';
 export * from './streamCompositionInputAnimationPreset';
 export * from './streamCompositionInputChromaKeyByLayer';
 export * from './streamCompositionInputChromaKeyBySource';

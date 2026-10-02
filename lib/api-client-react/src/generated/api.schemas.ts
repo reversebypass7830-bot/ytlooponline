@@ -74,6 +74,25 @@ export const StreamCompositionInputChromaKeyTarget = {
   animation: 'animation',
 } as const;
 
+export type StreamCompositionInputAnimationLayersItem = {
+  source: string;
+  /**
+     * @minimum -48
+     * @maximum 48
+     */
+  x?: number;
+  /**
+     * @minimum -48
+     * @maximum 48
+     */
+  y?: number;
+  /**
+     * @minimum 0.1
+     * @maximum 0.8
+     */
+  scale?: number;
+};
+
 export type StreamCompositionInputChromaKeyBySource = {[key: string]: {
   enabled?: boolean;
   /** @pattern ^#?[0-9a-fA-F]{6}$ */
@@ -160,6 +179,8 @@ export interface StreamCompositionInput {
      * @maximum 0.8
      */
   animationScale?: number;
+  /** Multiple animation overlays that play together in the editor composition. */
+  animationLayers?: StreamCompositionInputAnimationLayersItem[];
   logoSource?: string;
   logoPosition?: StreamCompositionInputLogoPosition;
   /**

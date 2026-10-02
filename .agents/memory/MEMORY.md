@@ -5,6 +5,7 @@
 - [YTSave fallback flow](youtube-ytsave-fallback.md) — when YouTube blocks server-side extraction, mint YTSave's short-lived token and choose a size-safe quality before polling.
 - [TubePilot channel extraction](tubepilot-channel-extraction.md) — the public channel extractor currently returns video anchors as HTML from its AJAX endpoint.
 - [Live playlist refresh](live-playlist-refresh.md) — playlist edits during a broadcast are applied by restarting FFmpeg with the current ordered source list.
+- [Multi-animation stream compatibility](multi-animation-stream-compatibility.md) — a present animation layer list is authoritative, while old single-animation compositions still use the legacy fallback.
 - [Firebase licensing security](firebase-licensing-security.md) — public Realtime Database rules make app-level owner passwords non-secure; harden rules/auth before production.
 - [Public media builds](public-media-builds.md) — ignored local media must not be statically imported by the frontend; clean public checkouts should use runtime uploads/API media.
 - [Media library recovery](media-library-recovery.md) — server media needs an index plus workspace rehydration so existing files and folder counts survive browser/license workspace drift.

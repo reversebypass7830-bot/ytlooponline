@@ -72,6 +72,12 @@ type EditorColorAdjustments = {
 };
 type EditorCropMode = "fit" | "crop";
 type EditorChromaTarget = EditorLayer;
+type EditorStreamAnimationLayer = {
+  source: string;
+  x: number;
+  y: number;
+  scale: number;
+};
 type EditorStreamComposition = {
   mainX: number;
   mainY: number;
@@ -85,6 +91,7 @@ type EditorStreamComposition = {
   animationX: number;
   animationY: number;
   animationScale: number;
+  animationLayers?: EditorStreamAnimationLayer[];
   logoSource?: string;
   logoPosition: "top-left" | "top-right" | "bottom-left" | "bottom-right";
   logoScale: number;
@@ -126,8 +133,9 @@ type EditorDraft = {
   chromaKeyByLayer: EditorChromaByLayer;
   chromaKeyByVideoId: EditorChromaByVideoId;
   webcamId: string;
-  animationId: string;
-  animationTransform: EditorTransform;
+  animationIds: string[];
+  activeAnimationId: string;
+  animationTransforms: Record<string, EditorTransform>;
   logoId: string;
 };
 type LiveChannel = {
@@ -651,6 +659,11 @@ function rebuildGroupMembership(groups: VideoGroup[], videos: VideoItem[]): Vide
 function normalizeEditorDraft(value: unknown): EditorDraft | undefined {
   if (!value || typeof value !== "object") return undefined;
   const draft = value as Partial<EditorDraft> & {
+    animationId?: unknown;
+    animationTransform?: unknown;
+    animationIds?: unknown;
+    activeAnimationId?: unknown;
+    animationTransforms?: unknown;
     chromaKeyEnabled?: unknown;
     chromaKeyTarget?: unknown;
     chromaKeyColor?: unknown;
@@ -694,6 +707,22 @@ function normalizeEditorDraft(value: unknown): EditorDraft | undefined {
   const savedChromaByVideoId = draft.chromaKeyByVideoId && typeof draft.chromaKeyByVideoId === "object"
     ? draft.chromaKeyByVideoId as Record<string, unknown>
     : {};
+  const legacyAnimationId = typeof draft.animationId === "string" ? draft.animationId : "";
+  const animationIds = Array.isArray(draft.animationIds)
+    ? [...new Set(draft.animationIds.filter((id): id is string => typeof id === "string" && id.length > 0))]
+    : legacyAnimationId ? [legacyAnimationId] : [];
+  const savedAnimationTransforms = draft.animationTransforms && typeof draft.animationTransforms === "object"
+    ? draft.animationTransforms as Record<string, unknown>
+    : {};
+  const animationTransforms = Object.fromEntries(
+    animationIds.map((id) => [
+      id,
+      transform(
+        savedAnimationTransforms[id] ?? (id === legacyAnimationId ? draft.animationTransform : undefined),
+        { x: 0, y: 0, scale: 0.25 },
+      ),
+    ]),
+  );
   const chromaKeyByVideoId: EditorChromaByVideoId = Object.fromEntries(
     Object.entries(savedChromaByVideoId)
       .filter(([key]) => Boolean(key))
@@ -734,8 +763,11 @@ function normalizeEditorDraft(value: unknown): EditorDraft | undefined {
     chromaKeyByLayer,
     chromaKeyByVideoId,
     webcamId: typeof draft.webcamId === "string" ? draft.webcamId : "",
-    animationId: typeof draft.animationId === "string" ? draft.animationId : "",
-    animationTransform: transform(draft.animationTransform, { x: 0, y: 0, scale: 0.25 }),
+    animationIds,
+    activeAnimationId: typeof draft.activeAnimationId === "string" && animationIds.includes(draft.activeAnimationId)
+      ? draft.activeAnimationId
+      : animationIds[animationIds.length - 1] || "",
+    animationTransforms,
     logoId: typeof draft.logoId === "string" ? draft.logoId : "",
   };
 }
@@ -3856,8 +3888,9 @@ function VideoEditorPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}
   }));
   const [chromaSourceId, setChromaSourceId] = useState("");
   const [webcamId, setWebcamId] = useState("");
-  const [animationId, setAnimationId] = useState("");
-  const [animationTransform, setAnimationTransform] = useState<EditorTransform>({ x: 0, y: 0, scale: 0.25 });
+  const [animationIds, setAnimationIds] = useState<string[]>([]);
+  const [activeAnimationId, setActiveAnimationId] = useState("");
+  const [animationTransforms, setAnimationTransforms] = useState<Record<string, EditorTransform>>({});
   const [logoId, setLogoId] = useState("");
   const [previewExpanded, setPreviewExpanded] = useState(false);
   useEffect(() => {
@@ -3926,7 +3959,25 @@ function VideoEditorPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}
     () => data.videos.filter((video) => video.serverSource && (isIncludedVideo(video) || isVideoInFolderScope(video, myAnimationFolderId, data.groups))),
     [data.videos, data.groups],
   );
-  const animation = animationVideos.find((video) => video.id === animationId);
+  const selectedAnimations = animationIds
+    .map((id) => animationVideos.find((video) => video.id === id))
+    .filter((video): video is VideoItem => Boolean(video));
+  const activeAnimation = selectedAnimations.find((video) => video.id === activeAnimationId) || selectedAnimations[selectedAnimations.length - 1];
+  const animation = activeAnimation;
+  const animationTransform = activeAnimation
+    ? animationTransforms[activeAnimation.id] || { x: 0, y: 0, scale: 0.25 }
+    : { x: 0, y: 0, scale: 0.25 };
+  const updateActiveAnimationTransform = (transform: EditorTransform) => {
+    if (!activeAnimation?.id) return;
+    setAnimationTransforms((current) => ({ ...current, [activeAnimation.id]: transform }));
+  };
+  const editorAnimationLayers = selectedAnimations.map((video) => ({
+    id: video.id,
+    title: video.title,
+    url: videoPlaybackUrl(video, workspace.licenseId),
+    transform: animationTransforms[video.id] || { x: 0, y: 0, scale: 0.25 },
+    chromaKey: chromaKeyByVideoId[video.id] || chromaKeyByLayer.animation,
+  }));
   const includedAnimationVideos = animationVideos.filter((video) => isIncludedVideo(video));
   const myAnimationVideos = animationVideos.filter((video) => !isIncludedVideo(video));
   useEffect(() => {
@@ -3957,8 +4008,9 @@ function VideoEditorPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}
        setChromaDraft(draft.chromaKeyByVideoId[draft.selectedIds[0]] || draft.chromaKeyByLayer[draft.selectedLayer]);
        setChromaSourceId(draft.selectedIds[0] || "");
       setWebcamId(draft.webcamId);
-      setAnimationId(draft.animationId);
-      setAnimationTransform(draft.animationTransform);
+      setAnimationIds(draft.animationIds);
+      setActiveAnimationId(draft.activeAnimationId);
+      setAnimationTransforms(draft.animationTransforms);
       setLogoId(draft.logoId);
     }
     setDraftHydrated(true);
@@ -3996,8 +4048,9 @@ function VideoEditorPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}
          chromaKeyByLayer,
          chromaKeyByVideoId,
         webcamId,
-        animationId,
-        animationTransform,
+        animationIds,
+        activeAnimationId,
+        animationTransforms,
         logoId,
       },
     });
@@ -4005,7 +4058,7 @@ function VideoEditorPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}
     draftHydrated, groupId, animationGroupId, editorLibrary, selectedIds, loopEnabled, loopCount, title,
     outputAspectRatio, cropMode, logoPosition, overlayScale, webcamPosition, webcamScale, mainTransform,
     webcamTransform, selectedLayer, animationPreset, reverseVideo, colorAdjustments, chromaKeyByLayer, chromaKeyByVideoId,
-    webcamId, animationId, animationTransform, logoId,
+    webcamId, animationIds, activeAnimationId, animationTransforms, logoId,
   ]);
   const activeMainVideo = selectedVideos.find((video) => video.id === chromaSourceId) || selectedVideos[0];
   const activeChromaVideo = selectedLayer === "main" ? activeMainVideo : selectedLayer === "webcam" ? webcam : animation;
@@ -4024,12 +4077,6 @@ function VideoEditorPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}
       setSelectedLayer("main");
     }
   }, [webcamId, webcam]);
-  useEffect(() => {
-    if (animationId && !animation) {
-      setAnimationId("");
-      if (selectedLayer === "animation") setSelectedLayer("main");
-    }
-  }, [animationId, animation, selectedLayer]);
   const previewUrl = videoPlaybackUrl(previewVideo, workspace.licenseId);
   const previewChromaByLayer: EditorChromaByLayer = {
     main: previewVideo ? chromaKeyByVideoId[previewVideo.id] || chromaKeyByLayer.main : chromaKeyByLayer.main,
@@ -4041,6 +4088,8 @@ function VideoEditorPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}
      loopEnabled,
     webcamUrl: videoPlaybackUrl(webcam, workspace.licenseId),
     animationUrl: videoPlaybackUrl(animation, workspace.licenseId),
+    animationLayers: editorAnimationLayers,
+    activeAnimationId: activeAnimation?.id || "",
     logo,
     logoPosition,
     outputAspectRatio,
@@ -4056,13 +4105,15 @@ function VideoEditorPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}
     onSelectLayer: setSelectedLayer,
     onMainTransformChange: setMainTransform,
     onWebcamTransformChange: setWebcamTransform,
-    onAnimationTransformChange: setAnimationTransform,
+    onAnimationTransformChange: updateActiveAnimationTransform,
+    onAnimationLayerTransformChange: (id: string, transform: EditorTransform) => {
+      setAnimationTransforms((current) => ({ ...current, [id]: transform }));
+    },
+    onSelectAnimation: setActiveAnimationId,
   };
   const setGroup = (nextGroupId: string) => {
     if (editorLibrary === "youtube") {
       setAnimationGroupId(nextGroupId);
-      setAnimationId("");
-      setSelectedLayer("main");
       return;
     }
     setGroupId(nextGroupId);
@@ -4072,12 +4123,9 @@ function VideoEditorPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}
     const nextGroup = data.groups.find((group) => group.id === nextGroupId);
     setTitle(nextGroup ? `${nextGroup.name} · edited` : "");
     setWebcamId("");
-    setAnimationId("");
   };
   const chooseEditorLibrary = (nextLibrary: "personal" | "youtube") => {
     setEditorLibrary(nextLibrary);
-    setAnimationId("");
-    setSelectedLayer("main");
     if (nextLibrary === "youtube") {
       setAnimationGroupId(includedRootFolder?.id || "");
       void workspace.refreshIncludedAnimations().catch((reason) => {
@@ -4094,8 +4142,38 @@ function VideoEditorPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}
     });
   };
   const selectAnimation = (videoId: string) => {
-    setAnimationId((current) => current === videoId ? "" : videoId);
-    setSelectedLayer((current) => current === "animation" && animationId === videoId ? "main" : "animation");
+    const alreadySelected = animationIds.includes(videoId);
+    const nextIds = alreadySelected ? animationIds.filter((id) => id !== videoId) : [...animationIds, videoId];
+    if (!alreadySelected) {
+      setAnimationTransforms((current) => {
+        const next = { ...current };
+        if (animationIds.length === 1) {
+          const previousId = animationIds[0];
+          const previous = next[previousId] || { x: 0, y: 0, scale: 0.25 };
+          if (previous.x === 0 && previous.y === 0) next[previousId] = { ...previous, x: -16 };
+        }
+        const positions = [
+          { x: 16, y: 0 },
+          { x: 0, y: -20 },
+          { x: 0, y: 20 },
+          { x: -24, y: -20 },
+          { x: 24, y: -20 },
+          { x: -24, y: 20 },
+          { x: 24, y: 20 },
+        ];
+        const position = animationIds.length === 0
+          ? { x: 0, y: 0 }
+          : positions[Math.min(animationIds.length - 1, positions.length - 1)];
+        next[videoId] = next[videoId] || { ...position, scale: 0.25 };
+        return next;
+      });
+      setActiveAnimationId(videoId);
+      setSelectedLayer("animation");
+    } else if (activeAnimationId === videoId) {
+      setActiveAnimationId(nextIds.at(-1) || "");
+      if (!nextIds.length) setSelectedLayer("main");
+    }
+    setAnimationIds(nextIds);
   };
   const uploadLogo = async (file: File) => {
     setUploadingLogo(true);
@@ -4146,6 +4224,12 @@ function VideoEditorPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}
     animationX: animationTransform.x,
     animationY: animationTransform.y,
     animationScale: animationTransform.scale,
+    animationLayers: selectedAnimations
+      .filter((video): video is VideoItem & { serverSource: string } => Boolean(video.serverSource))
+      .map((video) => {
+        const transform = animationTransforms[video.id] || { x: 0, y: 0, scale: 0.25 };
+        return { source: video.serverSource, x: transform.x, y: transform.y, scale: transform.scale };
+      }),
     logoSource: logo?.sourcePath,
     logoPosition: logoPosition as EditorStreamComposition["logoPosition"],
     logoScale: Number(overlayScale) / 100,
@@ -4159,7 +4243,9 @@ function VideoEditorPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}
       [
         ...selectedVideos.map((video) => [video.serverSource, chromaKeyByVideoId[video.id]] as const),
         ...(webcam?.serverSource ? [[webcam.serverSource, chromaKeyByVideoId[webcam.id]] as const] : []),
-        ...(animation?.serverSource ? [[animation.serverSource, chromaKeyByVideoId[animation.id]] as const] : []),
+        ...selectedAnimations
+          .filter((video): video is VideoItem & { serverSource: string } => Boolean(video.serverSource))
+          .map((video) => [video.serverSource, chromaKeyByVideoId[video.id]] as const),
       ].filter((entry): entry is readonly [string, EditorChromaSettings] => Boolean(entry[0] && entry[1])),
     ),
     chromaKeyDurations: Object.fromEntries(
@@ -4216,7 +4302,7 @@ function VideoEditorPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}
       autoRestart: false,
       streamQuality: "1080p",
       playlistVideoIds: selectedVideos.map((video) => video.id),
-      liveAnimationId: animationId || undefined,
+      liveAnimationId: activeAnimationId || undefined,
       liveAnimationX: animationTransform.x,
       liveAnimationY: animationTransform.y,
       liveAnimationScale: animationTransform.scale,
@@ -4227,6 +4313,37 @@ function VideoEditorPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}
       { message: `${channel.title} was created from the editor`, type: "live" },
     );
     setLocation(`/live?editChannel=${encodeURIComponent(channelId)}`);
+  };
+  const resetEditor = () => {
+    const resetChroma = {
+      main: { enabled: false, color: "#00ff00", similarity: 0.32, blend: 0.08 },
+      webcam: { enabled: false, color: "#00ff00", similarity: 0.32, blend: 0.08 },
+      animation: { enabled: false, color: "#00ff00", similarity: 0.32, blend: 0.08 },
+    } satisfies EditorChromaByLayer;
+    setLoopEnabled(true);
+    setLoopCount("1");
+    setOutputAspectRatio("full");
+    setCropMode("fit");
+    setLogoPosition("bottom-right");
+    setOverlayScale("25");
+    setWebcamPosition("top-right");
+    setWebcamScale("25");
+    setMainTransform({ x: 0, y: 0, scale: 1 });
+    setWebcamTransform({ x: 0, y: 0, scale: 0.25 });
+    setAnimationIds([]);
+    setActiveAnimationId("");
+    setAnimationTransforms({});
+    setSelectedLayer("main");
+    setAnimationPreset("none");
+    setReverseVideo(false);
+    setColorAdjustments({ brightness: 0, contrast: 1, saturation: 1, hue: 0 });
+    setChromaKeyByLayer(resetChroma);
+    setChromaKeyByVideoId({});
+    setChromaSourceId(selectedVideos[0]?.id || "");
+    setChromaDraft(resetChroma.main);
+    setWebcamId("");
+    setLogoId("");
+    setToast("All editor changes were reset");
   };
   const editorTools = [
     { id: "media" as const, label: "Media", asset: editorUploadFilmClay, panel: "files" as const },
@@ -4308,7 +4425,7 @@ function VideoEditorPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}
                 <button type="button" className={editorLibrary === "youtube" ? "active" : ""} onClick={() => chooseEditorLibrary("youtube")} role="tab" aria-selected={editorLibrary === "youtube"} data-testid="button-editor-youtube-animations"><Youtube size={13}/> Included + My animations</button>
              </div>
               {editorLibrary === "youtube" ? <><div className="editor-category-lock"><FolderOpen size={15}/><div><strong>Animation overlays</strong><span>Included Animations + your private My Animations · kept separate from Personal video</span></div><ShieldCheck size={14}/></div><div className="editor-animation-folders">{animationFolders.map((folder) => { const count = data.videos.filter((video) => video.serverSource && isVideoInFolderScope(video, folder.id, data.groups)).length; const label = folderPathForGroup(folder.id, data.groups).replace(`${youtubeAnimationRootName}/`, ""); return <button type="button" key={folder.id} className={`editor-animation-folder ${animationGroupId === folder.id ? "selected" : ""}`} onClick={() => setGroup(folder.id)} aria-label={`Open ${label}`}><FolderOpen size={17}/><span><strong>{folder.name}</strong><small>{label} · {count} video{count === 1 ? "" : "s"}</small></span><ArrowRight size={13}/></button>; })}</div></> : <select value={groupId} onChange={(event) => setGroup(event.target.value)} data-testid="select-editor-group"><option value="">Select personal category</option>{editorGroups.map((group) => <option key={group.id} value={group.id}>{folderPathForGroup(group.id, data.groups)}</option>)}</select>}
-             <div className="editor-clip-list">{groupVideos.length ? groupVideos.map((video, index) => <EditorClipCard key={video.id} video={video} index={index} licenseId={workspace.licenseId} animationMode={editorLibrary === "youtube"} selected={editorLibrary === "youtube" ? animationId === video.id : selectedIds.includes(video.id)} onToggle={() => editorLibrary === "youtube" ? selectAnimation(video.id) : toggleVideo(video.id)} />) : <div className="editor-mini-empty"><FolderOpen size={17}/>{editorLibrary === "youtube" ? selectedAnimationGroup ? "No overlay videos are available in this folder or its subfolders yet." : "No shared or private animation folders are available." : "Choose a personal category to see its videos."}</div>}</div>
+             <div className="editor-clip-list">{groupVideos.length ? groupVideos.map((video, index) => <EditorClipCard key={video.id} video={video} index={index} licenseId={workspace.licenseId} animationMode={editorLibrary === "youtube"} selected={editorLibrary === "youtube" ? animationIds.includes(video.id) : selectedIds.includes(video.id)} onToggle={() => editorLibrary === "youtube" ? selectAnimation(video.id) : toggleVideo(video.id)} />) : <div className="editor-mini-empty"><FolderOpen size={17}/>{editorLibrary === "youtube" ? selectedAnimationGroup ? "No overlay videos are available in this folder or its subfolders yet." : "No shared or private animation folders are available." : "Choose a personal category to see its videos."}</div>}</div>
                <div className="editor-selected-folder">{editorLibrary === "youtube" ? (selectedAnimationGroup ? <><FolderOpen size={13}/><span>Overlay folder: <strong>{folderPathForGroup(selectedAnimationGroup.id, data.groups).replace(`${youtubeAnimationRootName}/`, "") || selectedAnimationGroup.name}</strong></span></> : <span>Choose a shared or private animation folder.</span>) : (selectedGroup ? <><FolderOpen size={13}/><span>Main folder: <strong>{folderPathForGroup(selectedGroup.id, data.groups)}</strong></span></> : <span>Choose a personal category for the main video.</span>)}</div>
           </section>
           <section className={mobilePanelClass("timing")} data-mobile-editor-panel="timing">
@@ -4324,7 +4441,8 @@ function VideoEditorPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}
             {logo && <div className="form-grid"><div className="field"><label>Logo position</label><select value={logoPosition} onChange={(event) => setLogoPosition(event.target.value)}><option value="top-left">Top left</option><option value="top-right">Top right</option><option value="bottom-left">Bottom left</option><option value="bottom-right">Bottom right</option></select></div><div className="field"><label>Logo size · {overlayScale}%</label><input type="range" min="10" max="60" value={overlayScale} onChange={(event) => setOverlayScale(event.target.value)}/></div></div>}
               <div className="field"><label>Face cam video</label><select value={webcamId} onChange={(event) => { setWebcamId(event.target.value); setSelectedLayer(event.target.value ? "webcam" : "main"); }} data-testid="select-editor-facecam"><option value="">No face cam</option>{webcamVideos.map((video) => <option key={video.id} value={video.id}>{video.title}</option>)}</select><span className="field-hint">Only videos from this license workspace are available here.</span></div>
              {webcam && <div className="editor-layer-note"><span>Canvas face cam: {Math.round(webcamTransform.scale * 100)}%</span><button type="button" className="section-link" onClick={() => setSelectedLayer("webcam")}>Edit on canvas <ArrowRight size={12}/></button></div>}
-                 <div className="field"><label>Animation overlay</label><select value={animationId} onChange={(event) => { setAnimationId(event.target.value); setSelectedLayer(event.target.value ? "animation" : "main"); }} data-testid="select-editor-animation-overlay"><option value="">No animation overlay</option>{includedAnimationVideos.length > 0 && <optgroup label="Admin · Included Animations">{includedAnimationVideos.map((video) => <option key={video.id} value={video.id}>{video.title}</option>)}</optgroup>}{myAnimationVideos.length > 0 && <optgroup label="My Animations">{myAnimationVideos.map((video) => <option key={video.id} value={video.id}>{video.title}</option>)}</optgroup>}</select></div>
+                 <div className="field"><label>Add animation overlay</label><select value="" onChange={(event) => { if (event.target.value) selectAnimation(event.target.value); }} data-testid="select-editor-animation-overlay"><option value="">Choose an animation to add</option>{includedAnimationVideos.length > 0 && <optgroup label="Admin · Included Animations">{includedAnimationVideos.map((video) => <option key={video.id} value={video.id} disabled={animationIds.includes(video.id)}>{video.title}{animationIds.includes(video.id) ? " · added" : ""}</option>)}</optgroup>}{myAnimationVideos.length > 0 && <optgroup label="My Animations">{myAnimationVideos.map((video) => <option key={video.id} value={video.id} disabled={animationIds.includes(video.id)}>{video.title}{animationIds.includes(video.id) ? " · added" : ""}</option>)}</optgroup>}</select><span className="field-hint">Choose multiple animations one after another. Selecting a new one keeps the others.</span></div>
+              {selectedAnimations.length > 0 && <div className="editor-animation-selection-list"><strong>{selectedAnimations.length} animation{selectedAnimations.length === 1 ? "" : "s"} active together</strong>{selectedAnimations.map((video) => <div className="editor-layer-note" key={video.id}><span>{video.title} · {Math.round((animationTransforms[video.id]?.scale || 0.25) * 100)}%</span><div><button type="button" className="section-link" onClick={() => { setActiveAnimationId(video.id); setSelectedLayer("animation"); }}>Edit</button><button type="button" className="section-link" onClick={() => selectAnimation(video.id)} aria-label={`Remove ${video.title}`}>Remove</button></div></div>)}</div>}
               {animation && <div className="editor-layer-note"><span>Animation overlay: {Math.round(animationTransform.scale * 100)}%</span><button type="button" className="section-link" onClick={() => setSelectedLayer("animation")}>Edit on canvas <ArrowRight size={12}/></button></div>}
              <div className="field"><label>Animated callout</label><select value={animationPreset} onChange={(event) => setAnimationPreset(event.target.value as AnimationPreset)} data-testid="select-editor-animation"><option value="none">No animation</option><option value="subscribe">Subscribe pop-in</option><option value="like">Like burst</option><option value="follow">Follow pulse</option></select><span className="field-hint">The animation is previewed on the canvas and burned into the final MP4.</span></div>
              <EditorTransformControls
@@ -4337,7 +4455,7 @@ function VideoEditorPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}
                onSelectLayer={setSelectedLayer}
                onMainTransformChange={setMainTransform}
                onWebcamTransformChange={setWebcamTransform}
-                onAnimationTransformChange={setAnimationTransform}
+               onAnimationTransformChange={updateActiveAnimationTransform}
              />
              {webcam && <div className="form-grid"><div className="field"><label>Face cam position</label><select value={webcamPosition} onChange={(event) => setWebcamPosition(event.target.value)} data-testid="select-editor-facecam-position"><option value="top-left">Top left</option><option value="top-right">Top right</option><option value="bottom-left">Bottom left</option><option value="bottom-right">Bottom right</option></select></div><div className="field"><label>Face cam size · {webcamScale}%</label><input type="range" min="10" max="60" value={webcamScale} onChange={(event) => setWebcamScale(event.target.value)} data-testid="input-editor-facecam-size"/></div></div>}
           </section>
@@ -4355,7 +4473,7 @@ function VideoEditorPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}
                  <div className="field"><label>Selected video for background removal</label><div className="editor-readonly">{selectedChromaLabel} · {chromaDraft.enabled ? "green screen removal on" : "off"}</div></div>
                 {selectedChromaAvailable && <div className="editor-effect-grid chroma-key-grid"><div className="field"><label>Key color</label><input type="color" value={chromaDraft.color} onChange={(event) => setChromaDraft((current) => ({ ...current, color: event.target.value }))} data-testid="input-editor-key-color"/></div><div className="field"><label>Color range · {Math.round(chromaDraft.similarity * 100)}%</label><input type="range" min="10" max="90" value={Math.round(chromaDraft.similarity * 100)} onChange={(event) => setChromaDraft((current) => ({ ...current, similarity: Number(event.target.value) / 100 }))} data-testid="input-editor-key-similarity"/></div><div className="field"><label>Edge blend · {Math.round(chromaDraft.blend * 100)}%</label><input type="range" min="0" max="35" value={Math.round(chromaDraft.blend * 100)} onChange={(event) => setChromaDraft((current) => ({ ...current, blend: Number(event.target.value) / 100 }))} data-testid="input-editor-key-blend"/></div></div>}
                  <div className="editor-chroma-apply-row"><button type="button" className="button secondary small" onClick={applyChromaToSelected} disabled={!selectedChromaAvailable} data-testid="button-apply-editor-green-screen"><Check size={13}/> Apply to {selectedChromaLabel}</button><span>{appliedChromaVideos ? `${appliedChromaVideos} video${appliedChromaVideos === 1 ? "" : "s"} have background removal applied.` : "No video has background removal applied."}</span></div>
-               <div className="editor-reset-row"><span>Reset all crop, layer, loop and effect changes.</span><button type="button" className="button ghost small" onClick={() => { const resetChroma = { main: { enabled: false, color: "#00ff00", similarity: 0.32, blend: 0.08 }, webcam: { enabled: false, color: "#00ff00", similarity: 0.32, blend: 0.08 }, animation: { enabled: false, color: "#00ff00", similarity: 0.32, blend: 0.08 } } satisfies EditorChromaByLayer; setLoopEnabled(true); setLoopCount("1"); setOutputAspectRatio("full"); setCropMode("fit"); setLogoPosition("bottom-right"); setOverlayScale("25"); setWebcamPosition("top-right"); setWebcamScale("25"); setMainTransform({ x: 0, y: 0, scale: 1 }); setWebcamTransform({ x: 0, y: 0, scale: 0.25 }); setAnimationTransform({ x: 0, y: 0, scale: 0.25 }); setSelectedLayer("main"); setAnimationPreset("none"); setReverseVideo(false); setColorAdjustments({ brightness: 0, contrast: 1, saturation: 1, hue: 0 }); setChromaKeyByLayer(resetChroma); setChromaKeyByVideoId({}); setChromaSourceId(selectedVideos[0]?.id || ""); setChromaDraft(resetChroma.main); setWebcamId(""); setAnimationId(""); setLogoId(""); setToast("All editor changes were reset"); }} data-testid="button-reset-editor">Reset edits</button></div>
+               <div className="editor-reset-row"><span>Reset all crop, layer, loop and effect changes.</span><button type="button" className="button ghost small" onClick={resetEditor} data-testid="button-reset-editor">Reset edits</button></div>
                <div className="form-note"><Sparkles size={14} style={{verticalAlign:"-3px",marginRight:6}}/>These effects are shown in the preview and applied directly by the live encoder.</div>
            </section>
            {error && <div className="error-note" style={{whiteSpace:"pre-line"}}>{error}</div>}
@@ -4381,12 +4499,15 @@ function VideoEditorPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}
          </div>
          <div className="editor-timeline-track">
            <div className="editor-timeline-body">
-             <div className="editor-timeline-labels" aria-hidden="true"><span>Video</span><span>Audio</span><span>Text</span></div>
+             <div className="editor-timeline-labels" aria-hidden="true"><span>Video</span><span>Animations</span><span>Audio</span><span>Text</span></div>
              <div className="editor-timeline-grid">
                <div className="editor-timeline-ruler"><span>00:00</span><span>00:15</span><span>00:30</span><span>00:45</span><span>01:00</span><span>01:15</span></div>
                <div className="editor-timeline-lane-content">
                  {selectedVideos.length ? selectedVideos.map((video, index) => <div className="editor-timeline-block editor-timeline-video-block" key={video.id} style={{ flex: `${Math.max(1, 2.8 - index * .35)} 1 0` }}><strong>{video.title}</strong><span>{video.duration}</span></div>) : <div className="editor-timeline-empty-block">Drag your videos here</div>}
                </div>
+                <div className="editor-timeline-lane-content editor-timeline-animation-lane">
+                  {selectedAnimations.length ? selectedAnimations.map((video) => <div className="editor-timeline-block editor-timeline-animation-block" key={video.id} title={video.title}><Sparkles size={13}/><strong>{video.title}</strong><span>Loop</span></div>) : <div className="editor-timeline-empty-block">Add animation overlays</div>}
+                </div>
                <div className="editor-timeline-lane-content">
                  <div className="editor-timeline-block editor-timeline-audio-block"><img src={editorAudioClay} alt="" /><strong>Voice & music bed</strong><span>Auto mix</span></div>
                </div>
@@ -4412,6 +4533,8 @@ type EditorCanvasProps = {
   loopEnabled: boolean;
   webcamUrl: string;
   animationUrl: string;
+  animationLayers: Array<{ id: string; title: string; url: string; transform: EditorTransform; chromaKey: EditorChromaSettings }>;
+  activeAnimationId: string;
   logo?: EditorAsset;
   logoPosition: string;
   outputAspectRatio: AspectRatio;
@@ -4428,6 +4551,8 @@ type EditorCanvasProps = {
   onMainTransformChange: (transform: EditorTransform) => void;
   onWebcamTransformChange: (transform: EditorTransform) => void;
   onAnimationTransformChange: (transform: EditorTransform) => void;
+  onAnimationLayerTransformChange: (id: string, transform: EditorTransform) => void;
+  onSelectAnimation: (id: string) => void;
   expanded?: boolean;
   onCloseExpanded?: () => void;
 };
@@ -4437,6 +4562,8 @@ function EditorCanvas({
   loopEnabled,
   webcamUrl,
   animationUrl,
+  animationLayers,
+  activeAnimationId,
   logo,
   logoPosition,
   outputAspectRatio,
@@ -4452,15 +4579,16 @@ function EditorCanvas({
   onSelectLayer,
   onMainTransformChange,
   onWebcamTransformChange,
-  onAnimationTransformChange,
+  onAnimationLayerTransformChange,
+  onSelectAnimation,
   expanded = false,
   onCloseExpanded,
 }: EditorCanvasProps) {
   const canvasRef = useRef<HTMLDivElement>(null);
   const mainVideoRef = useRef<HTMLVideoElement>(null);
   const pointersRef = useRef(new Map<number, { x: number; y: number }>());
-  const gestureRef = useRef<{ layer: EditorLayer; distance: number; scale: number } | undefined>(undefined);
-  const dragRef = useRef<{ layer: EditorLayer; x: number; y: number; transform: EditorTransform; resize?: boolean } | undefined>(undefined);
+  const gestureRef = useRef<{ layer: EditorLayer; animationId?: string; distance: number; scale: number } | undefined>(undefined);
+  const dragRef = useRef<{ layer: EditorLayer; animationId?: string; x: number; y: number; transform: EditorTransform; resize?: boolean } | undefined>(undefined);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
   useEffect(() => {
@@ -4484,15 +4612,15 @@ function EditorCanvas({
     const rect = canvasRef.current?.getBoundingClientRect();
     return rect ? { x: event.clientX, y: event.clientY, width: rect.width, height: rect.height } : undefined;
   };
-  const getTransform = (layer: EditorLayer) => {
+  const getTransform = (layer: EditorLayer, animationId = activeAnimationId) => {
     if (layer === "main") return mainTransform;
     if (layer === "webcam") return webcamTransform;
-    return animationTransform;
+    return animationLayers.find((item) => item.id === animationId)?.transform || animationTransform;
   };
-  const updateTransform = (layer: EditorLayer, next: EditorTransform) => {
+  const updateTransform = (layer: EditorLayer, next: EditorTransform, animationId = activeAnimationId) => {
     if (layer === "main") onMainTransformChange(next);
     else if (layer === "webcam") onWebcamTransformChange(next);
-    else onAnimationTransformChange(next);
+    else onAnimationLayerTransformChange(animationId, next);
   };
   const clampTransform = (layer: EditorLayer, transform: EditorTransform): EditorTransform => ({
     x: Math.max(-48, Math.min(48, transform.x)),
@@ -4513,7 +4641,9 @@ function EditorCanvas({
     const targetLayer = target?.closest<HTMLElement>("[data-editor-layer]")?.dataset.editorLayer as EditorLayer | undefined;
     const resizeLayer = target?.closest<HTMLElement>("[data-editor-resize]")?.dataset.editorResize as EditorLayer | undefined;
     const layer = resizeLayer || targetLayer || selectedLayer;
-    if ((layer === "webcam" && !webcamUrl) || (layer === "animation" && !animationUrl)) return;
+    const targetAnimationId = target?.closest<HTMLElement>("[data-editor-animation-id]")?.dataset.editorAnimationId || activeAnimationId;
+    if ((layer === "webcam" && !webcamUrl) || (layer === "animation" && !animationLayers.length)) return;
+    if (layer === "animation" && targetAnimationId) onSelectAnimation(targetAnimationId);
     onSelectLayer(layer);
     const point = getPoint(event);
     if (!point) return;
@@ -4521,16 +4651,16 @@ function EditorCanvas({
     event.currentTarget.setPointerCapture(event.pointerId);
     if (pointersRef.current.size === 2) {
       const [first, second] = [...pointersRef.current.values()];
-      gestureRef.current = { layer, distance: Math.max(1, distance(first, second)), scale: getTransform(layer).scale };
+      gestureRef.current = { layer, animationId: targetAnimationId, distance: Math.max(1, distance(first, second)), scale: getTransform(layer, targetAnimationId).scale };
       dragRef.current = undefined;
       return;
     }
     if (resizeLayer) {
-      const current = getTransform(layer);
+      const current = getTransform(layer, targetAnimationId);
       const center = centerFor(layer, current, point);
-      dragRef.current = { layer, x: Math.hypot(event.clientX - center.x, event.clientY - center.y), y: 0, transform: current, resize: true };
+      dragRef.current = { layer, animationId: targetAnimationId, x: Math.hypot(event.clientX - center.x, event.clientY - center.y), y: 0, transform: current, resize: true };
     } else {
-      dragRef.current = { layer, x: event.clientX, y: event.clientY, transform: getTransform(layer) };
+      dragRef.current = { layer, animationId: targetAnimationId, x: event.clientX, y: event.clientY, transform: getTransform(layer, targetAnimationId) };
     }
   };
 
@@ -4541,7 +4671,7 @@ function EditorCanvas({
     if (gestureRef.current && pointersRef.current.size >= 2) {
       const [first, second] = [...pointersRef.current.values()];
       const gesture = gestureRef.current;
-      updateTransform(gesture.layer, clampTransform(gesture.layer, { ...getTransform(gesture.layer), scale: gesture.scale * distance(first, second) / gesture.distance }));
+      updateTransform(gesture.layer, clampTransform(gesture.layer, { ...getTransform(gesture.layer, gesture.animationId), scale: gesture.scale * distance(first, second) / gesture.distance }), gesture.animationId);
       return;
     }
     if (!active) return;
@@ -4549,7 +4679,7 @@ function EditorCanvas({
     if (!point) return;
     if (active.resize) {
       const center = centerFor(active.layer, active.transform, point);
-      updateTransform(active.layer, clampTransform(active.layer, { ...active.transform, scale: active.transform.scale * Math.hypot(event.clientX - center.x, event.clientY - center.y) / active.x }));
+      updateTransform(active.layer, clampTransform(active.layer, { ...active.transform, scale: active.transform.scale * Math.hypot(event.clientX - center.x, event.clientY - center.y) / active.x }), active.animationId);
       return;
     }
     const next = {
@@ -4557,7 +4687,7 @@ function EditorCanvas({
       x: active.transform.x + ((event.clientX - active.x) / point.width) * 100,
       y: active.transform.y + ((event.clientY - active.y) / point.height) * 100,
     };
-    updateTransform(active.layer, clampTransform(active.layer, next));
+    updateTransform(active.layer, clampTransform(active.layer, next), active.animationId);
   };
 
   const onPointerUp = (event: ReactPointerEvent<HTMLDivElement>) => {
@@ -4610,8 +4740,8 @@ function EditorCanvas({
   }[animationPreset];
   const mainChroma = chromaKeyByLayer.main;
   const webcamChroma = chromaKeyByLayer.webcam;
-  const animationChroma = chromaKeyByLayer.animation;
-  const anyChromaEnabled = Object.values(chromaKeyByLayer).some((settings) => settings.enabled);
+  const anyChromaEnabled = Object.values(chromaKeyByLayer).some((settings) => settings.enabled)
+    || animationLayers.some((layer) => layer.chromaKey.enabled);
 
   return <div
     ref={canvasRef}
@@ -4664,24 +4794,28 @@ function EditorCanvas({
         data-editor-layer="webcam"
         style={{ left: `${50 + webcamTransform.x}%`, top: `${50 + webcamTransform.y}%`, width: `${webcamTransform.scale * 100}%` }}
       />)}
-       {animationUrl && (animationChroma.enabled ? <ChromaKeyPreview
-        src={animationUrl}
-        className={`editor-face-layer editor-animation-layer ${selectedLayer === "animation" ? "active" : ""}`}
-        style={{ left: `${50 + animationTransform.x}%`, top: `${50 + animationTransform.y}%`, width: `${animationTransform.scale * 100}%` }}
-        layer="animation"
-         keyColor={animationChroma.color}
-         similarity={animationChroma.similarity}
-         blend={animationChroma.blend}
-      /> : <video
-        src={animationUrl}
-        muted
-        autoPlay
-        loop
-        playsInline
-        className={`editor-face-layer editor-animation-layer ${selectedLayer === "animation" ? "active" : ""}`}
-        data-editor-layer="animation"
-        style={{ left: `${50 + animationTransform.x}%`, top: `${50 + animationTransform.y}%`, width: `${animationTransform.scale * 100}%` }}
-      />)}
+        {animationLayers.map((layer) => layer.chromaKey.enabled ? <ChromaKeyPreview
+          key={layer.id}
+          src={layer.url}
+          className={`editor-face-layer editor-animation-layer ${selectedLayer === "animation" && activeAnimationId === layer.id ? "active" : ""}`}
+          style={{ left: `${50 + layer.transform.x}%`, top: `${50 + layer.transform.y}%`, width: `${layer.transform.scale * 100}%` }}
+          layer="animation"
+          animationId={layer.id}
+          keyColor={layer.chromaKey.color}
+          similarity={layer.chromaKey.similarity}
+          blend={layer.chromaKey.blend}
+        /> : <video
+          key={layer.id}
+          src={layer.url}
+          muted
+          autoPlay
+          loop
+          playsInline
+          className={`editor-face-layer editor-animation-layer ${selectedLayer === "animation" && activeAnimationId === layer.id ? "active" : ""}`}
+          data-editor-layer="animation"
+          data-editor-animation-id={layer.id}
+          style={{ left: `${50 + layer.transform.x}%`, top: `${50 + layer.transform.y}%`, width: `${layer.transform.scale * 100}%` }}
+        />)}
     {logo && <img src={logo.playbackUrl} alt="Logo overlay preview" className={`editor-overlay logo-${logoPosition}`}/>}
     {logo && <span className={`editor-watermark-label logo-${logoPosition}`}>BRANDED</span>}
     {animationCopy && <div className={`editor-animation-preview editor-animation-${animationPreset}`}><strong>{animationCopy}</strong><span>{animationPreset === "subscribe" ? "New drop live" : animationPreset === "like" ? "Show some love" : "Stay with us"}</span></div>}
@@ -4691,11 +4825,12 @@ function EditorCanvas({
       aria-hidden="true"
       style={{ left: `${50 + webcamTransform.x}%`, top: `${50 + webcamTransform.y}%`, width: `${webcamTransform.scale * 100}%` }}
     ><span className="editor-selection-label">Face cam · {Math.round(webcamTransform.scale * 100)}%</span><button type="button" data-editor-resize="webcam" aria-label="Resize face cam" className="editor-resize-handle" /></div>}
-     {selectedLayer === "animation" && animationUrl && <div
+      {selectedLayer === "animation" && animationUrl && <div
        className="editor-selection editor-selection-webcam editor-selection-animation"
        aria-hidden="true"
+        data-editor-animation-id={activeAnimationId}
        style={{ left: `${50 + animationTransform.x}%`, top: `${50 + animationTransform.y}%`, width: `${animationTransform.scale * 100}%` }}
-     ><span className="editor-selection-label">Animation · {Math.round(animationTransform.scale * 100)}%</span><button type="button" data-editor-resize="animation" aria-label="Resize animation" className="editor-resize-handle" /></div>}
+       ><span className="editor-selection-label">{animationLayers.find((layer) => layer.id === activeAnimationId)?.title || "Animation"} · {Math.round(animationTransform.scale * 100)}%</span><button type="button" data-editor-resize="animation" aria-label="Resize animation" className="editor-resize-handle" /></div>}
      {(reverseVideo || anyChromaEnabled || colorAdjustments.brightness !== 0 || colorAdjustments.contrast !== 1 || colorAdjustments.saturation !== 1 || colorAdjustments.hue !== 0) && <div className="editor-effect-badges"><span>{reverseVideo ? "Reverse" : "Effects"}</span>{anyChromaEnabled && <span>Green screen removed</span>}{colorAdjustments.brightness !== 0 || colorAdjustments.contrast !== 1 || colorAdjustments.saturation !== 1 || colorAdjustments.hue !== 0 ? <span>Color grade</span> : null}</div>}
      <div className="editor-canvas-toolbar" onPointerDown={(event) => event.stopPropagation()}>
        <div className="editor-canvas-zoom" aria-label="Preview zoom controls">
@@ -4714,12 +4849,13 @@ type ChromaKeyPreviewProps = {
   className: string;
   style: CSSProperties;
   layer: EditorLayer;
+  animationId?: string;
   keyColor: string;
   similarity: number;
   blend: number;
 };
 
-function ChromaKeyPreview({ src, className, style, layer, keyColor, similarity, blend }: ChromaKeyPreviewProps) {
+function ChromaKeyPreview({ src, className, style, layer, animationId, keyColor, similarity, blend }: ChromaKeyPreviewProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -4778,7 +4914,7 @@ function ChromaKeyPreview({ src, className, style, layer, keyColor, similarity, 
     return () => window.cancelAnimationFrame(frame);
   }, [src, keyColor, similarity, blend]);
 
-  return <div className={`${className} editor-chroma-preview`} data-editor-layer={layer} style={style}>
+  return <div className={`${className} editor-chroma-preview`} data-editor-layer={layer} data-editor-animation-id={animationId} style={style}>
     <video ref={videoRef} src={src} muted autoPlay loop playsInline aria-hidden="true" />
     <canvas ref={canvasRef} aria-label={`${layer === "main" ? "Main video" : layer === "webcam" ? "Face cam" : "Animation"} with green screen removed`} />
   </div>;

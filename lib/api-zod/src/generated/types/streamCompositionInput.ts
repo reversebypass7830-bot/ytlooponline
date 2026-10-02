@@ -5,6 +5,7 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { StreamCompositionInputAnimationLayersItem } from './streamCompositionInputAnimationLayersItem';
 import type { StreamCompositionInputAnimationPreset } from './streamCompositionInputAnimationPreset';
 import type { StreamCompositionInputChromaKeyByLayer } from './streamCompositionInputChromaKeyByLayer';
 import type { StreamCompositionInputChromaKeyBySource } from './streamCompositionInputChromaKeyBySource';
@@ -65,6 +66,8 @@ export interface StreamCompositionInput {
      * @maximum 0.8
      */
   animationScale?: number;
+  /** Multiple animation overlays that play together in the editor composition. */
+  animationLayers?: StreamCompositionInputAnimationLayersItem[];
   logoSource?: string;
   logoPosition?: StreamCompositionInputLogoPosition;
   /**
@@ -73,6 +76,7 @@ export interface StreamCompositionInput {
      */
   logoScale?: number;
   animationPreset?: StreamCompositionInputAnimationPreset;
+  /** Show a COMING SOON lower-third in the live composition. */
   comingSoon?: boolean;
   /**
      * @minimum -1

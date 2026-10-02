@@ -20,6 +20,12 @@ export type StreamCompositionInput = {
   animationX?: number;
   animationY?: number;
   animationScale?: number;
+  animationLayers?: Array<{
+    source: string;
+    x?: number;
+    y?: number;
+    scale?: number;
+  }>;
   logoSource?: string;
   logoPosition?: "top-left" | "top-right" | "bottom-left" | "bottom-right";
   logoScale?: number;
@@ -641,11 +647,30 @@ function setFile(url: URL, filename: string): string {
   return copy.toString().replace(`file=${marker}`, `file=${encodedFilename}`);
 }
 
+type PreparedAnimationInput = NonNullable<StreamCompositionInput["animationLayers"]>[number] & {
+  path: string;
+  paths: string[];
+  playlistPath?: string;
+};
+
+function animationLayersForInput(input: StreamRunnerInput): NonNullable<StreamCompositionInput["animationLayers"]> {
+  if (Array.isArray(input.composition?.animationLayers)) return input.composition.animationLayers;
+  const source = input.composition?.animationSource || input.liveAnimationSource;
+  return source
+    ? [{
+        source,
+        x: input.composition?.animationX ?? input.liveAnimationX ?? 0,
+        y: input.composition?.animationY ?? input.liveAnimationY ?? 0,
+        scale: input.composition?.animationScale ?? input.liveAnimationScale ?? 0.25,
+      }]
+    : [];
+}
+
 function buildFfmpegArgs(
   input: StreamRunnerInput,
   videoInput: { path: string; playlistPath?: string; paths: string[] },
   faceInput?: { path: string; playlistPath?: string; paths: string[] },
-  animationInput?: { path: string; playlistPath?: string; paths: string[] },
+  animationInputs: PreparedAnimationInput[] = [],
   logoInput?: { path: string; image: boolean },
 ): string[] {
   const aspectRatio = input.aspectRatio ?? "full";
@@ -657,7 +682,7 @@ function buildFfmpegArgs(
   }[aspectRatio];
   const [width, height] = dimensions;
   const facePath = faceInput?.path;
-  const animationPath = animationInput?.path;
+  const hasAnimations = animationInputs.length > 0;
   const logoPath = logoInput?.path;
   const composition = input.composition;
   const playbackSpeed = Math.min(2, Math.max(0.5, input.playbackSpeed ?? 1));
@@ -698,7 +723,6 @@ function buildFfmpegArgs(
   };
   const mainChroma = chromaFor("main");
   const webcamChroma = chromaFor("webcam", faceInput?.paths[0]);
-  const animationChroma = chromaFor("animation", animationInput?.paths[0]);
   const sourceChromaSegments = videoInput.paths
     .map((source, index) => {
       const settings = chromaFor("main", source);
@@ -723,7 +747,7 @@ function buildFfmpegArgs(
       : "";
   const needsVideoFilter = aspectRatio !== "full"
     || Boolean(facePath)
-    || Boolean(animationPath)
+    || hasAnimations
     || Boolean(logoPath)
     || liveWebcamInput
     || Boolean(composition)
@@ -735,8 +759,9 @@ function buildFfmpegArgs(
   const videoLevel = quality === "4k" && aspectRatio === "full" ? "5.2" : "4.2";
   const voiceAudio = input.voiceAudio === true;
   const faceInputIndex = 1;
-  const animationInputIndex = faceInputIndex + Number(Boolean(facePath));
-  const logoInputIndex = animationInputIndex + Number(Boolean(animationPath));
+  const firstAnimationInputIndex = faceInputIndex + Number(Boolean(facePath));
+  const animationInputIndices = animationInputs.map((_, index) => firstAnimationInputIndex + index);
+  const logoInputIndex = firstAnimationInputIndex + animationInputs.length;
   const firstAuxInputIndex = logoInputIndex + Number(Boolean(logoPath));
   const silenceInput = voiceAudio && input.baseAudioAvailable === false;
   const silenceInputIndex = firstAuxInputIndex;
@@ -769,7 +794,7 @@ function buildFfmpegArgs(
     );
   }
 
-  if (animationInput) {
+  for (const animationInput of animationInputs) {
     inputArgs.push(
       "-re",
       "-stream_loop",
@@ -828,6 +853,24 @@ function buildFfmpegArgs(
     ? `[${silenceInput ? silenceInputIndex : 0}:a:0]aresample=48000[base_audio];[${voicePipeInputIndex}:a:0]aresample=48000[voice_audio];[base_audio][voice_audio]amix=inputs=2:duration=first:dropout_transition=0:weights=1 1[mixed_audio]`
     : "";
 
+  let currentOverlayLabel = liveWebcamInput ? "with_live_webcam" : facePath ? "with_face" : "base";
+  const animationFilters = animationInputs.flatMap((animationInput, index) => {
+    const layerIndex = index + 1;
+    const inputIndex = animationInputIndices[index];
+    const animationLabel = `animation_${layerIndex}`;
+    const outputLabel = `with_animation_${layerIndex}`;
+    const scale = clamp(animationInput.scale, 0.1, 0.8, animationScale);
+    const x = clamp(animationInput.x, -48, 48, clamp(composition?.animationX ?? input.liveAnimationX, -48, 48, 0));
+    const y = clamp(animationInput.y, -48, 48, clamp(composition?.animationY ?? input.liveAnimationY, -48, 48, 0));
+    const chroma = chromaFor("animation", animationInput.source);
+    const filters = [
+      `[${inputIndex}:v]scale=${Math.round(width * scale)}:-2${chroma?.enabled ? `,chromakey=${chroma.color}:similarity=${chroma.similarity}:blend=${chroma.blend}` : ""}[${animationLabel}]`,
+      `[${currentOverlayLabel}][${animationLabel}]overlay=(main_w-overlay_w)/2+${Math.round(width * x / 100)}:(main_h-overlay_h)/2+${Math.round(height * y / 100)}:eof_action=repeat[${outputLabel}]`,
+    ];
+    currentOverlayLabel = outputLabel;
+    return filters;
+  });
+
   const videoArgs = needsVideoFilter
     ? [
         "-filter_complex",
@@ -877,27 +920,22 @@ function buildFfmpegArgs(
                 }:eof_action=pass[with_live_webcam]`,
               ]
             : []),
-          ...(animationPath
-            ? [
-                `[${animationInputIndex}:v]scale=${Math.round(width * animationScale)}:-2${animationChroma?.enabled ? `,chromakey=${animationChroma.color}:similarity=${animationChroma.similarity}:blend=${animationChroma.blend}` : ""}[animation]`,
-                `[${liveWebcamInput ? "with_live_webcam" : facePath ? "with_face" : "base"}][animation]overlay=(main_w-overlay_w)/2+${Math.round(width * clamp(composition?.animationX ?? input.liveAnimationX, -48, 48, 0) / 100)}:(main_h-overlay_h)/2+${Math.round(height * clamp(composition?.animationY ?? input.liveAnimationY, -48, 48, 0) / 100)}:eof_action=repeat[with_animation]`,
-              ]
-            : []),
+          ...animationFilters,
           ...(logoPath
             ? [
                 `[${logoInputIndex}:v]scale=iw*${logoScale}:ih*${logoScale}[logo]`,
-                `[${animationPath ? "with_animation" : liveWebcamInput ? "with_live_webcam" : facePath ? "with_face" : "base"}][logo]overlay=${logoPosition(composition?.logoPosition, "main_w", "main_h")}:eof_action=repeat[with_logo]`,
+                `[${currentOverlayLabel}][logo]overlay=${logoPosition(composition?.logoPosition, "main_w", "main_h")}:eof_action=repeat[with_logo]`,
               ]
             : []),
           ...(composition?.comingSoon
             ? [
-                `[${logoPath ? "with_logo" : animationPath ? "with_animation" : liveWebcamInput ? "with_live_webcam" : facePath ? "with_face" : "base"}]drawtext=fontfile='/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf':text='COMING SOON':fontcolor=white:fontsize=${Math.round(width * 0.045)}:x=(w-text_w)/2:y=h-text_h-${Math.round(height * 0.08)}:box=1:boxcolor=black@0.62:boxborderw=${Math.round(width * 0.012)}[with_coming_soon]`,
+                `[${logoPath ? "with_logo" : currentOverlayLabel}]drawtext=fontfile='/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf':text='COMING SOON':fontcolor=white:fontsize=${Math.round(width * 0.045)}:x=(w-text_w)/2:y=h-text_h-${Math.round(height * 0.08)}:box=1:boxcolor=black@0.62:boxborderw=${Math.round(width * 0.012)}[with_coming_soon]`,
               ]
             : []),
           ...(audioFilter ? [audioFilter] : []),
         ].join(";"),
         "-map",
-         composition?.comingSoon ? "[with_coming_soon]" : logoPath ? "[with_logo]" : animationPath ? "[with_animation]" : liveWebcamInput ? "[with_live_webcam]" : facePath ? "[with_face]" : "[base]",
+         composition?.comingSoon ? "[with_coming_soon]" : logoPath ? "[with_logo]" : `[${currentOverlayLabel}]`,
         "-c:v",
         "libx264",
         "-preset",
@@ -1087,10 +1125,10 @@ function launchProcess(process: StreamProcess): void {
     : process.input.faceCategory
     ? getVideoPaths(process.input.faceCategory, process.input.faceSources, process.input.faceSource)
     : [];
-  const animationSource = process.input.composition?.animationSource || process.input.liveAnimationSource;
-  const animationInput = animationSource
-    ? { path: getVideoPaths("live animation", undefined, animationSource)[0] }
-    : undefined;
+  const preparedAnimationInputs = animationLayersForInput(process.input).map((layer) => ({
+    ...layer,
+    ...prepareInput(getVideoPaths("live animation", undefined, layer.source)),
+  }));
   const logoInput = process.input.composition?.logoSource
     ? {
         path: getVideoPath("editor logo", process.input.composition.logoSource),
@@ -1099,8 +1137,7 @@ function launchProcess(process: StreamProcess): void {
     : undefined;
   const videoInput = prepareInput(videoPaths);
   const faceInput = facePaths.length ? prepareInput(facePaths) : undefined;
-  const preparedAnimationInput = animationInput ? prepareInput([animationInput.path]) : undefined;
-  const nextPlaylistPaths = [videoInput.playlistPath, faceInput?.playlistPath, preparedAnimationInput?.playlistPath]
+  const nextPlaylistPaths = [videoInput.playlistPath, faceInput?.playlistPath, ...preparedAnimationInputs.map((item) => item.playlistPath)]
     .filter((playlistPath): playlistPath is string => Boolean(playlistPath));
   const publisher = startPublisher(process);
   const rendererInput = {
@@ -1110,7 +1147,7 @@ function launchProcess(process: StreamProcess): void {
   };
   let renderer: ChildProcess;
   try {
-    renderer = spawn("ffmpeg", buildFfmpegArgs(rendererInput, videoInput, faceInput, preparedAnimationInput, logoInput), {
+    renderer = spawn("ffmpeg", buildFfmpegArgs(rendererInput, videoInput, faceInput, preparedAnimationInputs, logoInput), {
       stdio: ["ignore", "pipe", "pipe", "pipe", "pipe"],
     });
   } catch (error) {
@@ -1256,9 +1293,8 @@ export function startStream(input: StreamRunnerInput): StreamRunnerResult {
   getPublisherMode(validateIngestUrl(input.ingestUrl));
   getVideoPaths(input.category, input.videoSources, input.videoSource);
   if (input.faceCategory) getVideoPaths(input.faceCategory, input.faceSources, input.faceSource);
-  if (input.liveAnimationSource) getVideoPaths("live animation", undefined, input.liveAnimationSource);
+  for (const layer of animationLayersForInput(input)) getVideoPath("live animation", layer.source);
   if (input.composition?.webcamSource) getVideoPath("editor face cam", input.composition.webcamSource);
-  if (input.composition?.animationSource) getVideoPath("live animation", input.composition.animationSource);
   if (input.composition?.logoSource) getVideoPath("editor logo", input.composition.logoSource);
 
   const streamProcess: StreamProcess = {
@@ -1297,9 +1333,8 @@ export function updateStream(input: StreamRunnerInput): StreamRunnerResult {
 
   getVideoPaths(input.category, input.videoSources, input.videoSource);
   if (input.faceCategory) getVideoPaths(input.faceCategory, input.faceSources, input.faceSource);
-  if (input.liveAnimationSource) getVideoPaths("live animation", undefined, input.liveAnimationSource);
+  for (const layer of animationLayersForInput(input)) getVideoPath("live animation", layer.source);
   if (input.composition?.webcamSource) getVideoPath("editor face cam", input.composition.webcamSource);
-  if (input.composition?.animationSource) getVideoPath("live animation", input.composition.animationSource);
   if (input.composition?.logoSource) getVideoPath("editor logo", input.composition.logoSource);
 
   const nextInput: StreamRunnerInput = {
