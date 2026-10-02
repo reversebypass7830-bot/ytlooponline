@@ -1,5 +1,6 @@
 import { spawn } from 'node:child_process';
 import { promises as fs } from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -8,6 +9,13 @@ const projectDirectory = path.resolve(scriptDirectory, '..');
 const workspaceDirectory = path.resolve(projectDirectory, '..', '..');
 const linkFile = path.join(workspaceDirectory, 'cloudflare.txt');
 const botTokenFile = path.join(workspaceDirectory, 'bottoken.txt');
+const tunnelToken = process.env.CLOUDFLARE_TUNNEL_TOKEN?.trim() || '';
+const tunnelHostname = process.env.CLOUDFLARE_TUNNEL_HOSTNAME?.trim() || '';
+const tunnelPublicUrl = tunnelHostname ? `https://${tunnelHostname}` : '';
+const tunnelTokenFile = path.join(
+  os.tmpdir(),
+  `replit-cloudflare-tunnel-${process.pid}.token`,
+);
 const port = Number(process.env.PORT || 26180);
 const basePath = process.env.BASE_PATH || '/';
 const command = process.platform === 'win32' ? 'pnpm.cmd' : 'pnpm';
@@ -16,10 +24,13 @@ const environment = {
   PORT: String(port),
   BASE_PATH: basePath,
 };
+delete environment.CLOUDFLARE_TUNNEL_TOKEN;
 
 let shuttingDown = false;
 let restarting = false;
 let resetInProgress = false;
+let tunnelTokenFileReady = false;
+let tunnelTokenFileError = '';
 let activeUrl = '';
 let botToken = '';
 let botOffset = 0;
@@ -77,6 +88,7 @@ async function sendCurrentLink(chatId) {
 
 async function publishActiveUrl(url) {
   activeUrl = url;
+  tunnelUnavailable = false;
   await writeLinkFile(url);
   console.log(`Cloudflare Tunnel URL saved to ${linkFile}: ${url}`);
 
@@ -88,8 +100,8 @@ async function publishActiveUrl(url) {
     }
   }
 
-  for (const resolve of tunnelUrlWaiters) {
-    resolve(url);
+  for (const waiter of tunnelUrlWaiters) {
+    waiter.resolve(url);
   }
   tunnelUrlWaiters.clear();
 }
@@ -109,15 +121,24 @@ async function notifyBotStatus(chatId, text) {
 
 function waitForNextTunnelUrl(timeoutMs = 60000) {
   return new Promise((resolve, reject) => {
-    const timer = setTimeout(() => {
-      tunnelUrlWaiters.delete(resolveUrl);
-      reject(new Error('Cloudflare Tunnel did not provide a URL in time.'));
-    }, timeoutMs);
-    const resolveUrl = (url) => {
-      clearTimeout(timer);
-      resolve(url);
+    let timer;
+    const waiter = {
+      resolve(url) {
+        clearTimeout(timer);
+        tunnelUrlWaiters.delete(waiter);
+        resolve(url);
+      },
+      reject(error) {
+        clearTimeout(timer);
+        tunnelUrlWaiters.delete(waiter);
+        reject(error);
+      },
     };
-    tunnelUrlWaiters.add(resolveUrl);
+    timer = setTimeout(
+      () => waiter.reject(new Error('Cloudflare Tunnel did not connect in time.')),
+      timeoutMs,
+    );
+    tunnelUrlWaiters.add(waiter);
   });
 }
 
@@ -138,7 +159,9 @@ async function restartServices() {
   vite = undefined;
   restarting = false;
 
-  const nextUrl = waitForNextTunnelUrl();
+  const nextUrl = tunnelTokenFileReady && tunnelHostname
+    ? waitForNextTunnelUrl()
+    : Promise.resolve('');
   startServices();
   try {
     return await nextUrl;
@@ -277,16 +300,25 @@ function stopProcesses(exitCode = 0) {
 
   shuttingDown = true;
   botAbortController?.abort();
-  Promise.all([stopChild(tunnel), stopChild(vite)]).finally(() => process.exit(exitCode));
+  Promise.all([stopChild(tunnel), stopChild(vite)]).finally(async () => {
+    if (tunnelTokenFileReady) {
+      await fs.rm(tunnelTokenFile, { force: true }).catch(() => {});
+      tunnelTokenFileReady = false;
+    }
+    process.exit(exitCode);
+  });
 }
 
 function handleTunnelOutput(chunk) {
   const output = chunk.toString();
   process.stdout.write(`[cloudflare] ${output}`);
 
-  const url = output.match(/https:\/\/[a-z0-9-]+\.trycloudflare\.com/i)?.[0];
-  if (url && url !== activeUrl) {
-    publishActiveUrl(url).catch((error) => {
+  if (
+    tunnelPublicUrl &&
+    /registered tunnel connection/i.test(output) &&
+    tunnelPublicUrl !== activeUrl
+  ) {
+    publishActiveUrl(tunnelPublicUrl).catch((error) => {
       console.error(`Could not write ${linkFile}:`, error);
     });
   }
@@ -296,18 +328,32 @@ async function markTunnelUnavailable(message) {
   tunnelUnavailable = true;
   activeUrl = '';
   await writeLinkFile(message);
+  for (const waiter of tunnelUrlWaiters) {
+    waiter.reject(new Error(message));
+  }
+  tunnelUrlWaiters.clear();
   console.error(message);
 }
 
 function attachProcessHandlers() {
-  tunnel.stdout.on('data', handleTunnelOutput);
-  tunnel.stderr.on('data', handleTunnelOutput);
+  if (tunnel) {
+    tunnel.stdout.on('data', handleTunnelOutput);
+    tunnel.stderr.on('data', handleTunnelOutput);
 
-  tunnel.on('error', async (error) => {
-    await markTunnelUnavailable(
-      `Cloudflare Tunnel could not start: ${error.message}. The local preview remains available.`,
-    );
-  });
+    tunnel.on('error', async (error) => {
+      await markTunnelUnavailable(
+        `Cloudflare Tunnel could not start: ${error.message}. The local preview remains available.`,
+      );
+    });
+
+    tunnel.on('exit', async (code) => {
+      if (!shuttingDown && !restarting) {
+        await markTunnelUnavailable(
+          `Cloudflare Tunnel stopped unexpectedly with exit code ${code ?? 1}. The local preview remains available.`,
+        );
+      }
+    });
+  }
 
   vite.on('error', (error) => {
     console.error('Vite could not start:', error);
@@ -318,14 +364,6 @@ function attachProcessHandlers() {
     if (!shuttingDown && !restarting) {
       console.error(`Vite stopped unexpectedly with exit code ${code ?? 1}.`);
       stopProcesses(code ?? 1);
-    }
-  });
-
-  tunnel.on('exit', async (code) => {
-    if (!shuttingDown && !restarting) {
-      await markTunnelUnavailable(
-        `Cloudflare Tunnel stopped unexpectedly with exit code ${code ?? 1}. The local preview remains available.`,
-      );
     }
   });
 }
@@ -341,26 +379,54 @@ function startServices() {
     },
   );
 
-  tunnel = spawn(
-    'cloudflared',
-    [
-      'tunnel',
-      '--url',
-      `http://127.0.0.1:${port}`,
-      '--no-autoupdate',
-    ],
-    {
-      cwd: projectDirectory,
-      env: environment,
-      stdio: ['ignore', 'pipe', 'pipe'],
-    },
-  );
-  tunnelUnavailable = false;
+  tunnel = undefined;
+  if (!tunnelHostname) {
+    void markTunnelUnavailable(
+      'CLOUDFLARE_TUNNEL_HOSTNAME is not configured. The local preview remains available.',
+    );
+  } else if (!tunnelToken) {
+    void markTunnelUnavailable(
+      `CLOUDFLARE_TUNNEL_TOKEN is not configured in Replit Secrets. The local preview remains available; the permanent link will be https://${tunnelHostname}.`,
+    );
+  } else if (!tunnelTokenFileReady) {
+    void markTunnelUnavailable(
+      `Cloudflare Tunnel token could not be prepared${tunnelTokenFileError ? `: ${tunnelTokenFileError}` : '.'} The local preview remains available.`,
+    );
+  } else {
+    tunnel = spawn(
+      'cloudflared',
+      [
+        'tunnel',
+        '--no-autoupdate',
+        'run',
+        '--token-file',
+        tunnelTokenFile,
+      ],
+      {
+        cwd: projectDirectory,
+        env: environment,
+        stdio: ['ignore', 'pipe', 'pipe'],
+      },
+    );
+    tunnelUnavailable = false;
+  }
   attachProcessHandlers();
 }
 
+if (tunnelToken) {
+  try {
+    await fs.writeFile(tunnelTokenFile, `${tunnelToken}\n`, { mode: 0o600 });
+    await fs.chmod(tunnelTokenFile, 0o600);
+    tunnelTokenFileReady = true;
+  } catch (error) {
+    tunnelTokenFileError = error instanceof Error ? error.message : 'unknown file error';
+  }
+}
+
 await writeLinkFile(
-  'Cloudflare Tunnel is starting. The public URL will appear here shortly.',
+  tunnelTokenFileReady && tunnelHostname
+    ? `Starting the local host and named Cloudflare Tunnel for ${tunnelHostname}.`
+    : 'Starting the local host. The local preview remains available while the named Cloudflare Tunnel is configured.',
 );
 await startBot();
 startServices();
