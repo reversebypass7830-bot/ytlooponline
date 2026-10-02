@@ -11081,3 +11081,92 @@ select { height: 41px; }
     padding: 6px 10px;
   }
 }
+
+@media (min-width: 701px) {
+  .shell.video-library-surface .sidebar,
+  .shell.profile-surface .sidebar {
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+  }
+
+  .shell.video-library-surface .main,
+  .shell.profile-surface .main {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    min-height: 100dvh;
+    background: #f9fafb;
+  }
+
+  .shell.video-library-surface .video-library-page,
+  .shell.profile-surface .profile-page {
+    flex: 1 0 auto;
+    min-height: calc(100vh - 76px);
+    min-height: calc(100dvh - 76px);
+    background: #f9fafb;
+  }
+}
+
+@media (min-width: 701px) and (max-height: 640px) {
+  .shell.video-library-surface .sidebar,
+  .shell.profile-surface .sidebar {
+    padding-top: 12px;
+    padding-bottom: 10px;
+  }
+
+  .shell.video-library-surface .brand,
+  .shell.profile-surface .brand {
+    padding-bottom: 14px;
+  }
+
+  .shell.video-library-surface .nav-label,
+  .shell.profile-surface .nav-label {
+    padding-bottom: 5px;
+  }
+
+  .shell.video-library-surface .nav,
+  .shell.profile-surface .nav {
+    gap: 3px;
+  }
+
+  .shell.video-library-surface .nav-link,
+  .shell.profile-surface .nav-link {
+    min-height: 34px;
+  }
+
+  .shell.video-library-surface .sidebar-account-label,
+  .shell.profile-surface .sidebar-account-label {
+    margin-top: 14px;
+  }
+
+  .shell.video-library-surface .workspace-card,
+  .shell.profile-surface .workspace-card {
+    margin: 6px 4px 8px;
+    padding: 9px 11px;
+  }
+
+  .shell.video-library-surface .workspace-card strong,
+  .shell.profile-surface .workspace-card strong {
+    margin-bottom: 4px;
+    font-size: 11px;
+  }
+
+  .shell.video-library-surface .workspace-card p,
+  .shell.profile-surface .workspace-card p {
+    font-size: 10px;
+    line-height: 1.35;
+  }
+
+  .shell.video-library-surface .mini-user,
+  .shell.profile-surface .mini-user {
+    padding: 6px 10px;
+  }
+}
+
+@media (max-width: 700px) {
+  .shell.video-library-surface .video-library-page,
+  .shell.profile-surface .profile-page {
+    padding-bottom: calc(106px + env(safe-area-inset-bottom));
+  }
+}
