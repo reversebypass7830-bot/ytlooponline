@@ -95,6 +95,7 @@ type StreamProcess = {
   previewDir?: string;
   startedAt: string;
   status: StreamRunnerStatus;
+  failureMessage?: string;
   input: StreamRunnerInput;
   durationTimer?: NodeJS.Timeout;
   restartTimer?: NodeJS.Timeout;
@@ -316,6 +317,28 @@ function redactIngestUrl(message: string, ingestUrl: string): string {
   return message.replaceAll(ingestUrl, "[redacted ingest url]");
 }
 
+function sanitizeFfmpegDiagnostic(message: string, ingestUrl: string): string {
+  return redactIngestUrl(message, ingestUrl)
+    .replace(/(?:https?|rtmps?):\/\/[^\s"'<>]+/gi, "[destination URL redacted]")
+    .replace(/((?:key|token|secret|password|authorization)\s*[:=]\s*)[^\s&,;]+/gi, "$1[redacted]")
+    .replace(/(?:\/[A-Za-z0-9._-]+){2,}(?:\/[^\s:]+)?/g, "[server path redacted]")
+    .trim()
+    .slice(-1000);
+}
+
+function ffmpegExitMessage(
+  processName: "Publisher" | "Renderer",
+  code: number | null,
+  signal: NodeJS.Signals | null,
+  stderr: string,
+  ingestUrl: string,
+): string {
+  const exit = code === null ? `signal ${signal ?? "unknown"}` : `exit code ${code}`;
+  const diagnostic = sanitizeFfmpegDiagnostic(stderr, ingestUrl);
+  if (diagnostic) return `${processName} FFmpeg exited (${exit}): ${diagnostic}`;
+  return `${processName} FFmpeg exited (${exit}). Check the destination URL/key and the server's network access.`;
+}
+
 const voiceFrameBytes = 1920;
 const voiceJitterFrames = 8;
 const maxVoiceBufferBytes = voiceFrameBytes * 50;
@@ -461,6 +484,7 @@ function startPublisher(process: StreamProcess): ChildProcess {
   });
   publisher.once("error", (error) => {
     process.status = "failed";
+    process.failureMessage = `Publisher FFmpeg failed to start: ${sanitizeFfmpegDiagnostic(error.message, process.input.ingestUrl)}`;
     logger.error({ streamId: process.input.streamId, error: error.message }, "FFmpeg process error");
   });
   publisher.once("exit", (code, signal) => {
@@ -472,6 +496,7 @@ function startPublisher(process: StreamProcess): ChildProcess {
     if (process.child === publisher) process.child = null;
     if (process.status === "running") {
       process.status = "failed";
+      process.failureMessage = ffmpegExitMessage("Publisher", code, signal, publisherStderr, process.input.ingestUrl);
       process.renderer?.kill("SIGTERM");
       if (publisherStderr.trim()) {
         logger.error(
@@ -481,7 +506,7 @@ function startPublisher(process: StreamProcess): ChildProcess {
             signal,
             ingestProtocol: ingestUrl.protocol,
             publisherMode,
-            stderr: redactIngestUrl(publisherStderr.trim(), process.input.ingestUrl),
+            stderr: sanitizeFfmpegDiagnostic(publisherStderr, process.input.ingestUrl),
           },
           "Live publisher exited with diagnostics",
         );
@@ -1144,6 +1169,7 @@ function launchProcess(process: StreamProcess): void {
     }
     if (process.renderer !== renderer) return;
     process.status = "failed";
+    process.failureMessage = `Renderer FFmpeg failed to start: ${sanitizeFfmpegDiagnostic(error.message, process.input.ingestUrl)}`;
     logger.error({ streamId: process.input.streamId, error: error.message }, "FFmpeg renderer error");
   });
   renderer.once("exit", (code, signal) => {
@@ -1188,9 +1214,12 @@ function launchProcess(process: StreamProcess): void {
 
     stopPreview(process);
     process.status = code === 0 ? "stopped" : "failed";
+    if (code !== 0) {
+      process.failureMessage = ffmpegExitMessage("Renderer", code, signal, rendererStderr, process.input.ingestUrl);
+    }
     if (code !== 0 && rendererStderr.trim()) {
       logger.error(
-        { streamId: process.input.streamId, code, signal, stderr: rendererStderr.trim() },
+        { streamId: process.input.streamId, code, signal, stderr: sanitizeFfmpegDiagnostic(rendererStderr, process.input.ingestUrl) },
         "FFmpeg renderer exited with diagnostics",
       );
     }
@@ -1248,7 +1277,13 @@ export function startStream(input: StreamRunnerInput): StreamRunnerResult {
   processes.set(input.streamId, streamProcess);
   launchProcess(streamProcess);
 
-  return resultFor(input.streamId, streamProcess, "FFmpeg stream process started.");
+  return resultFor(
+    input.streamId,
+    streamProcess,
+    streamProcess.status === "failed"
+      ? streamProcess.failureMessage ?? "FFmpeg stream process failed during startup."
+      : "FFmpeg stream process started.",
+  );
 }
 
 export function updateStream(input: StreamRunnerInput): StreamRunnerResult {
@@ -1403,6 +1438,10 @@ export function getStreamStatus(streamId: string): StreamRunnerResult {
   return resultFor(
     streamId,
     streamProcess,
-    streamProcess.status === "running" ? "FFmpeg stream process is running." : "FFmpeg stream process is no longer running.",
+    streamProcess.status === "running"
+      ? "FFmpeg stream process is running."
+      : streamProcess.status === "failed"
+        ? streamProcess.failureMessage ?? "FFmpeg stream process failed without a diagnostic."
+        : "FFmpeg stream process is no longer running.",
   );
 }
