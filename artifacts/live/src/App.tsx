@@ -321,6 +321,29 @@ const platformFromUrl = (url: string) => {
   if (value.includes("vimeo")) return "Vimeo";
   return "Custom RTMP";
 };
+const getDestinationProtocolStatus = (rawUrl: string): { label: string; issue: boolean } => {
+  try {
+    const url = new URL(rawUrl.trim());
+    const usesHlsEndpoint = url.pathname.includes("http_upload_hls");
+    if (usesHlsEndpoint && url.protocol !== "https:") {
+      const protocol = url.protocol.replace(/:$/, "").toUpperCase() || "unknown";
+      return {
+        label: `Mismatch — YouTube HLS needs HTTPS; detected ${protocol}.`,
+        issue: true,
+      };
+    }
+    if (usesHlsEndpoint) return { label: "YouTube HLS · HTTPS", issue: false };
+    if (url.protocol === "rtmp:" || url.protocol === "rtmps:") {
+      return { label: url.protocol === "rtmps:" ? "RTMPS" : "RTMP", issue: false };
+    }
+    return {
+      label: `${url.protocol.replace(/:$/, "").toUpperCase() || "Unknown"} — unsupported destination`,
+      issue: true,
+    };
+  } catch {
+    return { label: "Destination protocol unavailable", issue: true };
+  }
+};
 const defaultYoutubeIngestUrl = "rtmp://a.rtmp.youtube.com/live2";
 
 const seed: DataState = {
@@ -2593,6 +2616,7 @@ function ChannelModal({ channel, groups, videos, onSave, onClose }: {channel?:Li
     autoRestart:channel?.autoRestart||false,
     playlistVideoIds: channel?.playlistVideoIds?.length ? channel.playlistVideoIds : existingVideos.map((video) => video.id),
   });
+  const destinationProtocolStatus = getDestinationProtocolStatus(form.streamUrl);
   const set=(key:string,value:string|number|boolean)=>setForm(f=>({...f,[key]:value}));
   const selectedGroup = groups.find(g=>g.id===form.groupId);
   const faceGroup = groups.find(g=>g.id===form.faceGroupId);
@@ -2632,6 +2656,11 @@ function ChannelModal({ channel, groups, videos, onSave, onClose }: {channel?:Li
    return <Modal title={channel ? "Update channel" : "Add live channel"} onClose={onClose} footer={<><button className="button ghost" onClick={onClose} data-testid="button-cancel-channel">Cancel</button><button className="button" type="submit" form="channel-form" disabled={!form.streamKey.trim() || !form.groupId || !form.playlistVideoIds.length} data-testid="button-save-channel">{channel ? "Save changes" : "Add channel"} <Check size={14}/></button></>}><form id="channel-form" onSubmit={submit}>
     <div className="form-grid">
        <div className="field full"><label>Stream key</label><input autoFocus required type="password" autoComplete="new-password" value={form.streamKey} onChange={e=>set("streamKey",e.target.value)} placeholder="Paste your YouTube stream key" data-testid="input-channel-stream-key"/><span className="field-hint">Saved privately and never shown in the channel table.</span></div>
+       <div className="field full">
+         <label htmlFor="channel-destination-protocol">Destination protocol</label>
+         <output id="channel-destination-protocol" className={destinationProtocolStatus.issue ? "error-note" : "form-note"} aria-live="polite" data-testid="text-channel-destination-protocol">{destinationProtocolStatus.label}</output>
+         <span className="field-hint">Only the connection type is shown. The destination URL and stream key stay hidden.</span>
+       </div>
        <div className="field"><label>Main video folder</label><select required value={form.groupId} onChange={e=>{const groupId=e.target.value;setForm(current=>({...current,groupId,playlistVideoIds:[]}));}} data-testid="select-channel-group"><option value="">Select a folder</option>{groups.map(g=><option key={g.id} value={g.id}>{g.name}</option>)}</select></div>
        <div className="field"><label>Live format</label><select value={form.aspectRatio} onChange={e=>set("aspectRatio",e.target.value as AspectRatio)} data-testid="select-channel-ratio"><option value="shorts">Shorts · 9:16 vertical</option><option value="full">Big live · 16:9 landscape</option><option value="square">Square · 1:1</option></select></div>
        <div className="field"><label>Video speed</label><select value={form.playbackSpeed} onChange={e=>set("playbackSpeed",Number(e.target.value))} data-testid="select-channel-speed"><option value="0.5">0.5× slow</option><option value="0.75">0.75×</option><option value="1">1× normal</option><option value="1.25">1.25×</option><option value="1.5">1.5×</option><option value="2">2× fast</option></select></div>
