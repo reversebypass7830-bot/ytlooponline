@@ -1450,7 +1450,7 @@ function Sidebar({ path, open, onClose, user, photo, data }: { path:string; open
     <nav className="nav">
       {nav.map(({href,label,icon:Icon,count}) => <Link key={href} href={href} onClick={onClose} className={`nav-link ${path === href ? "active" : ""}`} data-testid={`link-${label.toLowerCase().replaceAll(" ","-")}`}><Icon size={16}/><span>{label}</span>{count !== undefined && <span className="nav-count">{count}</span>}</Link>)}
     </nav>
-     <div className="nav-label" style={{marginTop:28}}>Account</div>
+     <div className="nav-label sidebar-account-label">Account</div>
     <nav className="nav">
       <Link href="/profile" onClick={onClose} className={`nav-link ${path === "/profile" ? "active" : ""}`} data-testid="link-profile"><UserRound size={16}/><span>Profile</span></Link>
     </nav>
@@ -1516,7 +1516,7 @@ function AppShell({ children, title, account, profilePhoto, workspace }: { child
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [path]);
-  return <div className={`shell ${title === "Analytics" ? "analytics-surface" : title === "Live channels" ? "live-surface" : title === "Video library" ? "video-library-surface" : title === "Live Stream Preview" ? "live-preview-surface" : title === "Video editor" ? "video-editor-surface" : title === "Subscription" ? "subscription-surface" : title === "Profile" ? "profile-surface" : ""}`}>
+  return <div className={`shell ${title === "Analytics" ? "analytics-surface" : title === "Live channels" ? "live-surface" : title === "Video library" ? "video-library-surface" : title === "Live Stream Preview" ? "live-preview-surface" : title === "Video editor" ? "video-editor-surface" : title === "Subscription" ? "subscription-surface" : title === "Profile" ? "profile-surface" : title === "Dashboard" ? "dashboard-surface" : ""}`}>
     {menu && <button className="sidebar-scrim" aria-label="Close navigation" onClick={() => setMenu(false)} data-testid="button-close-menu" />}
     <Sidebar path={path} open={menu} onClose={()=>setMenu(false)} user={account?.displayName || account?.email || workspace.user} photo={profilePhoto} data={workspace.data}/>
      <main className="main"><Header title={title} account={account} onMenu={()=>setMenu(true)} onBack={()=>setLocation("/dashboard")}/><DownloadActivity downloads={workspace.youtubeDownloads} onDismiss={workspace.dismissYoutubeDownload}/>{children}</main>
