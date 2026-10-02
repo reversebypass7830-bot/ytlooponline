@@ -995,15 +995,18 @@ function useAccountSession(isSignedIn: boolean, userId?: string, authReady = tru
       setLoading(true);
       return;
     }
-    setLoading(Boolean(isSignedIn));
+    setLoading(true);
     void load();
-    if (!isSignedIn && !account) return;
-    const timer = window.setInterval(() => void load(), 60_000);
     return () => {
-      window.clearInterval(timer);
       requestIdRef.current += 1;
     };
-  }, [authReady, isSignedIn, userId, Boolean(account)]);
+  }, [authReady, isSignedIn, userId]);
+
+  useEffect(() => {
+    if (!authReady || (!isSignedIn && !account)) return;
+    const timer = window.setInterval(() => void load(), 60_000);
+    return () => window.clearInterval(timer);
+  }, [authReady, isSignedIn, Boolean(account)]);
 
   const saveProfile = async (profile: { displayName: string; email: string; phone?: string; profileImagePath?: string }) => {
     const result = await apiJson<AccountResponse>("/api/account/profile", {
@@ -4939,6 +4942,7 @@ function App() {
     }
   }, [accountSession.account, accountSession.loading, firebaseLoading, hasAccountSession, isSignedIn, license.license, location, mobileGiftKey, setLocation]);
   if (firebaseLoading) return <div className="workspace-loading"><Radio size={20}/><span>Connecting secure sign-in…</span></div>;
+  if (accountSession.loading) return <div className="workspace-loading"><Radio size={20}/><span>Restoring your session…</span></div>;
   if (isOwnerRoute) return <OwnerConsolePage/>;
   if (location.startsWith("/sign-in") || location.startsWith("/sign-up")) {
     return <LicenseGate
@@ -4956,7 +4960,6 @@ function App() {
   }
   if (location === "/pricing") return isSignedIn || hasAccountSession ? <Redirect to="/dashboard" /> : <Redirect to="/sign-in" />;
   if (location === "/gateway") return <GatewayPage />;
-  if (isSignedIn && accountSession.loading) return <div className="workspace-loading"><Radio size={20}/><span>Preparing your account…</span></div>;
   if (isSignedIn && accountSession.error && !accountSession.account) return <div className="workspace-loading"><span>{accountSession.error}</span></div>;
   if (location === "/" && !isLicenseActive(activeLicense)) return <LandingPage />;
   const openMobileRoom = () => { setMobileGiftKey(""); setLocation("/dashboard"); };

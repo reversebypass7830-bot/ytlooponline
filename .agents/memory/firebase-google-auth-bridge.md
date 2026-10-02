@@ -19,4 +19,4 @@ The browser's initial Firebase auth callback may report no Firebase user while a
 
 **Why:** Treating initial auth hydration as logout creates a login loop after refresh and can erase a valid server session before account state finishes loading.
 
-**How to apply:** Clear server auth cookies only from an explicit sign-out action, and ignore stale account requests when Firebase/mobile auth state changes.
+**How to apply:** Clear server auth cookies only from an explicit sign-out action, ignore stale account requests when Firebase/mobile auth state changes, and keep the current route in a loading state until `/api/account` finishes—even when Firebase initially reports no user. Show the login gate only after the server confirms there is no session.
