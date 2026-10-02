@@ -1052,6 +1052,7 @@ function useAccountSession(isSignedIn: boolean, userId?: string, authReady = tru
   };
 
   const reload = async () => {
+    setLoading(true);
     const nextAccount = await load();
     if (!nextAccount) throw new Error("Your session could not be restored. Please sign in again.");
   };
@@ -4887,6 +4888,39 @@ function Routed({workspace, account, plans, onSelectPlan, firebaseUser, profileP
   return <Switch><Route path="/dashboard"><Dashboard workspace={workspace} account={account}/></Route><Route path="/analytics"><AnalyticsPage workspace={workspace} account={account} onSavePhone={onSavePhone}/></Route><Route path="/aesthetics"><Redirect to="/analytics"/></Route><Route path="/live"><LivePage workspace={workspace} account={account}/></Route><Route path="/live-preview"><LivePreviewPage workspace={workspace}/></Route><Route path="/videos"><VideosPage workspace={workspace}/></Route><Route path="/editor"><VideoEditorPage workspace={workspace}/></Route><Route path="/subscription">{account ? <SubscriptionPage workspace={workspace} account={account} plans={plans} onSelectPlan={onSelectPlan}/> : <Redirect to="/sign-in"/>}</Route><Route path="/profile"><ProfilePage workspace={workspace} account={profileAccount} firebaseUser={firebaseUser} profilePhoto={profilePhoto} onProfilePhotoChange={onProfilePhotoChange} onSaveProfile={account ? onSaveProfile : undefined} onLogout={onLogout}/></Route><Route path="/settings"><Redirect to="/profile"/></Route><Route><NotFound/></Route></Switch>;
 }
 
+function useMinimumLoadingDuration(pending: boolean, durationMs = 2000) {
+  const pendingStartedAt = useRef(Date.now());
+  const [minimumElapsed, setMinimumElapsed] = useState(false);
+
+  useEffect(() => {
+    if (pending) {
+      pendingStartedAt.current = Date.now();
+      setMinimumElapsed(false);
+      return;
+    }
+
+    const remaining = Math.max(0, durationMs - (Date.now() - pendingStartedAt.current));
+    const timer = window.setTimeout(() => setMinimumElapsed(true), remaining);
+    return () => window.clearTimeout(timer);
+  }, [durationMs, pending]);
+
+  return pending || !minimumElapsed;
+}
+
+function WorkspaceLoading({ label }: { label: string }) {
+  return (
+    <div className="workspace-loading" role="status" aria-live="polite">
+      <div className="workspace-loading-animation" aria-hidden="true">
+        <span className="workspace-loader-orbit workspace-loader-orbit-outer" />
+        <span className="workspace-loader-orbit workspace-loader-orbit-inner" />
+        <span className="workspace-loader-core"><Radio size={39} strokeWidth={1.8} /></span>
+        <span className="workspace-loader-satellite" />
+      </div>
+      <span className="workspace-loading-label">{label}</span>
+    </div>
+  );
+}
+
 function App() {
   const { user, loading: firebaseLoading, busy: firebaseBusy, error: firebaseError, signInWithGoogle, signOut } = useFirebaseAuth();
   const isSignedIn = Boolean(user);
@@ -4918,6 +4952,7 @@ function App() {
   } satisfies LicenseSession : null;
   const activeLicense = hasAccountSession ? accountLicense : license.license;
   const [location, setLocation] = useLocation();
+  const authLoading = useMinimumLoadingDuration(firebaseLoading || accountSession.loading || firebaseBusy || license.busy);
   const browserPath = window.location.pathname.replace(/\/+$/, "") || "/";
   const isOwnerRoute = ["/owner", "/owner.html"].includes(location) || ["/owner", "/owner.html"].includes(browserPath);
   const workspace = useWorkspace(activeLicense, () => {
@@ -4941,8 +4976,14 @@ function App() {
       setLocation("/dashboard");
     }
   }, [accountSession.account, accountSession.loading, firebaseLoading, hasAccountSession, isSignedIn, license.license, location, mobileGiftKey, setLocation]);
-  if (firebaseLoading) return <div className="workspace-loading"><Radio size={20}/><span>Connecting secure sign-in…</span></div>;
-  if (accountSession.loading) return <div className="workspace-loading"><Radio size={20}/><span>Restoring your session…</span></div>;
+  if (authLoading) {
+    const label = firebaseLoading
+      ? "Connecting secure sign-in…"
+      : accountSession.loading
+        ? "Restoring your session…"
+        : "Preparing your workspace…";
+    return <WorkspaceLoading label={label} />;
+  }
   if (isOwnerRoute) return <OwnerConsolePage/>;
   if (location.startsWith("/sign-in") || location.startsWith("/sign-up")) {
     return <LicenseGate
@@ -4960,12 +5001,12 @@ function App() {
   }
   if (location === "/pricing") return isSignedIn || hasAccountSession ? <Redirect to="/dashboard" /> : <Redirect to="/sign-in" />;
   if (location === "/gateway") return <GatewayPage />;
-  if (isSignedIn && accountSession.error && !accountSession.account) return <div className="workspace-loading"><span>{accountSession.error}</span></div>;
+  if (isSignedIn && accountSession.error && !accountSession.account) return <div className="workspace-loading workspace-loading-error"><span>{accountSession.error}</span></div>;
   if (location === "/" && !isLicenseActive(activeLicense)) return <LandingPage />;
   const openMobileRoom = () => { setMobileGiftKey(""); setLocation("/dashboard"); };
   if (location === "/access") return <LicenseGate license={activeLicense} busy={license.busy} error={license.error || firebaseError} signedIn={Boolean(isSignedIn || hasAccountSession)} onActivate={license.activate} onRenew={license.renew} onGoogleLogin={() => setLocation("/sign-in")} onMobileAccountLogin={accountSession.reload} onGiftReady={setMobileGiftKey} onOpenRoom={openMobileRoom}/>;
   if (!hasAccountSession && (!activeLicense || !isLicenseActive(activeLicense))) return <LicenseGate license={activeLicense} busy={license.busy} error={license.error || firebaseError} signedIn={Boolean(isSignedIn || hasAccountSession)} onActivate={license.activate} onRenew={license.renew} onGoogleLogin={() => setLocation("/sign-in")} onMobileAccountLogin={accountSession.reload} onGiftReady={setMobileGiftKey} onOpenRoom={openMobileRoom}/>;
-  if (!workspace.ready && !(accountSession.account && !accountSession.account.active && location === "/subscription")) return <div className="workspace-loading"><Radio size={20}/><span>Loading your media library…</span></div>;
+  if (!workspace.ready && !(accountSession.account && !accountSession.account.active && location === "/subscription")) return <WorkspaceLoading label="Loading your media library…" />;
   const handleLogout = async () => {
     if (user) {
       await signOut();
