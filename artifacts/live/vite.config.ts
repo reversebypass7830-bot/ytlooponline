@@ -1,7 +1,7 @@
 import path from 'path';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
-import { defineConfig } from 'vite';
+import { defineConfig, type Plugin } from 'vite';
 
 import runtimeErrorOverlay from '@replit/vite-plugin-runtime-error-modal';
 
@@ -28,6 +28,47 @@ if (!basePath) {
   );
 }
 
+const controlRoomEntries = new Map([
+  ['/dashboard', '/sign-in.html'],
+  ['/analytics', '/sign-in.html'],
+  ['/aesthetics', '/sign-in.html'],
+  ['/live', '/sign-in.html'],
+  ['/live-preview', '/sign-in.html'],
+  ['/videos', '/sign-in.html'],
+  ['/editor', '/sign-in.html'],
+  ['/subscription', '/sign-in.html'],
+  ['/profile', '/sign-in.html'],
+  ['/settings', '/sign-in.html'],
+  ['/sign-in', '/sign-in.html'],
+  ['/sign-up', '/sign-in.html'],
+  ['/pricing', '/sign-in.html'],
+  ['/gateway', '/sign-in.html'],
+  ['/access', '/sign-in.html'],
+  ['/owner', '/owner.html'],
+]);
+
+const controlRoomRouteFallback: Plugin = {
+  name: 'control-room-route-fallback',
+  configureServer(server) {
+    server.middlewares.use((req, _res, next) => {
+      if (!req.url || (req.method !== 'GET' && req.method !== 'HEAD')) {
+        next();
+        return;
+      }
+
+      const queryIndex = req.url.indexOf('?');
+      const pathname = queryIndex === -1 ? req.url : req.url.slice(0, queryIndex);
+      const entry = controlRoomEntries.get(pathname);
+      if (entry) {
+        const query = queryIndex === -1 ? '' : req.url.slice(queryIndex);
+        req.url = `${entry}${query}`;
+      }
+
+      next();
+    });
+  },
+};
+
 const firebasePublicConfig = {
   apiKey: process.env.VITE_FIREBASE_API_KEY || process.env.FIREBASE_API_KEY || "",
   authDomain: process.env.VITE_FIREBASE_AUTH_DOMAIN || process.env.FIREBASE_AUTH_DOMAIN || "",
@@ -44,6 +85,7 @@ export default defineConfig({
     "import.meta.env.VITE_FIREBASE_APP_ID": JSON.stringify(firebasePublicConfig.appId),
   },
   plugins: [
+    controlRoomRouteFallback,
     react(),
     tailwindcss(),
     runtimeErrorOverlay(),
@@ -83,6 +125,13 @@ export default defineConfig({
   build: {
     outDir: path.resolve(import.meta.dirname, 'dist/public'),
     emptyOutDir: true,
+    rollupOptions: {
+      input: {
+        landing: path.resolve(import.meta.dirname, 'index.html'),
+        app: path.resolve(import.meta.dirname, 'sign-in.html'),
+        owner: path.resolve(import.meta.dirname, 'owner.html'),
+      },
+    },
   },
   server: {
     port,

@@ -5,6 +5,15 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>YT Loop — 24/7 YouTube Auto Live Streaming</title>
 <meta name="description" content="Upload once and keep your YouTube channel live 24/7 with cloud streaming, automatic loops, and instant restarts.">
+<script>
+  fetch("/api/account", { credentials: "include", headers: { Accept: "application/json" } })
+    .then(async (response) => response.ok ? response.json() : null)
+    .then((session) => {
+      if (!session?.account) return;
+      window.location.replace(session.account.role === "owner" ? "/owner" : "/dashboard");
+    })
+    .catch(() => undefined);
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">

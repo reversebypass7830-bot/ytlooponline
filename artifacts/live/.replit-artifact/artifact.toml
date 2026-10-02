@@ -20,6 +20,70 @@ serve = "static"
 publicDir = "artifacts/live/dist/public"
 
 [[services.production.rewrites]]
+from = "/dashboard"
+to = "/sign-in.html"
+
+[[services.production.rewrites]]
+from = "/analytics"
+to = "/sign-in.html"
+
+[[services.production.rewrites]]
+from = "/aesthetics"
+to = "/sign-in.html"
+
+[[services.production.rewrites]]
+from = "/live"
+to = "/sign-in.html"
+
+[[services.production.rewrites]]
+from = "/live-preview"
+to = "/sign-in.html"
+
+[[services.production.rewrites]]
+from = "/videos"
+to = "/sign-in.html"
+
+[[services.production.rewrites]]
+from = "/editor"
+to = "/sign-in.html"
+
+[[services.production.rewrites]]
+from = "/subscription"
+to = "/sign-in.html"
+
+[[services.production.rewrites]]
+from = "/profile"
+to = "/sign-in.html"
+
+[[services.production.rewrites]]
+from = "/settings"
+to = "/sign-in.html"
+
+[[services.production.rewrites]]
+from = "/sign-in"
+to = "/sign-in.html"
+
+[[services.production.rewrites]]
+from = "/sign-up"
+to = "/sign-in.html"
+
+[[services.production.rewrites]]
+from = "/pricing"
+to = "/sign-in.html"
+
+[[services.production.rewrites]]
+from = "/gateway"
+to = "/sign-in.html"
+
+[[services.production.rewrites]]
+from = "/access"
+to = "/sign-in.html"
+
+[[services.production.rewrites]]
+from = "/owner"
+to = "/owner.html"
+
+[[services.production.rewrites]]
 from = "/*"
 to = "/index.html"
 
