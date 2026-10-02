@@ -2612,7 +2612,7 @@ select { height: 41px; }
 .editor-canvas.editor-canvas-square .editor-overlay.webcam-bottom-left,
 .editor-canvas.editor-canvas-square .editor-overlay.webcam-bottom-right { height:auto; }
 
-/* Video animations browser: one admin category, then its real folders. */
+/* Video animations browser: shared admin clips and private animation folders. */
 .editor-category-lock {
   display: flex; align-items: center; gap: 9px; margin-top: 2px; padding: 11px 12px;
   border: 1px solid #bcd4bd; border-radius: 10px; color: #236c68; background: #e6f2df;
@@ -2636,6 +2636,17 @@ select { height: 41px; }
   border-left: 2px solid #8cb58c; color: #71867d; background: #f4f8ef; font: 9px var(--app-font-mono);
 }
 .editor-selected-folder strong { color: #286c68; }
+.editor-selection-actions {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  margin: 10px 0 2px; color: #71867d; font: 9px var(--app-font-mono);
+}
+.editor-selection-actions > div { display: flex; align-items: center; gap: 10px; }
+.editor-selection-actions button {
+  padding: 3px 0; border: 0; color: #236c68; background: transparent;
+  font: 600 9px var(--app-font-mono); cursor: pointer;
+}
+.editor-selection-actions button:hover:not(:disabled) { color: #144f4b; text-decoration: underline; }
+.editor-selection-actions button:disabled { color: #a7b5aa; cursor: not-allowed; }
 .editor-clip-list { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; }
 .editor-clip {
   display: block; min-width: 0; padding: 7px; overflow: hidden; border-radius: 11px;

@@ -108,6 +108,7 @@ type EditorDraft = {
   animationGroupId: string;
   editorLibrary: "personal" | "youtube";
   selectedIds: string[];
+  selectedAnimationIds: string[];
   loopEnabled: boolean;
   loopCount: string;
   title: string;
@@ -658,6 +659,7 @@ function normalizeEditorDraft(value: unknown): EditorDraft | undefined {
     animationGroupId: typeof draft.animationGroupId === "string" ? draft.animationGroupId : "",
     editorLibrary,
     selectedIds: Array.isArray(draft.selectedIds) ? draft.selectedIds.filter((id): id is string => typeof id === "string") : [],
+    selectedAnimationIds: Array.isArray(draft.selectedAnimationIds) ? draft.selectedAnimationIds.filter((id): id is string => typeof id === "string") : [],
     loopEnabled: draft.loopEnabled !== false,
     loopCount: typeof draft.loopCount === "string" ? draft.loopCount : "1",
     title: typeof draft.title === "string" ? draft.title : "",
@@ -2578,7 +2580,7 @@ function ChannelPreview({ mainUrl, faceUrl, ratio, facePosition, faceSize }: { m
 }
 
 function ChannelModal({ channel, groups, videos, onSave, onClose }: {channel?:LiveChannel; groups:VideoGroup[]; videos:VideoItem[]; onSave:(c:LiveChannel)=>void; onClose:()=>void}) {
-  const existingVideos = channel ? videosForGroup(channel.groupId, groups, videos) : [];
+  const existingVideos = channel ? videosForFolderScope(channel.groupId, groups, videos) : [];
   const [form,setForm] = useState({
     groupId:channel?.groupId||"",
     streamUrl:channel?.streamUrl||defaultYoutubeIngestUrl,
@@ -2596,8 +2598,8 @@ function ChannelModal({ channel, groups, videos, onSave, onClose }: {channel?:Li
   const set=(key:string,value:string|number|boolean)=>setForm(f=>({...f,[key]:value}));
   const selectedGroup = groups.find(g=>g.id===form.groupId);
   const faceGroup = groups.find(g=>g.id===form.faceGroupId);
-  const mainVideos = videosForGroup(form.groupId, groups, videos);
-  const faceVideos = videosForGroup(form.faceGroupId, groups, videos);
+  const mainVideos = videosForFolderScope(form.groupId, groups, videos);
+  const faceVideos = videosForFolderScope(form.faceGroupId, groups, videos);
   const selectedMainVideos = form.playlistVideoIds
     .map((id) => mainVideos.find((video) => video.id === id))
     .filter((video): video is VideoItem => Boolean(video));
@@ -3214,7 +3216,7 @@ function LivePage({workspace, account}:{workspace:ReturnType<typeof useWorkspace
      useEffect(()=>{const liveChannels=data.channels.filter(c=>c.status==="live");void Promise.all(liveChannels.map(async c=>{const scopedStreamId=streamIdFor(workspace.clientId,c.id);const playlist=playlistFor(c,data.groups,data.videos);if(!playlist.category)return;const composition=c.editorComposition;const liveAnimation=data.videos.find((video)=>video.id===c.liveAnimationId && video.serverSource);const signature=JSON.stringify({videoSources:playlist.videoSources,faceSources:composition?.webcamSource?[composition.webcamSource]:playlist.faceSources,liveAnimationId:c.liveAnimationId,liveAnimationX:(composition?.animationX ?? c.liveAnimationX) || 0,liveAnimationY:(composition?.animationY ?? c.liveAnimationY) || 0,liveAnimationScale:(composition?.animationScale ?? c.liveAnimationScale) || 0.25,composition});if(playlistSignatures.current.get(scopedStreamId)===signature)return;if(!playlist.videoSources.length){try{await stopStream({streamId:scopedStreamId});playlistSignatures.current.set(scopedStreamId,signature);update({channels:data.channels.map(x=>x.id===c.id?{...x,status:"stopped",viewers:0}:x)},{message:`${c.title} stopped because its playlist is empty`,type:"edit"});}catch(error){workspace.setToast(error instanceof Error?error.message:"The empty live playlist could not be stopped.");}return;}try{await updateStream({streamId:scopedStreamId,ingestUrl:resolveStreamIngestUrl(c.streamUrl,c.streamKey),category:playlist.category,videoSources:playlist.videoSources,videoSource:playlist.mainVideos[0]?.serverSource,faceCategory:composition?.webcamSource?"editor face cam":(playlist.faceSources.length?playlist.faceCategory:undefined),faceSource:composition?.webcamSource||playlist.faceVideos[0]?.serverSource,faceSources:composition?.webcamSource?[composition.webcamSource]:playlist.faceSources,playbackSpeed:c.playbackSpeed||1,quality:c.streamQuality||"1080p",aspectRatio:c.aspectRatio||"full",facePosition:c.facePosition||"bottom-right",faceScale:(c.faceSize||25)/100,durationMinutes:(c.durationHours||1)*60,autoRestart:Boolean(c.autoRestart),voiceAudio:true,liveAnimationSource:composition?.animationSource||liveAnimation?.serverSource,liveAnimationX:(composition?.animationX ?? c.liveAnimationX) || 0,liveAnimationY:(composition?.animationY ?? c.liveAnimationY) || 0,liveAnimationScale:(composition?.animationScale ?? c.liveAnimationScale) || 0.25,composition});playlistSignatures.current.set(scopedStreamId,signature);workspace.setToast(`${c.title} playlist updated while live`);}catch(error){workspace.setToast(error instanceof Error?error.message:"The live playlist could not be updated.");}}));},[data.channels,data.groups,data.videos,workspace.clientId,workspace.setToast,update]);
    const groupsById=useMemo(()=>Object.fromEntries(data.groups.map(g=>[g.id,g.name])),[data.groups]);
       return <AppShell title="Live channels" account={account} workspace={workspace}><div className="page live-page"><div className="page-head"><div><p className="eyebrow">Live Channels</p><h1>Manage your 24/7 loop streams</h1><p className="subtle">Keep every YouTube destination ready, monitored, and looping from one calm control room.</p></div><div className="page-head-actions"><span className="page-live-indicator"><span className="status-dot"/>{data.channels.filter(c=>c.status==="live").length ? `${data.channels.filter(c=>c.status==="live").length} live now` : "No live streams"}</span><button className="button live-create-button" onClick={()=>{setEditing(undefined);setShowForm(true)}} data-testid="button-add-channel"><Plus size={16}/> Create New Live</button></div></div>
-        {data.channels.length===0 ? <section className="live-empty-card" data-testid="empty-live-channels"><div className="live-empty-art"><img src={liveYoutubeClay} alt="" /></div><div className="live-empty-copy"><p className="eyebrow">Your control room is ready</p><h2>No live channels yet, create your first 24/7 loop</h2><p>Set up a YouTube destination once and keep your best videos running around the clock.</p><button className="button live-create-button" onClick={()=>{setEditing(undefined);setShowForm(true)}} data-testid="button-empty-add-channel"><Plus size={16}/> Create New Live</button></div><div className="live-empty-orbit live-empty-orbit-one"><img src={livePowerClay} alt="" /></div><div className="live-empty-orbit live-empty-orbit-two"><img src={liveBroadcastClay} alt="" /></div></section> : <div className="live-channel-grid">{data.channels.map(c=>{const isLive=c.status==="live";const playlistCount=c.playlistVideoIds?.length || videosForGroup(c.groupId,data.groups,data.videos).length;const statusLabel=isLive ? "Live" : c.status==="scheduled" ? "Scheduled" : "Offline";return <article className={`live-channel-card ${isLive ? "is-live" : ""}`} key={c.id} data-testid={`row-channel-${c.id}`}><div className="live-card-visual" style={{"--channel-accent":c.thumbnailColor} as CSSProperties}><img src={liveYoutubeClay} alt="" /><span className={`live-status-badge ${isLive ? "active" : "offline"}`}><span className="live-status-dot"/>{statusLabel}</span><span className="live-card-platform">{c.platform}</span></div><div className="live-card-content"><div className="live-card-heading"><div><h2>{c.title}</h2><p>{isLive ? `Live for ${fmtTime(c.startedAt)}` : "Ready to broadcast"}</p></div><span className="live-card-signal"><img src={isLive ? liveBroadcastClay : livePowerClay} alt="" /></span></div><div className="live-card-facts"><div className="live-card-fact"><img src={liveKeyClay} alt="" /><div><span>RTMP key</span><strong>{maskStreamKey(c.streamKey)}</strong></div></div><div className="live-card-fact"><Radio size={16}/><div><span>Views</span><strong>{fmtNumber(c.viewers)} {c.viewers === 1 ? "viewer" : "viewers"}</strong></div></div></div><div className="live-card-meta"><span><FileVideo size={14}/>{playlistCount} playlist video{playlistCount === 1 ? "" : "s"}</span><span title={groupsById[c.groupId] || "Unassigned"}>{groupsById[c.groupId] || "Unassigned"}</span></div><div className="live-card-actions">{isLive?<button className="button live-stop-button" onClick={()=>stop(c)} disabled={busy.includes(c.id)} data-testid={`button-stop-${c.id}`}><img src={livePowerClay} alt="" />{busy.includes(c.id) ? "Stopping…" : "Stop Loop"}</button>:<button className="button live-start-button" onClick={()=>start(c)} disabled={busy.includes(c.id)} data-testid={`button-start-${c.id}`}><img src={livePowerClay} alt="" />{busy.includes(c.id) ? "Starting…" : "Start Loop"}</button>}<button className="button live-secondary-button" onClick={()=>{setEditing(c);setShowForm(true)}} data-testid={`button-edit-channel-${c.id}`}><Pencil size={14}/> Edit</button><button className="button live-delete-button" onClick={()=>setDeleting(c)} data-testid={`button-delete-channel-${c.id}`}><Trash2 size={14}/> Delete</button></div></div></article>;})}</div>}
+        {data.channels.length===0 ? <section className="live-empty-card" data-testid="empty-live-channels"><div className="live-empty-art"><img src={liveYoutubeClay} alt="" /></div><div className="live-empty-copy"><p className="eyebrow">Your control room is ready</p><h2>No live channels yet, create your first 24/7 loop</h2><p>Set up a YouTube destination once and keep your best videos running around the clock.</p><button className="button live-create-button" onClick={()=>{setEditing(undefined);setShowForm(true)}} data-testid="button-empty-add-channel"><Plus size={16}/> Create New Live</button></div><div className="live-empty-orbit live-empty-orbit-one"><img src={livePowerClay} alt="" /></div><div className="live-empty-orbit live-empty-orbit-two"><img src={liveBroadcastClay} alt="" /></div></section> : <div className="live-channel-grid">{data.channels.map(c=>{const isLive=c.status==="live";const playlistCount=c.playlistVideoIds?.length || videosForFolderScope(c.groupId,data.groups,data.videos).length;const statusLabel=isLive ? "Live" : c.status==="scheduled" ? "Scheduled" : "Offline";return <article className={`live-channel-card ${isLive ? "is-live" : ""}`} key={c.id} data-testid={`row-channel-${c.id}`}><div className="live-card-visual" style={{"--channel-accent":c.thumbnailColor} as CSSProperties}><img src={liveYoutubeClay} alt="" /><span className={`live-status-badge ${isLive ? "active" : "offline"}`}><span className="live-status-dot"/>{statusLabel}</span><span className="live-card-platform">{c.platform}</span></div><div className="live-card-content"><div className="live-card-heading"><div><h2>{c.title}</h2><p>{isLive ? `Live for ${fmtTime(c.startedAt)}` : "Ready to broadcast"}</p></div><span className="live-card-signal"><img src={isLive ? liveBroadcastClay : livePowerClay} alt="" /></span></div><div className="live-card-facts"><div className="live-card-fact"><img src={liveKeyClay} alt="" /><div><span>RTMP key</span><strong>{maskStreamKey(c.streamKey)}</strong></div></div><div className="live-card-fact"><Radio size={16}/><div><span>Views</span><strong>{fmtNumber(c.viewers)} {c.viewers === 1 ? "viewer" : "viewers"}</strong></div></div></div><div className="live-card-meta"><span><FileVideo size={14}/>{playlistCount} playlist video{playlistCount === 1 ? "" : "s"}</span><span title={groupsById[c.groupId] || "Unassigned"}>{groupsById[c.groupId] || "Unassigned"}</span></div><div className="live-card-actions">{isLive?<button className="button live-stop-button" onClick={()=>stop(c)} disabled={busy.includes(c.id)} data-testid={`button-stop-${c.id}`}><img src={livePowerClay} alt="" />{busy.includes(c.id) ? "Stopping…" : "Stop Loop"}</button>:<button className="button live-start-button" onClick={()=>start(c)} disabled={busy.includes(c.id)} data-testid={`button-start-${c.id}`}><img src={livePowerClay} alt="" />{busy.includes(c.id) ? "Starting…" : "Start Loop"}</button>}<button className="button live-secondary-button" onClick={()=>{setEditing(c);setShowForm(true)}} data-testid={`button-edit-channel-${c.id}`}><Pencil size={14}/> Edit</button><button className="button live-delete-button" onClick={()=>setDeleting(c)} data-testid={`button-delete-channel-${c.id}`}><Trash2 size={14}/> Delete</button></div></div></article>;})}</div>}
         <div className="live-surface-note"><img src={liveKeyClay} alt="" /><span>Stream keys stay masked in your workspace. Start a loop only after its playlist and destination are ready.</span></div>
      </div>{showForm&&<ChannelModal channel={editing} groups={data.groups} videos={data.videos} onSave={save} onClose={()=>{setShowForm(false);setEditing(undefined)}}/>}{deleting&&<ConfirmModal title="Delete this channel?" copy={`“${deleting.title}” and its stream settings will be removed from this workspace. Any live signal must be stopped first.`} onClose={()=>setDeleting(undefined)} onConfirm={()=>{update({channels:data.channels.filter(c=>c.id!==deleting.id)},{message:`${deleting.title} was deleted`,type:"edit"});setDeleting(undefined)}}/>}{streamKeyChannel&&<StreamKeyModal channel={streamKeyChannel} value={streamKeyDraft} onChange={setStreamKeyDraft} onClose={()=>setStreamKeyChannel(undefined)} onContinue={()=>{const channel={...streamKeyChannel,streamKey:streamKeyDraft.trim()};update({channels:data.channels.map((item)=>item.id===channel.id?channel:item)},{message:`Stream key saved for ${channel.title}`,type:"edit"});setStreamKeyChannel(undefined);void start(channel);}}/>}</AppShell>;
 }
@@ -3646,7 +3648,7 @@ function EditorClipCard({ video, index, selected, onToggle, licenseId, animation
   >
     <div className="editor-clip-preview">
       {previewUrl ? <video ref={previewRef} src={previewUrl} muted loop playsInline preload="metadata" /> : <Video size={19} />}
-       <span className="editor-clip-preview-badge">{animationMode ? "Overlay layer" : hovering ? "Previewing" : "Hover to play"}</span>
+       <span className="editor-clip-preview-badge">{animationMode ? "Animation clip" : hovering ? "Previewing" : "Hover to play"}</span>
       <span className="editor-clip-check"><input type="checkbox" checked={selected} onChange={onToggle} /></span>
     </div>
     <div className="editor-clip-copy"><strong title={video.title}>{video.title}</strong><small>{String(index + 1).padStart(2, "0")} · {video.duration} · {video.quality || "ready"}</small></div>
@@ -3691,6 +3693,7 @@ function VideoEditorPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}
   const [animationGroupId, setAnimationGroupId] = useState("");
   const [editorLibrary, setEditorLibrary] = useState<"personal" | "youtube">("personal");
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [selectedAnimationIds, setSelectedAnimationIds] = useState<string[]>([]);
   const [loopEnabled, setLoopEnabled] = useState(true);
   const [loopCount, setLoopCount] = useState("1");
   const [title, setTitle] = useState("");
@@ -3770,7 +3773,13 @@ function VideoEditorPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}
     [selectedAnimationGroup, data.groups, data.videos],
   );
   const groupVideos = editorLibrary === "youtube" ? animationGroupVideos : personalGroupVideos;
-  const selectedVideos = selectedIds.map((id) => personalGroupVideos.find((video) => video.id === id)).filter((video): video is VideoItem => Boolean(video));
+  const animationVideos = useMemo(
+    () => data.videos.filter((video) => video.serverSource && (isIncludedVideo(video) || isVideoInFolderScope(video, myAnimationFolderId, data.groups))),
+    [data.videos, data.groups],
+  );
+  const selectedAnimationVideos = selectedAnimationIds.map((id) => animationVideos.find((video) => video.id === id)).filter((video): video is VideoItem => Boolean(video));
+  const selectedPersonalVideos = selectedIds.map((id) => personalGroupVideos.find((video) => video.id === id)).filter((video): video is VideoItem => Boolean(video));
+  const selectedVideos = editorLibrary === "youtube" ? selectedAnimationVideos : selectedPersonalVideos;
   const logo = data.editorAssets.find((asset) => asset.id === logoId);
   const previewVideo = selectedVideos.find((video) => video.id === chromaSourceId) || selectedVideos[0];
   const webcamVideos = useMemo(
@@ -3783,10 +3792,6 @@ function VideoEditorPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}
     [data.videos, previewVideo?.id, workspace.licenseId],
   );
   const webcam = webcamVideos.find((video) => video.id === webcamId);
-  const animationVideos = useMemo(
-    () => data.videos.filter((video) => video.serverSource && (isIncludedVideo(video) || isVideoInFolderScope(video, myAnimationFolderId, data.groups))),
-    [data.videos, data.groups],
-  );
   const animation = animationVideos.find((video) => video.id === animationId);
   const includedAnimationVideos = animationVideos.filter((video) => isIncludedVideo(video));
   const myAnimationVideos = animationVideos.filter((video) => !isIncludedVideo(video));
@@ -3798,6 +3803,7 @@ function VideoEditorPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}
       setAnimationGroupId(draft.animationGroupId);
       setEditorLibrary(draft.editorLibrary);
       setSelectedIds(draft.selectedIds);
+      setSelectedAnimationIds(draft.selectedAnimationIds);
       setLoopEnabled(draft.loopEnabled);
       setLoopCount(draft.loopCount);
       setTitle(draft.title);
@@ -3815,8 +3821,8 @@ function VideoEditorPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}
       setColorAdjustments(draft.colorAdjustments);
        setChromaKeyByLayer(draft.chromaKeyByLayer);
        setChromaKeyByVideoId(draft.chromaKeyByVideoId);
-       setChromaDraft(draft.chromaKeyByVideoId[draft.selectedIds[0]] || draft.chromaKeyByLayer[draft.selectedLayer]);
-       setChromaSourceId(draft.selectedIds[0] || "");
+       setChromaDraft(draft.chromaKeyByVideoId[draft.selectedIds[0] || draft.selectedAnimationIds[0]] || draft.chromaKeyByLayer[draft.selectedLayer]);
+       setChromaSourceId(draft.selectedIds[0] || draft.selectedAnimationIds[0] || "");
       setWebcamId(draft.webcamId);
       setAnimationId(draft.animationId);
       setAnimationTransform(draft.animationTransform);
@@ -3839,6 +3845,7 @@ function VideoEditorPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}
         animationGroupId,
         editorLibrary,
         selectedIds,
+        selectedAnimationIds,
         loopEnabled,
         loopCount,
         title,
@@ -3863,7 +3870,7 @@ function VideoEditorPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}
       },
     });
   }, [
-    draftHydrated, groupId, animationGroupId, editorLibrary, selectedIds, loopEnabled, loopCount, title,
+    draftHydrated, groupId, animationGroupId, editorLibrary, selectedIds, selectedAnimationIds, loopEnabled, loopCount, title,
     outputAspectRatio, cropMode, logoPosition, overlayScale, webcamPosition, webcamScale, mainTransform,
     webcamTransform, selectedLayer, animationPreset, reverseVideo, colorAdjustments, chromaKeyByLayer, chromaKeyByVideoId,
     webcamId, animationId, animationTransform, logoId,
@@ -3947,16 +3954,17 @@ function VideoEditorPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}
     }
   };
   const toggleVideo = (videoId: string) => {
-    setSelectedIds((current) => {
-      const next = current.includes(videoId) ? current.filter((id) => id !== videoId) : [...current, videoId];
+    const current = editorLibrary === "youtube" ? selectedAnimationIds : selectedIds;
+    const next = current.includes(videoId) ? current.filter((id) => id !== videoId) : [...current, videoId];
+    if (editorLibrary === "youtube") {
+      setSelectedAnimationIds(next);
+      setSelectedLayer("main");
+      if (next.includes(videoId)) setChromaSourceId(videoId);
+    } else {
+      setSelectedIds(next);
       if (!chromaSourceId && next.includes(videoId)) setChromaSourceId(videoId);
-      if (chromaSourceId === videoId && !next.includes(videoId)) setChromaSourceId(next[0] || "");
-      return next;
-    });
-  };
-  const selectAnimation = (videoId: string) => {
-    setAnimationId((current) => current === videoId ? "" : videoId);
-    setSelectedLayer((current) => current === "animation" && animationId === videoId ? "main" : "animation");
+    }
+    if (!next.includes(videoId) && chromaSourceId === videoId) setChromaSourceId(next[0] || "");
   };
   const uploadLogo = async (file: File) => {
     setUploadingLogo(true);
@@ -4051,18 +4059,19 @@ function VideoEditorPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}
     setToast(`${selectedChromaLabel} background removal applied`);
   };
   const createStreamFromEditor = () => {
-    if (!groupId || !selectedVideos.length) {
-      setError("Select at least one server-ready video before creating a stream.");
+    const playlistGroupId = editorLibrary === "youtube" ? youtubeAnimationFolderId : groupId;
+    if (!playlistGroupId || !selectedVideos.length) {
+      setError("Select a video folder and at least one server-ready video before creating a stream.");
       return;
     }
     const channelId = uid("ch");
-    const channelTitle = title.trim() || `${selectedGroup?.name || "Edited"} stream`;
+    const channelTitle = title.trim() || `${editorLibrary === "youtube" ? "Animations" : selectedGroup?.name || "Edited"} stream`;
     const channel: LiveChannel = {
       id: channelId,
       title: channelTitle,
       platform: "Custom RTMP",
       status: "stopped",
-      groupId,
+      groupId: playlistGroupId,
       streamUrl: "",
       streamKey: "",
       viewers: 0,
@@ -4168,9 +4177,10 @@ function VideoEditorPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}
                 <button type="button" className={editorLibrary === "personal" ? "active" : ""} onClick={() => chooseEditorLibrary("personal")} role="tab" aria-selected={editorLibrary === "personal"} data-testid="button-editor-personal-library"><FileVideo size={13}/> Personal video</button>
                 <button type="button" className={editorLibrary === "youtube" ? "active" : ""} onClick={() => chooseEditorLibrary("youtube")} role="tab" aria-selected={editorLibrary === "youtube"} data-testid="button-editor-youtube-animations"><Youtube size={13}/> Included + My animations</button>
              </div>
-              {editorLibrary === "youtube" ? <><div className="editor-category-lock"><FolderOpen size={15}/><div><strong>Animation overlays</strong><span>Included Animations + your private My Animations · kept separate from Personal video</span></div><ShieldCheck size={14}/></div><div className="editor-animation-folders">{animationFolders.map((folder) => { const count = data.videos.filter((video) => video.serverSource && isVideoInFolderScope(video, folder.id, data.groups)).length; const label = folderPathForGroup(folder.id, data.groups).replace(`${youtubeAnimationRootName}/`, ""); return <button type="button" key={folder.id} className={`editor-animation-folder ${animationGroupId === folder.id ? "selected" : ""}`} onClick={() => setGroup(folder.id)} aria-label={`Open ${label}`}><FolderOpen size={17}/><span><strong>{folder.name}</strong><small>{label} · {count} video{count === 1 ? "" : "s"}</small></span><ArrowRight size={13}/></button>; })}</div></> : <select value={groupId} onChange={(event) => setGroup(event.target.value)} data-testid="select-editor-group"><option value="">Select personal category</option>{editorGroups.map((group) => <option key={group.id} value={group.id}>{folderPathForGroup(group.id, data.groups)}</option>)}</select>}
-             <div className="editor-clip-list">{groupVideos.length ? groupVideos.map((video, index) => <EditorClipCard key={video.id} video={video} index={index} licenseId={workspace.licenseId} animationMode={editorLibrary === "youtube"} selected={editorLibrary === "youtube" ? animationId === video.id : selectedIds.includes(video.id)} onToggle={() => editorLibrary === "youtube" ? selectAnimation(video.id) : toggleVideo(video.id)} />) : <div className="editor-mini-empty"><FolderOpen size={17}/>{editorLibrary === "youtube" ? selectedAnimationGroup ? "No overlay videos are available in this folder or its subfolders yet." : "No shared or private animation folders are available." : "Choose a personal category to see its videos."}</div>}</div>
-               <div className="editor-selected-folder">{editorLibrary === "youtube" ? (selectedAnimationGroup ? <><FolderOpen size={13}/><span>Overlay folder: <strong>{folderPathForGroup(selectedAnimationGroup.id, data.groups).replace(`${youtubeAnimationRootName}/`, "") || selectedAnimationGroup.name}</strong></span></> : <span>Choose a shared or private animation folder.</span>) : (selectedGroup ? <><FolderOpen size={13}/><span>Main folder: <strong>{folderPathForGroup(selectedGroup.id, data.groups)}</strong></span></> : <span>Choose a personal category for the main video.</span>)}</div>
+               {editorLibrary === "youtube" ? <><div className="editor-category-lock"><FolderOpen size={15}/><div><strong>Animation playlist</strong><span>Select multiple admin or private animation videos. They play in order, and background removal is saved per video.</span></div><ShieldCheck size={14}/></div><div className="editor-animation-folders">{animationFolders.map((folder) => { const count = data.videos.filter((video) => video.serverSource && isVideoInFolderScope(video, folder.id, data.groups)).length; const label = folderPathForGroup(folder.id, data.groups).replace(`${youtubeAnimationRootName}/`, ""); return <button type="button" key={folder.id} className={`editor-animation-folder ${animationGroupId === folder.id ? "selected" : ""}`} onClick={() => setGroup(folder.id)} aria-label={`Open ${label}`}><FolderOpen size={17}/><span><strong>{folder.name}</strong><small>{label} · {count} video{count === 1 ? "" : "s"}</small></span><ArrowRight size={13}/></button>; })}</div></> : <select value={groupId} onChange={(event) => setGroup(event.target.value)} data-testid="select-editor-group"><option value="">Select personal category</option>{editorGroups.map((group) => <option key={group.id} value={group.id}>{folderPathForGroup(group.id, data.groups)}</option>)}</select>}
+             {editorLibrary === "youtube" && <div className="editor-selection-actions"><span>{selectedAnimationVideos.length} animation{selectedAnimationVideos.length === 1 ? "" : "s"} selected for playlist</span><div><button type="button" onClick={() => { setSelectedAnimationIds((current) => [...new Set([...current, ...groupVideos.map((video) => video.id)])]); if (groupVideos[0] && !selectedAnimationIds.includes(chromaSourceId)) setChromaSourceId(groupVideos[0].id); setSelectedLayer("main"); }} disabled={!groupVideos.length} data-testid="button-select-all-animation-videos">Select all here</button><button type="button" onClick={() => { setSelectedAnimationIds([]); setChromaSourceId(selectedIds[0] || ""); setSelectedLayer("main"); }} disabled={!selectedAnimationIds.length} data-testid="button-clear-animation-videos">Clear</button></div></div>}
+             <div className="editor-clip-list">{groupVideos.length ? groupVideos.map((video, index) => <EditorClipCard key={video.id} video={video} index={index} licenseId={workspace.licenseId} animationMode={editorLibrary === "youtube"} selected={editorLibrary === "youtube" ? selectedAnimationIds.includes(video.id) : selectedIds.includes(video.id)} onToggle={() => toggleVideo(video.id)} />) : <div className="editor-mini-empty"><FolderOpen size={17}/>{editorLibrary === "youtube" ? selectedAnimationGroup ? "No animation videos are available in this folder or its subfolders yet." : "No shared or private animation folders are available." : "Choose a personal category to see its videos."}</div>}</div>
+               <div className="editor-selected-folder">{editorLibrary === "youtube" ? (selectedAnimationGroup ? <><FolderOpen size={13}/><span>Animation folder: <strong>{folderPathForGroup(selectedAnimationGroup.id, data.groups).replace(`${youtubeAnimationRootName}/`, "") || selectedAnimationGroup.name}</strong></span></> : <span>Choose a shared or private animation folder.</span>) : (selectedGroup ? <><FolderOpen size={13}/><span>Main folder: <strong>{folderPathForGroup(selectedGroup.id, data.groups)}</strong></span></> : <span>Choose a personal category for the main video.</span>)}</div>
           </section>
           <section className={mobilePanelClass("timing")} data-mobile-editor-panel="timing">
              <div className="section-head"><div><h2 className="section-title">2. Timing & output</h2><p className="subtle">Choose whether this edit is a vertical Short or a landscape Long video.</p></div><Type size={17} color="#6c8b83"/></div>
