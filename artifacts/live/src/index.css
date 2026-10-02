@@ -9858,7 +9858,11 @@ select { height: 41px; }
 
 @media (max-width: 700px) {
   .shell.video-editor-surface .page {
-    padding: 24px 17px 46px;
+    padding: 12px 12px calc(24px + env(safe-area-inset-bottom));
+  }
+
+  .shell.video-editor-surface .mobile-nav-wrap {
+    display: none;
   }
 
   .shell.video-editor-surface .page-head {
@@ -9897,7 +9901,8 @@ select { height: 41px; }
   }
 
   .shell.video-editor-surface .editor-canvas.editor-canvas-shorts:not(.editor-canvas-expanded) {
-    width: min(100%, 38vh, 315px);
+    width: min(100%, 270px, 28.125vh);
+    width: min(100%, 270px, 28.125dvh);
     height: auto;
     aspect-ratio: 9 / 16;
   }
