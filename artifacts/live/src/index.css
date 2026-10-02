@@ -8252,6 +8252,22 @@ select { height: 41px; }
   background: #fff;
 }
 
+.shell.video-library-surface .modal .field textarea.youtube-download-queue {
+  border-color: #d1d5db;
+  color: #111827;
+  background: #fff;
+  color-scheme: light;
+}
+
+.shell.video-library-surface .modal .field textarea.youtube-download-queue::placeholder {
+  color: #9ca3af;
+}
+
+.shell.video-library-surface .modal .field textarea.youtube-download-queue:focus {
+  border-color: #111827;
+  box-shadow: 0 0 0 3px rgba(17, 24, 39, .08);
+}
+
 .shell.video-library-surface .modal .field input:focus,
 .shell.video-library-surface .modal .field select:focus {
   border-color: #111827;
