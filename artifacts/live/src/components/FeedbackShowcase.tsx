@@ -16,6 +16,17 @@ type FeedbackEntry = PublicFeedback & {
   avatarUrl?: string;
 };
 
+const feedbackAvatarById: Record<string, string> = {
+  "demo-kai-asmr": "/images/feedback-demo/kai-asmr-avatar.webp",
+  "seed-kai-asmr": "/images/feedback-demo/kai-asmr-avatar.webp",
+  "demo-dambiesyt": "/images/feedback-demo/dambiesyt-avatar.webp",
+  "seed-dambiesyt": "/images/feedback-demo/dambiesyt-avatar.webp",
+  "demo-tang-tien": "/images/feedback-demo/tang-tien-avatar.webp",
+  "seed-tang-tien": "/images/feedback-demo/tang-tien-avatar.webp",
+  "demo-candy-talks": "/images/feedback-demo/candy-talks-avatar.webp",
+  "seed-candy-talks": "/images/feedback-demo/candy-talks-avatar.webp",
+};
+
 const demoFeedbackEntries: FeedbackEntry[] = [
   {
     id: "demo-kai-asmr",
@@ -81,8 +92,13 @@ function getDisplayEntries(entries: PublicFeedback[], limit?: number): FeedbackE
 }
 
 function getLandingEntries(entries: PublicFeedback[]): FeedbackEntry[] {
-  if (entries.length === 0) return import.meta.env.DEV ? demoFeedbackEntries.slice(0, 4) : [];
-  return entries.filter((entry) => entry.pinned).slice(0, 4);
+  const source: PublicFeedback[] = entries.length === 0
+    ? import.meta.env.DEV ? demoFeedbackEntries.slice(0, 4) : []
+    : entries.filter((entry) => entry.pinned).slice(0, 4);
+  return source.map((entry) => ({
+    ...entry,
+    avatarUrl: (entry as FeedbackEntry).avatarUrl ?? feedbackAvatarById[entry.id],
+  }));
 }
 
 function getEntryImages(entry: FeedbackEntry): string[] {
