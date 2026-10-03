@@ -10,6 +10,7 @@ const feedbackQueryOptions = {
     refetchInterval: 60_000,
     refetchOnWindowFocus: true,
   },
+  request: { cache: "no-store" as const },
 };
 
 type FeedbackChannelStats = {
@@ -164,7 +165,7 @@ export function LandingFeedbackSection() {
         <div>
           <p className="feedback-eyebrow">CREATOR FEEDBACK</p>
           <h3 id="feedback-landing-title">Channel feedback</h3>
-          <p>{showingDemoEntries ? "Preview using the four channel screenshots you supplied." : "Browse channel snapshots and open each creator’s YouTube page."}</p>
+          <p>Browse channel snapshots and open each creator’s YouTube page.</p>
           {showingDemoEntries && <FeedbackPreviewNote />}
         </div>
         <a href="/feedback" className="feedback-landing-link" data-testid="link-view-creator-feedback">
@@ -422,7 +423,7 @@ export function FeedbackGalleryPage() {
         <header className="feedback-page-heading">
           <p className="feedback-eyebrow">CHANNEL FEEDBACK</p>
           <h1>Feedback from live channels.</h1>
-          <p className="feedback-intro">{showingDemoEntries ? "Preview using the four channel screenshots you supplied." : "Browse channel screenshots, explore creator profiles, and open each channel on YouTube."}</p>
+          <p className="feedback-intro">Browse channel screenshots, explore creator profiles, and open each channel on YouTube.</p>
           {showingDemoEntries && <FeedbackPreviewNote />}
         </header>
         <div className="feedback-gallery-topline">

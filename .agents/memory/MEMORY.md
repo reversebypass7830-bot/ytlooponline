@@ -37,3 +37,4 @@
 - [Static landing and SPA routes](static-landing-spa-routes.md) — the live artifact has a static root landing, so standalone React routes need explicit HTML entry points.
 - [Product boundaries and historical context](historical-project-context.md) — keep the Live Control Room and Arroxy distinct; the browser controls a server-side broadcast rather than rendering it.
 - [Project context files](project-context-files.md) — consult the root memory and hosting notes before project work, then verify details against current source.
+- [Feedback gallery cache revalidation](feedback-gallery-cache.md) — avoid cached 304 responses for the generated public feedback query; the shared fetch wrapper rejects them.
