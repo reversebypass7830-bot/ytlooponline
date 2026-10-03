@@ -612,7 +612,8 @@
   .feedback-modal-info .feedback-channel-actions { align-items: flex-start; flex-direction: column; }
   .feedback-detail .feedback-image-stage { height: min(72dvh, 720px); min-height: 320px; }
   .feedback-detail .feedback-channel-actions { align-items: flex-start; flex-direction: column; }
-  .feedback-detail-page .feedback-page-topbar { margin-top: 0; }
+  .feedback-detail-page .feedback-page-topbar { position: static; margin-top: 0; }
+  .feedback-detail-page .feedback-top-back-link { position: static; }
 }
 @media (max-width: 400px) {
   .feedback-page-topbar .feedback-brand-link { font-size: 10px; letter-spacing: .04em; }
