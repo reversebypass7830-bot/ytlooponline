@@ -3,13 +3,17 @@
 }
 
 @media (min-width: 901px) {
+  .feedback-landing-grid .feedback-card {
+    aspect-ratio: 190 / 280;
+  }
+
   .feedback-landing-grid .feedback-card-image {
-    flex: 0 0 140px;
+    flex: 1 1 190px;
     align-items: flex-start;
     justify-content: flex-start;
-    height: 140px;
+    height: auto;
     min-height: 140px;
-    max-height: 140px;
+    max-height: none;
     overflow-x: hidden;
     overflow-y: auto;
     overscroll-behavior-y: auto;
@@ -37,16 +41,19 @@
   }
 
   .feedback-landing-grid .feedback-card-copy {
-    flex: 1 1 auto;
+    display: flex;
+    flex: 0 0 auto;
+    flex-direction: column;
+    gap: 4px;
     min-height: 0;
-    gap: 7px;
+    padding: 5px 13px 8px;
   }
 
   .feedback-landing-grid .feedback-card-details {
     display: flex;
     flex-direction: column;
-    gap: 7px;
-    margin-top: auto;
+    gap: 4px;
+    margin-top: 4px;
     min-width: 0;
   }
 

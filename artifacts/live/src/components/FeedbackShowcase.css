@@ -631,7 +631,7 @@
 
   .feedback-landing-grid .feedback-card {
     box-sizing: border-box;
-    aspect-ratio: 190 / 254;
+    aspect-ratio: 190 / 280;
     height: auto;
     border: 1px solid #fff;
     border-radius: 17px;
@@ -667,12 +667,12 @@
 
   .feedback-landing-grid .feedback-card-image {
     display: flex;
-    flex: 0 0 140px;
+    flex: 1 1 190px;
     align-items: flex-start;
     justify-content: flex-start;
-    height: 140px;
+    height: auto;
     min-height: 140px;
-    max-height: 140px;
+    max-height: none;
     margin: 0 11px;
     overflow-x: hidden;
     overflow-y: auto;
@@ -697,9 +697,12 @@
   }
 
   .feedback-landing-grid .feedback-card-copy {
-    flex: 1 1 auto;
+    display: flex;
+    flex: 0 0 auto;
+    flex-direction: column;
+    gap: 4px;
     min-height: 0;
-    padding: 9px 13px 13px;
+    padding: 5px 13px 8px;
   }
 
   .feedback-landing-grid .feedback-card-title {
@@ -713,8 +716,8 @@
   .feedback-landing-grid .feedback-card-details {
     display: flex;
     flex-direction: column;
-    gap: 7px;
-    margin-top: auto;
+    gap: 4px;
+    margin-top: 4px;
     min-width: 0;
   }
 
