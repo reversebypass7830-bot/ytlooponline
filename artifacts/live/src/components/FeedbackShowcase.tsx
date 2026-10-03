@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "wouter";
+import { ArrowSquareOut, YoutubeLogo } from "@phosphor-icons/react";
 import { getListPublicFeedbackQueryKey, useListPublicFeedback } from "@workspace/api-client-react";
 import type { PublicFeedback } from "@workspace/api-client-react";
 import "./FeedbackShowcase.css";
@@ -239,7 +240,10 @@ function FeedbackCard({ entry, onOpen }: { entry: FeedbackEntry; onOpen: (entry:
           <span className="feedback-card-avatar feedback-avatar-fallback" aria-hidden="true">{getChannelInitials(entry.channelName)}</span>
         )}
         <span className="feedback-card-channel">{entry.channelName}</span>
-        <span className="feedback-card-channel-arrow" aria-hidden="true">↗</span>
+        <span className="feedback-card-channel-icons" aria-hidden="true">
+          <YoutubeLogo className="feedback-card-youtube-icon" size={16} weight="fill" />
+          <ArrowSquareOut className="feedback-card-external-icon" size={15} weight="bold" />
+        </span>
       </a>
       <button
         className="feedback-card-preview"

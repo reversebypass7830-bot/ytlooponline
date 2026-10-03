@@ -325,6 +325,7 @@
 }
 .feedback-avatar-fallback { color: #344054; font-size: 12px; font-weight: 800; }
 .feedback-card-channel {
+  flex: 1 1 auto;
   min-width: 0;
   overflow: hidden;
   color: #151821;
@@ -335,7 +336,17 @@
   text-transform: none;
   white-space: nowrap;
 }
-.feedback-card-channel-arrow { margin-left: auto; flex: 0 0 auto; color: #667085; font-size: 15px; }
+.feedback-card-channel-icons {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-left: auto;
+  flex: 0 0 auto;
+}
+.feedback-card-youtube-icon { color: #e62117; }
+.feedback-card-external-icon { color: #475467; }
+.feedback-card-channel-link:hover .feedback-card-external-icon { color: #d51e36; }
 .feedback-card-preview {
   display: block;
   width: 100%;
