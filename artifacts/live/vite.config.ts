@@ -29,6 +29,7 @@ if (!basePath) {
 }
 
 const controlRoomEntries = new Map([
+  ['/feedback', '/sign-in.html'],
   ['/dashboard', '/sign-in.html'],
   ['/analytics', '/sign-in.html'],
   ['/aesthetics', '/sign-in.html'],
@@ -58,7 +59,8 @@ const controlRoomRouteFallback: Plugin = {
 
       const queryIndex = req.url.indexOf('?');
       const pathname = queryIndex === -1 ? req.url : req.url.slice(0, queryIndex);
-      const entry = controlRoomEntries.get(pathname);
+      const entry = controlRoomEntries.get(pathname)
+        ?? (pathname.startsWith('/feedback/') ? '/sign-in.html' : undefined);
       if (entry) {
         const query = queryIndex === -1 ? '' : req.url.slice(queryIndex);
         req.url = `${entry}${query}`;

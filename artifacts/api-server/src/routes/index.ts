@@ -7,6 +7,7 @@ import accountsRouter from "./accounts";
 import mobileAuthRouter from "./mobileAuth";
 import firebaseAuthRouter from "./firebaseAuth";
 import storageRouter from "./storage";
+import feedbackRouter from "./feedback";
 
 const router: IRouter = Router();
 
@@ -18,5 +19,6 @@ router.use(accountsRouter);
 router.use(mobileAuthRouter);
 router.use(firebaseAuthRouter);
 router.use(storageRouter);
+router.use(feedbackRouter);
 
 export default router;

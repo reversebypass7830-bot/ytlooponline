@@ -29,10 +29,14 @@ import type {
   BillingPlanResponse,
   BillingPlanUpdate,
   ComposeMediaInput,
+  CreateFeedbackInput,
   CreateLicenseInput,
   DeleteIncludedFolderParams,
   DeleteLicenseResult,
+  DeleteOwnerFeedback200,
   ExtractYoutubeChannelLinksInput,
+  FeedbackImageUploadInput,
+  FeedbackImageUploadResponse,
   HealthStatus,
   IncludedFileMoveInput,
   IncludedFileMoveResponse,
@@ -54,6 +58,8 @@ import type {
   MediaFileListResponse,
   MediaTrimResponse,
   MediaUploadResponse,
+  OwnerFeedbackListResponse,
+  OwnerFeedbackResponse,
   PaymentAssetUploadUrl,
   PaymentAssetUploadUrlInput,
   PaymentRequestListResponse,
@@ -61,6 +67,7 @@ import type {
   PaymentReviewInput,
   PaymentSettings,
   PaymentSettingsInput,
+  PublicFeedbackListResponse,
   RenewLicenseForUserInput,
   RenewLicenseInput,
   SaveLicenseWorkspaceInput,
@@ -106,6 +113,450 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
   }
   return result;
 };
+
+export const getListPublicFeedbackUrl = () => {
+
+
+
+
+  return `/api/public/feedback`
+}
+
+/**
+ * @summary List published channel feedback
+ */
+export const listPublicFeedback = async ( options?: Parameters<typeof customFetch>[1]): Promise<PublicFeedbackListResponse> => {
+
+  return customFetch<PublicFeedbackListResponse>(getListPublicFeedbackUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListPublicFeedbackQueryKey = () => {
+    return [
+    `/api/public/feedback`
+    ] as const;
+    }
+
+
+export const getListPublicFeedbackQueryOptions = <TData = Awaited<ReturnType<typeof listPublicFeedback>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listPublicFeedback>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListPublicFeedbackQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listPublicFeedback>>> = ({ signal }) => listPublicFeedback({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listPublicFeedback>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListPublicFeedbackQueryResult = NonNullable<Awaited<ReturnType<typeof listPublicFeedback>>>
+export type ListPublicFeedbackQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List published channel feedback
+ */
+
+export function useListPublicFeedback<TData = Awaited<ReturnType<typeof listPublicFeedback>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listPublicFeedback>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListPublicFeedbackQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetPublicFeedbackImageUrl = (feedbackId: string,) => {
+
+
+
+
+  return `/api/public/feedback/${feedbackId}/image`
+}
+
+/**
+ * @summary Serve a published feedback image
+ */
+export const getPublicFeedbackImage = async (feedbackId: string, options?: Parameters<typeof customFetch>[1]): Promise<Blob> => {
+
+  return customFetch<Blob>(getGetPublicFeedbackImageUrl(feedbackId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetPublicFeedbackImageQueryKey = (feedbackId: string,) => {
+    return [
+    `/api/public/feedback/${feedbackId}/image`
+    ] as const;
+    }
+
+
+export const getGetPublicFeedbackImageQueryOptions = <TData = Awaited<ReturnType<typeof getPublicFeedbackImage>>, TError = ErrorType<void>>(feedbackId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPublicFeedbackImage>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetPublicFeedbackImageQueryKey(feedbackId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getPublicFeedbackImage>>> = ({ signal }) => getPublicFeedbackImage(feedbackId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: feedbackId !== null && feedbackId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getPublicFeedbackImage>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetPublicFeedbackImageQueryResult = NonNullable<Awaited<ReturnType<typeof getPublicFeedbackImage>>>
+export type GetPublicFeedbackImageQueryError = ErrorType<void>
+
+
+/**
+ * @summary Serve a published feedback image
+ */
+
+export function useGetPublicFeedbackImage<TData = Awaited<ReturnType<typeof getPublicFeedbackImage>>, TError = ErrorType<void>>(
+ feedbackId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPublicFeedbackImage>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetPublicFeedbackImageQueryOptions(feedbackId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getListOwnerFeedbackUrl = () => {
+
+
+
+
+  return `/api/owner/feedback`
+}
+
+/**
+ * @summary List feedback entries in the owner console
+ */
+export const listOwnerFeedback = async ( options?: Parameters<typeof customFetch>[1]): Promise<OwnerFeedbackListResponse> => {
+
+  return customFetch<OwnerFeedbackListResponse>(getListOwnerFeedbackUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListOwnerFeedbackQueryKey = () => {
+    return [
+    `/api/owner/feedback`
+    ] as const;
+    }
+
+
+export const getListOwnerFeedbackQueryOptions = <TData = Awaited<ReturnType<typeof listOwnerFeedback>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listOwnerFeedback>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListOwnerFeedbackQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listOwnerFeedback>>> = ({ signal }) => listOwnerFeedback({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listOwnerFeedback>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListOwnerFeedbackQueryResult = NonNullable<Awaited<ReturnType<typeof listOwnerFeedback>>>
+export type ListOwnerFeedbackQueryError = ErrorType<void>
+
+
+/**
+ * @summary List feedback entries in the owner console
+ */
+
+export function useListOwnerFeedback<TData = Awaited<ReturnType<typeof listOwnerFeedback>>, TError = ErrorType<void>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listOwnerFeedback>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListOwnerFeedbackQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCreateOwnerFeedbackUrl = () => {
+
+
+
+
+  return `/api/owner/feedback`
+}
+
+/**
+ * @summary Add a channel feedback entry
+ */
+export const createOwnerFeedback = async (createFeedbackInput: CreateFeedbackInput, options?: Parameters<typeof customFetch>[1]): Promise<OwnerFeedbackResponse> => {
+
+  return customFetch<OwnerFeedbackResponse>(getCreateOwnerFeedbackUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(createFeedbackInput)
+  }
+);}
+
+
+
+
+
+export const getCreateOwnerFeedbackMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createOwnerFeedback>>, TError,{data: BodyType<CreateFeedbackInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createOwnerFeedback>>, TError,{data: BodyType<CreateFeedbackInput>}, TContext> => {
+
+const mutationKey = ['createOwnerFeedback'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createOwnerFeedback>>, {data: BodyType<CreateFeedbackInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createOwnerFeedback(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateOwnerFeedbackMutationResult = NonNullable<Awaited<ReturnType<typeof createOwnerFeedback>>>
+    export type CreateOwnerFeedbackMutationBody = BodyType<CreateFeedbackInput>
+    export type CreateOwnerFeedbackMutationError = ErrorType<void>
+
+    /**
+ * @summary Add a channel feedback entry
+ */
+export const useCreateOwnerFeedback = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createOwnerFeedback>>, TError,{data: BodyType<CreateFeedbackInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createOwnerFeedback>>,
+        TError,
+        {data: BodyType<CreateFeedbackInput>},
+        TContext
+      > => {
+      return useMutation(getCreateOwnerFeedbackMutationOptions(options));
+    }
+
+export const getCreateOwnerFeedbackUploadUrlUrl = () => {
+
+
+
+
+  return `/api/owner/feedback/upload-url`
+}
+
+/**
+ * @summary Request secure upload for a feedback image
+ */
+export const createOwnerFeedbackUploadUrl = async (feedbackImageUploadInput: FeedbackImageUploadInput, options?: Parameters<typeof customFetch>[1]): Promise<FeedbackImageUploadResponse> => {
+
+  return customFetch<FeedbackImageUploadResponse>(getCreateOwnerFeedbackUploadUrlUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(feedbackImageUploadInput)
+  }
+);}
+
+
+
+
+
+export const getCreateOwnerFeedbackUploadUrlMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createOwnerFeedbackUploadUrl>>, TError,{data: BodyType<FeedbackImageUploadInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createOwnerFeedbackUploadUrl>>, TError,{data: BodyType<FeedbackImageUploadInput>}, TContext> => {
+
+const mutationKey = ['createOwnerFeedbackUploadUrl'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createOwnerFeedbackUploadUrl>>, {data: BodyType<FeedbackImageUploadInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createOwnerFeedbackUploadUrl(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateOwnerFeedbackUploadUrlMutationResult = NonNullable<Awaited<ReturnType<typeof createOwnerFeedbackUploadUrl>>>
+    export type CreateOwnerFeedbackUploadUrlMutationBody = BodyType<FeedbackImageUploadInput>
+    export type CreateOwnerFeedbackUploadUrlMutationError = ErrorType<void>
+
+    /**
+ * @summary Request secure upload for a feedback image
+ */
+export const useCreateOwnerFeedbackUploadUrl = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createOwnerFeedbackUploadUrl>>, TError,{data: BodyType<FeedbackImageUploadInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createOwnerFeedbackUploadUrl>>,
+        TError,
+        {data: BodyType<FeedbackImageUploadInput>},
+        TContext
+      > => {
+      return useMutation(getCreateOwnerFeedbackUploadUrlMutationOptions(options));
+    }
+
+export const getDeleteOwnerFeedbackUrl = (feedbackId: string,) => {
+
+
+
+
+  return `/api/owner/feedback/${feedbackId}`
+}
+
+/**
+ * @summary Remove a channel feedback entry
+ */
+export const deleteOwnerFeedback = async (feedbackId: string, options?: Parameters<typeof customFetch>[1]): Promise<DeleteOwnerFeedback200> => {
+
+  return customFetch<DeleteOwnerFeedback200>(getDeleteOwnerFeedbackUrl(feedbackId),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getDeleteOwnerFeedbackMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteOwnerFeedback>>, TError,{feedbackId: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteOwnerFeedback>>, TError,{feedbackId: string}, TContext> => {
+
+const mutationKey = ['deleteOwnerFeedback'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteOwnerFeedback>>, {feedbackId: string}> = (props) => {
+          const {feedbackId} = props ?? {};
+
+          return  deleteOwnerFeedback(feedbackId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteOwnerFeedbackMutationResult = NonNullable<Awaited<ReturnType<typeof deleteOwnerFeedback>>>
+
+    export type DeleteOwnerFeedbackMutationError = ErrorType<void>
+
+    /**
+ * @summary Remove a channel feedback entry
+ */
+export const useDeleteOwnerFeedback = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteOwnerFeedback>>, TError,{feedbackId: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof deleteOwnerFeedback>>,
+        TError,
+        {feedbackId: string},
+        TContext
+      > => {
+      return useMutation(getDeleteOwnerFeedbackMutationOptions(options));
+    }
 
 export const getHealthCheckUrl = () => {
 

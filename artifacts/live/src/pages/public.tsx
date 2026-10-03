@@ -35,6 +35,7 @@ import {
   YoutubeLogo,
 } from "@phosphor-icons/react";
 import { Link, useLocation } from "wouter";
+import { LandingFeedbackSection } from "@/components/FeedbackShowcase";
 
 const ease = [0.16, 1, 0.3, 1] as const;
 
@@ -515,6 +516,7 @@ export function LandingPage() {
             <h2>Frequently Asked Questions</h2>
             <p>Got questions? We've got you covered</p>
             <div className="loop-clone-faq-list">{faqs.map((question, index) => <div className={`loop-clone-faq-item ${faq === index ? "open" : ""}`} key={question}><button type="button" onClick={() => setFaq(faq === index ? null : index)}><span>{question}</span><b>{faq === index ? "−" : "+"}</b></button>{faq === index && <p>{answers[index]}</p>}</div>)}</div>
+            <LandingFeedbackSection />
           </div>
         </section>
 

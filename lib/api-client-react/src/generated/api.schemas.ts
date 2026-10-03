@@ -5,6 +5,73 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+export interface PublicFeedback {
+  id: string;
+  title: string;
+  channelName: string;
+  channelUrl: string;
+  imageUrl: string;
+  createdAt: string;
+}
+
+export type OwnerFeedback = PublicFeedback & {
+  imagePath: string;
+};
+
+export interface PublicFeedbackListResponse {
+  feedback: PublicFeedback[];
+}
+
+export interface OwnerFeedbackListResponse {
+  feedback: OwnerFeedback[];
+}
+
+export interface OwnerFeedbackResponse {
+  feedback: OwnerFeedback;
+}
+
+export interface CreateFeedbackInput {
+  /**
+     * @minLength 2
+     * @maxLength 120
+     */
+  title: string;
+  /**
+     * @minLength 2
+     * @maxLength 80
+     */
+  channelName: string;
+  /** @maxLength 500 */
+  channelUrl: string;
+  /** @pattern ^/objects/ */
+  imagePath: string;
+}
+
+export type FeedbackImageUploadInputContentType = typeof FeedbackImageUploadInputContentType[keyof typeof FeedbackImageUploadInputContentType];
+
+
+export const FeedbackImageUploadInputContentType = {
+  'image/jpeg': 'image/jpeg',
+  'image/png': 'image/png',
+  'image/webp': 'image/webp',
+} as const;
+
+export interface FeedbackImageUploadInput {
+  contentType: FeedbackImageUploadInputContentType;
+  /**
+     * @minimum 1
+     * @maximum 5242880
+     */
+  size: number;
+}
+
+export interface FeedbackImageUploadResponse {
+  uploadURL: string;
+  objectPath: string;
+  contentType: string;
+  maxBytes: number;
+}
+
 export interface HealthStatus {
   status: string;
 }
@@ -1046,6 +1113,10 @@ export interface PaymentRequestResponse {
 }
 
 export type OwnerPasswordParameter = string;
+
+export type DeleteOwnerFeedback200 = {
+  success: boolean;
+};
 
 export type ListMediaFilesParams = {
 /**

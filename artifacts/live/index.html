@@ -473,6 +473,10 @@ footer{padding-block:2.5rem}
     </div>
   </section>
 
+  <section class="container" aria-label="Creator feedback" style="padding-top:2rem;padding-bottom:2rem">
+    <div id="landing-feedback-root"></div>
+  </section>
+
   <section class="container" style="padding-bottom:2rem">
     <div class="cta-band">
       <div class="cta-inner">
@@ -506,5 +510,6 @@ footer{padding-block:2.5rem}
   menu.querySelectorAll('a').forEach(function(a){a.addEventListener('click',function(){toggle(false)})});
 })();
 </script>
+<script type="module" src="/src/feedback-landing.tsx"></script>
 </body>
 </html>

@@ -68,6 +68,19 @@ export class ObjectStorageService {
     return { uploadURL, objectPath: `/objects/${objectName}` };
   }
 
+  async getFeedbackImageUploadURL(extension: string): Promise<{ uploadURL: string; objectPath: string }> {
+    const objectName = `feedback-showcase/${randomUUID()}.${extension}`;
+    const fullPath = `${this.getPrivateObjectDir()}/${objectName}`;
+    const { bucketName, objectName: bucketObjectName } = parseObjectPath(fullPath);
+    const uploadURL = await signObjectURL({
+      bucketName,
+      objectName: bucketObjectName,
+      method: "PUT",
+      ttlSec: 900,
+    });
+    return { uploadURL, objectPath: `/objects/${objectName}` };
+  }
+
   async getObjectEntityFile(objectPath: string): Promise<File> {
     if (!objectPath.startsWith("/objects/")) throw new ObjectNotFoundError();
     const entityId = objectPath.slice("/objects/".length);
@@ -85,6 +98,11 @@ export class ObjectStorageService {
     const fullPath = `${this.getPrivateObjectDir()}/${objectPath.slice("/objects/".length)}`;
     const { bucketName, objectName } = parseObjectPath(fullPath);
     return signObjectURL({ bucketName, objectName, method: "GET", ttlSec });
+  }
+
+  async deleteObjectEntity(objectPath: string): Promise<void> {
+    const file = await this.getObjectEntityFile(objectPath);
+    await file.delete({ ignoreNotFound: true });
   }
 
   async downloadObject(file: File): Promise<Response> {

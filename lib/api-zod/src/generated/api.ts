@@ -9,6 +9,131 @@ import * as zod from 'zod';
 
 
 /**
+ * @summary List published channel feedback
+ */
+export const ListPublicFeedbackResponse = zod.object({
+  "feedback": zod.array(zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "channelName": zod.string(),
+  "channelUrl": zod.string(),
+  "imageUrl": zod.string(),
+  "createdAt": zod.coerce.date()
+}))
+})
+
+
+/**
+ * @summary Serve a published feedback image
+ */
+export const GetPublicFeedbackImageParams = zod.object({
+  "feedbackId": zod.coerce.string()
+})
+
+export const GetPublicFeedbackImageResponse = zod.unknown()
+
+
+/**
+ * @summary List feedback entries in the owner console
+ */
+export const ListOwnerFeedbackHeader = zod.object({
+  "X-Owner-Password": zod.string()
+})
+
+export const ListOwnerFeedbackResponse = zod.object({
+  "feedback": zod.array(zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "channelName": zod.string(),
+  "channelUrl": zod.string(),
+  "imageUrl": zod.string(),
+  "createdAt": zod.coerce.date()
+}).and(zod.object({
+  "imagePath": zod.string()
+})))
+})
+
+
+/**
+ * @summary Add a channel feedback entry
+ */
+export const CreateOwnerFeedbackHeader = zod.object({
+  "X-Owner-Password": zod.string()
+})
+
+export const createOwnerFeedbackBodyTitleMin = 2;
+export const createOwnerFeedbackBodyTitleMax = 120;
+
+export const createOwnerFeedbackBodyChannelNameMin = 2;
+export const createOwnerFeedbackBodyChannelNameMax = 80;
+
+export const createOwnerFeedbackBodyChannelUrlMax = 500;
+
+export const createOwnerFeedbackBodyImagePathRegExp = new RegExp('^/objects');
+
+
+export const CreateOwnerFeedbackBody = zod.object({
+  "title": zod.string().min(createOwnerFeedbackBodyTitleMin).max(createOwnerFeedbackBodyTitleMax),
+  "channelName": zod.string().min(createOwnerFeedbackBodyChannelNameMin).max(createOwnerFeedbackBodyChannelNameMax),
+  "channelUrl": zod.string().max(createOwnerFeedbackBodyChannelUrlMax),
+  "imagePath": zod.string().regex(createOwnerFeedbackBodyImagePathRegExp)
+})
+
+export const CreateOwnerFeedbackResponse = zod.object({
+  "feedback": zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "channelName": zod.string(),
+  "channelUrl": zod.string(),
+  "imageUrl": zod.string(),
+  "createdAt": zod.coerce.date()
+}).and(zod.object({
+  "imagePath": zod.string()
+}))
+})
+
+
+/**
+ * @summary Request secure upload for a feedback image
+ */
+export const CreateOwnerFeedbackUploadUrlHeader = zod.object({
+  "X-Owner-Password": zod.string()
+})
+
+export const createOwnerFeedbackUploadUrlBodySizeMax = 5242880;
+
+
+
+export const CreateOwnerFeedbackUploadUrlBody = zod.object({
+  "contentType": zod.enum(['image/jpeg', 'image/png', 'image/webp']),
+  "size": zod.number().min(1).max(createOwnerFeedbackUploadUrlBodySizeMax)
+})
+
+export const CreateOwnerFeedbackUploadUrlResponse = zod.object({
+  "uploadURL": zod.string(),
+  "objectPath": zod.string(),
+  "contentType": zod.string(),
+  "maxBytes": zod.number()
+})
+
+
+/**
+ * @summary Remove a channel feedback entry
+ */
+export const DeleteOwnerFeedbackParams = zod.object({
+  "feedbackId": zod.coerce.string()
+})
+
+export const DeleteOwnerFeedbackHeader = zod.object({
+  "X-Owner-Password": zod.string()
+})
+
+export const DeleteOwnerFeedbackResponse = zod.object({
+  "success": zod.boolean()
+})
+
+
+/**
  * Returns server health status
  * @summary Health check
  */

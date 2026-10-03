@@ -15,6 +15,8 @@ import { Toaster } from "@/components/ui/toaster";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import NotFound from "@/pages/not-found";
 import { GatewayPage, LandingPage, PricingPage } from "@/pages/public";
+import { FeedbackDetailPage, FeedbackGalleryPage } from "@/components/FeedbackShowcase";
+import { OwnerFeedbackPanel } from "@/pages/FeedbackAdmin";
 import { extractYoutubeChannelLinks, getStreamStatus, startStream, stopStream, trimMediaFile, updateStream } from "@workspace/api-client-react";
 import { ManualSubscriptionPage, OwnerPaymentPanel } from "./pages/ManualPayments";
 import { TransactionsPage } from "./pages/Transactions";
@@ -2118,7 +2120,7 @@ function OwnerMobileNav({ active, onDashboard, onKeys }: { active: "dashboard" |
   </nav>;
 }
 
-type OwnerSection = "dashboard" | "folders" | "animations" | "licenses" | "users" | "keys" | "payments";
+type OwnerSection = "dashboard" | "folders" | "animations" | "licenses" | "users" | "keys" | "payments" | "feedback";
 
 function OwnerDesktopSidebar({ active, onNavigate }: { active: OwnerSection; onNavigate: (section: OwnerSection) => void }) {
   const [collapsed, setCollapsed] = useState(() => localStorage.getItem("loop-owner-sidebar") === "collapsed");
@@ -2130,6 +2132,7 @@ function OwnerDesktopSidebar({ active, onNavigate }: { active: OwnerSection; onN
     { section: "users", label: "Users", icon: Users },
     { section: "keys", label: "Key", icon: ShieldCheck },
     { section: "payments", label: "Payments", icon: Receipt },
+    { section: "feedback", label: "Feedback", icon: MessageCircle },
   ];
   const toggle = () => setCollapsed((current) => {
     const next = !current;
@@ -2195,7 +2198,7 @@ function OwnerLicensePage({ licenses, name, days, busy, error, message, onNameCh
   </div>;
 }
 
-function OwnerDashboardPage({ ownerPassword, error, message, keyBusy, showIncludedAnimations, onFolder, onAnimations, onLicense, onKeys, onUsers, onPayments, onNavigate, onCloseAnimations }: {
+function OwnerDashboardPage({ ownerPassword, error, message, keyBusy, showIncludedAnimations, onFolder, onAnimations, onLicense, onKeys, onUsers, onPayments, onFeedback, onNavigate, onCloseAnimations }: {
   ownerPassword: string;
   error: string;
   message: string;
@@ -2208,6 +2211,7 @@ function OwnerDashboardPage({ ownerPassword, error, message, keyBusy, showInclud
   onCloseAnimations: () => void;
   onUsers?: () => void;
   onPayments?: () => void;
+  onFeedback?: () => void;
   onNavigate?: (section: OwnerSection) => void;
 }) {
   return <div className="owner-page owner-dashboard-page">{onNavigate && <OwnerDesktopSidebar active="dashboard" onNavigate={onNavigate} />}
@@ -2223,6 +2227,7 @@ function OwnerDashboardPage({ ownerPassword, error, message, keyBusy, showInclud
          <button className="owner-action-card system-key" onClick={onKeys} disabled={keyBusy}><span className="owner-action-icon"><ShieldCheck size={22}/></span><span><strong>Key</strong><small>Manage the secure downloader key pool.</small></span><ArrowRight size={17}/></button>
          {onUsers && <button className="owner-action-card users" onClick={onUsers}><span className="owner-action-icon"><Users size={22}/></span><span><strong>Users</strong><small>Review account identity, plans, keys, and history.</small></span><ArrowRight size={17}/></button>}
           {onPayments && <button className="owner-action-card payments" onClick={onPayments}><span className="owner-action-icon"><Receipt size={22}/></span><span><strong>Payments</strong><small>Configure UPI plans and review customer UTRs.</small></span><ArrowRight size={17}/></button>}
+          {onFeedback && <button className="owner-action-card feedback" onClick={onFeedback}><span className="owner-action-icon"><MessageCircle size={22}/></span><span><strong>Feedback</strong><small>Add and manage public channel examples.</small></span><ArrowRight size={17}/></button>}
       </section>
     </main>
     {showIncludedAnimations && <IncludedAnimationsModal ownerPassword={ownerPassword} onClose={onCloseAnimations} />}
@@ -2267,7 +2272,7 @@ function OwnerConsolePage() {
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [showIncludedAnimations, setShowIncludedAnimations] = useState(false);
-  const [ownerView, setOwnerView] = useState<"dashboard" | "licenses" | "keys" | "folders" | "users" | "payments">("dashboard");
+  const [ownerView, setOwnerView] = useState<"dashboard" | "licenses" | "keys" | "folders" | "users" | "payments" | "feedback">("dashboard");
 
   const load = async (ownerPassword: string) => {
     const result = await apiJson<{ licenses?: LicenseSession[] }>("/api/licenses", { headers: { "X-Owner-Password": ownerPassword } });
@@ -2352,7 +2357,8 @@ function OwnerConsolePage() {
   if (ownerView === "licenses") return <OwnerLicensePage licenses={licenses} name={name} days={days} busy={busy} error={error} message={message} onNameChange={setName} onDaysChange={setDays} onCreate={(event) => void create(event)} onRenew={(licenseId) => void renew(licenseId)} onRemove={(license) => void remove(license)} onRecover={(license) => void recover(license)} onDashboard={goDashboard} onKeys={openKeys} onNavigate={navigateOwner} />;
   if (ownerView === "users") return <OwnerUsersPage ownerPassword={authorizedPassword} onNavigate={navigateOwner} />;
   if (ownerView === "payments") return <div className="owner-page owner-payment-page"><OwnerDesktopSidebar active="payments" onNavigate={navigateOwner}/><header className="owner-topbar"><div className="owner-topbar-title"><span className="owner-topbar-kicker">Slash Owner</span><strong>Payments</strong></div><button className="button secondary small owner-payment-mobile-back" onClick={goDashboard} type="button"><ArrowLeft size={14}/> Dashboard</button></header><OwnerPaymentPanel ownerPassword={authorizedPassword}/></div>;
-  if (ownerView === "dashboard") return <OwnerDashboardPage ownerPassword={authorizedPassword} error={error} message={message} keyBusy={keyBusy} showIncludedAnimations={showIncludedAnimations} onFolder={() => setOwnerView("folders")} onAnimations={() => setShowIncludedAnimations(true)} onLicense={() => setOwnerView("licenses")} onKeys={openKeys} onUsers={() => setOwnerView("users")} onPayments={() => setOwnerView("payments")} onNavigate={navigateOwner} onCloseAnimations={() => setShowIncludedAnimations(false)} />;
+  if (ownerView === "feedback") return <div className="owner-page owner-payment-page owner-feedback-page"><OwnerDesktopSidebar active="feedback" onNavigate={navigateOwner}/><header className="owner-topbar"><div className="owner-topbar-title"><span className="owner-topbar-kicker">Slash Owner</span><strong>Feedback</strong></div><button className="button secondary small owner-payment-mobile-back" onClick={goDashboard} type="button"><ArrowLeft size={14}/> Dashboard</button></header><OwnerFeedbackPanel ownerPassword={authorizedPassword}/></div>;
+  if (ownerView === "dashboard") return <OwnerDashboardPage ownerPassword={authorizedPassword} error={error} message={message} keyBusy={keyBusy} showIncludedAnimations={showIncludedAnimations} onFolder={() => setOwnerView("folders")} onAnimations={() => setShowIncludedAnimations(true)} onLicense={() => setOwnerView("licenses")} onKeys={openKeys} onUsers={() => setOwnerView("users")} onPayments={() => setOwnerView("payments")} onFeedback={() => setOwnerView("feedback")} onNavigate={navigateOwner} onCloseAnimations={() => setShowIncludedAnimations(false)} />;
 
   return <div className="owner-page owner-dashboard-page">
     <header className="owner-topbar"><div className="owner-topbar-title"><span className="owner-topbar-kicker">Slash Owner</span><strong>Dashboard</strong></div><span className="owner-secure-label"><ShieldCheck size={15}/> Secure owner workspace</span></header>
@@ -5350,6 +5356,11 @@ function App() {
         ? "Restoring your session…"
         : "Preparing your workspace…";
     return <WorkspaceLoading label={label} />;
+  }
+  if (location === "/feedback") return <FeedbackGalleryPage />;
+  if (location.startsWith("/feedback/")) {
+    const feedbackId = location.slice("/feedback/".length).split("/")[0];
+    return <FeedbackDetailPage feedbackId={decodeURIComponent(feedbackId)} />;
   }
   if (isOwnerRoute) return <OwnerConsolePage/>;
   if (location.startsWith("/sign-in") || location.startsWith("/sign-up")) {

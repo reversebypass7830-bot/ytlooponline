@@ -10,6 +10,8 @@ servers:
 tags:
   - name: health
     description: Health operations
+  - name: feedback
+    description: Public channel showcases managed by the owner
   - name: streaming
     description: Live stream control operations
   - name: media
@@ -19,6 +21,137 @@ tags:
   - name: billing
     description: Manual UPI payments, subscription pricing, and owner review
 paths:
+  /public/feedback:
+    get:
+      operationId: listPublicFeedback
+      tags: [feedback]
+      summary: List published channel feedback
+      responses:
+        "200":
+          description: Latest public feedback entries
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PublicFeedbackListResponse"
+  /public/feedback/{feedbackId}/image:
+    get:
+      operationId: getPublicFeedbackImage
+      tags: [feedback]
+      summary: Serve a published feedback image
+      parameters:
+        - name: feedbackId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Feedback image
+          content:
+            image/jpeg:
+              schema:
+                type: string
+                format: binary
+            image/png:
+              schema:
+                type: string
+                format: binary
+            image/webp:
+              schema:
+                type: string
+                format: binary
+        "404":
+          description: Feedback image not found
+  /owner/feedback:
+    get:
+      operationId: listOwnerFeedback
+      tags: [feedback]
+      summary: List feedback entries in the owner console
+      parameters:
+        - $ref: "#/components/parameters/OwnerPassword"
+      responses:
+        "200":
+          description: Feedback entries
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OwnerFeedbackListResponse"
+        "401":
+          description: Owner access is required
+    post:
+      operationId: createOwnerFeedback
+      tags: [feedback]
+      summary: Add a channel feedback entry
+      parameters:
+        - $ref: "#/components/parameters/OwnerPassword"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateFeedbackInput"
+      responses:
+        "201":
+          description: Feedback entry created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OwnerFeedbackResponse"
+        "400":
+          description: Invalid feedback details
+        "401":
+          description: Owner access is required
+  /owner/feedback/upload-url:
+    post:
+      operationId: createOwnerFeedbackUploadUrl
+      tags: [feedback]
+      summary: Request secure upload for a feedback image
+      parameters:
+        - $ref: "#/components/parameters/OwnerPassword"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FeedbackImageUploadInput"
+      responses:
+        "200":
+          description: Upload URL and object path
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FeedbackImageUploadResponse"
+        "400":
+          description: Invalid image type or size
+        "401":
+          description: Owner access is required
+  /owner/feedback/{feedbackId}:
+    delete:
+      operationId: deleteOwnerFeedback
+      tags: [feedback]
+      summary: Remove a channel feedback entry
+      parameters:
+        - $ref: "#/components/parameters/OwnerPassword"
+        - name: feedbackId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Feedback entry deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                required: [success]
+        "401":
+          description: Owner access is required
+        "404":
+          description: Feedback entry not found
   /healthz:
     get:
       operationId: healthCheck
@@ -977,6 +1110,94 @@ components:
       schema:
         type: string
   schemas:
+    PublicFeedback:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        channelName:
+          type: string
+        channelUrl:
+          type: string
+        imageUrl:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+      required: [id, title, channelName, channelUrl, imageUrl, createdAt]
+    OwnerFeedback:
+      allOf:
+        - $ref: "#/components/schemas/PublicFeedback"
+        - type: object
+          properties:
+            imagePath:
+              type: string
+          required: [imagePath]
+    PublicFeedbackListResponse:
+      type: object
+      properties:
+        feedback:
+          type: array
+          items:
+            $ref: "#/components/schemas/PublicFeedback"
+      required: [feedback]
+    OwnerFeedbackListResponse:
+      type: object
+      properties:
+        feedback:
+          type: array
+          items:
+            $ref: "#/components/schemas/OwnerFeedback"
+      required: [feedback]
+    OwnerFeedbackResponse:
+      type: object
+      properties:
+        feedback:
+          $ref: "#/components/schemas/OwnerFeedback"
+      required: [feedback]
+    CreateFeedbackInput:
+      type: object
+      properties:
+        title:
+          type: string
+          minLength: 2
+          maxLength: 120
+        channelName:
+          type: string
+          minLength: 2
+          maxLength: 80
+        channelUrl:
+          type: string
+          maxLength: 500
+        imagePath:
+          type: string
+          pattern: "^/objects/"
+      required: [title, channelName, channelUrl, imagePath]
+    FeedbackImageUploadInput:
+      type: object
+      properties:
+        contentType:
+          type: string
+          enum: [image/jpeg, image/png, image/webp]
+        size:
+          type: number
+          minimum: 1
+          maximum: 5242880
+      required: [contentType, size]
+    FeedbackImageUploadResponse:
+      type: object
+      properties:
+        uploadURL:
+          type: string
+        objectPath:
+          type: string
+        contentType:
+          type: string
+        maxBytes:
+          type: number
+      required: [uploadURL, objectPath, contentType, maxBytes]
     HealthStatus:
       type: object
       properties:

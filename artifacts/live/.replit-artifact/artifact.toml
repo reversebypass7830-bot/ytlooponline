@@ -84,6 +84,14 @@ from = "/owner"
 to = "/owner.html"
 
 [[services.production.rewrites]]
+from = "/feedback"
+to = "/sign-in.html"
+
+[[services.production.rewrites]]
+from = "/feedback/*"
+to = "/sign-in.html"
+
+[[services.production.rewrites]]
 from = "/*"
 to = "/index.html"
 
