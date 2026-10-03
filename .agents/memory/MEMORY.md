@@ -8,6 +8,7 @@
 - [Multi-animation stream compatibility](multi-animation-stream-compatibility.md) — a present animation layer list is authoritative, while old single-animation compositions still use the legacy fallback.
 - [Firebase licensing security](firebase-licensing-security.md) — public Realtime Database rules make app-level owner passwords non-secure; harden rules/auth before production.
 - [Manual UPI pricing assumption](manual-upi-pricing.md) — custom download quotas currently scale the per-stream daily price proportionally; this pricing rule was not user-confirmed.
+- [Manual UPI billing scope](manual-upi-billing-scope.md) — keep this purchase flow in the Live Control Room; a submitted UTR stays pending until an owner explicitly approves it.
 - [Public media builds](public-media-builds.md) — ignored local media must not be statically imported by the frontend; clean public checkouts should use runtime uploads/API media.
 - [Media library recovery](media-library-recovery.md) — server media needs an index plus workspace rehydration so existing files and folder counts survive browser/license workspace drift.
 - [Live playlist folder scope](live-playlist-folder-scope.md) — live streams must derive playlist membership from each video's groupId, not only cached folder arrays.
