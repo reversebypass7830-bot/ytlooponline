@@ -166,7 +166,6 @@ export function ManualSubscriptionPage({ account, onRefresh }: { account: Accoun
         </div>
         {!plan && <div className="pay-empty pay-plan-unavailable" role="status"><CircleDollarSign size={23}/><strong>No custom subscription is available</strong><span>Ask your workspace owner to enable the custom-subscription plan.</span></div>}
         <button className="button pay-quote-button pay-continue-button" type="button" disabled={!plan} onClick={() => { setError(""); setStep("configure"); }} data-testid="button-continue-to-config">Continue <ChevronUp size={17} style={{ transform: "rotate(90deg)" }}/></button>
-        <p className="pay-selection-note">Payment is made by UPI and reviewed by your workspace owner.</p>
       </div>
     </section> : step === "pending" ? <section className="card pay-pending-state" data-testid="status-pending-review">
       <span className="pending-dot"/><h2>Waiting for owner approval</h2><p>Your UPI payment and UTR are queued for a human owner to review. Access and allowances change only after the owner approves the request.</p>
