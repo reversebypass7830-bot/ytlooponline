@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { ArrowSquareOut, YoutubeLogo } from "@phosphor-icons/react";
 import { getListPublicFeedbackQueryKey, useListPublicFeedback } from "@workspace/api-client-react";
@@ -138,6 +138,44 @@ function getEntryImages(entry: FeedbackEntry): string[] {
   return entry.imageUrls?.length ? entry.imageUrls : [entry.imageUrl];
 }
 
+const feedbackImagePreloadQueue: string[] = [];
+const queuedFeedbackImageUrls = new Set<string>();
+let activeFeedbackImagePreloads = 0;
+const maxFeedbackImagePreloads = 3;
+
+function preloadFeedbackImages(imageUrls: string[]) {
+  for (const imageUrl of imageUrls) {
+    if (!imageUrl || queuedFeedbackImageUrls.has(imageUrl)) continue;
+    queuedFeedbackImageUrls.add(imageUrl);
+    feedbackImagePreloadQueue.push(imageUrl);
+  }
+  processFeedbackImagePreloadQueue();
+}
+
+function processFeedbackImagePreloadQueue() {
+  while (activeFeedbackImagePreloads < maxFeedbackImagePreloads && feedbackImagePreloadQueue.length > 0) {
+    const imageUrl = feedbackImagePreloadQueue.shift();
+    if (!imageUrl) continue;
+
+    activeFeedbackImagePreloads += 1;
+    const image = new Image();
+    image.decoding = "async";
+    image.fetchPriority = "low";
+    let finished = false;
+    const finish = (loaded: boolean) => {
+      if (finished) return;
+      finished = true;
+      if (!loaded) queuedFeedbackImageUrls.delete(imageUrl);
+      activeFeedbackImagePreloads -= 1;
+      processFeedbackImagePreloadQueue();
+    };
+    image.onload = () => finish(true);
+    image.onerror = () => finish(false);
+    image.src = imageUrl;
+    if (image.complete) finish(image.naturalWidth > 0);
+  }
+}
+
 function getChannelInitials(channelName: string): string {
   return channelName
     .trim()
@@ -242,7 +280,8 @@ function FeedbackEmpty() {
 }
 
 function FeedbackCard({ entry, onOpen }: { entry: FeedbackEntry; onOpen: (entry: FeedbackEntry) => void }) {
-  const imageCount = getEntryImages(entry).length;
+  const images = getEntryImages(entry);
+  const imageCount = images.length;
 
   return (
     <article className="feedback-card" data-testid={`card-feedback-${entry.id}`}>
@@ -262,6 +301,9 @@ function FeedbackCard({ entry, onOpen }: { entry: FeedbackEntry; onOpen: (entry:
         className="feedback-card-preview"
         type="button"
         onClick={() => onOpen(entry)}
+        onPointerEnter={() => preloadFeedbackImages(images.slice(1, 2))}
+        onPointerDown={() => preloadFeedbackImages(images.slice(1))}
+        onFocus={() => preloadFeedbackImages(images)}
         aria-label={`View ${imageCount} feedback ${imageCount === 1 ? "image" : "images"} from ${entry.channelName}`}
       >
         <span className="feedback-card-image">
@@ -299,13 +341,46 @@ function ChannelActions({ entry }: { entry: FeedbackEntry }) {
 }
 
 function FeedbackImageGallery({ entry }: { entry: FeedbackEntry }) {
-  const images = getEntryImages(entry);
+  const images = useMemo(() => getEntryImages(entry), [entry.imageUrl, entry.imageUrls]);
   const [activeIndex, setActiveIndex] = useState(0);
+  const [loadedImages, setLoadedImages] = useState<Set<string>>(() => new Set());
+  const [failedImages, setFailedImages] = useState<Set<string>>(() => new Set());
+  const activeImage = images[activeIndex];
+
+  useEffect(() => {
+    preloadFeedbackImages(images);
+  }, [images]);
 
   return (
     <div className="feedback-image-gallery">
-      <div className="feedback-image-stage">
-        <img src={images[activeIndex]} alt={`${entry.channelName} channel screenshot ${activeIndex + 1} of ${images.length}`} />
+      <div className="feedback-image-stage" aria-busy={!loadedImages.has(activeImage) && !failedImages.has(activeImage)}>
+        <img
+          key={activeImage}
+          src={activeImage}
+          alt={`${entry.channelName} channel screenshot ${activeIndex + 1} of ${images.length}`}
+          decoding="async"
+          fetchPriority="high"
+          onLoad={() => {
+            setLoadedImages((loaded) => new Set(loaded).add(activeImage));
+            setFailedImages((failed) => {
+              if (!failed.has(activeImage)) return failed;
+              const next = new Set(failed);
+              next.delete(activeImage);
+              return next;
+            });
+          }}
+          onError={() => setFailedImages((failed) => new Set(failed).add(activeImage))}
+        />
+        {!loadedImages.has(activeImage) && (
+          <span className={failedImages.has(activeImage) ? "feedback-image-error" : "feedback-image-loading"} role={failedImages.has(activeImage) ? "alert" : "status"}>
+            {failedImages.has(activeImage) ? "Image couldn’t load. Check your connection." : (
+              <>
+                <span className="feedback-image-spinner" aria-hidden="true" />
+                Loading image…
+              </>
+            )}
+          </span>
+        )}
         {images.length > 1 && (
           <>
             <button
