@@ -101,6 +101,10 @@ export function ManualSubscriptionPage({ account, onRefresh }: { account: Accoun
     }
     setDurationDays(Math.min(30, Math.max(1, value || 1))); setQuote(null);
   };
+  const setMonthCount = (value: number) => {
+    setDurationDays(Math.min(12, Math.max(1, Math.round(value || 1))) * 30);
+    setQuote(null);
+  };
   const setYearCount = (value: number) => {
     setDurationDays(Math.min(15, Math.max(1, Math.round(value || 1))) * 365);
     setQuote(null);
@@ -227,23 +231,19 @@ export function ManualSubscriptionPage({ account, onRefresh }: { account: Accoun
           </section>
           <section className="pay-control-block">
               <div className="pay-control-label"><img src={durationArt} alt="" /><div><strong>Duration</strong><small>{packType === "Days" ? "Choose from 1 to 30 days." : packType === "Monthly" ? "Choose from 1 to 12 months." : "Choose from 1 to 15 years."}</small></div></div>
-            {packType === "Days" ? <>
+             {packType === "Days" ? <>
               <div className="pay-duration-entry"><input aria-label="Duration in days" type="number" min="1" max="30" value={durationDays} onChange={(event) => setDayCount(Number(event.target.value))} data-testid="input-duration-days"/><span>days</span><b className="duration-badge">{durationDays} days</b></div>
               <input className="pay-duration-slider" type="range" min="1" max="30" value={durationDays} aria-label="Select duration from 1 to 30 days" onChange={(event) => setDayCount(Number(event.target.value))} data-testid="slider-duration-days"/>
               <div className="pay-duration-ticks"><span>1 day</span><span>30 days</span></div>
-             </> : packType === "Yearly" ? <>
+             </> : packType === "Monthly" ? <>
+               <div className="pay-duration-entry"><input aria-label="Duration in months" type="number" min="1" max="12" step="1" value={durationDays / 30} onChange={(event) => setMonthCount(Number(event.target.value))} data-testid="input-duration-months"/><span>months</span><b className="duration-badge">{durationDaysLabel(durationDays)}</b></div>
+               <input className="pay-duration-slider" type="range" min="1" max="12" step="1" value={durationDays / 30} aria-label="Select duration from 1 to 12 months" onChange={(event) => setMonthCount(Number(event.target.value))} data-testid="slider-duration-months"/>
+               <div className="pay-duration-ticks"><span>1 month</span><span>12 months</span></div>
+             </> : <>
                <div className="pay-duration-entry"><input aria-label="Duration in years" type="number" min="1" max="15" step="1" value={durationDays / 365} onChange={(event) => setYearCount(Number(event.target.value))} data-testid="input-duration-years"/><span>years</span><b className="duration-badge">{durationDaysLabel(durationDays)}</b></div>
                <input className="pay-duration-slider" type="range" min="1" max="15" step="1" value={durationDays / 365} aria-label="Select duration from 1 to 15 years" onChange={(event) => setYearCount(Number(event.target.value))} data-testid="slider-duration-years"/>
                <div className="pay-duration-ticks"><span>1 year</span><span>15 years</span></div>
-             </> : <div className="pay-duration-fixed">
-               <strong>{durationDaysLabel(durationDays)}</strong>
-               <select id="select-pack-duration" value={durationDays} onChange={(event) => { setDurationDays(Number(event.target.value)); setQuote(null); }} data-testid="select-pack-duration">
-                  {Array.from({ length: 12 }, (_, index) => {
-                    const months = index + 1;
-                    return <option key={months} value={months * 30}>{months} month{months === 1 ? "" : "s"} ({months * 30} days)</option>;
-                  })}
-               </select>
-             </div>}
+              </>}
           </section>
         </div>
         <div className="pay-live-total">
