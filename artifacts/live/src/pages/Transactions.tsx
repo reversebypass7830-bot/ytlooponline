@@ -1,11 +1,24 @@
 import { useMemo, useState } from "react";
-import { CheckCircle2, FileText, Filter, LoaderCircle, RefreshCw, XCircle } from "lucide-react";
+import {
+  CalendarDays,
+  CheckCircle2,
+  Clock3,
+  CreditCard,
+  FileText,
+  Filter,
+  Gift,
+  LoaderCircle,
+  RefreshCw,
+  Search,
+  XCircle,
+} from "lucide-react";
 import {
   getListAccountPaymentRequestsQueryKey,
   useListAccountPaymentRequests,
 } from "@workspace/api-client-react";
 import type { PaymentRequest } from "@workspace/api-client-react";
 import "./ManualPayments.css";
+import "./Transactions.css";
 
 type AccountHistoryEntry = {
   id: string;
@@ -55,7 +68,13 @@ function statusLabel(status: PaymentRequest["status"]) {
   return "Pending review";
 }
 
-export function TransactionsPage({ account }: { account: TransactionAccount }) {
+export function TransactionsPage({
+  account,
+  onRefreshAccount,
+}: {
+  account: TransactionAccount;
+  onRefreshAccount: () => Promise<void>;
+}) {
   const requestsQuery = useListAccountPaymentRequests({
     query: { queryKey: getListAccountPaymentRequestsQueryKey(), refetchInterval: 20000 },
   });
@@ -64,6 +83,9 @@ export function TransactionsPage({ account }: { account: TransactionAccount }) {
   const [typeFilter, setTypeFilter] = useState<"all" | "purchase" | "grant" | "request">("all");
   const [statusFilter, setStatusFilter] = useState<"all" | PaymentRequest["status"]>("all");
   const [range, setRange] = useState("all");
+  const [isRefreshingAccount, setIsRefreshingAccount] = useState(false);
+  const [refreshError, setRefreshError] = useState("");
+  const isRefreshing = requestsQuery.isFetching || isRefreshingAccount;
 
   const transactions = useMemo(() => {
     const rows: TransactionRow[] = account.history
@@ -131,6 +153,18 @@ export function TransactionsPage({ account }: { account: TransactionAccount }) {
     setRange("all");
   };
 
+  const handleRefresh = async () => {
+    setRefreshError("");
+    setIsRefreshingAccount(true);
+    try {
+      await Promise.all([requestsQuery.refetch(), onRefreshAccount()]);
+    } catch {
+      setRefreshError("We couldn't refresh your account history. Please try again.");
+    } finally {
+      setIsRefreshingAccount(false);
+    }
+  };
+
   const downloadInvoice = (item: TransactionRow) => {
     const content = [
       "YT LOOP · TRANSACTION RECORD",
@@ -155,42 +189,121 @@ export function TransactionsPage({ account }: { account: TransactionAccount }) {
     URL.revokeObjectURL(url);
   };
 
+  const hasActiveFilters = Boolean(search.trim()) || typeFilter !== "all" || statusFilter !== "all" || range !== "all";
+
   return <div className="page subscription-page manual-payment-page transactions-page">
     <header className="page-head subscription-heading">
       <div><p className="eyebrow">Account / Billing</p><h1>Transactions</h1><p className="subtle">Filter UPI requests, approved purchases, and owner-granted access.</p></div>
     </header>
     <section className="card pay-request-history transaction-history-card">
-      <div className="pay-section-title">
-        <div><span className="metric-kicker">Account record</span><h2>Transaction history</h2><p>Payment requests remain pending until the owner reviews them.</p></div>
-        <div className="transaction-count"><strong>{filteredTransactions.length}</strong><span>of {transactions.length}</span></div>
+      <div className="transaction-card-header">
+        <div className="transaction-heading-copy">
+          <span className="metric-kicker">Account record</span>
+          <h2>Transaction history</h2>
+          <p>Payment requests stay pending until the owner approves them.</p>
+        </div>
+        <div className="transaction-heading-actions">
+          <div className="transaction-count" aria-live="polite">
+            <strong>{filteredTransactions.length}</strong>
+            <span>of {transactions.length} records</span>
+          </div>
+          <button
+            className="button secondary transaction-refresh"
+            type="button"
+            onClick={() => void handleRefresh()}
+            disabled={isRefreshing}
+            aria-label="Refresh transaction history and payment requests"
+            data-testid="button-refresh-account-requests"
+          >
+            <RefreshCw size={15} className={isRefreshing ? "pay-spin" : ""}/>
+            <span>{isRefreshing ? "Refreshing" : "Refresh"}</span>
+          </button>
+        </div>
       </div>
-      <div className="pay-history-toolbar transaction-toolbar">
-        <label><Filter size={14}/><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search plan, UTR, or amount" aria-label="Search transactions" data-testid="input-history-search"/></label>
-        <select value={typeFilter} onChange={(event) => setTypeFilter(event.target.value as typeof typeFilter)} aria-label="Filter transaction type" data-testid="select-history-type">
-          <option value="all">All types</option><option value="purchase">Purchases</option><option value="grant">Owner grants</option><option value="request">Payment requests</option>
-        </select>
-        <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value as typeof statusFilter)} aria-label="Filter transaction status" data-testid="select-history-status">
-          <option value="all">All statuses</option><option value="pending">Pending</option><option value="approved">Completed</option><option value="rejected">Rejected</option>
-        </select>
-        <select value={range} onChange={(event) => setRange(event.target.value)} aria-label="Filter by date" data-testid="select-history-date">
-          <option value="all">Any time</option><option value="30">Last 30 days</option><option value="90">Last 90 days</option><option value="365">Last year</option>
-        </select>
+      <div className="transaction-refresh-status" role="status" aria-live="polite">
+        {isRefreshing
+          ? <><LoaderCircle size={14} className="pay-spin"/> Updating transaction records…</>
+          : <><CheckCircle2 size={14}/> Payment request statuses update every 20 seconds.</>}
       </div>
-      {requestsQuery.isLoading ? <div className="pay-loading-line"/> : requestsQuery.isError ? <div className="pay-empty"><XCircle size={21}/><strong>Transactions unavailable</strong><button className="button secondary small" type="button" onClick={() => void requestsQuery.refetch()}>Try again</button></div> : transactions.length === 0 ? <div className="pay-empty"><FileText size={23}/><strong>No transactions yet</strong><span>Payment requests, purchases, and owner grants will appear here.</span></div> : filteredTransactions.length === 0 ? <div className="pay-empty"><Filter size={22}/><strong>No matching transactions</strong><button className="button secondary small" type="button" onClick={clearFilters}>Clear filters</button></div> : <div className="pay-history-list transaction-list">
+      {(refreshError || (requestsQuery.isError && transactions.length > 0)) && <div className="transaction-inline-error" role="alert">
+        <XCircle size={16}/>
+        <span>{refreshError || "Payment request statuses couldn't be refreshed. Existing account records are still shown."}</span>
+        <button className="button ghost small" type="button" onClick={() => void handleRefresh()} disabled={isRefreshing}>Try again</button>
+      </div>}
+      <div className="pay-history-toolbar transaction-toolbar" role="search" aria-label="Filter transaction history">
+        <label className="transaction-search-field" htmlFor="transaction-search">
+          <Search size={16} aria-hidden="true"/>
+          <input
+            id="transaction-search"
+            type="search"
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            placeholder="Search plan, UTR, or amount"
+            aria-label="Search transactions"
+            data-testid="input-history-search"
+          />
+        </label>
+        <div className="transaction-filters">
+          <label className="transaction-filter-control" htmlFor="transaction-type">
+            <span>Type</span>
+            <select id="transaction-type" value={typeFilter} onChange={(event) => setTypeFilter(event.target.value as typeof typeFilter)} aria-label="Filter transaction type" data-testid="select-history-type">
+              <option value="all">All types</option><option value="purchase">Purchases</option><option value="grant">Owner grants</option><option value="request">Payment requests</option>
+            </select>
+          </label>
+          <label className="transaction-filter-control" htmlFor="transaction-status">
+            <span>Status</span>
+            <select id="transaction-status" value={statusFilter} onChange={(event) => setStatusFilter(event.target.value as typeof statusFilter)} aria-label="Filter transaction status" data-testid="select-history-status">
+              <option value="all">All statuses</option><option value="pending">Pending</option><option value="approved">Completed</option><option value="rejected">Rejected</option>
+            </select>
+          </label>
+          <label className="transaction-filter-control" htmlFor="transaction-date-range">
+            <span>Date range</span>
+            <select id="transaction-date-range" value={range} onChange={(event) => setRange(event.target.value)} aria-label="Filter by date" data-testid="select-history-date">
+              <option value="all">Any time</option><option value="30">Last 30 days</option><option value="90">Last 90 days</option><option value="365">Last year</option>
+            </select>
+          </label>
+        </div>
+        {hasActiveFilters && <button className="button ghost small transaction-clear-filters" type="button" onClick={clearFilters}>Clear filters</button>}
+      </div>
+      {requestsQuery.isLoading && transactions.length === 0
+        ? <div className="pay-loading-line transaction-loading-line" aria-label="Loading transactions"/>
+        : requestsQuery.isError && transactions.length === 0
+          ? <div className="pay-empty transaction-empty"><XCircle size={22}/><strong>Transactions unavailable</strong><span>We couldn't load your payment requests.</span><button className="button secondary small" type="button" onClick={() => void handleRefresh()} disabled={isRefreshing}>Try again</button></div>
+          : transactions.length === 0
+            ? <div className="pay-empty transaction-empty"><FileText size={23}/><strong>No transactions yet</strong><span>Payment requests, purchases, and owner grants will appear here.</span></div>
+            : filteredTransactions.length === 0
+              ? <div className="pay-empty transaction-empty"><Filter size={22}/><strong>No matching transactions</strong><span>Change your search or filters to see more records.</span><button className="button secondary small" type="button" onClick={clearFilters}>Clear filters</button></div>
+              : <div className="pay-history-list transaction-list" aria-busy={isRefreshing}>
         {filteredTransactions.map((item) => <article className="pay-history-row transaction-row" key={`${item.type}-${item.id}`} data-testid={`row-transaction-${item.id}`}>
+          <div className={`transaction-kind-icon ${item.type} ${item.status}`} aria-hidden="true">
+            {item.type === "grant" ? <Gift size={17}/> : item.type === "request" ? <Clock3 size={17}/> : <CreditCard size={17}/>}
+          </div>
           <div className="transaction-copy">
-            <div className="transaction-title"><strong>{item.message}</strong><span className={`pay-status-tag ${item.status}`}>{statusLabel(item.status)}</span></div>
-            <span>{item.type === "grant" ? "Owner grant" : item.type === "request" ? "Payment request" : "Purchase"}{item.packType ? ` · ${item.packType}` : ""}{item.days ? ` · ${item.days} days` : ""}{item.streamsPerDay ? ` · ${item.streamsPerDay} starts/day` : ""}{item.streamLimit ? ` · ${item.streamLimit} concurrent cap` : ""}{item.downloadsPerDay ? ` · ${item.downloadsPerDay.toLocaleString("en-IN")} downloads/day` : ""}{typeof item.amountPaise === "number" ? ` · ${money(item.amountPaise)}` : ""}{item.utr ? ` · UTR ${item.utr}` : ""}</span>
-            <small>{new Date(item.at).toLocaleString()} · Ref {(item.requestId || item.id).slice(0, 8)}</small>
+            <div className="transaction-title">
+              <strong>{item.message}</strong>
+              <span className={`pay-status-tag ${item.status}`}>{statusLabel(item.status)}</span>
+            </div>
+            <div className="transaction-summary">
+              <span className={`transaction-type-label ${item.type}`}>{item.type === "grant" ? "Owner grant" : item.type === "request" ? "Payment request" : "Purchase"}</span>
+              {item.packType && <span>{item.packType}</span>}
+              {item.days && <span>{item.days} days</span>}
+              {item.streamsPerDay && <span>{item.streamsPerDay} starts/day</span>}
+              {item.streamLimit && <span>{item.streamLimit} concurrent</span>}
+              {item.downloadsPerDay && <span>{item.downloadsPerDay.toLocaleString("en-IN")} downloads/day</span>}
+            </div>
+            <div className="transaction-meta-line">
+              <span><CalendarDays size={13}/>{new Date(item.at).toLocaleString()}</span>
+              <span className="transaction-reference">Ref {(item.requestId || item.id).slice(0, 8)}</span>
+              {item.utr && <span className="transaction-utr">UTR {item.utr}</span>}
+            </div>
             {item.reviewNote && <p className="pay-review-note">{item.reviewNote}</p>}
           </div>
-          {item.status === "approved" && <button className="button secondary small" type="button" onClick={() => downloadInvoice(item)} data-testid={`button-invoice-${item.id}`}><FileText size={13}/> Record</button>}
+          <div className="transaction-row-actions">
+            {typeof item.amountPaise === "number" && <strong className="transaction-amount">{money(item.amountPaise)}</strong>}
+            {item.status === "approved" && <button className="button ghost small transaction-record-button" type="button" onClick={() => downloadInvoice(item)} data-testid={`button-invoice-${item.id}`}><FileText size={14}/><span>Record</span></button>}
+          </div>
         </article>)}
       </div>}
-      <div className="transaction-history-footer">
-        <button className="button secondary small" type="button" onClick={() => void requestsQuery.refetch()} disabled={requestsQuery.isFetching} data-testid="button-refresh-account-requests"><RefreshCw size={13} className={requestsQuery.isFetching ? "pay-spin" : ""}/> Refresh</button>
-        <span>{requestsQuery.isFetching ? <><LoaderCircle size={13} className="pay-spin"/> Updating…</> : <><CheckCircle2 size={13}/> Status refreshes automatically</>}</span>
-      </div>
     </section>
   </div>;
 }
