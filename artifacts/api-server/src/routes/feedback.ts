@@ -325,13 +325,13 @@ router.post("/owner/feedback/images", async (req: Request, res: Response): Promi
       signal: AbortSignal.timeout(60_000),
     });
     const payload = await response.json().catch(() => null) as {
-      data?: { display_url?: unknown; url?: unknown };
+      data?: { url?: unknown; image?: { url?: unknown } };
       error?: { message?: unknown };
     } | null;
-    const imageUrl = typeof payload?.data?.display_url === "string"
-      ? payload.data.display_url
-      : typeof payload?.data?.url === "string"
-        ? payload.data.url
+    const imageUrl = typeof payload?.data?.url === "string"
+      ? payload.data.url
+      : typeof payload?.data?.image?.url === "string"
+        ? payload.data.image.url
         : "";
     if (!response.ok || !isImgBBImageUrl(imageUrl)) {
       req.log.warn(
