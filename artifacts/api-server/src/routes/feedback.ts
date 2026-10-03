@@ -53,7 +53,7 @@ const existingShowcaseChannels = [
     imagePaths: ["/images/feedback-demo/candy-talks-live.webp", "/images/feedback-demo/candy-talks-about.webp"],
   },
 ] as const;
-const existingShowcaseImagePaths = new Set(existingShowcaseChannels.flatMap((entry) => entry.imagePaths));
+const existingShowcaseImagePaths = new Set<string>(existingShowcaseChannels.flatMap((entry) => entry.imagePaths));
 let feedbackWriteQueue: Promise<void> = Promise.resolve();
 
 type FeedbackRecord = {
@@ -203,6 +203,7 @@ function sendFeedbackError(req: Request, res: Response, error: unknown, message:
 
 router.get("/public/feedback", async (req, res): Promise<void> => {
   try {
+    await seedExistingShowcaseChannels();
     const feedback = (await loadFeedback()).map(publicFeedback);
     res.setHeader("Cache-Control", "public, max-age=0, must-revalidate");
     res.json({ feedback });
@@ -265,6 +266,7 @@ router.get("/public/feedback/:feedbackId/images/:imageIndex", async (req, res): 
 router.get("/owner/feedback", async (req, res): Promise<void> => {
   if (!(await requireAccountOwner(req, res))) return;
   try {
+    await seedExistingShowcaseChannels();
     const feedback = (await loadFeedback()).map((record) => ({
       ...publicFeedback(record),
       imagePath: feedbackImagePaths(record)[0] || record.imagePath,
@@ -363,7 +365,7 @@ router.patch("/owner/feedback/:feedbackId", async (req: Request, res: Response):
   const imagePaths = [...new Set(parsed.data.imagePaths.map((path) => path.trim()))];
   if (!channelUrl || parsed.data.title.trim().length < 2 || parsed.data.channelName.trim().length < 2
     || imagePaths.length < 1 || imagePaths.length > maxFeedbackImages
-    || imagePaths.some((path) => !path.startsWith(feedbackImagePrefix))) {
+    || imagePaths.some((path) => !isAllowedFeedbackImagePath(path))) {
     res.status(400).json({ error: "Enter valid feedback details and upload up to eight feedback images." });
     return;
   }
@@ -402,7 +404,9 @@ router.patch("/owner/feedback/:feedbackId", async (req: Request, res: Response):
         .filter((record) => record.id !== feedbackId)
         .flatMap(feedbackImagePaths));
       for (const oldPath of feedbackImagePaths(current)) {
-        if (retainedPaths.has(oldPath) || pathsStillUsed.has(oldPath)) continue;
+        if (existingShowcaseImagePaths.has(oldPath)
+          || retainedPaths.has(oldPath)
+          || pathsStillUsed.has(oldPath)) continue;
         try {
           await objectStorageService.deleteObjectEntity(oldPath);
         } catch (error) {
@@ -430,6 +434,7 @@ router.delete("/owner/feedback/:feedbackId", async (req, res): Promise<void> => 
       }
       await firebaseDelete(`${feedbackPath}/${encodeURIComponent(feedbackId)}`);
       for (const imagePath of feedbackImagePaths(record)) {
+        if (existingShowcaseImagePaths.has(imagePath)) continue;
         try {
           await objectStorageService.deleteObjectEntity(imagePath);
         } catch (error) {
