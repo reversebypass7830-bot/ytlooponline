@@ -88,7 +88,7 @@ export const createOwnerFeedbackBodyChannelNameMax = 80;
 
 export const createOwnerFeedbackBodyChannelUrlMax = 500;
 
-export const createOwnerFeedbackBodyImagePathsItemRegExp = new RegExp('^/objects');
+export const createOwnerFeedbackBodyImagePathsItemRegExp = new RegExp('^(?:/objects/|https://i\\.ibb\\.co/|/images/feedback-demo/)');
 export const createOwnerFeedbackBodyImagePathsMax = 8;
 
 
@@ -119,26 +119,21 @@ export const CreateOwnerFeedbackResponse = zod.object({
 
 
 /**
- * @summary Request secure upload for a feedback image
+ * @summary Upload a feedback image to ImgBB
  */
-export const CreateOwnerFeedbackUploadUrlHeader = zod.object({
-  "X-Owner-Password": zod.string()
+export const uploadOwnerFeedbackImageHeaderXFeedbackFilenameMax = 560;
+
+
+
+export const UploadOwnerFeedbackImageHeader = zod.object({
+  "X-Owner-Password": zod.string(),
+  "X-Feedback-Filename": zod.string().max(uploadOwnerFeedbackImageHeaderXFeedbackFilenameMax).optional()
 })
 
-export const createOwnerFeedbackUploadUrlBodySizeMax = 5242880;
-
-
-
-export const CreateOwnerFeedbackUploadUrlBody = zod.object({
-  "contentType": zod.enum(['image/jpeg', 'image/png', 'image/webp']),
-  "size": zod.number().min(1).max(createOwnerFeedbackUploadUrlBodySizeMax)
-})
-
-export const CreateOwnerFeedbackUploadUrlResponse = zod.object({
-  "uploadURL": zod.string(),
-  "objectPath": zod.string(),
+export const UploadOwnerFeedbackImageResponse = zod.object({
+  "imageUrl": zod.string(),
   "contentType": zod.string(),
-  "maxBytes": zod.number()
+  "size": zod.number()
 })
 
 
@@ -161,7 +156,7 @@ export const updateOwnerFeedbackBodyChannelNameMax = 80;
 
 export const updateOwnerFeedbackBodyChannelUrlMax = 500;
 
-export const updateOwnerFeedbackBodyImagePathsItemRegExp = new RegExp('^/objects');
+export const updateOwnerFeedbackBodyImagePathsItemRegExp = new RegExp('^(?:/objects/|https://i\\.ibb\\.co/|/images/feedback-demo/)');
 export const updateOwnerFeedbackBodyImagePathsMax = 8;
 
 

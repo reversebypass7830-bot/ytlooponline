@@ -9,6 +9,6 @@
 /**
  * @minItems 1
  * @maxItems 8
- * @items.pattern ^/objects/
+ * @items.pattern ^(?:/objects/|https://i\.ibb\.co/|/images/feedback-demo/)
  */
 export type FeedbackImagePaths = string[];

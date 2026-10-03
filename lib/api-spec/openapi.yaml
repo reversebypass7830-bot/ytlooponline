@@ -138,22 +138,37 @@ paths:
           description: The four homepage feature slots are already full
         "401":
           description: Owner access is required
-  /owner/feedback/upload-url:
+  /owner/feedback/images:
     post:
-      operationId: createOwnerFeedbackUploadUrl
+      operationId: uploadOwnerFeedbackImage
       tags: [feedback]
-      summary: Request secure upload for a feedback image
+      summary: Upload a feedback image to ImgBB
       parameters:
         - $ref: "#/components/parameters/OwnerPassword"
+        - name: X-Feedback-Filename
+          in: header
+          required: false
+          schema:
+            type: string
+            maxLength: 560
       requestBody:
         required: true
         content:
-          application/json:
+          image/jpeg:
             schema:
-              $ref: "#/components/schemas/FeedbackImageUploadInput"
+              type: string
+              format: binary
+          image/png:
+            schema:
+              type: string
+              format: binary
+          image/webp:
+            schema:
+              type: string
+              format: binary
       responses:
-        "200":
-          description: Upload URL and object path
+        "201":
+          description: ImgBB image URL
           content:
             application/json:
               schema:
@@ -1242,7 +1257,7 @@ components:
       maxItems: 8
       items:
         type: string
-        pattern: "^/objects/"
+        pattern: "^(?:/objects/|https://i\\.ibb\\.co/|/images/feedback-demo/)"
     CreateFeedbackInput:
       type: object
       properties:
@@ -1281,29 +1296,16 @@ components:
         pinned:
           type: boolean
       required: [title, channelName, channelUrl, imagePaths, pinned]
-    FeedbackImageUploadInput:
-      type: object
-      properties:
-        contentType:
-          type: string
-          enum: [image/jpeg, image/png, image/webp]
-        size:
-          type: number
-          minimum: 1
-          maximum: 5242880
-      required: [contentType, size]
     FeedbackImageUploadResponse:
       type: object
       properties:
-        uploadURL:
-          type: string
-        objectPath:
+        imageUrl:
           type: string
         contentType:
           type: string
-        maxBytes:
+        size:
           type: number
-      required: [uploadURL, objectPath, contentType, maxBytes]
+      required: [imageUrl, contentType, size]
     HealthStatus:
       type: object
       properties:

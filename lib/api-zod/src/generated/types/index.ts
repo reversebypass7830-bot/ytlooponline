@@ -31,8 +31,6 @@ export * from './deleteLicenseResult';
 export * from './deleteOwnerFeedback200';
 export * from './extractYoutubeChannelLinksInput';
 export * from './feedbackImagePaths';
-export * from './feedbackImageUploadInput';
-export * from './feedbackImageUploadInputContentType';
 export * from './feedbackImageUploadResponse';
 export * from './feedbackUpdate';
 export * from './healthStatus';

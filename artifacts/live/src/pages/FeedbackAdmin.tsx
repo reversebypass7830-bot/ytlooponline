@@ -5,12 +5,11 @@ import {
   getListOwnerFeedbackQueryKey,
   getListPublicFeedbackQueryKey,
   useCreateOwnerFeedback,
-  useCreateOwnerFeedbackUploadUrl,
   useDeleteOwnerFeedback,
   useListOwnerFeedback,
   useUpdateOwnerFeedback,
 } from "@workspace/api-client-react";
-import type { FeedbackImageUploadInputContentType, OwnerFeedback } from "@workspace/api-client-react";
+import type { OwnerFeedback } from "@workspace/api-client-react";
 import "./FeedbackAdmin.css";
 
 const allowedImageTypes = ["image/jpeg", "image/png", "image/webp"] as const;
@@ -37,7 +36,6 @@ export function OwnerFeedbackPanel({ ownerPassword }: { ownerPassword: string })
     request,
     query: { queryKey: getListOwnerFeedbackQueryKey(), refetchInterval: 30_000 },
   });
-  const uploadUrl = useCreateOwnerFeedbackUploadUrl({ request });
   const createFeedback = useCreateOwnerFeedback({ request });
   const updateFeedback = useUpdateOwnerFeedback({ request });
   const deleteFeedback = useDeleteOwnerFeedback({ request });
@@ -55,9 +53,10 @@ export function OwnerFeedbackPanel({ ownerPassword }: { ownerPassword: string })
   const [editorOpen, setEditorOpen] = useState(false);
   const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
+  const [uploadingImages, setUploadingImages] = useState(false);
   const entries = feedbackQuery.data?.feedback ?? [];
   const pinnedCount = entries.filter((entry) => entry.pinned).length;
-  const busy = uploadUrl.isPending || createFeedback.isPending || updateFeedback.isPending || deleteFeedback.isPending;
+  const busy = uploadingImages || createFeedback.isPending || updateFeedback.isPending || deleteFeedback.isPending;
 
   useEffect(() => {
     pendingImagesRef.current = pendingImages;
@@ -164,21 +163,24 @@ export function OwnerFeedbackPanel({ ownerPassword }: { ownerPassword: string })
 
   const uploadPendingImages = async (): Promise<Map<string, string>> => {
     const uploadedPaths = new Map<string, string>();
+    setUploadingImages(true);
     for (const image of pendingImages) {
-      const signed = await uploadUrl.mutateAsync({
-        data: {
-          contentType: image.file.type as FeedbackImageUploadInputContentType,
-          size: image.file.size,
+      const response = await fetch("/api/owner/feedback/images", {
+        method: "POST",
+        headers: {
+          ...request.headers,
+          "Content-Type": image.file.type,
+          "X-Feedback-Filename": encodeURIComponent(image.file.name),
         },
-      });
-      const result = await fetch(signed.uploadURL, {
-        method: "PUT",
-        headers: { "Content-Type": signed.contentType },
         body: image.file,
       });
-      if (!result.ok) throw new Error(`Image upload failed for ${image.file.name}. Please try again.`);
-      uploadedPaths.set(image.id, signed.objectPath);
+      const payload = await response.json().catch(() => null) as { imageUrl?: unknown; error?: unknown } | null;
+      if (!response.ok || typeof payload?.imageUrl !== "string") {
+        throw new Error(typeof payload?.error === "string" ? payload.error : `Image upload failed for ${image.file.name}. Please try again.`);
+      }
+      uploadedPaths.set(image.id, payload.imageUrl);
     }
+    setUploadingImages(false);
     return uploadedPaths;
   };
 
@@ -214,6 +216,8 @@ export function OwnerFeedbackPanel({ ownerPassword }: { ownerPassword: string })
       setNotice(editingEntry ? "Feedback updated." : "Feedback added.");
     } catch (reason) {
       setError(errorMessage(reason, "Could not save this feedback entry."));
+    } finally {
+      setUploadingImages(false);
     }
   };
 
@@ -243,7 +247,7 @@ export function OwnerFeedbackPanel({ ownerPassword }: { ownerPassword: string })
   };
 
   const remove = async (entry: OwnerFeedback) => {
-    if (!window.confirm(`Remove “${entry.title}” from the public feedback page? Its uploaded images will also be deleted.`)) return;
+    if (!window.confirm(`Remove “${entry.title}” from the public feedback page? The images will remain hosted on ImgBB.`)) return;
     setError("");
     setNotice("");
     try {

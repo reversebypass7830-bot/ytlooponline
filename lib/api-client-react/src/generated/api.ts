@@ -35,7 +35,6 @@ import type {
   DeleteLicenseResult,
   DeleteOwnerFeedback200,
   ExtractYoutubeChannelLinksInput,
-  FeedbackImageUploadInput,
   FeedbackImageUploadResponse,
   FeedbackUpdate,
   HealthStatus,
@@ -499,25 +498,25 @@ export const useCreateOwnerFeedback = <TError = ErrorType<void>,
       return useMutation(getCreateOwnerFeedbackMutationOptions(options));
     }
 
-export const getCreateOwnerFeedbackUploadUrlUrl = () => {
+export const getUploadOwnerFeedbackImageUrl = () => {
 
 
 
 
-  return `/api/owner/feedback/upload-url`
+  return `/api/owner/feedback/images`
 }
 
 /**
- * @summary Request secure upload for a feedback image
+ * @summary Upload a feedback image to ImgBB
  */
-export const createOwnerFeedbackUploadUrl = async (feedbackImageUploadInput: FeedbackImageUploadInput, options?: Parameters<typeof customFetch>[1]): Promise<FeedbackImageUploadResponse> => {
+export const uploadOwnerFeedbackImage = async (uploadOwnerFeedbackImageBody: Blob, options?: Parameters<typeof customFetch>[1]): Promise<FeedbackImageUploadResponse> => {
 
-  return customFetch<FeedbackImageUploadResponse>(getCreateOwnerFeedbackUploadUrlUrl(),
+  return customFetch<FeedbackImageUploadResponse>(getUploadOwnerFeedbackImageUrl(),
   {
     ...options,
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
-    body: JSON.stringify(feedbackImageUploadInput)
+    headers: { 'Content-Type': 'image/jpeg', ...options?.headers },
+    body: uploadOwnerFeedbackImageBody
   }
 );}
 
@@ -525,11 +524,11 @@ export const createOwnerFeedbackUploadUrl = async (feedbackImageUploadInput: Fee
 
 
 
-export const getCreateOwnerFeedbackUploadUrlMutationOptions = <TError = ErrorType<void>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createOwnerFeedbackUploadUrl>>, TError,{data: BodyType<FeedbackImageUploadInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof createOwnerFeedbackUploadUrl>>, TError,{data: BodyType<FeedbackImageUploadInput>}, TContext> => {
+export const getUploadOwnerFeedbackImageMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof uploadOwnerFeedbackImage>>, TError,{data: BodyType<Blob>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof uploadOwnerFeedbackImage>>, TError,{data: BodyType<Blob>}, TContext> => {
 
-const mutationKey = ['createOwnerFeedbackUploadUrl'];
+const mutationKey = ['uploadOwnerFeedbackImage'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -539,10 +538,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createOwnerFeedbackUploadUrl>>, {data: BodyType<FeedbackImageUploadInput>}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof uploadOwnerFeedbackImage>>, {data: BodyType<Blob>}> = (props) => {
           const {data} = props ?? {};
 
-          return  createOwnerFeedbackUploadUrl(data,requestOptions)
+          return  uploadOwnerFeedbackImage(data,requestOptions)
         }
 
 
@@ -552,22 +551,22 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
   return  { mutationFn, ...mutationOptions }}
 
-    export type CreateOwnerFeedbackUploadUrlMutationResult = NonNullable<Awaited<ReturnType<typeof createOwnerFeedbackUploadUrl>>>
-    export type CreateOwnerFeedbackUploadUrlMutationBody = BodyType<FeedbackImageUploadInput>
-    export type CreateOwnerFeedbackUploadUrlMutationError = ErrorType<void>
+    export type UploadOwnerFeedbackImageMutationResult = NonNullable<Awaited<ReturnType<typeof uploadOwnerFeedbackImage>>>
+    export type UploadOwnerFeedbackImageMutationBody = BodyType<Blob>
+    export type UploadOwnerFeedbackImageMutationError = ErrorType<void>
 
     /**
- * @summary Request secure upload for a feedback image
+ * @summary Upload a feedback image to ImgBB
  */
-export const useCreateOwnerFeedbackUploadUrl = <TError = ErrorType<void>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createOwnerFeedbackUploadUrl>>, TError,{data: BodyType<FeedbackImageUploadInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+export const useUploadOwnerFeedbackImage = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof uploadOwnerFeedbackImage>>, TError,{data: BodyType<Blob>}, TContext>, request?: SecondParameter<typeof customFetch>}
  ): UseMutationResult<
-        Awaited<ReturnType<typeof createOwnerFeedbackUploadUrl>>,
+        Awaited<ReturnType<typeof uploadOwnerFeedbackImage>>,
         TError,
-        {data: BodyType<FeedbackImageUploadInput>},
+        {data: BodyType<Blob>},
         TContext
       > => {
-      return useMutation(getCreateOwnerFeedbackUploadUrlMutationOptions(options));
+      return useMutation(getUploadOwnerFeedbackImageMutationOptions(options));
     }
 
 export const getUpdateOwnerFeedbackUrl = (feedbackId: string,) => {

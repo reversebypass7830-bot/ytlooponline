@@ -39,3 +39,4 @@
 - [Project context files](project-context-files.md) — consult the root memory and hosting notes before project work, then verify details against current source.
 - [Feedback gallery cache revalidation](feedback-gallery-cache.md) — avoid cached 304 responses for the generated public feedback query; the shared fetch wrapper rejects them.
 - [Browser visual verification](browser-visual-verification.md) — when browser wrappers are unavailable, drive Chromium directly through Node's Chrome DevTools Protocol for targeted screenshots.
+- [Feedback image hosting](feedback-imgbb-hosting.md) — store feedback-gallery screenshots on ImgBB and serve the direct ImgBB URLs in the gallery.

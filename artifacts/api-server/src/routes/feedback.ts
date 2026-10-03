@@ -3,7 +3,6 @@ import { Readable } from "node:stream";
 import { Router, type IRouter, type Request, type Response } from "express";
 import {
   CreateOwnerFeedbackBody,
-  CreateOwnerFeedbackUploadUrlBody,
   UpdateOwnerFeedbackBody,
 } from "@workspace/api-zod";
 import { firebaseDelete, firebaseGet, firebasePut } from "../lib/firebase-rest";
@@ -14,6 +13,7 @@ const router: IRouter = Router();
 const objectStorageService = new ObjectStorageService();
 const feedbackPath = "publicFeedback";
 const feedbackImagePrefix = "/objects/feedback-showcase/";
+const imgbbImageHost = "i.ibb.co";
 const feedbackSeedMarkerPath = "publicFeedbackMeta/ownerShowcaseSeededV1";
 const maxFeedbackImageBytes = 5 * 1024 * 1024;
 const maxFeedbackImages = 8;
@@ -82,7 +82,22 @@ function isFeedbackRecord(value: unknown): value is FeedbackRecord {
 }
 
 function isAllowedFeedbackImagePath(path: string): boolean {
-  return path.startsWith(feedbackImagePrefix) || existingShowcaseImagePaths.has(path);
+  if (path.startsWith(feedbackImagePrefix) || existingShowcaseImagePaths.has(path)) return true;
+  try {
+    const parsed = new URL(path);
+    return parsed.protocol === "https:" && parsed.hostname === imgbbImageHost;
+  } catch {
+    return false;
+  }
+}
+
+function isImgBBImageUrl(path: string): boolean {
+  try {
+    const parsed = new URL(path);
+    return parsed.protocol === "https:" && parsed.hostname === imgbbImageHost;
+  } catch {
+    return false;
+  }
 }
 
 function feedbackImagePaths(record: FeedbackRecord): string[] {
@@ -105,7 +120,7 @@ function publicFeedback(record: FeedbackRecord) {
   const basePath = `/api/public/feedback/${encodeURIComponent(record.id)}`;
   const version = encodeURIComponent(record.updatedAt || record.createdAt);
   const imagePaths = feedbackImagePaths(record);
-  const imageUrl = (imagePath: string, index: number) => existingShowcaseImagePaths.has(imagePath)
+  const imageUrl = (imagePath: string, index: number) => existingShowcaseImagePaths.has(imagePath) || isImgBBImageUrl(imagePath)
     ? imagePath
     : `${basePath}/images/${index}?v=${version}`;
   return {
@@ -121,7 +136,7 @@ function publicFeedback(record: FeedbackRecord) {
 }
 
 async function isValidFeedbackImage(imagePath: string): Promise<boolean> {
-  if (existingShowcaseImagePaths.has(imagePath)) return true;
+  if (existingShowcaseImagePaths.has(imagePath) || isImgBBImageUrl(imagePath)) return true;
   if (!imagePath.startsWith(feedbackImagePrefix)) return false;
   try {
     const imageFile = await objectStorageService.getObjectEntityFile(imagePath);
@@ -278,22 +293,58 @@ router.get("/owner/feedback", async (req, res): Promise<void> => {
   }
 });
 
-router.post("/owner/feedback/upload-url", async (req: Request, res: Response): Promise<void> => {
+router.post("/owner/feedback/images", async (req: Request, res: Response): Promise<void> => {
   if (!(await requireAccountOwner(req, res))) return;
-  const parsed = CreateOwnerFeedbackUploadUrlBody.safeParse(req.body);
-  const contentType = parsed.success ? parsed.data.contentType.toLowerCase() : "";
-  const extension = feedbackImageTypes.get(contentType);
-  const size = parsed.success ? parsed.data.size : 0;
-  if (!parsed.success || !extension || !Number.isInteger(size) || size < 1 || size > maxFeedbackImageBytes) {
+  const contentType = String(req.header("content-type") || "").split(";")[0].trim().toLowerCase();
+  const imageBuffer = Buffer.isBuffer(req.body) ? req.body : null;
+  if (!feedbackImageTypes.has(contentType) || !imageBuffer || imageBuffer.length < 1 || imageBuffer.length > maxFeedbackImageBytes) {
     res.status(400).json({ error: "Choose a JPG, PNG, or WebP image up to 5 MB." });
     return;
   }
+  const apiKey = process.env.IMGBB_API_KEY?.trim();
+  if (!apiKey) {
+    res.status(503).json({ error: "ImgBB image hosting is not configured." });
+    return;
+  }
   try {
-    const upload = await objectStorageService.getFeedbackImageUploadURL(extension);
-    res.json({ ...upload, contentType, maxBytes: maxFeedbackImageBytes });
+    const rawName = req.header("x-feedback-filename") || "feedback-image";
+    let fileName = rawName;
+    try {
+      fileName = decodeURIComponent(rawName);
+    } catch {
+      fileName = "feedback-image";
+    }
+    fileName = fileName.replace(/[\\/\u0000-\u001f\u007f]/g, "_").slice(0, 180) || "feedback-image";
+
+    const form = new FormData();
+    form.set("image", new Blob([Uint8Array.from(imageBuffer)], { type: contentType }), fileName);
+    form.set("name", fileName);
+    const response = await fetch(`https://api.imgbb.com/1/upload?key=${encodeURIComponent(apiKey)}`, {
+      method: "POST",
+      body: form,
+      signal: AbortSignal.timeout(60_000),
+    });
+    const payload = await response.json().catch(() => null) as {
+      data?: { display_url?: unknown; url?: unknown };
+      error?: { message?: unknown };
+    } | null;
+    const imageUrl = typeof payload?.data?.display_url === "string"
+      ? payload.data.display_url
+      : typeof payload?.data?.url === "string"
+        ? payload.data.url
+        : "";
+    if (!response.ok || !isImgBBImageUrl(imageUrl)) {
+      req.log.warn(
+        { status: response.status, providerMessage: typeof payload?.error?.message === "string" ? payload.error.message : undefined },
+        "ImgBB rejected a feedback image upload",
+      );
+      res.status(502).json({ error: "ImgBB could not store this feedback image. Please try again." });
+      return;
+    }
+    res.status(201).json({ imageUrl, contentType, size: imageBuffer.length });
   } catch (error) {
-    req.log.error({ error: error instanceof Error ? error.message : "unknown" }, "Feedback image upload URL failed");
-    res.status(502).json({ error: "Could not prepare feedback image storage." });
+    req.log.error({ error: error instanceof Error ? error.message : "unknown" }, "ImgBB feedback image upload failed");
+    res.status(502).json({ error: "Could not upload this feedback image to ImgBB." });
   }
 });
 
@@ -312,7 +363,7 @@ router.post("/owner/feedback", async (req: Request, res: Response): Promise<void
   }
   if (parsed.data.title.trim().length < 2 || parsed.data.channelName.trim().length < 2
     || imagePaths.length < 1 || imagePaths.length > maxFeedbackImages
-    || imagePaths.some((path) => !path.startsWith(feedbackImagePrefix))) {
+    || imagePaths.some((path) => !isAllowedFeedbackImagePath(path))) {
     res.status(400).json({ error: "Enter valid feedback details and upload up to eight feedback images." });
     return;
   }
@@ -405,6 +456,7 @@ router.patch("/owner/feedback/:feedbackId", async (req: Request, res: Response):
         .flatMap(feedbackImagePaths));
       for (const oldPath of feedbackImagePaths(current)) {
         if (existingShowcaseImagePaths.has(oldPath)
+          || isImgBBImageUrl(oldPath)
           || retainedPaths.has(oldPath)
           || pathsStillUsed.has(oldPath)) continue;
         try {
@@ -434,7 +486,7 @@ router.delete("/owner/feedback/:feedbackId", async (req, res): Promise<void> => 
       }
       await firebaseDelete(`${feedbackPath}/${encodeURIComponent(feedbackId)}`);
       for (const imagePath of feedbackImagePaths(record)) {
-        if (existingShowcaseImagePaths.has(imagePath)) continue;
+        if (existingShowcaseImagePaths.has(imagePath) || isImgBBImageUrl(imagePath)) continue;
         try {
           await objectStorageService.deleteObjectEntity(imagePath);
         } catch (error) {

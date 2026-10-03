@@ -7,8 +7,7 @@
  */
 
 export interface FeedbackImageUploadResponse {
-  uploadURL: string;
-  objectPath: string;
+  imageUrl: string;
   contentType: string;
-  maxBytes: number;
+  size: number;
 }

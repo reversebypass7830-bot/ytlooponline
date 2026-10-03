@@ -36,7 +36,7 @@ export interface OwnerFeedbackResponse {
 /**
  * @minItems 1
  * @maxItems 8
- * @items.pattern ^/objects/
+ * @items.pattern ^(?:/objects/|https://i\.ibb\.co/|/images/feedback-demo/)
  */
 export type FeedbackImagePaths = string[];
 
@@ -74,29 +74,10 @@ export interface FeedbackUpdate {
   pinned: boolean;
 }
 
-export type FeedbackImageUploadInputContentType = typeof FeedbackImageUploadInputContentType[keyof typeof FeedbackImageUploadInputContentType];
-
-
-export const FeedbackImageUploadInputContentType = {
-  'image/jpeg': 'image/jpeg',
-  'image/png': 'image/png',
-  'image/webp': 'image/webp',
-} as const;
-
-export interface FeedbackImageUploadInput {
-  contentType: FeedbackImageUploadInputContentType;
-  /**
-     * @minimum 1
-     * @maximum 5242880
-     */
-  size: number;
-}
-
 export interface FeedbackImageUploadResponse {
-  uploadURL: string;
-  objectPath: string;
+  imageUrl: string;
   contentType: string;
-  maxBytes: number;
+  size: number;
 }
 
 export interface HealthStatus {

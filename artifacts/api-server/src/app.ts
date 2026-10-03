@@ -49,6 +49,13 @@ if (process.env.CLERK_SECRET_KEY?.trim()) {
 }
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(
+  "/api/owner/feedback/images",
+  express.raw({
+    type: ["image/jpeg", "image/png", "image/webp"],
+    limit: "5mb",
+  }),
+);
 
 app.use("/api", router);
 
