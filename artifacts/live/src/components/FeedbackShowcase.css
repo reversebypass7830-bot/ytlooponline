@@ -910,3 +910,29 @@
     background: rgba(35, 19, 43, 0.42);
   }
 }
+
+/* Landing feedback cards cycle through screenshots without an internal scrollbar. */
+.feedback-landing-grid .feedback-card-image {
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  overscroll-behavior: none;
+  scrollbar-width: none;
+}
+
+.feedback-landing-grid .feedback-card-image img {
+  width: 100%;
+  height: 100%;
+  flex: 0 0 auto;
+  object-fit: contain;
+  object-position: center;
+  transition: none;
+}
+
+.feedback-landing-grid .feedback-card-image::-webkit-scrollbar {
+  display: none;
+}
+
+.feedback-landing-grid .feedback-card:hover .feedback-card-image img {
+  transform: none;
+}
