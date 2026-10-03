@@ -38,11 +38,6 @@ const customSubscriptionPlan = (plans: BillingPlan[]) =>
   plans.find((plan) => plan.id === "custom-subscription" && plan.active && !plan.isTrial);
 const ownerCustomPricingPlan = (plans: BillingPlan[]) =>
   plans.find((plan) => plan.id === "custom-subscription" && !plan.isTrial);
-const sharedBenefits = [
-  { label: "Stream as live", image: streamsArt },
-  { label: "Premium quality", image: downloadsArt },
-  { label: "20GB storage", image: durationArt },
-];
 const allowedImageTypes = ["image/jpeg", "image/png", "image/webp"] as const;
 type ImageMime = typeof allowedImageTypes[number];
 
@@ -161,9 +156,6 @@ export function ManualSubscriptionPage({ account, onRefresh }: { account: Accoun
         <h2>Choose your access term</h2>
         <p className="pay-select-intro">Start with the term that fits your schedule. You’ll set broadcast starts and daily downloads next.</p>
         <div className="pay-selected-term" aria-live="polite"><strong>{packType}</strong><span>{packType === "Days" ? "Choose 1–30 days in the next step." : packType === "Monthly" ? "Choose 1–12 months in the next step." : "Choose 1, 5, 10, or 15 years in the next step."}</span></div>
-        <div className="pay-benefit-grid" aria-label="Included with every pack">
-          {sharedBenefits.map((benefit) => <div className="pay-benefit" key={benefit.label}><span className="pay-benefit-icon"><img src={benefit.image} alt=""/></span><strong>{benefit.label}</strong></div>)}
-        </div>
         {!plan && <div className="pay-empty pay-plan-unavailable" role="status"><CircleDollarSign size={23}/><strong>No custom subscription is available</strong><span>Ask your workspace owner to enable the custom-subscription plan.</span></div>}
         <button className="button pay-quote-button pay-continue-button" type="button" disabled={!plan} onClick={() => { setError(""); setStep("configure"); }} data-testid="button-continue-to-config">Continue <ChevronUp size={17} style={{ transform: "rotate(90deg)" }}/></button>
       </div>
@@ -217,11 +209,7 @@ export function ManualSubscriptionPage({ account, onRefresh }: { account: Accoun
         </div>
       </header>
       <section className="card pay-config pay-pack-card">
-      <div className="pay-config-heading"><div><span className="metric-kicker">Broadcast subscription</span><h2>Set your daily allowance</h2><p>Starts are counted per IST day, not as simultaneous broadcasts.</p></div></div>
       {!plan ? <div className="pay-empty"><CircleDollarSign size={25}/><strong>No custom subscription is available</strong><span>Ask your workspace owner to enable pricing.</span></div> : <>
-        <div className="pay-benefit-grid pay-config-benefits" aria-label="Included with every pack">
-          {sharedBenefits.map((benefit) => <div className="pay-benefit" key={benefit.label}><span className="pay-benefit-icon"><img src={benefit.image} alt=""/></span><strong>{benefit.label}</strong></div>)}
-        </div>
         <div className="pay-config-controls">
           <section className="pay-control-block">
             <div className="pay-control-label"><img src={streamsArt} alt="" /><div><strong>How many streams per day?</strong><small>Each is a broadcast start during an IST day.</small></div></div>
