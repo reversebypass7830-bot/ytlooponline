@@ -237,7 +237,6 @@ export function ManualSubscriptionPage({ account, onRefresh }: { account: Accoun
                <div className="pay-duration-ticks"><span>1 year</span><span>15 years</span></div>
              </> : <div className="pay-duration-fixed">
                <strong>{durationDaysLabel(durationDays)}</strong>
-               <label className="pay-duration-select-label" htmlFor="select-pack-duration">Term</label>
                <select id="select-pack-duration" value={durationDays} onChange={(event) => { setDurationDays(Number(event.target.value)); setQuote(null); }} data-testid="select-pack-duration">
                   {Array.from({ length: 12 }, (_, index) => {
                     const months = index + 1;
