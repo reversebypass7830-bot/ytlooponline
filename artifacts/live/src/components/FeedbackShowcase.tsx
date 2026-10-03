@@ -33,6 +33,15 @@ const feedbackAvatarById: Record<string, string> = {
   "seed-tang-tien": "/images/feedback-demo/tang-tien-avatar.webp",
   "demo-candy-talks": "/images/feedback-demo/candy-talks-avatar.webp",
   "seed-candy-talks": "/images/feedback-demo/candy-talks-avatar.webp",
+  "31415552-e831-4eda-8af8-6e22a8f70589": "/images/feedback-avatars/31415552-e831-4eda-8af8-6e22a8f70589.webp",
+  "dd3b8193-6dfb-4b56-a76d-1adaf1ffbb1c": "/images/feedback-avatars/dd3b8193-6dfb-4b56-a76d-1adaf1ffbb1c.webp",
+  "a98fab58-329e-4b85-a6b2-10d480dad7ab": "/images/feedback-avatars/a98fab58-329e-4b85-a6b2-10d480dad7ab.webp",
+  "e26aa36a-10ea-4963-8f7a-3e47c43ee18f": "/images/feedback-avatars/e26aa36a-10ea-4963-8f7a-3e47c43ee18f.webp",
+  "eb69ef52-ea0c-4584-9cd2-c560fcf45592": "/images/feedback-avatars/eb69ef52-ea0c-4584-9cd2-c560fcf45592.webp",
+  "b21e64b2-1c55-46f3-b5f5-4a496be44b03": "/images/feedback-avatars/b21e64b2-1c55-46f3-b5f5-4a496be44b03.webp",
+  "b350e8ed-06f3-4d17-9524-6c9ffcb7420e": "/images/feedback-avatars/b350e8ed-06f3-4d17-9524-6c9ffcb7420e.webp",
+  "01aaf439-0fc2-4bf6-8188-b71b4ef6cc3f": "/images/feedback-avatars/01aaf439-0fc2-4bf6-8188-b71b4ef6cc3f.webp",
+  "76b21c50-282c-4cfa-8989-d7c5c1d67fae": "/images/feedback-avatars/76b21c50-282c-4cfa-8989-d7c5c1d67fae.webp",
 };
 
 const feedbackChannelStatsById: Record<string, FeedbackChannelStats> = {
@@ -107,7 +116,11 @@ const demoFeedbackEntries: FeedbackEntry[] = [
 
 function getDisplayEntries(entries: PublicFeedback[], limit?: number): FeedbackEntry[] {
   const source = entries.length > 0 ? entries : import.meta.env.DEV ? demoFeedbackEntries : [];
-  return limit === undefined ? source : source.slice(0, limit);
+  const visibleEntries = limit === undefined ? source : source.slice(0, limit);
+  return visibleEntries.map((entry) => ({
+    ...entry,
+    avatarUrl: (entry as FeedbackEntry).avatarUrl ?? feedbackAvatarById[entry.id],
+  }));
 }
 
 function getLandingEntries(entries: PublicFeedback[]): FeedbackEntry[] {
