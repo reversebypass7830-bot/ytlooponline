@@ -12,12 +12,103 @@ const feedbackQueryOptions = {
   },
 };
 
+type FeedbackEntry = PublicFeedback & {
+  avatarUrl?: string;
+  imageUrls?: string[];
+};
+
+const demoFeedbackEntries: FeedbackEntry[] = [
+  {
+    id: "demo-kai-asmr",
+    title: "Live stream and channel page",
+    channelName: "Kai ASMR",
+    channelUrl: "https://youtube.com/@kaiasmr4real",
+    imageUrl: "/images/feedback-demo/kai-asmr-live.webp",
+    imageUrls: [
+      "/images/feedback-demo/kai-asmr-live.webp",
+      "/images/feedback-demo/kai-asmr-about.webp",
+    ],
+    avatarUrl: "/images/feedback-demo/kai-asmr-avatar.webp",
+    createdAt: "2026-10-03T00:00:00.000Z",
+  },
+  {
+    id: "demo-dambiesyt",
+    title: "WWE 2K live channel",
+    channelName: "Dambiesyt",
+    channelUrl: "https://youtube.com/@dambiesyt",
+    imageUrl: "/images/feedback-demo/dambiesyt-live.webp",
+    imageUrls: [
+      "/images/feedback-demo/dambiesyt-live.webp",
+      "/images/feedback-demo/dambiesyt-about.webp",
+    ],
+    avatarUrl: "/images/feedback-demo/dambiesyt-avatar.webp",
+    createdAt: "2026-10-03T00:00:00.000Z",
+  },
+  {
+    id: "demo-tang-tien",
+    title: "Raw egg peeling ASMR live",
+    channelName: "Tăng Tiến Official",
+    channelUrl: "https://youtube.com/@tangtienofficial2050",
+    imageUrl: "/images/feedback-demo/tang-tien-live.webp",
+    imageUrls: [
+      "/images/feedback-demo/tang-tien-live.webp",
+      "/images/feedback-demo/tang-tien-about.webp",
+    ],
+    avatarUrl: "/images/feedback-demo/tang-tien-avatar.webp",
+    createdAt: "2026-10-03T00:00:00.000Z",
+  },
+  {
+    id: "demo-candy-talks",
+    title: "Satisfying candy ASMR live",
+    channelName: "CANDY TALKS",
+    channelUrl: "https://youtube.com/@candytalks-z9b",
+    imageUrl: "/images/feedback-demo/candy-talks-live.webp",
+    imageUrls: [
+      "/images/feedback-demo/candy-talks-live.webp",
+      "/images/feedback-demo/candy-talks-about.webp",
+    ],
+    avatarUrl: "/images/feedback-demo/candy-talks-avatar.webp",
+    createdAt: "2026-10-03T00:00:00.000Z",
+  },
+];
+
+function getDisplayEntries(entries: PublicFeedback[], limit = 5): FeedbackEntry[] {
+  if (entries.length > 0) return entries.slice(0, limit);
+  return import.meta.env.DEV ? demoFeedbackEntries.slice(0, limit) : [];
+}
+
+function getEntryImages(entry: FeedbackEntry): string[] {
+  return entry.imageUrls?.length ? entry.imageUrls : [entry.imageUrl];
+}
+
+function getChannelInitials(channelName: string): string {
+  return channelName
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() ?? "")
+    .join("");
+}
+
+function isDemoEntry(entry: FeedbackEntry): boolean {
+  return entry.id.startsWith("demo-");
+}
+
+function FeedbackPreviewNote() {
+  return (
+    <p className="feedback-preview-note">
+      <strong>Design preview</strong> — reference screenshots only, not published testimonials.
+    </p>
+  );
+}
+
 export function LandingFeedbackSection() {
   const { data, isLoading, isError, refetch } = useListPublicFeedback(feedbackQueryOptions);
-  const [selected, setSelected] = useState<PublicFeedback | null>(null);
-  const entries = (data?.feedback ?? []).slice(0, 5);
+  const [selected, setSelected] = useState<FeedbackEntry | null>(null);
+  const entries = getDisplayEntries(data?.feedback ?? [], 4);
+  const showingDemoEntries = entries.some(isDemoEntry);
   const closeModal = useCallback(() => setSelected(null), []);
-  const openEntry = (entry: PublicFeedback) => {
+  const openEntry = (entry: FeedbackEntry) => {
     if (window.matchMedia("(max-width: 720px)").matches) {
       window.location.assign(`/feedback/${encodeURIComponent(entry.id)}`);
       return;
@@ -30,27 +121,25 @@ export function LandingFeedbackSection() {
       <div className="feedback-landing-heading">
         <div>
           <p className="feedback-eyebrow">CREATOR FEEDBACK</p>
-          <h3 id="feedback-landing-title">Real channels. Real examples.</h3>
-          <p>See channel feedback shared by Loop Stream creators.</p>
+          <h3 id="feedback-landing-title">Channel feedback</h3>
+          <p>{showingDemoEntries ? "Preview using the four channel screenshots you supplied." : "Browse channel snapshots and open each creator’s YouTube page."}</p>
+          {showingDemoEntries && <FeedbackPreviewNote />}
         </div>
         <a href="/feedback" className="feedback-landing-link" data-testid="link-view-creator-feedback">
-          <span>View creator feedback</span>
+          <span>View all feedback</span>
           <span className="feedback-link-arrow" aria-hidden="true">↗</span>
         </a>
       </div>
       {isLoading ? (
         <div className="feedback-landing-grid" aria-label="Loading creator feedback">
-          {Array.from({ length: 5 }, (_, index) => <div className="feedback-skeleton" key={index} aria-hidden="true"><div className="feedback-skeleton-image" /><div className="feedback-skeleton-lines"><i /><i /></div></div>)}
+          {Array.from({ length: 4 }, (_, index) => <div className="feedback-skeleton" key={index} aria-hidden="true"><div className="feedback-skeleton-image" /><div className="feedback-skeleton-lines"><i /><i /></div></div>)}
         </div>
       ) : isError ? (
         <FeedbackError onRetry={() => { void refetch(); }} />
       ) : entries.length === 0 ? (
-        <div className="feedback-landing-empty">
-          <span className="feedback-empty-mark" aria-hidden="true"><i /><i /><i /></span>
-          <p>Creator feedback will appear here as entries are published.</p>
-        </div>
+        <div className="feedback-landing-empty">Channel feedback added by the owner will appear here.</div>
       ) : (
-        <div className="feedback-landing-grid" aria-label="Latest public creator feedback">
+        <div className="feedback-landing-grid" aria-label="Featured creator channels">
           {entries.map((entry) => <FeedbackCard key={entry.id} entry={entry} onOpen={openEntry} />)}
         </div>
       )}
@@ -76,8 +165,8 @@ function FeedbackError({ onRetry }: { onRetry: () => void }) {
   return (
     <div className="feedback-state feedback-error" role="alert">
       <span className="feedback-state-mark" aria-hidden="true">!</span>
-      <h2>We couldn’t load the gallery</h2>
-      <p>There was a problem reaching the public feedback feed. Give it another try.</p>
+      <h2>We couldn’t load channel feedback</h2>
+      <p>There was a problem reaching the public channel gallery. Give it another try.</p>
       <button className="feedback-button feedback-button-secondary" type="button" onClick={onRetry} data-testid="button-retry-feedback">
         Try again
       </button>
@@ -89,34 +178,45 @@ function FeedbackEmpty() {
   return (
     <div className="feedback-state feedback-empty">
       <span className="feedback-empty-mark" aria-hidden="true"><i /><i /><i /></span>
-      <h2>The gallery is just getting started</h2>
-      <p>When creators share their channel examples, they’ll appear here. No reviews have been published yet.</p>
+      <h2>No channels featured yet</h2>
+      <p>Channel examples added by the owner will appear here.</p>
     </div>
   );
 }
 
-function FeedbackCard({ entry, onOpen }: { entry: PublicFeedback; onOpen: (entry: PublicFeedback) => void }) {
+function FeedbackCard({ entry, onOpen }: { entry: FeedbackEntry; onOpen: (entry: FeedbackEntry) => void }) {
+  const imageCount = getEntryImages(entry).length;
+
   return (
-    <button
-      className="feedback-card"
-      type="button"
-      onClick={() => onOpen(entry)}
-      aria-label={`View feedback from ${entry.channelName}: ${entry.title}`}
-      data-testid={`card-feedback-${entry.id}`}
-    >
-      <span className="feedback-card-image">
-        <img src={entry.imageUrl} alt={`Feedback image for ${entry.channelName}: ${entry.title}`} loading="lazy" />
-        <span className="feedback-card-open" aria-hidden="true">Open ↗</span>
-      </span>
-      <span className="feedback-card-copy">
+    <article className="feedback-card" data-testid={`card-feedback-${entry.id}`}>
+      <a className="feedback-card-channel-link" href={entry.channelUrl} target="_blank" rel="noreferrer" aria-label={`Open ${entry.channelName} on YouTube`}>
+        {entry.avatarUrl ? (
+          <img className="feedback-card-avatar" src={entry.avatarUrl} alt="" loading="lazy" />
+        ) : (
+          <span className="feedback-card-avatar feedback-avatar-fallback" aria-hidden="true">{getChannelInitials(entry.channelName)}</span>
+        )}
         <span className="feedback-card-channel">{entry.channelName}</span>
-        <span className="feedback-card-title">{entry.title}</span>
-      </span>
-    </button>
+        <span className="feedback-card-channel-arrow" aria-hidden="true">↗</span>
+      </a>
+      <button
+        className="feedback-card-preview"
+        type="button"
+        onClick={() => onOpen(entry)}
+        aria-label={`View ${imageCount} feedback ${imageCount === 1 ? "image" : "images"} from ${entry.channelName}`}
+      >
+        <span className="feedback-card-image">
+          <img src={entry.imageUrl} alt={`Channel preview for ${entry.channelName}`} loading="lazy" />
+          <span className="feedback-card-open" aria-hidden="true">{imageCount} {imageCount === 1 ? "image" : "images"} ↗</span>
+        </span>
+        <span className="feedback-card-copy">
+          <span className="feedback-card-title">{entry.title}</span>
+        </span>
+      </button>
+    </article>
   );
 }
 
-function ChannelActions({ entry }: { entry: PublicFeedback }) {
+function ChannelActions({ entry }: { entry: FeedbackEntry }) {
   return (
     <div className="feedback-channel-actions">
       <a className="feedback-channel-direct" href={entry.channelUrl} target="_blank" rel="noreferrer" aria-label={`Open ${entry.channelName} channel in a new tab`}>
@@ -130,7 +230,57 @@ function ChannelActions({ entry }: { entry: PublicFeedback }) {
   );
 }
 
-function FeedbackModal({ entry, onClose }: { entry: PublicFeedback; onClose: () => void }) {
+function FeedbackImageGallery({ entry }: { entry: FeedbackEntry }) {
+  const images = getEntryImages(entry);
+  const [activeIndex, setActiveIndex] = useState(0);
+
+  return (
+    <div className="feedback-image-gallery">
+      <div className="feedback-image-stage">
+        <img src={images[activeIndex]} alt={`${entry.channelName} channel screenshot ${activeIndex + 1} of ${images.length}`} />
+        {images.length > 1 && (
+          <>
+            <button
+              className="feedback-image-step feedback-image-step-previous"
+              type="button"
+              onClick={() => setActiveIndex((index) => (index - 1 + images.length) % images.length)}
+              aria-label="Show previous screenshot"
+            >
+              ‹
+            </button>
+            <button
+              className="feedback-image-step feedback-image-step-next"
+              type="button"
+              onClick={() => setActiveIndex((index) => (index + 1) % images.length)}
+              aria-label="Show next screenshot"
+            >
+              ›
+            </button>
+            <span className="feedback-image-count">{activeIndex + 1} / {images.length}</span>
+          </>
+        )}
+      </div>
+      {images.length > 1 && (
+        <div className="feedback-image-thumbnails" aria-label="Choose a channel screenshot">
+          {images.map((image, index) => (
+            <button
+              className={`feedback-image-thumbnail${activeIndex === index ? " is-active" : ""}`}
+              type="button"
+              key={image}
+              onClick={() => setActiveIndex(index)}
+              aria-label={`Show screenshot ${index + 1}`}
+              aria-pressed={activeIndex === index}
+            >
+              <img src={image} alt="" loading="lazy" />
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function FeedbackModal({ entry, onClose }: { entry: FeedbackEntry; onClose: () => void }) {
   const dialogRef = useRef<HTMLDivElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
   const previousFocusRef = useRef<HTMLElement | null>(null);
@@ -178,13 +328,12 @@ function FeedbackModal({ entry, onClose }: { entry: PublicFeedback; onClose: () 
         <button className="feedback-modal-close" type="button" onClick={onClose} ref={closeRef} aria-label="Close feedback detail" data-testid="button-close-feedback">
           <span aria-hidden="true">×</span>
         </button>
-        <div className="feedback-modal-image-scroll">
-          <img src={entry.imageUrl} alt={`Feedback image for ${entry.channelName}: ${entry.title}`} />
-        </div>
+        <FeedbackImageGallery entry={entry} />
         <div className="feedback-modal-info">
-          <p className="feedback-eyebrow">Creator channel · public example</p>
-          <h2 id="feedback-modal-title">{entry.title}</h2>
-          <p className="feedback-modal-channel">{entry.channelName}</p>
+          <p className="feedback-eyebrow">CHANNEL FEEDBACK</p>
+          <h2 id="feedback-modal-title">{entry.channelName}</h2>
+          <p className="feedback-modal-channel">{entry.title}</p>
+          {isDemoEntry(entry) && <FeedbackPreviewNote />}
           <ChannelActions entry={entry} />
         </div>
       </section>
@@ -195,11 +344,12 @@ function FeedbackModal({ entry, onClose }: { entry: PublicFeedback; onClose: () 
 export function FeedbackGalleryPage() {
   const { data, isLoading, isError, refetch } = useListPublicFeedback(feedbackQueryOptions);
   const [, setLocation] = useLocation();
-  const [selected, setSelected] = useState<PublicFeedback | null>(null);
-  const entries = (data?.feedback ?? []).slice(0, 5);
+  const [selected, setSelected] = useState<FeedbackEntry | null>(null);
+  const entries = getDisplayEntries(data?.feedback ?? []);
+  const showingDemoEntries = entries.some(isDemoEntry);
   const closeModal = useCallback(() => setSelected(null), []);
 
-  const openEntry = (entry: PublicFeedback) => {
+  const openEntry = (entry: FeedbackEntry) => {
     if (window.matchMedia("(max-width: 720px)").matches) {
       setLocation(`/feedback/${encodeURIComponent(entry.id)}`);
       return;
@@ -215,21 +365,22 @@ export function FeedbackGalleryPage() {
           <span>LOOP <b>STREAM</b></span>
         </Link>
         <header className="feedback-page-heading">
-          <p className="feedback-eyebrow">Real channels. Real examples.</p>
-          <h1>Proof from the stream.</h1>
-          <p className="feedback-intro">A public look at channel feedback shared by creators using Loop Stream. Explore the examples and decide for yourself.</p>
+          <p className="feedback-eyebrow">CHANNEL FEEDBACK</p>
+          <h1>Feedback from live channels.</h1>
+          <p className="feedback-intro">{showingDemoEntries ? "Preview using the four channel screenshots you supplied." : "Browse channel screenshots, explore creator profiles, and open each channel on YouTube."}</p>
+          {showingDemoEntries && <FeedbackPreviewNote />}
         </header>
         <div className="feedback-gallery-topline">
-          <span>Creator gallery</span>
-          <span className="feedback-gallery-count">{isLoading ? "Updating" : `${entries.length} ${entries.length === 1 ? "example" : "examples"}`}</span>
+          <span>Featured channels</span>
+          <span className="feedback-gallery-count">{isLoading ? "Updating" : `${entries.length} ${entries.length === 1 ? "channel" : "channels"}`}</span>
         </div>
         {isLoading ? <FeedbackLoading /> : isError ? <FeedbackError onRetry={() => { void refetch(); }} /> : entries.length === 0 ? <FeedbackEmpty /> : (
-          <section className="feedback-grid" aria-label="Latest public creator feedback">
-            {entries.map((entry, index) => <div className={`feedback-grid-item feedback-grid-item-${index + 1}`} key={entry.id}><FeedbackCard entry={entry} onOpen={openEntry} /></div>)}
+          <section className="feedback-grid" aria-label="Featured creator channels">
+            {entries.map((entry) => <FeedbackCard key={entry.id} entry={entry} onOpen={openEntry} />)}
           </section>
         )}
         <footer className="feedback-page-footer">
-          <span>Shared by creators, shown as submitted.</span>
+          <span>{showingDemoEntries ? "Development preview only." : "Channel images shown as shared."}</span>
           <Link href="/" className="feedback-footer-home">Back to Loop Stream <span aria-hidden="true">↗</span></Link>
         </footer>
       </div>
@@ -240,8 +391,9 @@ export function FeedbackGalleryPage() {
 
 export function FeedbackDetailPage({ feedbackId }: { feedbackId: string }) {
   const { data, isLoading, isError, refetch } = useListPublicFeedback(feedbackQueryOptions);
-  const entries = data?.feedback ?? [];
+  const entries = getDisplayEntries(data?.feedback ?? []);
   const entry = entries.find((item) => item.id === feedbackId);
+  const showingDemoEntry = entry ? isDemoEntry(entry) : false;
 
   return (
     <main className="feedback-page feedback-detail-page">
@@ -263,12 +415,11 @@ export function FeedbackDetailPage({ feedbackId }: { feedbackId: string }) {
           </div>
         ) : (
           <article className="feedback-detail">
-            <p className="feedback-eyebrow">Creator channel · public example</p>
-            <h1>{entry.title}</h1>
-            <p className="feedback-detail-channel">{entry.channelName}</p>
-            <div className="feedback-detail-image-scroll">
-              <img src={entry.imageUrl} alt={`Feedback image for ${entry.channelName}: ${entry.title}`} />
-            </div>
+            <p className="feedback-eyebrow">CHANNEL FEEDBACK</p>
+            <h1>{entry.channelName}</h1>
+            <p className="feedback-detail-channel">{entry.title}</p>
+            {showingDemoEntry && <FeedbackPreviewNote />}
+            <FeedbackImageGallery entry={entry} />
             <ChannelActions entry={entry} />
           </article>
         )}
