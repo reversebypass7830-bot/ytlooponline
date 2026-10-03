@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent } from "react";
+import "./ManualPayments.css";
 import { useQueryClient } from "@tanstack/react-query";
 import { QRCodeSVG } from "qrcode.react";
 import {
@@ -19,10 +20,10 @@ import type {
   AccountPaymentQuote, AccountPaymentQuoteInputPackType, BillingPlan, BillingPlanUpdate,
   PaymentRequest,
 } from "@workspace/api-client-react";
-import streamsArt from "@assets/image_1790995151848.png";
-import downloadsArt from "@assets/image_1790995164239.png";
-import durationArt from "@assets/image_1790995177450.png";
-import qrArt from "@assets/image_1790995187836.png";
+import streamsArt from "@assets/image_1790996852489.png";
+import downloadsArt from "@assets/image_1790996859856.png";
+import durationArt from "@assets/image_1790996866685.png";
+import qrArt from "@assets/image_1790996872838.png";
 
 type Account = {
   id: string; email: string; displayName: string; licenseKey: string; streamLimit: number;
@@ -33,11 +34,13 @@ type Account = {
 
 const money = (paise: number) => `₹${(paise / 100).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 const errorText = (error: unknown, fallback: string) => error instanceof Error ? error.message : fallback;
-const customSubscriptionPlan = (plans: BillingPlan[]) => {
-  const eligible = plans.filter((plan) => !plan.isTrial);
-  const explicit = eligible.find((plan) => `${plan.id} ${plan.name} ${plan.description}`.toLowerCase().includes("custom"));
-  return explicit ?? (eligible.length === 1 ? eligible[0] : undefined);
-};
+const customSubscriptionPlan = (plans: BillingPlan[]) =>
+  plans.find((plan) => plan.id === "custom-subscription" && plan.active && !plan.isTrial);
+const sharedBenefits = [
+  { label: "Stream as live", image: streamsArt },
+  { label: "Premium quality", image: downloadsArt },
+  { label: "20GB storage", image: durationArt },
+];
 const allowedImageTypes = ["image/jpeg", "image/png", "image/webp"] as const;
 type ImageMime = typeof allowedImageTypes[number];
 
@@ -62,9 +65,10 @@ export function ManualSubscriptionPage({ account, onRefresh }: { account: Accoun
   const [streams, setStreams] = useState(5);
   const [downloads, setDownloads] = useState(20);
   const [quote, setQuote] = useState<AccountPaymentQuote | null>(null);
-  const [step, setStep] = useState<"configure" | "payment" | "pending">("configure");
+  const [step, setStep] = useState<"select" | "configure" | "payment" | "pending">("select");
   const [utr, setUtr] = useState("");
   const [proofFile, setProofFile] = useState<File | null>(null);
+  const [paymentConfirmed, setPaymentConfirmed] = useState(false);
   const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
@@ -73,7 +77,7 @@ export function ManualSubscriptionPage({ account, onRefresh }: { account: Accoun
   const refreshRef = useRef(onRefresh);
   refreshRef.current = onRefresh;
   const refreshedApproval = useRef("");
-  const plan = customSubscriptionPlan(plansQuery.data?.plans.filter((item) => item.active) ?? []);
+  const plan = customSubscriptionPlan(plansQuery.data?.plans ?? []);
   const requests = requestsQuery.data?.requests ?? [];
 
   useEffect(() => {
@@ -97,15 +101,21 @@ export function ManualSubscriptionPage({ account, onRefresh }: { account: Accoun
     const inRange = range === "all" || Date.now() - new Date(item.at).getTime() <= Number(range) * 86400000;
     return (historyType === "all" || item.type === historyType) && (!search.trim() || `${text} ${item.amountPaise ? money(item.amountPaise) : ""}`.toLowerCase().includes(search.trim().toLowerCase())) && inRange;
   });
-  const reset = () => { setQuote(null); setStep("configure"); setUtr(""); setProofFile(null); setError(""); };
+  const reset = () => { setQuote(null); setStep("select"); setUtr(""); setProofFile(null); setPaymentConfirmed(false); setError(""); };
   const changePack = (next: AccountPaymentQuoteInputPackType) => {
     setPackType(next);
     setDurationDays(next === "Days" ? Math.min(durationDays, 30) : next === "Monthly" ? 30 : 365);
-    reset();
+    setQuote(null); setUtr(""); setProofFile(null); setPaymentConfirmed(false); setError("");
   };
   const setDayCount = (value: number) => {
     if (value > 30) {
-      setPackType("Monthly"); setDurationDays(30); reset();
+      setPackType("Monthly");
+      setDurationDays(30);
+      setQuote(null);
+      setUtr("");
+      setProofFile(null);
+      setPaymentConfirmed(false);
+      setError("");
       setNotice("30+ days is available in Monthly plan");
       return;
     }
@@ -119,7 +129,7 @@ export function ManualSubscriptionPage({ account, onRefresh }: { account: Accoun
         planId: plan.id, packType, durationDays: packType === "Days" ? durationDays : packType === "Monthly" ? 30 : 365,
         streamsPerDay: streams, downloadsPerDay: downloads,
       } });
-      setQuote(quoteResult); setStep("payment");
+      setQuote(quoteResult); setPaymentConfirmed(false); setStep("payment");
     } catch (reason) { setError(errorText(reason, "Could not calculate the price. Please try again.")); }
   };
   const submitPayment = async (event: FormEvent<HTMLFormElement>) => {
@@ -143,9 +153,9 @@ export function ManualSubscriptionPage({ account, onRefresh }: { account: Accoun
   };
   const copy = async (value: string) => { try { await navigator.clipboard.writeText(value); setNotice("Copied to clipboard."); } catch { setNotice("Select and copy the value manually."); } };
   const makeInvoice = (item: Account["history"][number]) => {
-    const text = ["LIVE CONTROL ROOM · PURCHASE RECORD", `Reference: ${item.id}`, `Date: ${new Date(item.at).toLocaleString()}`, `Account: ${account.displayName || account.email}`, `Email: ${account.email}`, `Plan: ${item.planId || item.message}`, `Duration: ${item.days || 0} days`, item.streamsPerDay ? `Broadcast starts per day: ${item.streamsPerDay}` : "", item.streamLimit ? `Concurrent broadcast cap: ${item.streamLimit}` : "", item.downloadsPerDay ? `Downloads per day: ${item.downloadsPerDay}` : "", item.amountPaise ? `Approved amount: ${money(item.amountPaise)}` : "", item.utr ? `UPI reference: ${item.utr}` : ""].filter(Boolean).join("\n");
+     const text = ["YT LOOP · PURCHASE RECORD", `Reference: ${item.id}`, `Date: ${new Date(item.at).toLocaleString()}`, `Account: ${account.displayName || account.email}`, `Email: ${account.email}`, `Plan: ${item.planId || item.message}`, `Duration: ${item.days || 0} days`, item.streamsPerDay ? `Broadcast starts per day: ${item.streamsPerDay}` : "", item.streamLimit ? `Concurrent broadcast cap: ${item.streamLimit}` : "", item.downloadsPerDay ? `Downloads per day: ${item.downloadsPerDay}` : "", item.amountPaise ? `Approved amount: ${money(item.amountPaise)}` : "", item.utr ? `UPI reference: ${item.utr}` : ""].filter(Boolean).join("\n");
     const url = URL.createObjectURL(new Blob([text], { type: "text/plain;charset=utf-8" }));
-    const anchor = document.createElement("a"); anchor.href = url; anchor.download = `lcr-invoice-${item.id}.txt`; anchor.click(); URL.revokeObjectURL(url);
+     const anchor = document.createElement("a"); anchor.href = url; anchor.download = `yt-loop-invoice-${item.id}.txt`; anchor.click(); URL.revokeObjectURL(url);
   };
   const pending = requests.filter((request) => request.status === "pending");
   if (plansQuery.isLoading) return <div className="page subscription-page"><div className="pay-skeleton"/><div className="pay-skeleton"/></div>;
@@ -165,11 +175,27 @@ export function ManualSubscriptionPage({ account, onRefresh }: { account: Accoun
       <div className="pay-usage"><span className="metric-kicker">Downloads today</span><strong>{typeof account.downloadsUsedToday === "number" && typeof account.downloadsPerDay === "number" ? `${account.downloadsUsedToday.toLocaleString("en-IN")} / ${account.downloadsPerDay.toLocaleString("en-IN")}` : "Usage not reported"}</strong><small>Daily allowance is enforced server-side</small></div>
     </section>
 
-    {step === "pending" ? <section className="card pay-pending-state" data-testid="status-pending-review">
-      <span className="pending-dot"/><h2>Waiting for owner approval</h2><p>Your payment request is in the review queue. Access and allowance change only after it is approved.</p>
+    {step === "select" ? <section className="pay-selection">
+      <div className="pay-top-tabs" role="tablist" aria-label="Choose access term">
+        {(["Days", "Monthly", "Yearly"] as const).map((kind) => <button type="button" role="tab" aria-selected={packType === kind} className={packType === kind ? "selected" : ""} key={kind} onClick={() => changePack(kind)} data-testid={`tab-select-pack-${kind.toLowerCase()}`}>{kind}</button>)}
+      </div>
+      <div className="card pay-select-card">
+        <span className="metric-kicker">YT Loop access</span>
+        <h2>Choose your access term</h2>
+        <p className="pay-select-intro">Start with the term that fits your schedule. You’ll set broadcast starts and daily downloads next.</p>
+        <div className="pay-selected-term" aria-live="polite"><strong>{packType}</strong><span>{packType === "Days" ? "Choose 1–30 days in the next step." : packType === "Monthly" ? "30 days of access." : "365 days of access."}</span></div>
+        <div className="pay-benefit-grid" aria-label="Included with every pack">
+          {sharedBenefits.map((benefit) => <div className="pay-benefit" key={benefit.label}><span className="pay-benefit-icon"><img src={benefit.image} alt=""/></span><strong>{benefit.label}</strong></div>)}
+        </div>
+        {!plan && <div className="pay-empty pay-plan-unavailable" role="status"><CircleDollarSign size={23}/><strong>No custom subscription is available</strong><span>Ask your workspace owner to enable the custom-subscription plan.</span></div>}
+        <button className="button pay-quote-button pay-continue-button" type="button" disabled={!plan} onClick={() => { setError(""); setStep("configure"); }} data-testid="button-continue-to-config">Continue <ChevronUp size={17} style={{ transform: "rotate(90deg)" }}/></button>
+        <p className="pay-selection-note">Payment is made by UPI and reviewed by your workspace owner.</p>
+      </div>
+    </section> : step === "pending" ? <section className="card pay-pending-state" data-testid="status-pending-review">
+      <span className="pending-dot"/><h2>Waiting for owner approval</h2><p>Your UPI payment and UTR are queued for a human owner to review. Access and allowances change only after the owner approves the request.</p>
       <button className="button pay-quote-button" type="button" onClick={reset}>Start another request</button>
     </section> : step === "payment" && quote ? <section className="pay-checkout card">
-      <button type="button" className="pay-back-link pay-back-button" onClick={() => setStep("configure")} data-testid="button-back-to-pack"><ArrowLeft size={18}/> Back to pack</button>
+      <button type="button" className="pay-back-link pay-back-button" onClick={() => setStep("configure")} data-testid="button-back-to-config"><ArrowLeft size={18}/> Back to configuration</button>
       <div className="pay-checkout-grid">
         <div className="pay-checkout-summary">
           <span className="metric-kicker">Your selection</span><h2>Review & pay</h2>
@@ -184,46 +210,44 @@ export function ManualSubscriptionPage({ account, onRefresh }: { account: Accoun
         <div className="pay-qr-side">
           <img className="pay-clay-small" src={qrArt} alt="" />
           <div className="pay-qr-frame">
-            {quote.qrImageUrl ? <img src={quote.qrImageUrl} alt="Owner's UPI payment QR code" /> : <QRCodeSVG value={`upi://pay?${new URLSearchParams({ pa: quote.upiId, pn: quote.payeeName, am: quote.amountRupees.toFixed(2), cu: "INR", tn: `LCR ${quote.planName}` })}`} size={188} level="M" includeMargin bgColor="#ffffff" fgColor="#17191d"/>}
+             {quote.qrImageUrl ? <img src={quote.qrImageUrl} alt="Owner's UPI payment QR code" /> : <QRCodeSVG value={`upi://pay?${new URLSearchParams({ pa: quote.upiId, pn: quote.payeeName, am: quote.amountRupees.toFixed(2), cu: "INR", tn: `YT Loop ${quote.planName}` })}`} size={220} level="M" includeMargin bgColor="#ffffff" fgColor="#17191d"/>}
           </div>
           <strong className="pay-scan-heading">Please pay {money(quote.amountPaise)}</strong><span className="pay-scan-copy">Scan the QR with your UPI app. Confirm the payee and amount before sending.</span>
           <div className="payee-details"><span>Payee</span><strong>{quote.payeeName}</strong><span>UPI ID</span><div><strong className="mono">{quote.upiId}</strong><button type="button" className="icon-button" aria-label="Copy UPI ID" onClick={() => void copy(quote.upiId)} data-testid="button-copy-upi"><Copy size={14}/></button></div></div>
-          <form onSubmit={(event) => void submitPayment(event)} className="pay-utr-form">
+            {!paymentConfirmed ? <button type="button" className="button pay-quote-button pay-confirm-paid" onClick={() => setPaymentConfirmed(true)} data-testid="button-verify-payment"><Check size={16}/> Verify your payment</button> : <form onSubmit={(event) => void submitPayment(event)} className="pay-utr-form">
             <label htmlFor="utr-input">Enter your UTR number</label>
-            <input id="utr-input" data-testid="input-payment-utr" value={utr} onChange={(event) => setUtr(event.target.value.replace(/[^A-Za-z0-9]/g, "").slice(0, 32))} placeholder="6–32 character bank reference" minLength={6} maxLength={32} required pattern="[A-Za-z0-9]{6,32}" autoComplete="off" />
+             <input id="utr-input" data-testid="input-payment-utr" value={utr} onChange={(event) => setUtr(event.target.value.replace(/[^A-Za-z0-9]/g, "").slice(0, 32))} placeholder="12-digit UTR number" minLength={6} maxLength={32} required pattern="[A-Za-z0-9]{6,32}" autoComplete="off" />
             <small>Found in your UPI payment receipt. Letters and numbers only.</small>
             <label className="proof-upload" htmlFor="proof-file"><Upload size={16}/><span>{proofFile ? proofFile.name : "Upload payment screenshot"} <small>Optional · PNG, JPG or WebP, up to 5 MB</small></span><input id="proof-file" data-testid="input-payment-proof" type="file" accept="image/png,image/jpeg,image/webp" onChange={(event: ChangeEvent<HTMLInputElement>) => setProofFile(event.target.files?.[0] ?? null)}/></label>
             <button className="button pay-quote-button" type="submit" disabled={createRequest.isPending || createProofUrl.isPending || !/^[A-Za-z0-9]{6,32}$/.test(utr.trim())} data-testid="button-submit-payment">
-              {createRequest.isPending || createProofUrl.isPending ? "Submitting for review…" : "Verify your payment"}{createRequest.isPending || createProofUrl.isPending ? <LoaderCircle className="pay-spin" size={16}/> : <Check size={16}/>}
+              {createRequest.isPending || createProofUrl.isPending ? "Submitting for review…" : "Submit for review"}{createRequest.isPending || createProofUrl.isPending ? <LoaderCircle className="pay-spin" size={16}/> : <Check size={16}/>}
             </button>
-          </form>
+           </form>}
         </div>
       </div>
-    </section> : <section className="card pay-config pay-pack-card">
-      <div className="pay-pack-top">
-        <div><span className="metric-kicker">Broadcast subscription</span><h2>Select your pack</h2><p>Choose daily starts, download volume and time. Starts are counted per IST day, not as simultaneous broadcasts.</p></div>
+    </section> : <div className="pay-config-flow">
+      <header className="pay-config-sticky">
+        <button type="button" className="pay-config-back" onClick={() => setStep("select")} data-testid="button-back-to-selection"><ArrowLeft size={17}/><span>Pack selection</span></button>
+        <div className="pay-config-sticky-title">Configure access</div>
         <div className="pay-pack-switch" role="tablist" aria-label="Pack duration">
-          {(["Days", "Monthly", "Yearly"] as const).map((kind) => <button type="button" key={kind} role="tab" aria-selected={packType === kind} className={packType === kind ? "selected" : ""} onClick={() => changePack(kind)} data-testid={`tab-pack-${kind.toLowerCase()}`}>{kind}</button>)}
+          {(["Days", "Monthly", "Yearly"] as const).map((kind) => <button type="button" key={kind} role="tab" aria-selected={packType === kind} className={packType === kind ? "selected" : ""} onClick={() => changePack(kind)} data-testid={`tab-config-pack-${kind.toLowerCase()}`}>{kind}</button>)}
         </div>
-      </div>
+      </header>
+      <section className="card pay-config pay-pack-card">
+      <div className="pay-config-heading"><div><span className="metric-kicker">Broadcast subscription</span><h2>Set your daily allowance</h2><p>Starts are counted per IST day, not as simultaneous broadcasts.</p></div></div>
       {!plan ? <div className="pay-empty"><CircleDollarSign size={25}/><strong>No custom subscription is available</strong><span>Ask your workspace owner to enable pricing.</span></div> : <>
-        <div className="pay-feature-ribbon">
-          <div className="pay-feature"><img src={streamsArt} alt="" /><span><strong>Server-side live</strong><small>Continuous broadcast setup</small></span></div>
-          <div className="pay-feature"><img src={downloadsArt} alt="" /><span><strong>Bulk downloads</strong><small>Daily allowance included</small></span></div>
-          <div className="pay-feature"><img src={durationArt} alt="" /><span><strong>Flexible duration</strong><small>Access for your schedule</small></span></div>
-        </div>
-        <div className="pay-included-features" aria-label="Included features">
-          {(plan.features.length ? plan.features : ["Stream as live", "Premium quality", "20GB storage"]).map((feature) => <span key={feature}><Check size={13}/>{feature}</span>)}
+        <div className="pay-benefit-grid pay-config-benefits" aria-label="Included with every pack">
+          {sharedBenefits.map((benefit) => <div className="pay-benefit" key={benefit.label}><span className="pay-benefit-icon"><img src={benefit.image} alt=""/></span><strong>{benefit.label}</strong></div>)}
         </div>
         <div className="pay-config-controls">
           <section className="pay-control-block">
             <div className="pay-control-label"><img src={streamsArt} alt="" /><div><strong>How many streams per day?</strong><small>Each is a broadcast start during an IST day.</small></div></div>
             <div className="pay-stepper pay-stream-counter"><button type="button" aria-label="Decrease streams per day" onClick={() => setStreams((value) => Math.max(1, value - 1))} disabled={streams <= 1} data-testid="button-streams-decrease"><Minus size={16}/></button><strong data-testid="text-streams-per-day">{streams}</strong><button type="button" aria-label="Increase streams per day" onClick={() => setStreams((value) => Math.min(100, value + 1))} disabled={streams >= 100} data-testid="button-streams-increase"><Plus size={16}/></button></div>
-            <div className="pay-quick-choices" aria-label="Quick stream quantities">{[1, 5, 10, 20].map((count) => <button key={count} type="button" className={streams === count ? "active" : ""} onClick={() => setStreams(count)} data-testid={`button-streams-${count}`}>{count}</button>)}</div>
+           <div className="pay-quick-choices" aria-label="Quick stream quantities">{[1, 5, 10, 20].map((count) => <button key={count} type="button" aria-pressed={streams === count} className={streams === count ? "active" : ""} onClick={() => setStreams(count)} data-testid={`button-streams-${count}`}>{count}</button>)}</div>
           </section>
           <section className="pay-control-block">
-            <div className="pay-control-label"><img src={downloadsArt} alt="" /><div><strong>YouTube bulk downloads</strong><small>How many videos to allow each day?</small></div></div>
-            <div className="pay-download-options">{[10, 20, 30, 40, 50].map((count) => <button type="button" key={count} className={downloads === count ? "active" : ""} onClick={() => setDownloads(count)} data-testid={`button-downloads-${count}`}>{count}</button>)}</div>
+             <div className="pay-control-label"><img src={downloadsArt} alt="" /><div><strong>YouTube bulk downloads</strong><small>How many videos do you want to download each day?</small></div></div>
+             <div className="pay-download-options">{[10, 20, 30, 40, 50].map((count) => <button type="button" key={count} aria-pressed={downloads === count} className={downloads === count ? "active" : ""} onClick={() => setDownloads(count)} data-testid={`button-downloads-${count}`}>{count}</button>)}</div>
             <label className="pay-custom-download"><span>Custom amount</span><input type="number" min="1" max="1000000" value={downloads} onChange={(event) => setDownloads(Math.min(1000000, Math.max(1, Number(event.target.value) || 1)))} data-testid="input-downloads-per-day"/></label>
           </section>
           <section className="pay-control-block">
@@ -242,7 +266,8 @@ export function ManualSubscriptionPage({ account, onRefresh }: { account: Accoun
         <button className="button pay-quote-button" type="button" onClick={() => void requestQuote()} disabled={quoteMutation.isPending} data-testid="button-confirm-purchase"><span>{quoteMutation.isPending ? "Calculating your total…" : "Confirm to purchase"}</span>{quoteMutation.isPending ? <LoaderCircle className="pay-spin" size={16}/> : <ChevronUp size={17} style={{ transform: "rotate(90deg)" }}/>}</button>
       </>}
       <div className="pay-trust-note"><ShieldCheck size={15}/><span>Your concurrent broadcast cap is separate and is not changed by this purchase. Access updates only after owner approval.</span></div>
-    </section>}
+     </section>
+    </div>}
 
     <section className="card pay-request-history">
       <div className="pay-section-title"><div><span className="metric-kicker">Review tracking</span><h2>Payment requests</h2><p>Submitted references stay pending until an owner explicitly approves them.</p></div><button className="button secondary small" type="button" onClick={() => void requestsQuery.refetch()} disabled={requestsQuery.isFetching} data-testid="button-refresh-account-requests"><RefreshCw size={13} className={requestsQuery.isFetching ? "pay-spin" : ""}/> Refresh</button></div>
@@ -368,7 +393,7 @@ export function OwnerPaymentPanel({ ownerPassword }: { ownerPassword: string }) 
           <label className="field"><span>UPI ID</span><input required minLength={3} maxLength={100} value={upiId} onChange={(event) => setUpiId(event.target.value)} placeholder="name@bank" data-testid="input-owner-upi"/></label>
           <label className="field"><span>Payee name</span><input required minLength={1} maxLength={100} value={payeeName} onChange={(event) => setPayeeName(event.target.value)} placeholder="Account holder" data-testid="input-owner-payee"/></label>
           <div className="owner-qr-upload">
-            <div className="owner-qr-preview">{qrPreview ? <img src={qrPreview} alt="Current payment QR preview"/> : <img src={qrArt} alt="QR illustration"/>}</div>
+             <div className="owner-qr-preview">{qrPreview ? <img src={qrPreview} alt="Current payment QR preview"/> : <img src={qrArt} alt=""/>}</div>
             <label className="owner-qr-file"><ImagePlus size={16}/><span>{createQrUrl.isPending ? "Uploading QR…" : qrPath ? "Replace payment QR" : "Upload payment QR"}<small>PNG, JPG or WebP · up to 5 MB</small></span><input type="file" accept="image/png,image/jpeg,image/webp" onChange={(event) => void changeQr(event)} disabled={createQrUrl.isPending} data-testid="input-owner-qr"/></label>
             {qrPath && <button type="button" className="button secondary small" onClick={() => { setQrPath(null); setQrPreview(null); }} data-testid="button-remove-owner-qr">Remove QR</button>}
           </div>
