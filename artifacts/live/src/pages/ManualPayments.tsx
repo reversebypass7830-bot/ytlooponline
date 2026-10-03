@@ -101,6 +101,10 @@ export function ManualSubscriptionPage({ account, onRefresh }: { account: Accoun
     }
     setDurationDays(Math.min(30, Math.max(1, value || 1))); setQuote(null);
   };
+  const setYearCount = (value: number) => {
+    setDurationDays(Math.min(15, Math.max(1, Math.round(value || 1))) * 365);
+    setQuote(null);
+  };
   const requestQuote = async () => {
     if (!plan) return;
     setError(""); setNotice("");
@@ -155,7 +159,7 @@ export function ManualSubscriptionPage({ account, onRefresh }: { account: Accoun
          <span className="metric-kicker">Duplo Access</span>
         <h2>Choose your access term</h2>
         <p className="pay-select-intro">Start with the term that fits your schedule. You’ll set broadcast starts and daily downloads next.</p>
-        <div className="pay-selected-term" aria-live="polite"><strong>{packType}</strong><span>{packType === "Days" ? "Choose 1–30 days in the next step." : packType === "Monthly" ? "Choose 1–12 months in the next step." : "Choose 1, 5, 10, or 15 years in the next step."}</span></div>
+        <div className="pay-selected-term" aria-live="polite"><strong>{packType}</strong><span>{packType === "Days" ? "Choose 1–30 days in the next step." : packType === "Monthly" ? "Choose 1–12 months in the next step." : "Choose 1–15 years in the next step."}</span></div>
         {!plan && <div className="pay-empty pay-plan-unavailable" role="status"><CircleDollarSign size={23}/><strong>No custom subscription is available</strong><span>Ask your workspace owner to enable the custom-subscription plan.</span></div>}
         <button className="button pay-quote-button pay-continue-button" type="button" disabled={!plan} onClick={() => { setError(""); setStep("configure"); }} data-testid="button-continue-to-config">Continue <ChevronUp size={17} style={{ transform: "rotate(90deg)" }}/></button>
       </div>
@@ -222,21 +226,23 @@ export function ManualSubscriptionPage({ account, onRefresh }: { account: Accoun
             <label className="pay-custom-download"><span>Custom amount</span><input type="number" min="1" max="1000000" value={downloads} onChange={(event) => setDownloads(Math.min(1000000, Math.max(1, Number(event.target.value) || 1)))} data-testid="input-downloads-per-day"/></label>
           </section>
           <section className="pay-control-block">
-             <div className="pay-control-label"><img src={durationArt} alt="" /><div><strong>Duration</strong><small>{packType === "Days" ? "Choose from 1 to 30 days." : packType === "Monthly" ? "Choose from 1 to 12 months." : "Choose 1, 5, 10, or 15 years."}</small></div></div>
+              <div className="pay-control-label"><img src={durationArt} alt="" /><div><strong>Duration</strong><small>{packType === "Days" ? "Choose from 1 to 30 days." : packType === "Monthly" ? "Choose from 1 to 12 months." : "Choose from 1 to 15 years."}</small></div></div>
             {packType === "Days" ? <>
               <div className="pay-duration-entry"><input aria-label="Duration in days" type="number" min="1" max="30" value={durationDays} onChange={(event) => setDayCount(Number(event.target.value))} data-testid="input-duration-days"/><span>days</span><b className="duration-badge">{durationDays} days</b></div>
               <input className="pay-duration-slider" type="range" min="1" max="30" value={durationDays} aria-label="Select duration from 1 to 30 days" onChange={(event) => setDayCount(Number(event.target.value))} data-testid="slider-duration-days"/>
               <div className="pay-duration-ticks"><span>1 day</span><span>30 days</span></div>
+             </> : packType === "Yearly" ? <>
+               <div className="pay-duration-entry"><input aria-label="Duration in years" type="number" min="1" max="15" step="1" value={durationDays / 365} onChange={(event) => setYearCount(Number(event.target.value))} data-testid="input-duration-years"/><span>years</span><b className="duration-badge">{durationDaysLabel(durationDays)}</b></div>
+               <input className="pay-duration-slider" type="range" min="1" max="15" step="1" value={durationDays / 365} aria-label="Select duration from 1 to 15 years" onChange={(event) => setYearCount(Number(event.target.value))} data-testid="slider-duration-years"/>
+               <div className="pay-duration-ticks"><span>1 year</span><span>15 years</span></div>
              </> : <div className="pay-duration-fixed">
                <strong>{durationDaysLabel(durationDays)}</strong>
                <label className="pay-duration-select-label" htmlFor="select-pack-duration">Term</label>
                <select id="select-pack-duration" value={durationDays} onChange={(event) => { setDurationDays(Number(event.target.value)); setQuote(null); }} data-testid="select-pack-duration">
-                 {packType === "Monthly"
-                   ? Array.from({ length: 12 }, (_, index) => {
-                     const months = index + 1;
-                     return <option key={months} value={months * 30}>{months} month{months === 1 ? "" : "s"} ({months * 30} days)</option>;
-                   })
-                   : [1, 5, 10, 15].map((years) => <option key={years} value={years * 365}>{years} year{years === 1 ? "" : "s"} ({years * 365} days)</option>)}
+                  {Array.from({ length: 12 }, (_, index) => {
+                    const months = index + 1;
+                    return <option key={months} value={months * 30}>{months} month{months === 1 ? "" : "s"} ({months * 30} days)</option>;
+                  })}
                </select>
              </div>}
           </section>
