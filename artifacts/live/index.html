@@ -102,6 +102,15 @@ h1 .dim{color:var(--muted-foreground)}
 .hero-frame{position:relative;overflow:hidden;border-radius:2rem;padding:.75rem}
 @media(min-width:640px){.hero-frame{padding:1rem}}
 .hero-frame img{width:100%;aspect-ratio:3/2;object-fit:cover;border-radius:1.4rem}
+.feedback-scroll-cue{position:fixed;left:50%;bottom:calc(1.25rem + env(safe-area-inset-bottom));z-index:40;display:grid;place-items:center;width:3.5rem;height:3.5rem;border:2px solid rgba(255,255,255,.92);border-radius:9999px;color:#fff;background:linear-gradient(145deg,var(--live),var(--primary));box-shadow:0 12px 28px color-mix(in oklab,var(--primary) 32%,transparent);transform:translateX(-50%);transition:opacity .2s ease,visibility .2s ease,box-shadow .2s ease}
+.feedback-scroll-cue:hover{box-shadow:0 16px 34px color-mix(in oklab,var(--primary) 42%,transparent)}
+.feedback-scroll-cue:focus-visible{outline:3px solid var(--foreground);outline-offset:4px}
+.feedback-scroll-cue svg{width:1.5rem;height:1.5rem;animation:feedback-scroll-nudge 1.6s ease-in-out infinite}
+.feedback-scroll-cue.is-hidden{opacity:0;visibility:hidden;pointer-events:none}
+@keyframes feedback-scroll-nudge{0%,100%{transform:translateY(0)}50%{transform:translateY(4px)}}
+#landing-feedback{scroll-margin-top:5.5rem}
+@media(max-width:639px){.feedback-scroll-cue{left:auto;right:1rem;transform:none}}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.feedback-scroll-cue,.feedback-scroll-cue svg{animation:none;transition:none}}
 
 /* marquee */
 .marquee-band{overflow:hidden;border-block:1px solid color-mix(in oklab,var(--border) 70%,transparent);background:color-mix(in oklab,var(--card) 60%,transparent);padding-block:1.5rem}
@@ -282,6 +291,12 @@ footer{padding-block:2.5rem}
       </div>
     </div>
   </section>
+
+  <a class="feedback-scroll-cue" href="#landing-feedback" aria-label="Scroll to creator feedback" title="See creator feedback" data-testid="link-scroll-to-feedback">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M12 5v14M6 13l6 6 6-6"/>
+    </svg>
+  </a>
 
   <section class="marquee-band">
     <div class="marquee-wrap">
@@ -481,7 +496,7 @@ footer{padding-block:2.5rem}
     </div>
   </section>
 
-  <section class="container" aria-label="Creator feedback" style="padding-top:2rem;padding-bottom:2rem">
+  <section id="landing-feedback" class="container" aria-label="Creator feedback" style="padding-top:2rem;padding-bottom:2rem">
     <div id="landing-feedback-root"></div>
   </section>
 
@@ -546,6 +561,17 @@ footer{padding-block:2.5rem}
     });
   },{threshold:.25});
   observer.observe(video);
+})();
+</script>
+<script>
+(() => {
+  const cue = document.querySelector(".feedback-scroll-cue");
+  const feedback = document.querySelector("#landing-feedback");
+  if (!cue || !feedback || !("IntersectionObserver" in window)) return;
+  const observer = new IntersectionObserver((entries) => {
+    cue.classList.toggle("is-hidden", entries.some((entry) => entry.isIntersecting));
+  }, { rootMargin: "0px 0px -20% 0px", threshold: 0 });
+  observer.observe(feedback);
 })();
 </script>
 <script type="module" src="/src/feedback-landing.tsx"></script>
