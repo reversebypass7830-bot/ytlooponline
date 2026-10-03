@@ -25,3 +25,6 @@ artifacts/api-server/attached_assets/live-media/youtube-proxy-test
 artifacts/api-server/attached_assets/live-media/face
 artifacts/api-server/attached_assets/live-media/maq
 artifacts/api-server/attached_assets/live-media/*.base.mp4
+
+# The source upload is duplicated into the included landing-page animation asset.
+attached_assets/gemini_generated_video_9d5d20db_1791021490992.mp4
