@@ -13,7 +13,7 @@ export interface AccountPaymentQuoteInput {
   packType: AccountPaymentQuoteInputPackType;
   /**
      * @minimum 1
-     * @maximum 3650
+     * @maximum 5475
      */
   durationDays: number;
   /**

@@ -136,8 +136,8 @@ type PaymentQuote = {
   pricePerDownloadPaise: number;
   upiId: string;
   payeeName: string;
-  qrImagePath: string;
-  qrImageUrl: string;
+  qrImagePath: string | null;
+  qrImageUrl: string | null;
   features: string[];
 };
 
@@ -686,10 +686,7 @@ async function loadPaymentSettings(): Promise<PaymentSettingsRecord> {
 }
 
 async function paymentSettingsResponse(settings: PaymentSettingsRecord): Promise<PaymentSettingsRecord> {
-  const qrImageUrl = settings.qrImagePath
-    ? await objectStorageService.getSignedDownloadURL(settings.qrImagePath)
-    : null;
-  return { ...settings, qrImageUrl };
+  return { ...settings, qrImagePath: null, qrImageUrl: null };
 }
 
 async function loadPaymentRequests(): Promise<Record<string, PaymentRequestRecord>> {
@@ -734,7 +731,7 @@ function validPackDuration(packType: "Days" | "Monthly" | "Yearly", durationDays
   if (!Number.isInteger(durationDays)) return false;
   if (packType === "Days") return durationDays >= 1 && durationDays <= 30;
   if (packType === "Monthly") return durationDays >= 30 && durationDays <= 360 && durationDays % 30 === 0;
-  return durationDays >= 365 && durationDays <= 3650 && durationDays % 365 === 0;
+  return durationDays >= 365 && durationDays <= 5475 && durationDays % 365 === 0;
 }
 
 async function paymentQuote(
@@ -760,20 +757,13 @@ async function paymentQuote(
   if (!Number.isInteger(input.streamsPerDay) || input.streamsPerDay < 1 || input.streamsPerDay > 100) return null;
   if (!Number.isInteger(input.downloadsPerDay) || input.downloadsPerDay < 1 || input.downloadsPerDay > 1_000_000) return null;
   if (!Number.isInteger(currentStreamLimit) || currentStreamLimit < 1) return null;
-  if (!isValidUpiId(settings.upiId) || !settings.payeeName.trim() || !settings.qrImagePath) return null;
+  if (!isValidUpiId(settings.upiId) || !settings.payeeName.trim()) return null;
 
   const perDayPaise = BigInt(pricePerStreamDayPaise) * BigInt(input.streamsPerDay)
     + BigInt(pricePerDownloadPaise) * BigInt(input.downloadsPerDay);
   const amountPaise = Number(perDayPaise * BigInt(input.durationDays));
   const totalDownloads = input.durationDays * input.downloadsPerDay;
   if (!Number.isSafeInteger(amountPaise) || amountPaise < 1 || amountPaise > 100_000_000_000 || !Number.isSafeInteger(totalDownloads)) return null;
-  let qrImageUrl: string;
-  try {
-    qrImageUrl = await objectStorageService.getSignedDownloadURL(settings.qrImagePath);
-  } catch {
-    return null;
-  }
-
   return {
     planId: plan.id,
     planName: plan.name,
@@ -789,8 +779,8 @@ async function paymentQuote(
     pricePerDownloadPaise,
     upiId: settings.upiId.trim(),
     payeeName: settings.payeeName.trim(),
-    qrImagePath: settings.qrImagePath,
-    qrImageUrl,
+    qrImagePath: null,
+    qrImageUrl: null,
     features: plan.features || [],
   };
 }
@@ -863,10 +853,6 @@ router.post("/account/payment-quote", requireAccountAuth, async (req, res): Prom
       res.status(409).json({ error: "UPI payment is not configured yet. Please try again later." });
       return;
     }
-    if (!settings.qrImagePath) {
-      res.status(409).json({ error: "The payment QR code is not configured yet. Please try again later." });
-      return;
-    }
     const quote = await paymentQuote(
       plans,
       settings,
@@ -909,7 +895,7 @@ router.post("/account/payment-requests", requireAccountAuth, async (req, res): P
   try {
     const { account, plans } = await ensureAccount(req);
     const settings = await loadPaymentSettings();
-    if (!settings.qrImagePath || !isValidUpiId(settings.upiId) || !settings.payeeName.trim()) {
+    if (!isValidUpiId(settings.upiId) || !settings.payeeName.trim()) {
       res.status(409).json({ error: "UPI payment is not configured yet. Refresh and try again later." });
       return;
     }
@@ -1176,24 +1162,10 @@ router.put("/owner/payment-settings", async (req, res): Promise<void> => {
     return;
   }
   try {
-    const current = await loadPaymentSettings();
-    const qrImagePath = parsed.data.qrImagePath === undefined ? current.qrImagePath : parsed.data.qrImagePath;
-    if (qrImagePath !== null && !qrImagePath.startsWith("/objects/payment-qr/")) {
-      res.status(400).json({ error: "Choose a valid uploaded payment QR image." });
-      return;
-    }
-    if (qrImagePath) {
-      try {
-        await objectStorageService.getObjectEntityFile(qrImagePath);
-      } catch {
-        res.status(400).json({ error: "The payment QR image could not be verified. Upload it again." });
-        return;
-      }
-    }
     const settings: PaymentSettingsRecord = {
       upiId,
       payeeName,
-      qrImagePath,
+      qrImagePath: null,
       qrImageUrl: null,
       updatedAt: new Date().toISOString(),
     };

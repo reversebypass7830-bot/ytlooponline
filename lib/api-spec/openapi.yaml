@@ -2112,9 +2112,6 @@ components:
           type: string
           minLength: 1
           maxLength: 100
-        qrImagePath:
-          type: ["string", "null"]
-          pattern: "^/objects/payment-qr/"
       required: [upiId, payeeName]
     PaymentAssetUploadUrlInput:
       type: object
@@ -2151,7 +2148,7 @@ components:
         durationDays:
           type: number
           minimum: 1
-          maximum: 3650
+          maximum: 5475
         streamsPerDay:
           type: number
           minimum: 1
@@ -2194,9 +2191,9 @@ components:
         payeeName:
           type: string
         qrImagePath:
-          type: string
+          type: ["string", "null"]
         qrImageUrl:
-          type: string
+          type: ["string", "null"]
         features:
           type: array
           items:

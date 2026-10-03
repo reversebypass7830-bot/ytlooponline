@@ -22,7 +22,9 @@ export interface AccountPaymentQuote {
   pricePerDownloadPaise: number;
   upiId: string;
   payeeName: string;
-  qrImagePath: string;
-  qrImageUrl: string;
+  /** @nullable */
+  qrImagePath: string | null;
+  /** @nullable */
+  qrImageUrl: string | null;
   features: string[];
 }

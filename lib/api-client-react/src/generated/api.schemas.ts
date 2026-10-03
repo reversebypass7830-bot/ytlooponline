@@ -884,11 +884,6 @@ export interface PaymentSettingsInput {
      * @maxLength 100
      */
   payeeName: string;
-  /**
-     * @nullable
-     * @pattern ^/objects/payment-qr/
-     */
-  qrImagePath?: string | null;
 }
 
 export type PaymentAssetUploadUrlInputContentType = typeof PaymentAssetUploadUrlInputContentType[keyof typeof PaymentAssetUploadUrlInputContentType];
@@ -931,7 +926,7 @@ export interface AccountPaymentQuoteInput {
   packType: AccountPaymentQuoteInputPackType;
   /**
      * @minimum 1
-     * @maximum 3650
+     * @maximum 5475
      */
   durationDays: number;
   /**
@@ -970,8 +965,10 @@ export interface AccountPaymentQuote {
   pricePerDownloadPaise: number;
   upiId: string;
   payeeName: string;
-  qrImagePath: string;
-  qrImageUrl: string;
+  /** @nullable */
+  qrImagePath: string | null;
+  /** @nullable */
+  qrImageUrl: string | null;
   features: string[];
 }
 

@@ -1,17 +1,17 @@
-import { useEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent } from "react";
+import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from "react";
 import "./ManualPayments.css";
 import { useQueryClient } from "@tanstack/react-query";
 import { QRCodeSVG } from "qrcode.react";
 import {
   ArrowLeft, Check, CheckCircle2, ChevronUp, CircleDollarSign, Copy,
-  Download, FileText, Filter, ImagePlus, LoaderCircle, Minus, RefreshCw, Save,
+  Download, FileText, Filter, LoaderCircle, Minus, RefreshCw, Save,
   ShieldCheck, Smartphone, Upload, X, XCircle, Plus,
 } from "lucide-react";
 import {
   getGetOwnerPaymentSettingsQueryKey, getListAccountPaymentRequestsQueryKey,
   getListBillingPlansQueryKey, getListOwnerPaymentRequestsQueryKey,
   useCreateAccountPaymentProofUploadUrl, useCreateAccountPaymentRequest,
-  useCreateOwnerPaymentQrUploadUrl, useGetOwnerPaymentSettings,
+  useGetOwnerPaymentSettings,
   useListAccountPaymentRequests, useListBillingPlans, useListOwnerPaymentRequests,
   useQuoteAccountPayment, useReviewOwnerPaymentRequest, useUpdateBillingPlan,
   useUpdateOwnerPaymentSettings,
@@ -23,7 +23,6 @@ import type {
 import streamsArt from "@assets/image_1790996852489.png";
 import downloadsArt from "@assets/image_1790996859856.png";
 import durationArt from "@assets/image_1790996866685.png";
-import qrArt from "@assets/image_1790996872838.png";
 
 type Account = {
   id: string; email: string; displayName: string; licenseKey: string; streamLimit: number;
@@ -71,9 +70,6 @@ export function ManualSubscriptionPage({ account, onRefresh }: { account: Accoun
   const [paymentConfirmed, setPaymentConfirmed] = useState(false);
   const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
-  const [search, setSearch] = useState("");
-  const [historyType, setHistoryType] = useState<"all" | "purchase" | "grant">("all");
-  const [range, setRange] = useState("all");
   const refreshRef = useRef(onRefresh);
   refreshRef.current = onRefresh;
   const refreshedApproval = useRef("");
@@ -87,20 +83,6 @@ export function ManualSubscriptionPage({ account, onRefresh }: { account: Accoun
       void refreshRef.current?.();
     }
   }, [requests]);
-  const history = useMemo(() => {
-    const items = account.history.filter((item) => item.type === "purchase" || item.type === "grant").map((item) => ({ ...item }));
-    for (const approved of requests.filter((request) => request.status === "approved")) {
-      const match = items.find((item) => item.type === "purchase" && item.planId === approved.planId && Math.abs(new Date(item.at).getTime() - new Date(approved.createdAt).getTime()) < 3 * 86400000);
-      if (match) { match.amountPaise ??= approved.amountPaise; match.utr ??= approved.utr; }
-      else items.unshift({ id: approved.id, type: "purchase", message: `${approved.planName} approved`, at: approved.reviewedAt || approved.createdAt, planId: approved.planId, days: approved.durationDays, streamLimit: approved.streamLimit, streamsPerDay: approved.streamsPerDay, downloadsPerDay: approved.downloadsPerDay, amountPaise: approved.amountPaise, utr: approved.utr });
-    }
-    return items;
-  }, [account.history, requests]);
-  const filteredHistory = history.filter((item) => {
-    const text = `${item.message} ${item.planId ?? ""} ${item.id} ${item.utr ?? ""}`.toLowerCase();
-    const inRange = range === "all" || Date.now() - new Date(item.at).getTime() <= Number(range) * 86400000;
-    return (historyType === "all" || item.type === historyType) && (!search.trim() || `${text} ${item.amountPaise ? money(item.amountPaise) : ""}`.toLowerCase().includes(search.trim().toLowerCase())) && inRange;
-  });
   const reset = () => { setQuote(null); setStep("select"); setUtr(""); setProofFile(null); setPaymentConfirmed(false); setError(""); };
   const changePack = (next: AccountPaymentQuoteInputPackType) => {
     setPackType(next);
@@ -126,7 +108,7 @@ export function ManualSubscriptionPage({ account, onRefresh }: { account: Accoun
     setError(""); setNotice("");
     try {
       const quoteResult = await quoteMutation.mutateAsync({ data: {
-        planId: plan.id, packType, durationDays: packType === "Days" ? durationDays : packType === "Monthly" ? 30 : 365,
+         planId: plan.id, packType, durationDays,
         streamsPerDay: streams, downloadsPerDay: downloads,
       } });
       setQuote(quoteResult); setPaymentConfirmed(false); setStep("payment");
@@ -152,29 +134,21 @@ export function ManualSubscriptionPage({ account, onRefresh }: { account: Accoun
     } catch (reason) { setError(errorText(reason, "Could not submit this payment for review.")); }
   };
   const copy = async (value: string) => { try { await navigator.clipboard.writeText(value); setNotice("Copied to clipboard."); } catch { setNotice("Select and copy the value manually."); } };
-  const makeInvoice = (item: Account["history"][number]) => {
-     const text = ["YT LOOP · PURCHASE RECORD", `Reference: ${item.id}`, `Date: ${new Date(item.at).toLocaleString()}`, `Account: ${account.displayName || account.email}`, `Email: ${account.email}`, `Plan: ${item.planId || item.message}`, `Duration: ${item.days || 0} days`, item.streamsPerDay ? `Broadcast starts per day: ${item.streamsPerDay}` : "", item.streamLimit ? `Concurrent broadcast cap: ${item.streamLimit}` : "", item.downloadsPerDay ? `Downloads per day: ${item.downloadsPerDay}` : "", item.amountPaise ? `Approved amount: ${money(item.amountPaise)}` : "", item.utr ? `UPI reference: ${item.utr}` : ""].filter(Boolean).join("\n");
-    const url = URL.createObjectURL(new Blob([text], { type: "text/plain;charset=utf-8" }));
-     const anchor = document.createElement("a"); anchor.href = url; anchor.download = `yt-loop-invoice-${item.id}.txt`; anchor.click(); URL.revokeObjectURL(url);
-  };
-  const pending = requests.filter((request) => request.status === "pending");
+  const durationDaysLabel = (days: number) => packType === "Monthly"
+    ? `${days / 30} month${days === 30 ? "" : "s"} · ${days} days`
+    : packType === "Yearly"
+      ? `${days / 365} year${days === 365 ? "" : "s"} · ${days} days`
+      : `${days} days`;
+  const estimatedDurationDays = durationDays;
   if (plansQuery.isLoading) return <div className="page subscription-page"><div className="pay-skeleton"/><div className="pay-skeleton"/></div>;
   if (plansQuery.isError) return <div className="page subscription-page"><div className="pay-alert error" role="alert"><XCircle size={18}/><span>Pricing could not be loaded. {errorText(plansQuery.error, "Try again.")}</span><button className="button secondary small" onClick={() => void plansQuery.refetch()} data-testid="button-retry-plans">Retry</button></div></div>;
 
   return <div className="page subscription-page manual-payment-page">
     <header className="page-head subscription-heading">
-      <div><p className="eyebrow">Workspace / Access</p><h1>Subscription</h1><p className="subtle">Set daily broadcast starts and download allowance. Every payment is checked by your workspace owner.</p></div>
-      <div className={`subscription-status ${account.active ? "active" : "expired"}`} data-testid="status-current-access"><span className="status-dot"/>{account.active ? `${account.activePlan?.name || "Plan"} · active` : "Access needs renewal"}</div>
+      <div><p className="eyebrow">Workspace / Access</p><h1>Subscription</h1><p className="subtle">Choose a term, set your daily allowance, then submit your UPI payment for owner review.</p></div>
     </header>
     {notice && <div className="pay-alert success" role="status" data-testid="status-payment-notice"><CheckCircle2 size={17}/><span>{notice}</span><button className="pay-alert-close" onClick={() => setNotice("")} aria-label="Dismiss notification"><X size={15}/></button></div>}
     {error && <div className="pay-alert error" role="alert" data-testid="status-payment-error"><XCircle size={17}/><span>{error}</span><button className="pay-alert-close" onClick={() => setError("")} aria-label="Dismiss error"><X size={15}/></button></div>}
-    <section className="pay-access-strip card">
-      <div><span className="metric-kicker">Current access</span><strong>{account.activePlan?.name || "No active plan"}</strong><small>{account.active ? `Valid until ${new Date(account.accessEndsAt).toLocaleDateString()}` : "Choose a pack to continue broadcasting."}</small><small>Broadcast starts today: {Math.min(account.streamsStartedToday, account.streamsPerDay)} / {account.streamsPerDay}</small></div>
-      <div><span className="metric-kicker">Concurrent broadcast cap</span><strong>{account.streamLimit}</strong><small>Separate from daily stream starts</small></div>
-      <div><span className="metric-kicker">Workspace key</span><strong className="mono">{account.licenseKey}</strong><small>Your existing key stays unchanged</small></div>
-      <div className="pay-usage"><span className="metric-kicker">Downloads today</span><strong>{typeof account.downloadsUsedToday === "number" && typeof account.downloadsPerDay === "number" ? `${account.downloadsUsedToday.toLocaleString("en-IN")} / ${account.downloadsPerDay.toLocaleString("en-IN")}` : "Usage not reported"}</strong><small>Daily allowance is enforced server-side</small></div>
-    </section>
-
     {step === "select" ? <section className="pay-selection">
       <div className="pay-top-tabs" role="tablist" aria-label="Choose access term">
         {(["Days", "Monthly", "Yearly"] as const).map((kind) => <button type="button" role="tab" aria-selected={packType === kind} className={packType === kind ? "selected" : ""} key={kind} onClick={() => changePack(kind)} data-testid={`tab-select-pack-${kind.toLowerCase()}`}>{kind}</button>)}
@@ -183,7 +157,7 @@ export function ManualSubscriptionPage({ account, onRefresh }: { account: Accoun
         <span className="metric-kicker">YT Loop access</span>
         <h2>Choose your access term</h2>
         <p className="pay-select-intro">Start with the term that fits your schedule. You’ll set broadcast starts and daily downloads next.</p>
-        <div className="pay-selected-term" aria-live="polite"><strong>{packType}</strong><span>{packType === "Days" ? "Choose 1–30 days in the next step." : packType === "Monthly" ? "30 days of access." : "365 days of access."}</span></div>
+        <div className="pay-selected-term" aria-live="polite"><strong>{packType}</strong><span>{packType === "Days" ? "Choose 1–30 days in the next step." : packType === "Monthly" ? "Choose 1–12 months in the next step." : "Choose 1, 5, 10, or 15 years in the next step."}</span></div>
         <div className="pay-benefit-grid" aria-label="Included with every pack">
           {sharedBenefits.map((benefit) => <div className="pay-benefit" key={benefit.label}><span className="pay-benefit-icon"><img src={benefit.image} alt=""/></span><strong>{benefit.label}</strong></div>)}
         </div>
@@ -251,17 +225,28 @@ export function ManualSubscriptionPage({ account, onRefresh }: { account: Accoun
             <label className="pay-custom-download"><span>Custom amount</span><input type="number" min="1" max="1000000" value={downloads} onChange={(event) => setDownloads(Math.min(1000000, Math.max(1, Number(event.target.value) || 1)))} data-testid="input-downloads-per-day"/></label>
           </section>
           <section className="pay-control-block">
-            <div className="pay-control-label"><img src={durationArt} alt="" /><div><strong>Duration</strong><small>{packType === "Days" ? "Choose from 1 to 30 days." : `${packType === "Monthly" ? "Monthly" : "Yearly"} pack duration.`}</small></div></div>
+             <div className="pay-control-label"><img src={durationArt} alt="" /><div><strong>Duration</strong><small>{packType === "Days" ? "Choose from 1 to 30 days." : packType === "Monthly" ? "Choose from 1 to 12 months." : "Choose 1, 5, 10, or 15 years."}</small></div></div>
             {packType === "Days" ? <>
               <div className="pay-duration-entry"><input aria-label="Duration in days" type="number" min="1" max="30" value={durationDays} onChange={(event) => setDayCount(Number(event.target.value))} data-testid="input-duration-days"/><span>days</span><b className="duration-badge">{durationDays} days</b></div>
               <input className="pay-duration-slider" type="range" min="1" max="30" value={durationDays} aria-label="Select duration from 1 to 30 days" onChange={(event) => setDayCount(Number(event.target.value))} data-testid="slider-duration-days"/>
               <div className="pay-duration-ticks"><span>1 day</span><span>30 days</span></div>
-            </> : <div className="pay-duration-fixed"><strong>{packType === "Monthly" ? "30" : "365"} days</strong><span>One {packType.toLowerCase()} pack</span></div>}
+             </> : <div className="pay-duration-fixed">
+               <strong>{durationDaysLabel(durationDays)}</strong>
+               <label className="pay-duration-select-label" htmlFor="select-pack-duration">Term</label>
+               <select id="select-pack-duration" value={durationDays} onChange={(event) => { setDurationDays(Number(event.target.value)); setQuote(null); }} data-testid="select-pack-duration">
+                 {packType === "Monthly"
+                   ? Array.from({ length: 12 }, (_, index) => {
+                     const months = index + 1;
+                     return <option key={months} value={months * 30}>{months} month{months === 1 ? "" : "s"} ({months * 30} days)</option>;
+                   })
+                   : [1, 5, 10, 15].map((years) => <option key={years} value={years * 365}>{years} year{years === 1 ? "" : "s"} ({years * 365} days)</option>)}
+               </select>
+             </div>}
           </section>
         </div>
         <div className="pay-live-total">
-          <div><span>Estimated total</span><strong data-testid="text-live-total">{money(((streams * plan.pricePerStreamDayPaise) + (downloads * plan.pricePerDownloadPaise)) * (packType === "Days" ? durationDays : packType === "Monthly" ? 30 : 365))}</strong></div>
-          <small>{streams} starts × {money(plan.pricePerStreamDayPaise)} + {downloads.toLocaleString("en-IN")} downloads × {money(plan.pricePerDownloadPaise)}, per day<br/>multiplied by {(packType === "Days" ? durationDays : packType === "Monthly" ? 30 : 365)} days. Final amount is confirmed by the server.</small>
+           <div><span>Estimated total</span><strong data-testid="text-live-total">{money(((streams * plan.pricePerStreamDayPaise) + (downloads * plan.pricePerDownloadPaise)) * estimatedDurationDays)}</strong></div>
+           <small>{streams} starts × {money(plan.pricePerStreamDayPaise)} + {downloads.toLocaleString("en-IN")} downloads × {money(plan.pricePerDownloadPaise)}, per day<br/>multiplied by {estimatedDurationDays} days. Final amount is confirmed by the server.</small>
         </div>
         <button className="button pay-quote-button" type="button" onClick={() => void requestQuote()} disabled={quoteMutation.isPending} data-testid="button-confirm-purchase"><span>{quoteMutation.isPending ? "Calculating your total…" : "Confirm to purchase"}</span>{quoteMutation.isPending ? <LoaderCircle className="pay-spin" size={16}/> : <ChevronUp size={17} style={{ transform: "rotate(90deg)" }}/>}</button>
       </>}
@@ -269,15 +254,6 @@ export function ManualSubscriptionPage({ account, onRefresh }: { account: Accoun
      </section>
     </div>}
 
-    <section className="card pay-request-history">
-      <div className="pay-section-title"><div><span className="metric-kicker">Review tracking</span><h2>Payment requests</h2><p>Submitted references stay pending until an owner explicitly approves them.</p></div><button className="button secondary small" type="button" onClick={() => void requestsQuery.refetch()} disabled={requestsQuery.isFetching} data-testid="button-refresh-account-requests"><RefreshCw size={13} className={requestsQuery.isFetching ? "pay-spin" : ""}/> Refresh</button></div>
-      {requestsQuery.isLoading ? <div className="pay-loading-line"/> : requestsQuery.isError ? <div className="pay-empty"><XCircle size={21}/><strong>Requests unavailable</strong><button className="button secondary small" onClick={() => void requestsQuery.refetch()}>Try again</button></div> : requests.length === 0 ? <div className="pay-empty"><FileText size={23}/><strong>No payment requests yet</strong><span>Your UTR and optional screenshot appear here after submission.</span></div> : <div className="pay-request-list">{requests.map((request) => <div className="pay-request-row" key={request.id} data-testid={`row-account-payment-${request.id}`}><div className={`pay-status-mark ${request.status}`}><StatusGlyph status={request.status}/></div><div className="pay-request-main"><strong>{request.planName} · {money(request.amountPaise)}</strong><span>{request.packType} · {request.durationDays} days · {request.streamsPerDay} starts/day · {request.downloadsPerDay.toLocaleString("en-IN")} downloads/day · UTR <b className="mono">{request.utr}</b></span><small>{new Date(request.createdAt).toLocaleString()}</small>{request.reviewNote && <p className="pay-review-note">{request.reviewNote}</p>}</div><span className={`pay-status-tag ${request.status}`}>{request.status === "pending" ? "Pending review" : request.status}</span></div>)}</div>}
-    </section>
-    <section className="card pay-request-history">
-      <div className="pay-section-title"><div><span className="metric-kicker">Account record</span><h2>Purchase & grant history</h2><p>Approved purchases and owner-granted access remain available for your records.</p></div><span className="pay-history-count">{filteredHistory.length} / {history.length}</span></div>
-      <div className="pay-history-toolbar"><label><Filter size={14}/><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search plan, invoice or UTR" data-testid="input-history-search"/></label><select value={historyType} onChange={(event) => setHistoryType(event.target.value as typeof historyType)} aria-label="Filter transaction type" data-testid="select-history-type"><option value="all">All records</option><option value="purchase">Purchases</option><option value="grant">Owner grants</option></select><select value={range} onChange={(event) => setRange(event.target.value)} aria-label="Filter by date" data-testid="select-history-date"><option value="all">Any time</option><option value="30">Last 30 days</option><option value="90">Last 90 days</option><option value="365">Last year</option></select></div>
-      {!history.length ? <div className="pay-empty"><FileText size={23}/><strong>No completed purchases yet</strong><span>Approved payment history and owner grants appear here.</span></div> : !filteredHistory.length ? <div className="pay-empty"><Filter size={22}/><strong>No matching records</strong><button className="button secondary small" onClick={() => { setSearch(""); setHistoryType("all"); setRange("all"); }}>Clear filters</button></div> : <div className="pay-history-list">{filteredHistory.map((item) => <div className="pay-history-row" key={item.id} data-testid={`row-history-${item.id}`}><div><strong>{item.message}</strong><span>{item.days || 0} days{item.streamsPerDay ? ` · ${item.streamsPerDay} starts/day` : ""}{item.streamLimit ? ` · ${item.streamLimit} concurrent cap` : ""}{item.downloadsPerDay ? ` · ${item.downloadsPerDay} downloads/day` : ""}{item.amountPaise ? ` · ${money(item.amountPaise)}` : ""}{item.utr ? ` · UTR ${item.utr}` : ""}</span><small>{new Date(item.at).toLocaleString()} · Ref {item.id.slice(0, 8)}</small></div><button className="button secondary small" onClick={() => makeInvoice(item)} data-testid={`button-invoice-${item.id}`}><FileText size={13}/> Invoice</button></div>)}</div>}
-    </section>
   </div>;
 }
 
@@ -297,12 +273,9 @@ export function OwnerPaymentPanel({ ownerPassword }: { ownerPassword: string }) 
   const requestsQuery = useListOwnerPaymentRequests(status ? { status } : {}, { request: requestOpts });
   const updatePlan = useUpdateBillingPlan({ request: requestOpts });
   const updateSettings = useUpdateOwnerPaymentSettings({ request: requestOpts });
-  const createQrUrl = useCreateOwnerPaymentQrUploadUrl({ request: requestOpts });
   const [draft, setDraft] = useState<PlanDraft | null>(null);
   const [upiId, setUpiId] = useState("");
   const [payeeName, setPayeeName] = useState("");
-  const [qrPath, setQrPath] = useState<string | null>(null);
-  const [qrPreview, setQrPreview] = useState<string | null>(null);
   const [reviewNotes, setReviewNotes] = useState<Record<string, string>>({});
   const [feedback, setFeedback] = useState("");
   const [error, setError] = useState("");
@@ -313,7 +286,6 @@ export function OwnerPaymentPanel({ ownerPassword }: { ownerPassword: string }) 
   useEffect(() => {
     if (settingsQuery.data && !initialized.current) {
       initialized.current = true; setUpiId(settingsQuery.data.upiId); setPayeeName(settingsQuery.data.payeeName);
-      setQrPath(settingsQuery.data.qrImagePath); setQrPreview(settingsQuery.data.qrImageUrl);
     }
   }, [settingsQuery.data]);
   const refreshOwnerLists = async () => Promise.all([
@@ -341,21 +313,9 @@ export function OwnerPaymentPanel({ ownerPassword }: { ownerPassword: string }) 
   const saveSettings = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault(); setError(""); setFeedback("");
     try {
-      await updateSettings.mutateAsync({ data: { upiId: upiId.trim(), payeeName: payeeName.trim(), qrImagePath: qrPath } });
-      setFeedback("UPI destination and QR saved."); await refreshOwnerLists();
+      await updateSettings.mutateAsync({ data: { upiId: upiId.trim(), payeeName: payeeName.trim() } });
+      setFeedback("UPI destination saved. Checkout QR codes include each quoted amount."); await refreshOwnerLists();
     } catch (reason) { setError(errorText(reason, "Could not save payment details.")); }
-  };
-  const changeQr = async (event: ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0]; if (!file) return;
-    setError(""); setFeedback("");
-    try {
-      const path = await uploadImage(file, async (data) => {
-        const signed = await createQrUrl.mutateAsync({ data });
-        return { uploadURL: signed.uploadURL, objectPath: signed.objectPath };
-      });
-      setQrPath(path); setQrPreview(URL.createObjectURL(file)); setFeedback("QR image uploaded. Save payment details to publish it to checkout.");
-    } catch (reason) { setError(errorText(reason, "Could not upload the QR image.")); }
-    event.target.value = "";
   };
   const review = async (requestId: string, action: "approve" | "reject") => {
     setError(""); setFeedback("");
@@ -367,8 +327,11 @@ export function OwnerPaymentPanel({ ownerPassword }: { ownerPassword: string }) 
   };
   const reviewRequest = useReviewOwnerPaymentRequest({ request: requestOpts });
   const changeDraft = (key: keyof PlanDraft, value: string | boolean) => setDraft((old) => ({ ...(old ?? (activePlan ? toDraft(activePlan) : { name: "", description: "", pricePerStreamDayRupees: "0", pricePerDownloadRupees: "0", downloadsPerDay: "1", features: "", active: true })), [key]: value }));
+  const ownerQrValue = upiId.trim() && payeeName.trim()
+    ? `upi://pay?${new URLSearchParams({ pa: upiId.trim(), pn: payeeName.trim(), cu: "INR" })}`
+    : "";
   return <main className="owner-content owner-payment-content">
-    <div className="page-head owner-page-heading"><div><p className="eyebrow">Commerce / Manual UPI</p><h1>Payments</h1><p className="subtle">Set your custom-subscription rates, publish a UPI QR, and review customer payments.</p></div><div className="owner-page-badge"><ShieldCheck size={16}/> Owner review</div></div>
+    <div className="page-head owner-page-heading"><div><p className="eyebrow">Commerce / Manual UPI</p><h1>Payments</h1><p className="subtle">Set your custom-subscription rates, add your UPI destination, and review customer payments.</p></div><div className="owner-page-badge"><ShieldCheck size={16}/> Owner review</div></div>
     {feedback && <div className="pay-alert success" role="status" data-testid="status-owner-feedback"><CheckCircle2 size={17}/><span>{feedback}</span><button className="pay-alert-close" onClick={() => setFeedback("")} aria-label="Dismiss notification"><X size={15}/></button></div>}
     {error && <div className="pay-alert error" role="alert" data-testid="status-owner-error"><XCircle size={17}/><span>{error}</span><button className="pay-alert-close" onClick={() => setError("")} aria-label="Dismiss error"><X size={15}/></button></div>}
     <div className="owner-payment-columns">
@@ -388,14 +351,13 @@ export function OwnerPaymentPanel({ ownerPassword }: { ownerPassword: string }) 
         </form>}
       </section>
       <section className="card owner-pay-card owner-upi-card">
-        <div className="pay-section-title"><div><span className="metric-kicker">Payment destination</span><h2>UPI & QR</h2><p>Your saved QR and UPI details appear on the customer payment step.</p></div><span className="pay-icon pay-icon-warm"><Smartphone size={19}/></span></div>
+        <div className="pay-section-title"><div><span className="metric-kicker">Payment destination</span><h2>UPI & QR</h2><p>Enter your UPI ID and payee name. The customer QR is generated automatically with the quoted amount.</p></div><span className="pay-icon pay-icon-warm"><Smartphone size={19}/></span></div>
         {settingsQuery.isLoading ? <div className="pay-loading-line"/> : settingsQuery.isError ? <div className="pay-empty"><XCircle size={20}/><strong>Payment details unavailable</strong><button className="button secondary small" onClick={() => void settingsQuery.refetch()}>Retry</button></div> : <form className="owner-upi-form" onSubmit={(event) => void saveSettings(event)}>
           <label className="field"><span>UPI ID</span><input required minLength={3} maxLength={100} value={upiId} onChange={(event) => setUpiId(event.target.value)} placeholder="name@bank" data-testid="input-owner-upi"/></label>
           <label className="field"><span>Payee name</span><input required minLength={1} maxLength={100} value={payeeName} onChange={(event) => setPayeeName(event.target.value)} placeholder="Account holder" data-testid="input-owner-payee"/></label>
           <div className="owner-qr-upload">
-             <div className="owner-qr-preview">{qrPreview ? <img src={qrPreview} alt="Current payment QR preview"/> : <img src={qrArt} alt=""/>}</div>
-            <label className="owner-qr-file"><ImagePlus size={16}/><span>{createQrUrl.isPending ? "Uploading QR…" : qrPath ? "Replace payment QR" : "Upload payment QR"}<small>PNG, JPG or WebP · up to 5 MB</small></span><input type="file" accept="image/png,image/jpeg,image/webp" onChange={(event) => void changeQr(event)} disabled={createQrUrl.isPending} data-testid="input-owner-qr"/></label>
-            {qrPath && <button type="button" className="button secondary small" onClick={() => { setQrPath(null); setQrPreview(null); }} data-testid="button-remove-owner-qr">Remove QR</button>}
+            <div className="owner-qr-preview">{ownerQrValue ? <QRCodeSVG value={ownerQrValue} size={164} level="M" includeMargin bgColor="#ffffff" fgColor="#17191d"/> : <span className="owner-qr-empty">Enter a UPI ID and payee name to preview the QR.</span>}</div>
+            <p className="owner-qr-generated-note">This preview has no amount. Each customer checkout QR will include the server-calculated amount.</p>
           </div>
           <button className="button" type="submit" disabled={updateSettings.isPending || !upiId.trim() || !payeeName.trim()} data-testid="button-save-payment-settings"><Save size={14}/>{updateSettings.isPending ? "Saving…" : "Save payment details"}</button>
           {settingsQuery.data?.updatedAt && <small>Last updated {new Date(settingsQuery.data.updatedAt).toLocaleString()}</small>}

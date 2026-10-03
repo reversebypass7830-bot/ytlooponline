@@ -1218,7 +1218,7 @@ export const RenewLicenseForUserResponse = zod.object({
  * @summary Calculate a subscription price before payment
  */
 
-export const quoteAccountPaymentBodyDurationDaysMax = 3650;
+export const quoteAccountPaymentBodyDurationDaysMax = 5475;
 
 export const quoteAccountPaymentBodyStreamsPerDayMax = 100;
 
@@ -1249,8 +1249,8 @@ export const QuoteAccountPaymentResponse = zod.object({
   "pricePerDownloadPaise": zod.number(),
   "upiId": zod.string(),
   "payeeName": zod.string(),
-  "qrImagePath": zod.string(),
-  "qrImageUrl": zod.string(),
+  "qrImagePath": zod.string().nullable(),
+  "qrImageUrl": zod.string().nullable(),
   "features": zod.array(zod.string())
 })
 
@@ -1295,7 +1295,7 @@ export const ListAccountPaymentRequestsResponse = zod.object({
  * @summary Submit a UPI transaction reference for owner review
  */
 
-export const createAccountPaymentRequestBodyOneDurationDaysMax = 3650;
+export const createAccountPaymentRequestBodyOneDurationDaysMax = 5475;
 
 export const createAccountPaymentRequestBodyOneStreamsPerDayMax = 100;
 
@@ -1589,13 +1589,11 @@ export const updateOwnerPaymentSettingsBodyUpiIdMax = 100;
 
 export const updateOwnerPaymentSettingsBodyPayeeNameMax = 100;
 
-export const updateOwnerPaymentSettingsBodyQrImagePathRegExp = new RegExp('^/objects/payment-qr');
 
 
 export const UpdateOwnerPaymentSettingsBody = zod.object({
   "upiId": zod.string().min(updateOwnerPaymentSettingsBodyUpiIdMin).max(updateOwnerPaymentSettingsBodyUpiIdMax),
-  "payeeName": zod.string().min(1).max(updateOwnerPaymentSettingsBodyPayeeNameMax),
-  "qrImagePath": zod.string().regex(updateOwnerPaymentSettingsBodyQrImagePathRegExp).nullish()
+  "payeeName": zod.string().min(1).max(updateOwnerPaymentSettingsBodyPayeeNameMax)
 })
 
 export const updateOwnerPaymentSettingsResponseQrImagePathRegExp = new RegExp('^/objects/payment-qr');
