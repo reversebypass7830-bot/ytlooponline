@@ -1,0 +1,75 @@
+IMPLEMENT CUSTOM SUBSCRIPTION LOGIC FOR YT LOOP - WHITE THEME ONLY
+
+**EXISTING THEME: WHITE #FFFFFF ONLY, NO PINK #EC4899, NO DARK PURPLE #1A0B2E, NO DARK GREEN #0F2A20 - STRICT**
+
+**FLOW 1: SELECT YOUR PACK SCREEN**
+
+When user clicks Subscription -> Show full page (not dialog) "Select Your Pack" centered white card 24px radius border #E5E7EB
+
+Top Tabs Outside: [Days] [Monthly] [Yearly] - Pill design 44px height, active black #111827 bg, inactive white border #E5E7EB text #6B7280, rounded full 999px, gap 12px. Default selected = Days.
+
+Inside page after selection -> Again show same tabs at top sticky 64px header white for switching, plus back button.
+
+**FLOW 2: DAYS PLAN LOGIC - BY DEFAULT**
+
+White card 24px radius border #E5E7EB shadow-sm, padding 24px
+
+Top inside: 3 tabs again Days/Monthly/Yearly - active black
+
+Middle Features: Features same for all plans as existing (Stream as live, Premium quality, 20GB storage) but use my new attached 3D clay icons on marble pedestal 88x88 box white border #E5E7EB 16px radius.
+
+**ADDON CONTROLS [NEW LOGIC]:**
+
+1. **How many streams per day?**
+   - Label 14px medium #111827 + my Red Stream icon 32x32 left
+   - Counter: [-] [5] [+] buttons white border #E5E7EB 36x36 rounded 12px, value center 18px bold black
+   - Below: Quick chips 1, 5, 10, 20 - white pill border #E5E7EB 28px height active black
+
+2. **YouTube Bulk Download - How many videos?**
+   - Label + Blue Download icon
+   - Options: [10] [20] [30] [40] [50] as cards 60x60 white border #E5E7EB 12px radius text 14px bold, active black bg white? Actually active black border 2px
+   - Plus Manual Input: Input field width 120px height 40px white border #E5E7EB 12px radius placeholder "Custom" type number, value state
+
+3. **Duration - How many days?**
+   - Label + Purple Calendar 30 Days icon
+   - Slider 1-30 days + Input number: Show 1 to 30 clickable days grid or slider
+   - Max 30 for Days plan. If user tries 31+ -> Auto switch to Monthly plan with toast "30+ days is available in Monthly plan" and switch tab to Monthly
+   - Display selected: "5 days" badge green #ECFDF5 text #10B981
+
+**PRICE CALCULATION:**
+Formula: Total = (streams_per_day * price_per_stream_per_day + downloads * price_per_download) * duration_days
+Show live total in black bold 28px ₹ with breakdown small grey #6B7280 12px
+Example: 5 streams x ₹10 + 20 downloads x ₹2 = ₹90 per day x 10 days = ₹900
+
+**Button:** Confirm to Purchase - Black #111827 white text 48px height full width rounded 999px 16px font bold
+
+**FLOW 3: QR PAYMENT PAGE (After Confirm)**
+
+On click Confirm -> Hide previous UI same page (or show new step with back button top left arrow 20x20 black)
+
+Show White card centered 400px width:
+- Top Green QR icon 80x80 on marble
+- QR Code Image: Dynamic from admin panel API /admin/qr - Show 200x200 white border 16px radius padding 12px bg white border #E5E7EB
+- Text: "Please Pay ₹{total}" 18px bold black + "Scan QR from admin" 13px grey #6B7280
+- Button: Verify Your Payment - White border #E5E7EB black text 44px height rounded full hover black bg white? Actually black bg
+- On click -> Show Input: "Enter your UTR Number" - Input 48px height white border #E5E7EB 12px radius placeholder 12 digits, plus Upload screenshot optional
+- Submit button Black #111827
+
+**FLOW 4: ADMIN APPROVAL**
+
+On submit UTR -> Send to /api/payment-request {userId, total, streams, downloads, duration, utr, packType: Days}
+Show status Pending white card yellow dot #F59E0B "Waiting for admin approval"
+
+Admin Panel -> Subscription Settings page:
+- Remove old 2 fixed plans
+- Add inputs: Price per stream per day (₹) - input number, Price per YouTube download (₹) - input number
+- QR Code upload: Upload QR image field
+- List of pending requests: Approve / Reject buttons - Approve makes plan active {isActive: true, expiry: today+duration}
+
+**WHITE THEME ENFORCEMENT:**
+All pages white #FFFFFF cards, border #E5E7EB, text black #111827 grey #6B7280, no pink, no dark purple, buttons black #111827 rounded full, badges green light #ECFDF5 text #10B981
+
+**MOBILE 360px:**
+Stack all addon controls vertically gap 16px, counter full width, download chips 2 rows, QR 100% width
+
+Implement in React + Tailwind + shadcn/ui. Use attached icons for each control.
