@@ -768,3 +768,102 @@
     background: rgba(35, 19, 43, 0.42);
   }
 }
+
+@media (min-width: 901px) {
+  .feedback-grid {
+    gap: 20px;
+  }
+
+  .feedback-grid .feedback-card {
+    box-sizing: border-box;
+    aspect-ratio: 190 / 320;
+    height: auto;
+    border: 1px solid #fff;
+    border-radius: 17px;
+    background: rgba(217, 217, 217, 0.58);
+    box-shadow: 12px 17px 51px rgba(0, 0, 0, 0.22);
+    backdrop-filter: blur(6px);
+    transition: all 0.5s;
+    user-select: none;
+  }
+
+  .feedback-grid .feedback-card:hover {
+    z-index: 1;
+    border-color: #111;
+    transform: scale(1.05);
+  }
+
+  .feedback-grid .feedback-card:active {
+    transform: scale(0.95) rotateZ(1.7deg);
+  }
+
+  .feedback-grid .feedback-card-channel-link {
+    flex: 0 0 68px;
+    padding: 11px 13px;
+  }
+
+  .feedback-grid .feedback-card-preview {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-height: 0;
+    background: transparent;
+  }
+
+  .feedback-grid .feedback-card-image {
+    display: flex;
+    flex: 1 1 235px;
+    align-items: flex-start;
+    justify-content: flex-start;
+    height: auto;
+    min-height: 190px;
+    max-height: none;
+    margin: 0 11px;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior-y: auto;
+    aspect-ratio: auto;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.42);
+    scrollbar-color: rgba(35, 19, 43, 0.42) transparent;
+    scrollbar-width: thin;
+  }
+
+  .feedback-grid .feedback-card-image img {
+    width: 100%;
+    height: auto;
+    flex: 0 0 auto;
+    object-fit: contain;
+    object-position: top center;
+  }
+
+  .feedback-grid .feedback-card:hover .feedback-card-image img {
+    transform: none;
+  }
+
+  .feedback-grid .feedback-card-copy {
+    display: flex;
+    flex: 0 0 auto;
+    flex-direction: column;
+    gap: 4px;
+    min-height: 0;
+    padding: 5px 13px 8px;
+  }
+
+  .feedback-grid .feedback-card-title {
+    display: -webkit-box;
+    overflow: hidden;
+    white-space: normal;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+
+  .feedback-grid .feedback-card-image::-webkit-scrollbar {
+    width: 5px;
+  }
+
+  .feedback-grid .feedback-card-image::-webkit-scrollbar-thumb {
+    border-radius: 999px;
+    background: rgba(35, 19, 43, 0.42);
+  }
+}
