@@ -7,7 +7,12 @@
  */
 import type { AccountPaymentQuoteInput } from './accountPaymentQuoteInput';
 
-export type AccountPaymentRequestInput = AccountPaymentQuoteInput & {
+export type AccountPaymentRequestInput = AccountPaymentQuoteInput & ({
   /** @pattern ^[A-Za-z0-9]{6,32}$ */
   utr: string;
-};
+  /**
+     * @nullable
+     * @pattern ^/objects/payment-proof/
+     */
+  screenshotPath?: string | null;
+});

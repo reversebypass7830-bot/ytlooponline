@@ -5,17 +5,24 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { AccountPaymentQuotePackType } from './accountPaymentQuotePackType';
 
 export interface AccountPaymentQuote {
   planId: string;
   planName: string;
+  packType: AccountPaymentQuotePackType;
   durationDays: number;
   streamLimit: number;
+  streamsPerDay: number;
   downloadsPerDay: number;
   totalDownloads: number;
   amountPaise: number;
   amountRupees: number;
+  pricePerStreamDayPaise: number;
+  pricePerDownloadPaise: number;
   upiId: string;
   payeeName: string;
+  qrImagePath: string;
+  qrImageUrl: string;
   features: string[];
 }

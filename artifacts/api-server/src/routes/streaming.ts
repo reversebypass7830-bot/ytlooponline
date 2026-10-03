@@ -8,8 +8,8 @@ import {
   StopStreamBody,
   StopStreamResponse,
 } from "@workspace/api-zod";
-import { accountIdentity } from "../middlewares/requireClerkAuth";
-import { getAccountStreamAccess } from "./accounts";
+import { accountIdentity, requireAccountAuth } from "../middlewares/requireClerkAuth";
+import { getAccountStreamAccess, startAccountStreamWithQuota } from "./accounts";
 import {
   getStreamStatus,
   getStreamPreviewFile,
@@ -24,7 +24,7 @@ import {
 const router: IRouter = Router();
 const accountStreamOwners = new Map<string, string>();
 
-router.post("/stream/start", async (req, res): Promise<void> => {
+router.post("/stream/start", requireAccountAuth, async (req, res): Promise<void> => {
   const parsed = StartStreamBody.safeParse(req.body);
   if (!parsed.success) {
     req.log.warn({ errors: parsed.error.message }, "Invalid stream start request");
@@ -34,27 +34,29 @@ router.post("/stream/start", async (req, res): Promise<void> => {
 
   try {
     const identity = accountIdentity(req);
-    if (identity) {
-      const access = await getAccountStreamAccess(identity.userId);
-      if (!access.active) {
-        res.status(403).json({ error: "Your access has ended. Please upgrade your plan." });
-        return;
-      }
-      let ownedActiveCount = 0;
-      for (const [streamId, ownerId] of accountStreamOwners) {
-        if (getStreamStatus(streamId).status !== "running") {
-          accountStreamOwners.delete(streamId);
-        } else if (ownerId === identity.userId) {
-          ownedActiveCount += 1;
-        }
-      }
-      const isAlreadyCounted = accountStreamOwners.get(parsed.data.streamId) === identity.userId;
-      if (!isAlreadyCounted && ownedActiveCount >= access.streamLimit) {
-        res.status(429).json({ error: `Your plan allows up to ${access.streamLimit} simultaneous streams. Please upgrade your plan.` });
-        return;
+    if (!identity) {
+      res.status(401).json({ error: "Sign in is required to start a stream." });
+      return;
+    }
+    const access = await getAccountStreamAccess(identity.userId);
+    if (!access.active) {
+      res.status(403).json({ error: "Your access has ended. Please upgrade your plan." });
+      return;
+    }
+    let ownedActiveCount = 0;
+    for (const [streamId, ownerId] of accountStreamOwners) {
+      if (getStreamStatus(streamId).status !== "running") {
+        accountStreamOwners.delete(streamId);
+      } else if (ownerId === identity.userId) {
+        ownedActiveCount += 1;
       }
     }
-    const result = startStream({
+    const isAlreadyCounted = accountStreamOwners.get(parsed.data.streamId) === identity.userId;
+    if (!isAlreadyCounted && ownedActiveCount >= access.streamLimit) {
+      res.status(429).json({ error: `Your plan allows up to ${access.streamLimit} simultaneous streams. Please upgrade your plan.` });
+      return;
+    }
+    const start = () => StartStreamResponse.parse(startStream({
       streamId: parsed.data.streamId,
       ingestUrl: parsed.data.ingestUrl,
       category: parsed.data.category,
@@ -76,9 +78,20 @@ router.post("/stream/start", async (req, res): Promise<void> => {
       liveAnimationY: parsed.data.liveAnimationY,
       liveAnimationScale: parsed.data.liveAnimationScale,
       composition: parsed.data.composition,
-    });
-    if (identity) accountStreamOwners.set(parsed.data.streamId, identity.userId);
-    res.status(202).json(StartStreamResponse.parse(result));
+    }));
+    let result: ReturnType<typeof start>;
+    if (isAlreadyCounted) {
+      result = start();
+    } else {
+      const reservation = await startAccountStreamWithQuota(identity.userId, start);
+      if (!reservation.ok) {
+        res.status(reservation.status).json({ error: reservation.error });
+        return;
+      }
+      result = reservation.result;
+    }
+    accountStreamOwners.set(parsed.data.streamId, identity.userId);
+    res.status(202).json(result);
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unable to start stream.";
     const status = message.includes("already streaming") ? 409 : 400;

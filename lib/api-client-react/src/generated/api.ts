@@ -54,6 +54,8 @@ import type {
   MediaFileListResponse,
   MediaTrimResponse,
   MediaUploadResponse,
+  PaymentAssetUploadUrl,
+  PaymentAssetUploadUrlInput,
   PaymentRequestListResponse,
   PaymentRequestResponse,
   PaymentReviewInput,
@@ -2741,6 +2743,77 @@ export const useCreateAccountPaymentRequest = <TError = ErrorType<void>,
       return useMutation(getCreateAccountPaymentRequestMutationOptions(options));
     }
 
+export const getCreateAccountPaymentProofUploadUrlUrl = () => {
+
+
+
+
+  return `/api/account/payment-proof/upload-url`
+}
+
+/**
+ * @summary Prepare a private payment-proof image upload
+ */
+export const createAccountPaymentProofUploadUrl = async (paymentAssetUploadUrlInput: PaymentAssetUploadUrlInput, options?: Parameters<typeof customFetch>[1]): Promise<PaymentAssetUploadUrl> => {
+
+  return customFetch<PaymentAssetUploadUrl>(getCreateAccountPaymentProofUploadUrlUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(paymentAssetUploadUrlInput)
+  }
+);}
+
+
+
+
+
+export const getCreateAccountPaymentProofUploadUrlMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createAccountPaymentProofUploadUrl>>, TError,{data: BodyType<PaymentAssetUploadUrlInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createAccountPaymentProofUploadUrl>>, TError,{data: BodyType<PaymentAssetUploadUrlInput>}, TContext> => {
+
+const mutationKey = ['createAccountPaymentProofUploadUrl'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createAccountPaymentProofUploadUrl>>, {data: BodyType<PaymentAssetUploadUrlInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createAccountPaymentProofUploadUrl(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateAccountPaymentProofUploadUrlMutationResult = NonNullable<Awaited<ReturnType<typeof createAccountPaymentProofUploadUrl>>>
+    export type CreateAccountPaymentProofUploadUrlMutationBody = BodyType<PaymentAssetUploadUrlInput>
+    export type CreateAccountPaymentProofUploadUrlMutationError = ErrorType<void>
+
+    /**
+ * @summary Prepare a private payment-proof image upload
+ */
+export const useCreateAccountPaymentProofUploadUrl = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createAccountPaymentProofUploadUrl>>, TError,{data: BodyType<PaymentAssetUploadUrlInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createAccountPaymentProofUploadUrl>>,
+        TError,
+        {data: BodyType<PaymentAssetUploadUrlInput>},
+        TContext
+      > => {
+      return useMutation(getCreateAccountPaymentProofUploadUrlMutationOptions(options));
+    }
+
 export const getListBillingPlansUrl = () => {
 
 
@@ -3107,6 +3180,77 @@ export const useUpdateOwnerPaymentSettings = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getUpdateOwnerPaymentSettingsMutationOptions(options));
+    }
+
+export const getCreateOwnerPaymentQrUploadUrlUrl = () => {
+
+
+
+
+  return `/api/owner/payment-qr/upload-url`
+}
+
+/**
+ * @summary Prepare an owner-only QR image upload
+ */
+export const createOwnerPaymentQrUploadUrl = async (paymentAssetUploadUrlInput: PaymentAssetUploadUrlInput, options?: Parameters<typeof customFetch>[1]): Promise<PaymentAssetUploadUrl> => {
+
+  return customFetch<PaymentAssetUploadUrl>(getCreateOwnerPaymentQrUploadUrlUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(paymentAssetUploadUrlInput)
+  }
+);}
+
+
+
+
+
+export const getCreateOwnerPaymentQrUploadUrlMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createOwnerPaymentQrUploadUrl>>, TError,{data: BodyType<PaymentAssetUploadUrlInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createOwnerPaymentQrUploadUrl>>, TError,{data: BodyType<PaymentAssetUploadUrlInput>}, TContext> => {
+
+const mutationKey = ['createOwnerPaymentQrUploadUrl'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createOwnerPaymentQrUploadUrl>>, {data: BodyType<PaymentAssetUploadUrlInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createOwnerPaymentQrUploadUrl(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateOwnerPaymentQrUploadUrlMutationResult = NonNullable<Awaited<ReturnType<typeof createOwnerPaymentQrUploadUrl>>>
+    export type CreateOwnerPaymentQrUploadUrlMutationBody = BodyType<PaymentAssetUploadUrlInput>
+    export type CreateOwnerPaymentQrUploadUrlMutationError = ErrorType<void>
+
+    /**
+ * @summary Prepare an owner-only QR image upload
+ */
+export const useCreateOwnerPaymentQrUploadUrl = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createOwnerPaymentQrUploadUrl>>, TError,{data: BodyType<PaymentAssetUploadUrlInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createOwnerPaymentQrUploadUrl>>,
+        TError,
+        {data: BodyType<PaymentAssetUploadUrlInput>},
+        TContext
+      > => {
+      return useMutation(getCreateOwnerPaymentQrUploadUrlMutationOptions(options));
     }
 
 export const getListOwnerPaymentRequestsUrl = (params?: ListOwnerPaymentRequestsParams,) => {

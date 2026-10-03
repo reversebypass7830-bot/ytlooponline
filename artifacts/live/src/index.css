@@ -27,27 +27,27 @@
 }
 
 :root {
-  --background: 225 39% 7%;
-  --foreground: 224 30% 94%;
-  --card: 231 39% 12%;
-  --card-foreground: 224 30% 94%;
-  --border: 229 33% 20%;
-  --input: 229 33% 20%;
-  --ring: 217 91% 59%;
-  --primary: 217 91% 57%;
+  --background: 0 0% 100%;
+  --foreground: 220 18% 11%;
+  --card: 0 0% 100%;
+  --card-foreground: 220 18% 11%;
+  --border: 220 14% 91%;
+  --input: 220 14% 87%;
+  --ring: 220 18% 20%;
+  --primary: 220 18% 11%;
   --primary-foreground: 0 0% 100%;
-  --secondary: 231 39% 12%;
-  --secondary-foreground: 224 30% 94%;
-  --muted: 229 29% 17%;
-  --muted-foreground: 225 14% 64%;
-  --accent: 258 90% 66%;
-  --accent-foreground: 0 0% 100%;
-  --destructive: 0 72% 56%;
+  --secondary: 220 14% 96%;
+  --secondary-foreground: 220 18% 15%;
+  --muted: 220 14% 96%;
+  --muted-foreground: 220 9% 46%;
+  --accent: 145 45% 94%;
+  --accent-foreground: 145 55% 32%;
+  --destructive: 0 64% 48%;
   --destructive-foreground: 0 0% 100%;
-  --app-font-sans: 'Inter', ui-sans-serif, sans-serif;
+  --app-font-sans: 'Figtree', ui-sans-serif, sans-serif;
   --app-font-mono: 'Space Mono', ui-monospace, monospace;
   --app-font-display: 'Plus Jakarta Sans', ui-sans-serif, sans-serif;
-  --radius: 0.85rem;
+  --radius: 1rem;
 }
 
 * { box-sizing: border-box; }
@@ -11393,4 +11393,426 @@ select { height: 41px; }
   .shell.profile-surface .profile-page {
     padding-bottom: calc(106px + env(safe-area-inset-bottom));
   }
+}
+
+/* Subscription and owner payment surfaces: restrained white UPI checkout */
+.subscription-page,
+.owner-payment-content {
+  --pay-ink: #111827;
+  --pay-muted: #6b7280;
+  --pay-line: #e5e7eb;
+  --pay-paper: #ffffff;
+  --pay-soft: #f9fafb;
+  --pay-yellow: #f59e0b;
+  --pay-green: #10b981;
+  color: var(--pay-ink);
+  background: #fff;
+}
+.subscription-page { max-width: 1280px; }
+.subscription-page .eyebrow,
+.owner-payment-content .eyebrow { color: #6b7280; }
+.subscription-page h1,
+.owner-payment-content h1,
+.subscription-page h2,
+.owner-payment-content h2,
+.subscription-page h3,
+.owner-payment-content h3 { color: var(--pay-ink); }
+.subscription-page .subtle,
+.owner-payment-content .subtle { color: var(--pay-muted); }
+.subscription-page .card,
+.owner-payment-content .card {
+  color: var(--pay-ink);
+  background: var(--pay-paper);
+  border-color: var(--pay-line);
+  border-radius: 20px;
+  box-shadow: 0 5px 20px rgba(17, 24, 39, .035);
+}
+.subscription-page .metric-kicker,
+.owner-payment-content .metric-kicker { color: var(--pay-muted); }
+.subscription-page .button,
+.owner-payment-content .button {
+  background: #111827;
+  color: #fff;
+  border-radius: 999px;
+  box-shadow: none;
+  min-height: 40px;
+}
+.subscription-page .button:hover,
+.owner-payment-content .button:hover { background: #293244; box-shadow: none; }
+.subscription-page .button.secondary,
+.owner-payment-content .button.secondary {
+  background: #fff;
+  color: var(--pay-ink);
+  border: 1px solid var(--pay-line);
+}
+.subscription-page .button.secondary:hover,
+.owner-payment-content .button.secondary:hover { background: #f3f4f6; }
+.subscription-page .button:focus-visible,
+.owner-payment-content .button:focus-visible,
+.subscription-page button:focus-visible,
+.owner-payment-content button:focus-visible,
+.subscription-page input:focus-visible,
+.owner-payment-content input:focus-visible,
+.subscription-page select:focus-visible,
+.owner-payment-content select:focus-visible,
+.subscription-page textarea:focus-visible,
+.owner-payment-content textarea:focus-visible {
+  outline: 3px solid rgba(17, 24, 39, .23);
+  outline-offset: 2px;
+}
+.subscription-page input,
+.subscription-page select,
+.subscription-page textarea,
+.owner-payment-content input,
+.owner-payment-content select,
+.owner-payment-content textarea {
+  color: var(--pay-ink);
+  background: #fff;
+  border-color: var(--pay-line);
+  border-radius: 11px;
+}
+.subscription-page input:focus,
+.subscription-page select:focus,
+.subscription-page textarea:focus,
+.owner-payment-content input:focus,
+.owner-payment-content select:focus,
+.owner-payment-content textarea:focus {
+  border-color: #111827;
+  box-shadow: 0 0 0 3px rgba(17, 24, 39, .08);
+}
+.subscription-page .subscription-heading { align-items: flex-end; }
+.subscription-page .subscription-status {
+  color: #374151;
+  border: 1px solid var(--pay-line);
+  background: #fff;
+}
+.subscription-page .subscription-status.active .status-dot { background: #10b981; box-shadow: 0 0 0 3px #ecfdf5; }
+.subscription-page .pay-access-strip {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 20px;
+  padding: 20px 22px;
+  margin-bottom: 20px;
+}
+.subscription-page .pay-access-strip > div { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.subscription-page .pay-access-strip strong { overflow-wrap: anywhere; font-size: 16px; letter-spacing: -.025em; }
+.subscription-page .pay-access-strip small { color: var(--pay-muted); line-height: 1.45; font-size: 11px; }
+.subscription-page .pay-layout { display: block; }
+.subscription-page .pay-pack-card,
+.subscription-page .pay-checkout,
+.subscription-page .pay-pending-state,
+.subscription-page .pay-request-history,
+.owner-payment-content .owner-pay-card { padding: 24px; }
+.subscription-page .pay-pack-card { overflow: hidden; }
+.subscription-page .pay-pack-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 24px; }
+.subscription-page .pay-pack-top h2 { font-size: 25px; margin: 7px 0 7px; }
+.subscription-page .pay-pack-top p { max-width: 570px; margin: 0; color: var(--pay-muted); font-size: 13px; line-height: 1.55; }
+.subscription-page .pay-pack-switch,
+.owner-payment-content .owner-review-tabs {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.subscription-page .pay-pack-switch button,
+.owner-payment-content .owner-review-tabs button {
+  min-height: 42px;
+  padding: 0 18px;
+  border: 1px solid var(--pay-line);
+  border-radius: 999px;
+  color: var(--pay-muted);
+  background: #fff;
+  font-size: 13px;
+  font-weight: 700;
+}
+.subscription-page .pay-pack-switch button.selected,
+.owner-payment-content .owner-review-tabs button.active { color: #fff; background: #111827; border-color: #111827; }
+.subscription-page .pay-feature-ribbon {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin: 22px 0 24px;
+}
+.subscription-page .pay-feature {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 12px;
+  padding: 10px;
+  border: 1px solid var(--pay-line);
+  border-radius: 15px;
+  background: #fff;
+}
+.subscription-page .pay-feature img {
+  width: 62px; height: 62px; flex: 0 0 62px; object-fit: cover;
+  border: 1px solid var(--pay-line); border-radius: 12px;
+}
+.subscription-page .pay-feature span,
+.subscription-page .pay-control-label > div { display: grid; gap: 4px; min-width: 0; }
+.subscription-page .pay-feature strong { font-size: 12px; }
+.subscription-page .pay-feature small,
+.subscription-page .pay-control-label small { color: var(--pay-muted); font-size: 11px; line-height: 1.4; }
+.subscription-page .pay-included-features { display: flex; flex-wrap: wrap; gap: 8px; margin: -10px 0 20px; }
+.subscription-page .pay-included-features span { display: inline-flex; align-items: center; gap: 6px; padding: 7px 10px; border: 1px solid var(--pay-line); border-radius: 999px; color: #374151; font-size: 11px; }
+.subscription-page .pay-included-features svg { color: #059669; }
+.subscription-page .pay-config-controls {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+.subscription-page .pay-control-block {
+  min-width: 0;
+  padding: 16px;
+  border: 1px solid var(--pay-line);
+  border-radius: 16px;
+  background: #fff;
+}
+.subscription-page .pay-control-label { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
+.subscription-page .pay-control-label img {
+  width: 44px; height: 44px; flex: 0 0 44px; object-fit: cover;
+  border: 1px solid var(--pay-line); border-radius: 11px;
+}
+.subscription-page .pay-control-label strong { font-size: 13px; line-height: 1.3; }
+.subscription-page .pay-stepper.pay-stream-counter {
+  display: grid;
+  grid-template-columns: 40px 1fr 40px;
+  align-items: center;
+  gap: 10px;
+  padding: 0;
+  margin-bottom: 12px;
+  border: 0;
+}
+.subscription-page .pay-stream-counter button {
+  display: grid; place-items: center; width: 40px; height: 40px;
+  color: var(--pay-ink); border: 1px solid var(--pay-line); border-radius: 12px; background: #fff;
+}
+.subscription-page .pay-stream-counter button:disabled { opacity: .4; cursor: not-allowed; }
+.subscription-page .pay-stream-counter strong { text-align: center; font-size: 22px; }
+.subscription-page .pay-quick-choices { display: flex; gap: 7px; }
+.subscription-page .pay-quick-choices button {
+  min-width: 44px; height: 30px; border: 1px solid var(--pay-line);
+  border-radius: 999px; background: #fff; color: var(--pay-muted); font-weight: 700;
+}
+.subscription-page .pay-quick-choices button.active { border-color: #111827; color: #fff; background: #111827; }
+.subscription-page .pay-download-options { display: flex; flex-wrap: wrap; gap: 7px; }
+.subscription-page .pay-download-options button {
+  min-width: 48px; height: 44px; border: 1px solid var(--pay-line); border-radius: 11px;
+  color: var(--pay-ink); background: #fff; font-size: 13px; font-weight: 700;
+}
+.subscription-page .pay-download-options button.active { border: 2px solid #111827; }
+.subscription-page .pay-custom-download { display: flex; align-items: center; gap: 12px; margin-top: 12px; color: var(--pay-muted); font-size: 11px; }
+.subscription-page .pay-custom-download input { width: 112px; height: 38px; padding: 0 10px; font-size: 13px; }
+.subscription-page .pay-duration-entry { display: flex; align-items: center; gap: 8px; }
+.subscription-page .pay-duration-entry input { width: 76px; height: 40px; padding: 0 10px; font-size: 15px; font-weight: 700; }
+.subscription-page .pay-duration-entry > span { color: var(--pay-muted); font-size: 12px; }
+.subscription-page .duration-badge { margin-left: auto; padding: 7px 10px; border-radius: 999px; color: #059669; background: #ecfdf5; font-size: 11px; }
+.subscription-page .pay-duration-slider { width: 100%; margin: 20px 0 4px; accent-color: #111827; }
+.subscription-page .pay-duration-ticks { display: flex; justify-content: space-between; color: var(--pay-muted); font-size: 10px; }
+.subscription-page .pay-duration-fixed { display: flex; flex-direction: column; gap: 4px; padding: 12px; border: 1px solid var(--pay-line); border-radius: 12px; }
+.subscription-page .pay-duration-fixed strong { font-size: 20px; }
+.subscription-page .pay-duration-fixed span { color: var(--pay-muted); font-size: 11px; }
+.subscription-page .pay-live-total {
+  display: flex; justify-content: space-between; align-items: flex-end; gap: 20px;
+  margin-top: 18px; padding: 17px 18px; border-radius: 15px; background: #f9fafb;
+}
+.subscription-page .pay-live-total > div { display: grid; gap: 3px; }
+.subscription-page .pay-live-total > div span { color: var(--pay-muted); font-size: 12px; }
+.subscription-page .pay-live-total > div strong { color: #111827; font-size: 29px; line-height: 1; letter-spacing: -.055em; }
+.subscription-page .pay-live-total > small { color: var(--pay-muted); font-size: 11px; line-height: 1.55; text-align: right; }
+.subscription-page .pay-quote-button {
+  display: flex; width: 100%; min-height: 50px; justify-content: center;
+  margin-top: 14px; font-size: 14px;
+}
+.subscription-page .pay-trust-note { display: flex; align-items: flex-start; gap: 8px; margin-top: 14px; color: var(--pay-muted); font-size: 11px; line-height: 1.5; }
+.subscription-page .pay-trust-note svg { flex: 0 0 auto; color: #6b7280; }
+.subscription-page .pay-pending-state { max-width: 720px; margin: 0 auto 22px; text-align: center; }
+.subscription-page .pay-pending-state h2 { margin: 12px 0 6px; font-size: 23px; }
+.subscription-page .pay-pending-state p { max-width: 480px; margin: 0 auto 18px; color: var(--pay-muted); line-height: 1.55; font-size: 13px; }
+.subscription-page .pending-dot { display: inline-block; width: 12px; height: 12px; border-radius: 50%; background: #f59e0b; box-shadow: 0 0 0 6px #fffbeb; }
+.subscription-page .pay-checkout { max-width: 980px; margin: 0 auto 22px; }
+.subscription-page .pay-back-button { display: inline-flex; align-items: center; gap: 8px; padding: 4px 0; border: 0; background: transparent; color: #111827; font-weight: 700; }
+.subscription-page .pay-checkout-grid { display: grid; grid-template-columns: minmax(0, .85fr) minmax(350px, 1fr); gap: 28px; margin-top: 12px; }
+.subscription-page .pay-checkout-summary h2 { margin: 8px 0 20px; font-size: 25px; }
+.subscription-page .pay-total-panel { display: grid; gap: 7px; padding: 20px; border-radius: 16px; background: #f9fafb; }
+.subscription-page .pay-total-panel small,
+.subscription-page .pay-total-panel span { color: var(--pay-muted); font-size: 12px; }
+.subscription-page .pay-total-panel strong { font-size: 34px; letter-spacing: -.06em; }
+.subscription-page .pay-breakdown { margin: 18px 0 0; }
+.subscription-page .pay-breakdown div { display: flex; justify-content: space-between; gap: 12px; padding: 11px 0; border-bottom: 1px solid var(--pay-line); }
+.subscription-page .pay-breakdown dt { color: var(--pay-muted); font-size: 12px; }
+.subscription-page .pay-breakdown dd { margin: 0; font-weight: 700; font-size: 12px; }
+.subscription-page .pay-qr-side { display: flex; flex-direction: column; align-items: center; padding: 18px; border: 1px solid var(--pay-line); border-radius: 17px; }
+.subscription-page .pay-clay-small { width: 58px; height: 58px; margin-bottom: 8px; border: 1px solid var(--pay-line); border-radius: 14px; object-fit: cover; }
+.subscription-page .pay-qr-frame { display: grid; place-items: center; width: 224px; height: 224px; padding: 12px; border: 1px solid var(--pay-line); border-radius: 16px; background: #fff; }
+.subscription-page .pay-qr-frame > img { width: 100%; height: 100%; object-fit: contain; }
+.subscription-page .pay-scan-heading { margin-top: 12px; font-size: 17px; }
+.subscription-page .pay-scan-copy { max-width: 290px; margin-top: 4px; color: var(--pay-muted); text-align: center; font-size: 11px; line-height: 1.5; }
+.subscription-page .payee-details { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 8px; width: 100%; margin: 15px 0; padding: 12px; border-radius: 12px; background: #f9fafb; }
+.subscription-page .payee-details > span { color: var(--pay-muted); font-size: 10px; }
+.subscription-page .payee-details > strong,
+.subscription-page .payee-details > div { text-align: right; font-size: 12px; }
+.subscription-page .payee-details > div { display: flex; align-items: center; justify-content: flex-end; gap: 8px; }
+.subscription-page .payee-details .icon-button { width: 30px; height: 30px; border-color: var(--pay-line); background: #fff; color: var(--pay-ink); }
+.subscription-page .pay-utr-form { display: flex; flex-direction: column; gap: 8px; width: 100%; }
+.subscription-page .pay-utr-form > label:first-child { font-size: 12px; font-weight: 700; }
+.subscription-page .pay-utr-form > input { width: 100%; height: 44px; padding: 0 12px; font-size: 13px; }
+.subscription-page .pay-utr-form > small { color: var(--pay-muted); font-size: 10px; }
+.subscription-page .proof-upload {
+  position: relative; display: flex; align-items: center; gap: 10px; margin-top: 6px; padding: 12px;
+  border: 1px dashed #d1d5db; border-radius: 12px; color: #374151; cursor: pointer; font-size: 11px;
+}
+.subscription-page .proof-upload > span { display: grid; gap: 3px; }
+.subscription-page .proof-upload small { color: var(--pay-muted); }
+.subscription-page .proof-upload input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
+.subscription-page .pay-request-history { margin-top: 18px; }
+.subscription-page .pay-section-title h2 { color: #111827; }
+.subscription-page .pay-section-title p { color: var(--pay-muted); }
+.subscription-page .pay-status-tag.pending { color: #a16207; background: #fffbeb; }
+.subscription-page .pay-status-mark.pending { color: #f59e0b; background: #fffbeb; }
+.subscription-page .pay-request-main > span,
+.subscription-page .pay-request-main small,
+.subscription-page .pay-history-row span,
+.subscription-page .pay-history-row small { color: var(--pay-muted); }
+.subscription-page .pay-history-toolbar label { border-color: var(--pay-line); background: #fff; }
+.subscription-page .pay-history-toolbar input { background: #fff; }
+.subscription-page .pay-empty { color: var(--pay-muted); background: #fff; border-color: var(--pay-line); }
+.subscription-page .pay-empty strong { color: var(--pay-ink); }
+.subscription-page .pay-alert { border-radius: 13px; }
+.subscription-page .pay-alert.success { color: #065f46; border-color: #a7f3d0; background: #ecfdf5; }
+.subscription-page .pay-alert.error { color: #991b1b; border-color: #fecaca; background: #fef2f2; }
+.subscription-page .pay-skeleton { background: linear-gradient(90deg, #f3f4f6 20%, #e5e7eb 38%, #f3f4f6 60%); }
+.owner-payment-content .owner-page-badge { color: #374151; border-color: var(--pay-line); background: #fff; }
+.owner-payment-content .owner-payment-columns { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(320px, .85fr); gap: 18px; }
+.owner-payment-content .owner-pay-card { min-width: 0; }
+.owner-payment-content .owner-plan-editor { background: #fff; border-color: var(--pay-line); border-radius: 15px; }
+.owner-payment-content .owner-plan-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.owner-payment-content .field > span { color: #4b5563; }
+.owner-payment-content .field small { color: var(--pay-muted); font-size: 10px; line-height: 1.4; }
+.owner-payment-content .pay-active-toggle { color: #374151; }
+.owner-payment-content .pay-active-toggle input { accent-color: #111827; }
+.owner-payment-content .owner-plan-editor-foot { border-color: var(--pay-line); }
+.owner-payment-content .owner-plan-editor-foot small,
+.owner-payment-content .owner-upi-form > small { color: var(--pay-muted); }
+.owner-payment-content .owner-upi-form { display: flex; flex-direction: column; gap: 13px; }
+.owner-payment-content .owner-upi-form .field input { height: 42px; }
+.owner-payment-content .owner-qr-upload { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.owner-payment-content .owner-qr-preview { display: grid; place-items: center; width: 96px; height: 96px; padding: 5px; overflow: hidden; border: 1px solid var(--pay-line); border-radius: 13px; background: #fff; }
+.owner-payment-content .owner-qr-preview img { width: 100%; height: 100%; object-fit: contain; }
+.owner-payment-content .owner-qr-file {
+  position: relative; display: flex; align-items: center; gap: 9px; min-height: 50px; flex: 1;
+  padding: 10px; border: 1px dashed #d1d5db; border-radius: 12px; color: var(--pay-ink); cursor: pointer; font-size: 11px; font-weight: 700;
+}
+.owner-payment-content .owner-qr-file span { display: grid; gap: 4px; }
+.owner-payment-content .owner-qr-file small { color: var(--pay-muted); font-size: 10px; font-weight: 400; }
+.owner-payment-content .owner-qr-file input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
+.owner-payment-content .owner-review-card { margin-top: 18px; }
+.owner-payment-content .owner-review-tabs { margin: 0 0 16px; }
+.owner-payment-content .owner-review-tabs button { min-height: 36px; padding: 0 14px; font-size: 11px; }
+.owner-payment-content .owner-review-item { border-color: var(--pay-line); border-radius: 15px; background: #fff; }
+.owner-payment-content .owner-review-identity span,
+.owner-payment-content .owner-review-identity small,
+.owner-payment-content .owner-review-facts > div > span { color: var(--pay-muted); }
+.owner-payment-content .owner-review-facts { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.owner-payment-content .owner-review-facts > div > strong { color: var(--pay-ink); }
+.owner-payment-content .owner-review-actions { border-color: var(--pay-line); }
+.owner-payment-content .pay-status-tag.pending { color: #a16207; background: #fffbeb; }
+.owner-payment-content .pay-status-mark.pending { color: #f59e0b; background: #fffbeb; }
+.owner-payment-content .owner-proof-link { display: inline-flex; align-items: center; gap: 7px; margin: 8px 0 0 42px; color: #111827; font-size: 12px; font-weight: 700; }
+.owner-payment-content .owner-proof-link:hover { text-decoration: underline; }
+.owner-payment-content .pay-alert.success { color: #065f46; border-color: #a7f3d0; background: #ecfdf5; }
+.owner-payment-content .pay-alert.error { color: #991b1b; border-color: #fecaca; background: #fef2f2; }
+.owner-payment-content .pay-empty { color: var(--pay-muted); background: #fff; border-color: var(--pay-line); }
+.owner-payment-content .pay-empty strong { color: var(--pay-ink); }
+body:has(.subscription-page) .sidebar,
+body:has(.owner-payment-content) .sidebar {
+  color: #111827;
+  background: #fff;
+  border-right: 1px solid #e5e7eb;
+}
+body:has(.subscription-page) .brand-name,
+body:has(.owner-payment-content) .brand-name { color: #111827; }
+body:has(.subscription-page) .brand-note,
+body:has(.owner-payment-content) .brand-note,
+body:has(.subscription-page) .nav-label,
+body:has(.owner-payment-content) .nav-label,
+body:has(.subscription-page) .sidebar-account-label,
+body:has(.owner-payment-content) .sidebar-account-label { color: #6b7280; }
+body:has(.subscription-page) .nav-link,
+body:has(.owner-payment-content) .nav-link { color: #6b7280; }
+body:has(.subscription-page) .nav-link:hover,
+body:has(.owner-payment-content) .nav-link:hover { color: #111827; background: #f3f4f6; }
+body:has(.subscription-page) .nav-link.active,
+body:has(.owner-payment-content) .nav-link.active { color: #111827; background: #f3f4f6; box-shadow: inset 3px 0 #111827; }
+body:has(.subscription-page) .workspace-card,
+body:has(.owner-payment-content) .workspace-card { border-color: #e5e7eb; background: #f9fafb; }
+body:has(.subscription-page) .workspace-card strong,
+body:has(.owner-payment-content) .workspace-card strong { color: #111827; }
+body:has(.subscription-page) .workspace-card p,
+body:has(.owner-payment-content) .workspace-card p,
+body:has(.subscription-page) .mini-user,
+body:has(.owner-payment-content) .mini-user { color: #6b7280; }
+body:has(.subscription-page) .mini-user,
+body:has(.owner-payment-content) .mini-user { border-color: #e5e7eb; }
+
+@media (max-width: 900px) {
+  .subscription-page .pay-config-controls { grid-template-columns: 1fr 1fr; }
+  .subscription-page .pay-control-block:last-child { grid-column: 1 / -1; }
+  .owner-payment-content .owner-payment-columns { grid-template-columns: 1fr; }
+  .owner-payment-content .owner-review-facts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 640px) {
+  .subscription-page { padding: 22px 16px calc(36px + env(safe-area-inset-bottom)); }
+  .subscription-page .page-head { align-items: flex-start; flex-direction: column; margin-bottom: 18px; }
+  .subscription-page .pay-access-strip { grid-template-columns: 1fr 1fr; gap: 16px; padding: 16px; }
+  .subscription-page .pay-pack-card,
+  .subscription-page .pay-checkout,
+  .subscription-page .pay-pending-state,
+  .subscription-page .pay-request-history { padding: 17px; border-radius: 17px; }
+  .subscription-page .pay-pack-top { flex-direction: column; gap: 16px; }
+  .subscription-page .pay-pack-switch { width: 100%; gap: 7px; }
+  .subscription-page .pay-pack-switch button { flex: 1; padding: 0 10px; }
+  .subscription-page .pay-feature-ribbon { gap: 7px; margin: 18px 0; }
+  .subscription-page .pay-feature { align-items: flex-start; flex-direction: column; padding: 8px; gap: 7px; }
+  .subscription-page .pay-feature img { width: 48px; height: 48px; flex-basis: 48px; }
+  .subscription-page .pay-feature strong { font-size: 10px; }
+  .subscription-page .pay-feature small { font-size: 9px; }
+  .subscription-page .pay-config-controls { grid-template-columns: 1fr; gap: 10px; }
+  .subscription-page .pay-control-block:last-child { grid-column: auto; }
+  .subscription-page .pay-control-block { padding: 14px; }
+  .subscription-page .pay-live-total { align-items: flex-start; flex-direction: column; gap: 9px; }
+  .subscription-page .pay-live-total > small { text-align: left; }
+  .subscription-page .pay-checkout-grid { grid-template-columns: 1fr; gap: 20px; }
+  .subscription-page .pay-qr-side { padding: 14px; }
+  .subscription-page .pay-section-title { align-items: flex-start; }
+  .subscription-page .pay-section-title p { font-size: 11px; }
+  .subscription-page .pay-request-row { grid-template-columns: 32px minmax(0, 1fr); }
+  .subscription-page .pay-request-row > .pay-status-tag { grid-column: 2; justify-self: start; }
+  .subscription-page .pay-history-toolbar { align-items: stretch; flex-direction: column; }
+  .subscription-page .pay-history-toolbar > * { width: 100%; }
+  .subscription-page .pay-history-row { align-items: flex-start; flex-direction: column; }
+  .subscription-page .pay-history-row .button { align-self: flex-start; }
+  .owner-payment-content { padding: 22px 16px calc(36px + env(safe-area-inset-bottom)); }
+  .owner-payment-content .page-head { align-items: flex-start; flex-direction: column; }
+  .owner-payment-content .owner-pay-card { padding: 17px; }
+  .owner-payment-content .owner-plan-fields { grid-template-columns: 1fr; }
+  .owner-payment-content .owner-plan-fields .field.full { grid-column: auto; }
+  .owner-payment-content .owner-review-item { padding: 14px; }
+  .owner-payment-content .owner-review-facts { grid-template-columns: 1fr 1fr; }
+  .owner-payment-content .owner-review-actions { align-items: stretch; flex-direction: column; }
+  .owner-payment-content .owner-review-actions > div { justify-content: flex-start; flex-wrap: wrap; }
+}
+@media (max-width: 380px) {
+  .subscription-page { padding-right: 12px; padding-left: 12px; }
+  .subscription-page .pay-access-strip { grid-template-columns: 1fr; }
+  .subscription-page .pay-feature-ribbon { grid-template-columns: 1fr; }
+  .subscription-page .pay-feature { flex-direction: row; align-items: center; }
+  .subscription-page .pay-feature img { width: 48px; height: 48px; }
+  .subscription-page .pay-download-options { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .subscription-page .pay-download-options button { width: 100%; }
+  .subscription-page .pay-request-main > span { overflow-wrap: anywhere; }
+  .owner-payment-content .owner-review-item-main { flex-wrap: wrap; }
+  .owner-payment-content .owner-review-facts { grid-template-columns: 1fr; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .subscription-page *, .owner-payment-content * { scroll-behavior: auto !important; animation-duration: .01ms !important; transition-duration: .01ms !important; }
 }

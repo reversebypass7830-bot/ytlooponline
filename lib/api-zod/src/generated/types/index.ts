@@ -8,6 +8,8 @@
 
 export * from './accountPaymentQuote';
 export * from './accountPaymentQuoteInput';
+export * from './accountPaymentQuoteInputPackType';
+export * from './accountPaymentQuotePackType';
 export * from './accountPaymentRequestInput';
 export * from './addVidKrakenTokenInput';
 export * from './billingPlan';
@@ -51,8 +53,12 @@ export * from './mediaFileRecord';
 export * from './mediaTrimResponse';
 export * from './mediaUploadResponse';
 export * from './ownerPasswordParameter';
+export * from './paymentAssetUploadUrl';
+export * from './paymentAssetUploadUrlInput';
+export * from './paymentAssetUploadUrlInputContentType';
 export * from './paymentRequest';
 export * from './paymentRequestListResponse';
+export * from './paymentRequestPackType';
 export * from './paymentRequestResponse';
 export * from './paymentRequestStatus';
 export * from './paymentReviewInput';

@@ -15,6 +15,9 @@ export interface BillingPlan {
   price: string;
   /** @minimum 0 */
   pricePerStreamDayPaise: number;
+  /** @minimum 0 */
+  pricePerDownloadPaise: number;
+  downloadRateConfigured: boolean;
   /** @minimum 1 */
   downloadsPerDay: number;
   /** @minimum 1 */

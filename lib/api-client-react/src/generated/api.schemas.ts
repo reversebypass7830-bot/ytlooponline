@@ -751,6 +751,9 @@ export interface BillingPlan {
   price: string;
   /** @minimum 0 */
   pricePerStreamDayPaise: number;
+  /** @minimum 0 */
+  pricePerDownloadPaise: number;
+  downloadRateConfigured: boolean;
   /** @minimum 1 */
   downloadsPerDay: number;
   /** @minimum 1 */
@@ -782,6 +785,11 @@ export interface BillingPlanInput {
      * @maximum 100000000
      */
   pricePerStreamDayPaise: number;
+  /**
+     * @minimum 0
+     * @maximum 100000000
+     */
+  pricePerDownloadPaise?: number;
   /**
      * @minimum 1
      * @maximum 1000000
@@ -821,6 +829,11 @@ export interface BillingPlanUpdate {
      */
   pricePerStreamDayPaise?: number;
   /**
+     * @minimum 0
+     * @maximum 100000000
+     */
+  pricePerDownloadPaise?: number;
+  /**
      * @minimum 1
      * @maximum 1000000
      */
@@ -849,6 +862,13 @@ export interface BillingPlanResponse {
 export interface PaymentSettings {
   upiId: string;
   payeeName: string;
+  /**
+     * @nullable
+     * @pattern ^/objects/payment-qr/
+     */
+  qrImagePath: string | null;
+  /** @nullable */
+  qrImageUrl: string | null;
   /** @nullable */
   updatedAt: string | null;
 }
@@ -864,11 +884,51 @@ export interface PaymentSettingsInput {
      * @maxLength 100
      */
   payeeName: string;
+  /**
+     * @nullable
+     * @pattern ^/objects/payment-qr/
+     */
+  qrImagePath?: string | null;
 }
+
+export type PaymentAssetUploadUrlInputContentType = typeof PaymentAssetUploadUrlInputContentType[keyof typeof PaymentAssetUploadUrlInputContentType];
+
+
+export const PaymentAssetUploadUrlInputContentType = {
+  'image/jpeg': 'image/jpeg',
+  'image/png': 'image/png',
+  'image/webp': 'image/webp',
+} as const;
+
+export interface PaymentAssetUploadUrlInput {
+  contentType: PaymentAssetUploadUrlInputContentType;
+  /**
+     * @minimum 1
+     * @maximum 5242880
+     */
+  size: number;
+}
+
+export interface PaymentAssetUploadUrl {
+  uploadURL: string;
+  objectPath: string;
+  contentType: string;
+  maxBytes: number;
+}
+
+export type AccountPaymentQuoteInputPackType = typeof AccountPaymentQuoteInputPackType[keyof typeof AccountPaymentQuoteInputPackType];
+
+
+export const AccountPaymentQuoteInputPackType = {
+  Days: 'Days',
+  Monthly: 'Monthly',
+  Yearly: 'Yearly',
+} as const;
 
 export interface AccountPaymentQuoteInput {
   /** @minLength 1 */
   planId: string;
+  packType: AccountPaymentQuoteInputPackType;
   /**
      * @minimum 1
      * @maximum 3650
@@ -878,7 +938,7 @@ export interface AccountPaymentQuoteInput {
      * @minimum 1
      * @maximum 100
      */
-  streamLimit: number;
+  streamsPerDay: number;
   /**
      * @minimum 1
      * @maximum 1000000
@@ -886,24 +946,44 @@ export interface AccountPaymentQuoteInput {
   downloadsPerDay: number;
 }
 
+export type AccountPaymentQuotePackType = typeof AccountPaymentQuotePackType[keyof typeof AccountPaymentQuotePackType];
+
+
+export const AccountPaymentQuotePackType = {
+  Days: 'Days',
+  Monthly: 'Monthly',
+  Yearly: 'Yearly',
+} as const;
+
 export interface AccountPaymentQuote {
   planId: string;
   planName: string;
+  packType: AccountPaymentQuotePackType;
   durationDays: number;
   streamLimit: number;
+  streamsPerDay: number;
   downloadsPerDay: number;
   totalDownloads: number;
   amountPaise: number;
   amountRupees: number;
+  pricePerStreamDayPaise: number;
+  pricePerDownloadPaise: number;
   upiId: string;
   payeeName: string;
+  qrImagePath: string;
+  qrImageUrl: string;
   features: string[];
 }
 
-export type AccountPaymentRequestInput = AccountPaymentQuoteInput & {
+export type AccountPaymentRequestInput = AccountPaymentQuoteInput & ({
   /** @pattern ^[A-Za-z0-9]{6,32}$ */
   utr: string;
-};
+  /**
+     * @nullable
+     * @pattern ^/objects/payment-proof/
+     */
+  screenshotPath?: string | null;
+});
 
 export type PaymentReviewInputAction = typeof PaymentReviewInputAction[keyof typeof PaymentReviewInputAction];
 
@@ -918,6 +998,15 @@ export interface PaymentReviewInput {
   /** @maxLength 500 */
   note?: string;
 }
+
+export type PaymentRequestPackType = typeof PaymentRequestPackType[keyof typeof PaymentRequestPackType];
+
+
+export const PaymentRequestPackType = {
+  Days: 'Days',
+  Monthly: 'Monthly',
+  Yearly: 'Yearly',
+} as const;
 
 export type PaymentRequestStatus = typeof PaymentRequestStatus[keyof typeof PaymentRequestStatus];
 
@@ -935,12 +1024,16 @@ export interface PaymentRequest {
   accountEmail: string;
   planId: string;
   planName: string;
+  packType: PaymentRequestPackType;
   durationDays: number;
   streamLimit: number;
+  streamsPerDay: number;
   downloadsPerDay: number;
   totalDownloads: number;
   amountPaise: number;
   amountRupees: number;
+  pricePerStreamDayPaise: number;
+  pricePerDownloadPaise: number;
   features: string[];
   utr: string;
   status: PaymentRequestStatus;
@@ -949,6 +1042,13 @@ export interface PaymentRequest {
   reviewedAt: string | null;
   /** @nullable */
   reviewNote: string | null;
+  /**
+     * @nullable
+     * @pattern ^/objects/payment-proof/
+     */
+  screenshotPath: string | null;
+  /** @nullable */
+  screenshotUrl: string | null;
 }
 
 export interface PaymentRequestListResponse {

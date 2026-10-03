@@ -808,6 +808,26 @@ paths:
                 $ref: "#/components/schemas/PaymentRequestResponse"
         "400":
           description: Invalid transaction reference or payment details
+  /account/payment-proof/upload-url:
+    post:
+      operationId: createAccountPaymentProofUploadUrl
+      tags: [billing]
+      summary: Prepare a private payment-proof image upload
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PaymentAssetUploadUrlInput"
+      responses:
+        "200":
+          description: Signed upload URL and private object path
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaymentAssetUploadUrl"
+        "400":
+          description: Unsupported image or file size
   /owner/plans:
     get:
       operationId: listBillingPlans
@@ -901,6 +921,28 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/PaymentSettings"
+  /owner/payment-qr/upload-url:
+    post:
+      operationId: createOwnerPaymentQrUploadUrl
+      tags: [billing]
+      summary: Prepare an owner-only QR image upload
+      parameters:
+        - $ref: "#/components/parameters/OwnerPassword"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PaymentAssetUploadUrlInput"
+      responses:
+        "200":
+          description: Signed upload URL and private object path
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaymentAssetUploadUrl"
+        "400":
+          description: Unsupported image or file size
   /owner/payment-requests:
     get:
       operationId: listOwnerPaymentRequests
@@ -1898,6 +1940,11 @@ components:
         pricePerStreamDayPaise:
           type: number
           minimum: 0
+        pricePerDownloadPaise:
+          type: number
+          minimum: 0
+        downloadRateConfigured:
+          type: boolean
         downloadsPerDay:
           type: number
           minimum: 1
@@ -1925,6 +1972,8 @@ components:
         - durationDays
         - price
         - pricePerStreamDayPaise
+        - pricePerDownloadPaise
+        - downloadRateConfigured
         - downloadsPerDay
         - streamLimit
         - features
@@ -1949,6 +1998,10 @@ components:
           type: string
           maxLength: 80
         pricePerStreamDayPaise:
+          type: number
+          minimum: 0
+          maximum: 100000000
+        pricePerDownloadPaise:
           type: number
           minimum: 0
           maximum: 100000000
@@ -1998,6 +2051,10 @@ components:
           type: number
           minimum: 0
           maximum: 100000000
+        pricePerDownloadPaise:
+          type: number
+          minimum: 0
+          maximum: 100000000
         downloadsPerDay:
           type: number
           minimum: 1
@@ -2035,10 +2092,15 @@ components:
           type: string
         payeeName:
           type: string
+        qrImagePath:
+          type: ["string", "null"]
+          pattern: "^/objects/payment-qr/"
+        qrImageUrl:
+          type: ["string", "null"]
         updatedAt:
           type: ["string", "null"]
           format: date-time
-      required: [upiId, payeeName, updatedAt]
+      required: [upiId, payeeName, qrImagePath, qrImageUrl, updatedAt]
     PaymentSettingsInput:
       type: object
       properties:
@@ -2050,18 +2112,47 @@ components:
           type: string
           minLength: 1
           maxLength: 100
+        qrImagePath:
+          type: ["string", "null"]
+          pattern: "^/objects/payment-qr/"
       required: [upiId, payeeName]
+    PaymentAssetUploadUrlInput:
+      type: object
+      properties:
+        contentType:
+          type: string
+          enum: [image/jpeg, image/png, image/webp]
+        size:
+          type: number
+          minimum: 1
+          maximum: 5242880
+      required: [contentType, size]
+    PaymentAssetUploadUrl:
+      type: object
+      properties:
+        uploadURL:
+          type: string
+        objectPath:
+          type: string
+        contentType:
+          type: string
+        maxBytes:
+          type: number
+      required: [uploadURL, objectPath, contentType, maxBytes]
     AccountPaymentQuoteInput:
       type: object
       properties:
         planId:
           type: string
           minLength: 1
+        packType:
+          type: string
+          enum: [Days, Monthly, Yearly]
         durationDays:
           type: number
           minimum: 1
           maximum: 3650
-        streamLimit:
+        streamsPerDay:
           type: number
           minimum: 1
           maximum: 100
@@ -2069,7 +2160,7 @@ components:
           type: number
           minimum: 1
           maximum: 1000000
-      required: [planId, durationDays, streamLimit, downloadsPerDay]
+      required: [planId, packType, durationDays, streamsPerDay, downloadsPerDay]
     AccountPaymentQuote:
       type: object
       properties:
@@ -2077,9 +2168,14 @@ components:
           type: string
         planName:
           type: string
+        packType:
+          type: string
+          enum: [Days, Monthly, Yearly]
         durationDays:
           type: number
         streamLimit:
+          type: number
+        streamsPerDay:
           type: number
         downloadsPerDay:
           type: number
@@ -2089,9 +2185,17 @@ components:
           type: number
         amountRupees:
           type: number
+        pricePerStreamDayPaise:
+          type: number
+        pricePerDownloadPaise:
+          type: number
         upiId:
           type: string
         payeeName:
+          type: string
+        qrImagePath:
+          type: string
+        qrImageUrl:
           type: string
         features:
           type: array
@@ -2100,14 +2204,20 @@ components:
       required:
         - planId
         - planName
+        - packType
         - durationDays
         - streamLimit
+        - streamsPerDay
         - downloadsPerDay
         - totalDownloads
         - amountPaise
         - amountRupees
+        - pricePerStreamDayPaise
+        - pricePerDownloadPaise
         - upiId
         - payeeName
+        - qrImagePath
+        - qrImageUrl
         - features
     AccountPaymentRequestInput:
       allOf:
@@ -2117,6 +2227,9 @@ components:
             utr:
               type: string
               pattern: "^[A-Za-z0-9]{6,32}$"
+            screenshotPath:
+              type: ["string", "null"]
+              pattern: "^/objects/payment-proof/"
           required: [utr]
     PaymentReviewInput:
       type: object
@@ -2143,9 +2256,14 @@ components:
           type: string
         planName:
           type: string
+        packType:
+          type: string
+          enum: [Days, Monthly, Yearly]
         durationDays:
           type: number
         streamLimit:
+          type: number
+        streamsPerDay:
           type: number
         downloadsPerDay:
           type: number
@@ -2154,6 +2272,10 @@ components:
         amountPaise:
           type: number
         amountRupees:
+          type: number
+        pricePerStreamDayPaise:
+          type: number
+        pricePerDownloadPaise:
           type: number
         features:
           type: array
@@ -2172,6 +2294,11 @@ components:
           format: date-time
         reviewNote:
           type: ["string", "null"]
+        screenshotPath:
+          type: ["string", "null"]
+          pattern: "^/objects/payment-proof/"
+        screenshotUrl:
+          type: ["string", "null"]
       required:
         - id
         - accountId
@@ -2179,18 +2306,24 @@ components:
         - accountEmail
         - planId
         - planName
+        - packType
         - durationDays
         - streamLimit
+        - streamsPerDay
         - downloadsPerDay
         - totalDownloads
         - amountPaise
         - amountRupees
+        - pricePerStreamDayPaise
+        - pricePerDownloadPaise
         - features
         - utr
         - status
         - createdAt
         - reviewedAt
         - reviewNote
+        - screenshotPath
+        - screenshotUrl
     PaymentRequestListResponse:
       type: object
       properties:

@@ -5,10 +5,12 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { AccountPaymentQuoteInputPackType } from './accountPaymentQuoteInputPackType';
 
 export interface AccountPaymentQuoteInput {
   /** @minLength 1 */
   planId: string;
+  packType: AccountPaymentQuoteInputPackType;
   /**
      * @minimum 1
      * @maximum 3650
@@ -18,7 +20,7 @@ export interface AccountPaymentQuoteInput {
      * @minimum 1
      * @maximum 100
      */
-  streamLimit: number;
+  streamsPerDay: number;
   /**
      * @minimum 1
      * @maximum 1000000

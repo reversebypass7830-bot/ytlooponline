@@ -49,6 +49,25 @@ export class ObjectStorageService {
     return { uploadURL, objectPath: `/objects/${objectName}` };
   }
 
+  async getPaymentAssetUploadURL(
+    ownerId: string,
+    kind: "proof" | "qr",
+    extension: string,
+  ): Promise<{ uploadURL: string; objectPath: string }> {
+    const objectName = kind === "proof"
+      ? `payment-proof/${encodeURIComponent(ownerId)}/${randomUUID()}.${extension}`
+      : `payment-qr/${randomUUID()}.${extension}`;
+    const fullPath = `${this.getPrivateObjectDir()}/${objectName}`;
+    const { bucketName, objectName: bucketObjectName } = parseObjectPath(fullPath);
+    const uploadURL = await signObjectURL({
+      bucketName,
+      objectName: bucketObjectName,
+      method: "PUT",
+      ttlSec: 900,
+    });
+    return { uploadURL, objectPath: `/objects/${objectName}` };
+  }
+
   async getObjectEntityFile(objectPath: string): Promise<File> {
     if (!objectPath.startsWith("/objects/")) throw new ObjectNotFoundError();
     const entityId = objectPath.slice("/objects/".length);
@@ -59,6 +78,13 @@ export class ObjectStorageService {
     const [exists] = await file.exists();
     if (!exists) throw new ObjectNotFoundError();
     return file;
+  }
+
+  async getSignedDownloadURL(objectPath: string, ttlSec = 900): Promise<string> {
+    await this.getObjectEntityFile(objectPath);
+    const fullPath = `${this.getPrivateObjectDir()}/${objectPath.slice("/objects/".length)}`;
+    const { bucketName, objectName } = parseObjectPath(fullPath);
+    return signObjectURL({ bucketName, objectName, method: "GET", ttlSec });
   }
 
   async downloadObject(file: File): Promise<Response> {

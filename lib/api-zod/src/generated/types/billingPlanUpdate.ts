@@ -27,6 +27,11 @@ export interface BillingPlanUpdate {
      */
   pricePerStreamDayPaise?: number;
   /**
+     * @minimum 0
+     * @maximum 100000000
+     */
+  pricePerDownloadPaise?: number;
+  /**
      * @minimum 1
      * @maximum 1000000
      */

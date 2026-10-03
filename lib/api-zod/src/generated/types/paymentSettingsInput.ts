@@ -17,4 +17,9 @@ export interface PaymentSettingsInput {
      * @maxLength 100
      */
   payeeName: string;
+  /**
+     * @nullable
+     * @pattern ^/objects/payment-qr/
+     */
+  qrImagePath?: string | null;
 }

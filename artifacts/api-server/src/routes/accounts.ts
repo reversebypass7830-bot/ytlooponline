@@ -2,6 +2,7 @@ import { randomBytes, randomUUID } from "node:crypto";
 import { Router, type IRouter, type Request, type Response } from "express";
 import {
   CreateAccountPaymentRequestBody,
+  CreateAccountPaymentProofUploadUrlBody,
   CreateBillingPlanBody,
   QuoteAccountPaymentBody,
   ReviewOwnerPaymentRequestBody,
@@ -9,10 +10,12 @@ import {
   UpdateOwnerPaymentSettingsBody,
 } from "@workspace/api-zod";
 import { firebaseGet, firebasePut } from "../lib/firebase-rest";
+import { ObjectStorageService } from "../lib/objectStorage";
 import { accountIdentity, accountUserId, clerkSessionClaims, requireAccountAuth, requireClerkAuth } from "../middlewares/requireClerkAuth";
 import { clerkOwnerAuthorized, ownerAuthorized } from "./licenses";
 
 const router: IRouter = Router();
+const objectStorageService = new ObjectStorageService();
 const dayMs = 24 * 60 * 60 * 1000;
 const accountPath = (id: string) => `accounts/${encodeURIComponent(id)}`;
 const licensePath = (id: string) => `licenses/${encodeURIComponent(id)}`;
@@ -27,6 +30,7 @@ type PlanRecord = {
   durationDays: number;
   price: string;
   pricePerStreamDayPaise?: number;
+  pricePerDownloadPaise?: number;
   downloadsPerDay?: number;
   streamLimit?: number;
   features?: string[];
@@ -44,6 +48,7 @@ type AccountHistoryItem = {
   planId?: string;
   days?: number;
   streamLimit?: number;
+  streamsPerDay?: number;
   downloadsPerDay?: number;
   totalDownloads?: number;
   amountPaise?: number;
@@ -67,8 +72,11 @@ type AccountRecord = {
   activePlanId: string;
   accessEndsAt: string;
   streamLimit?: number;
+  streamsPerDay?: number;
   downloadsPerDay?: number;
   activeFeatures?: string[];
+  streamUsageDate?: string;
+  streamsStartedToday?: number;
   downloadUsageDate?: string;
   downloadsUsedToday?: number;
   createdAt: string;
@@ -79,7 +87,13 @@ type AccountRecord = {
 type AccountMap = Record<string, AccountRecord>;
 type PlanMap = Record<string, PlanRecord>;
 type PaymentStatus = "pending" | "approved" | "rejected";
-type PaymentSettingsRecord = { upiId: string; payeeName: string; updatedAt: string | null };
+type PaymentSettingsRecord = {
+  upiId: string;
+  payeeName: string;
+  qrImagePath: string | null;
+  qrImageUrl: string | null;
+  updatedAt: string | null;
+};
 type PaymentRequestRecord = {
   id: string;
   accountId: string;
@@ -87,12 +101,16 @@ type PaymentRequestRecord = {
   accountEmail: string;
   planId: string;
   planName: string;
+  packType: "Days" | "Monthly" | "Yearly";
   durationDays: number;
   streamLimit: number;
+  streamsPerDay: number;
   downloadsPerDay: number;
   totalDownloads: number;
   amountPaise: number;
   amountRupees: number;
+  pricePerStreamDayPaise: number;
+  pricePerDownloadPaise: number;
   features: string[];
   utr: string;
   status: PaymentStatus;
@@ -100,18 +118,26 @@ type PaymentRequestRecord = {
   reviewedAt: string | null;
   reviewNote: string | null;
   reviewedBy?: string;
+  screenshotPath: string | null;
+  screenshotUrl: string | null;
 };
 type PaymentQuote = {
   planId: string;
   planName: string;
+  packType: "Days" | "Monthly" | "Yearly";
   durationDays: number;
   streamLimit: number;
+  streamsPerDay: number;
   downloadsPerDay: number;
   totalDownloads: number;
   amountPaise: number;
   amountRupees: number;
+  pricePerStreamDayPaise: number;
+  pricePerDownloadPaise: number;
   upiId: string;
   payeeName: string;
+  qrImagePath: string;
+  qrImageUrl: string;
   features: string[];
 };
 
@@ -271,6 +297,21 @@ const defaultPlans: PlanRecord[] = [
     createdAt: "2026-01-01T00:00:00.000Z",
     updatedAt: "2026-01-01T00:00:00.000Z",
   },
+  {
+    id: "custom-subscription",
+    name: "Custom subscription",
+    description: "Choose daily broadcast starts, downloads, and an access term.",
+    durationDays: 1,
+    price: "₹10 / stream start / day",
+    pricePerStreamDayPaise: 1000,
+    pricePerDownloadPaise: 200,
+    downloadsPerDay: 50,
+    streamLimit: 1,
+    features: ["Daily broadcast-start allowance", "Daily download allowance", "Flexible access term"],
+    active: true,
+    createdAt: "2026-01-01T00:00:00.000Z",
+    updatedAt: "2026-01-01T00:00:00.000Z",
+  },
 ];
 
 function isActive(account: AccountRecord): boolean {
@@ -299,6 +340,9 @@ async function loadPlans(): Promise<PlanMap> {
       pricePerStreamDayPaise: Number.isSafeInteger(rawPlan.pricePerStreamDayPaise) && (rawPlan.pricePerStreamDayPaise ?? -1) >= 0
         ? rawPlan.pricePerStreamDayPaise
         : fallback?.pricePerStreamDayPaise ?? 0,
+      pricePerDownloadPaise: Number.isSafeInteger(rawPlan.pricePerDownloadPaise) && (rawPlan.pricePerDownloadPaise ?? -1) >= 0
+        ? rawPlan.pricePerDownloadPaise
+        : fallback?.pricePerDownloadPaise ?? 0,
       downloadsPerDay: Number.isSafeInteger(rawPlan.downloadsPerDay) && (rawPlan.downloadsPerDay ?? 0) > 0
         ? rawPlan.downloadsPerDay
         : fallback?.downloadsPerDay ?? 50,
@@ -322,6 +366,12 @@ async function loadAccount(userId: string): Promise<AccountRecord | null> {
 function publicAccount(account: AccountRecord, plans: PlanMap) {
   const plan = plans[account.activePlanId] || null;
   const streamLimit = account.streamLimit || plan?.streamLimit || 1;
+  const streamsPerDay = Number.isSafeInteger(account.streamsPerDay) && (account.streamsPerDay ?? 0) > 0
+    ? account.streamsPerDay
+    : plan?.isTrial ? 1 : 100;
+  const streamsStartedToday = account.streamUsageDate === currentUsageDayKey()
+    ? Math.max(0, account.streamsStartedToday || 0)
+    : 0;
   const downloadsPerDay = account.downloadsPerDay || plan?.downloadsPerDay || 50;
   const downloadsUsedToday = account.downloadUsageDate === currentUsageDayKey()
     ? Math.max(0, account.downloadsUsedToday || 0)
@@ -342,6 +392,8 @@ function publicAccount(account: AccountRecord, plans: PlanMap) {
     activePlan: plan,
     accessEndsAt: account.accessEndsAt,
     streamLimit,
+    streamsPerDay,
+    streamsStartedToday,
     downloadsPerDay,
     downloadsUsedToday,
     downloadsRemainingToday: Math.max(0, downloadsPerDay - downloadsUsedToday),
@@ -374,6 +426,13 @@ async function ensureAccount(req: Request): Promise<{ account: AccountRecord; pl
         ...(existing.history || []),
       ].slice(0, 50),
       streamLimit: existing.streamLimit || plans[existing.activePlanId]?.streamLimit || 1,
+      streamsPerDay: Number.isSafeInteger(existing.streamsPerDay) && (existing.streamsPerDay ?? 0) > 0
+        ? existing.streamsPerDay
+        : plans[existing.activePlanId]?.isTrial ? 1 : 100,
+      streamUsageDate: existing.streamUsageDate || currentUsageDayKey(),
+      streamsStartedToday: Number.isSafeInteger(existing.streamsStartedToday) && (existing.streamsStartedToday ?? -1) >= 0
+        ? existing.streamsStartedToday
+        : 0,
       downloadsPerDay: existing.downloadsPerDay || plans[existing.activePlanId]?.downloadsPerDay || 50,
       activeFeatures: existing.activeFeatures || plans[existing.activePlanId]?.features || [],
     };
@@ -398,6 +457,9 @@ async function ensureAccount(req: Request): Promise<{ account: AccountRecord; pl
     activePlanId: trial.id,
     accessEndsAt: trialEndsAt,
     streamLimit: trial.streamLimit || 1,
+    streamsPerDay: trial.isTrial ? 1 : 100,
+    streamUsageDate: currentUsageDayKey(),
+    streamsStartedToday: 0,
     downloadsPerDay: trial.downloadsPerDay || 50,
     activeFeatures: trial.features || [],
     createdAt: now.toISOString(),
@@ -440,6 +502,13 @@ export async function ensureFirebaseAccount(identity: { userId: string; email: s
         ...(existing.history || []),
       ].slice(0, 50),
       streamLimit: existing.streamLimit || plans[existing.activePlanId]?.streamLimit || 1,
+      streamsPerDay: Number.isSafeInteger(existing.streamsPerDay) && (existing.streamsPerDay ?? 0) > 0
+        ? existing.streamsPerDay
+        : plans[existing.activePlanId]?.isTrial ? 1 : 100,
+      streamUsageDate: existing.streamUsageDate || currentUsageDayKey(),
+      streamsStartedToday: Number.isSafeInteger(existing.streamsStartedToday) && (existing.streamsStartedToday ?? -1) >= 0
+        ? existing.streamsStartedToday
+        : 0,
       downloadsPerDay: existing.downloadsPerDay || plans[existing.activePlanId]?.downloadsPerDay || 50,
       activeFeatures: existing.activeFeatures || plans[existing.activePlanId]?.features || [],
     };
@@ -464,6 +533,9 @@ export async function ensureFirebaseAccount(identity: { userId: string; email: s
     activePlanId: trial.id,
     accessEndsAt: trialEndsAt,
     streamLimit: trial.streamLimit || 1,
+    streamsPerDay: trial.isTrial ? 1 : 100,
+    streamUsageDate: currentUsageDayKey(),
+    streamsStartedToday: 0,
     downloadsPerDay: trial.downloadsPerDay || 50,
     activeFeatures: trial.features || [],
     createdAt: now.toISOString(),
@@ -512,6 +584,9 @@ export async function createMobileAccount(input: {
     activePlanId: trial.id,
     accessEndsAt: trialEndsAt,
     streamLimit: trial.streamLimit || 1,
+    streamsPerDay: trial.isTrial ? 1 : 100,
+    streamUsageDate: currentUsageDayKey(),
+    streamsStartedToday: 0,
     downloadsPerDay: trial.downloadsPerDay || 50,
     activeFeatures: trial.features || [],
     createdAt: now.toISOString(),
@@ -542,7 +617,7 @@ async function accountOwnerAuthorized(req: Request): Promise<boolean> {
   return account?.role === "owner";
 }
 
-async function requireAccountOwner(req: Request, res: Response): Promise<boolean> {
+export async function requireAccountOwner(req: Request, res: Response): Promise<boolean> {
   if (await accountOwnerAuthorized(req)) return true;
   res.status(401).json({ error: "Owner access is required." });
   return false;
@@ -565,7 +640,7 @@ function currentUsageDayKey(): string {
 }
 
 function formatDailyPrice(pricePaise: number): string {
-  return `₹${(pricePaise / 100).toLocaleString("en-IN", { maximumFractionDigits: 2 })} / stream / day`;
+  return `₹${(pricePaise / 100).toLocaleString("en-IN", { maximumFractionDigits: 2 })} / stream start / day`;
 }
 
 function isValidUpiId(value: string): boolean {
@@ -590,52 +665,132 @@ async function withBillingLock<T>(key: string, action: () => Promise<T>): Promis
 }
 
 async function loadPaymentSettings(): Promise<PaymentSettingsRecord> {
-  return (await firebaseGet<PaymentSettingsRecord | null>(paymentSettingsPath)) || {
+  const stored = await firebaseGet<Partial<PaymentSettingsRecord> | null>(paymentSettingsPath);
+  if (!stored) return {
     upiId: "",
     payeeName: "",
+    qrImagePath: null,
+    qrImageUrl: null,
     updatedAt: null,
+  };
+  const qrImagePath = typeof stored.qrImagePath === "string" && stored.qrImagePath.startsWith("/objects/payment-qr/")
+    ? stored.qrImagePath
+    : null;
+  return {
+    upiId: typeof stored.upiId === "string" ? stored.upiId : "",
+    payeeName: typeof stored.payeeName === "string" ? stored.payeeName : "",
+    qrImagePath,
+    qrImageUrl: null,
+    updatedAt: typeof stored.updatedAt === "string" ? stored.updatedAt : null,
   };
 }
 
-async function loadPaymentRequests(): Promise<Record<string, PaymentRequestRecord>> {
-  return (await firebaseGet<Record<string, PaymentRequestRecord> | null>(paymentRequestsPath)) || {};
+async function paymentSettingsResponse(settings: PaymentSettingsRecord): Promise<PaymentSettingsRecord> {
+  const qrImageUrl = settings.qrImagePath
+    ? await objectStorageService.getSignedDownloadURL(settings.qrImagePath)
+    : null;
+  return { ...settings, qrImageUrl };
 }
 
-function paymentQuote(
+async function loadPaymentRequests(): Promise<Record<string, PaymentRequestRecord>> {
+  const stored = (await firebaseGet<Record<string, Partial<PaymentRequestRecord>> | null>(paymentRequestsPath)) || {};
+  return Object.fromEntries(Object.entries(stored).map(([id, raw]) => {
+    const durationDays = Number.isInteger(raw.durationDays) && (raw.durationDays ?? 0) > 0 ? raw.durationDays! : 1;
+    const packType = raw.packType === "Days" || raw.packType === "Monthly" || raw.packType === "Yearly"
+      ? raw.packType
+      : durationDays > 360 ? "Yearly" : durationDays > 30 ? "Monthly" : "Days";
+    const amountPaise = Number.isSafeInteger(raw.amountPaise) && (raw.amountPaise ?? -1) >= 0 ? raw.amountPaise! : 0;
+    return [id, {
+      ...raw,
+      id: typeof raw.id === "string" ? raw.id : id,
+      accountId: typeof raw.accountId === "string" ? raw.accountId : "",
+      accountName: typeof raw.accountName === "string" ? raw.accountName : "",
+      accountEmail: typeof raw.accountEmail === "string" ? raw.accountEmail : "",
+      planId: typeof raw.planId === "string" ? raw.planId : "custom-subscription",
+      planName: typeof raw.planName === "string" ? raw.planName : "Custom subscription",
+      packType,
+      durationDays,
+      streamLimit: Number.isSafeInteger(raw.streamLimit) && (raw.streamLimit ?? 0) > 0 ? raw.streamLimit! : 1,
+      streamsPerDay: Number.isSafeInteger(raw.streamsPerDay) && (raw.streamsPerDay ?? 0) > 0 ? raw.streamsPerDay! : 1,
+      downloadsPerDay: Number.isSafeInteger(raw.downloadsPerDay) && (raw.downloadsPerDay ?? 0) > 0 ? raw.downloadsPerDay! : 1,
+      totalDownloads: Number.isSafeInteger(raw.totalDownloads) && (raw.totalDownloads ?? 0) >= 0 ? raw.totalDownloads! : 0,
+      amountPaise,
+      amountRupees: Number.isFinite(raw.amountRupees) ? raw.amountRupees! : amountPaise / 100,
+      pricePerStreamDayPaise: Number.isSafeInteger(raw.pricePerStreamDayPaise) && (raw.pricePerStreamDayPaise ?? 0) >= 0 ? raw.pricePerStreamDayPaise! : 0,
+      pricePerDownloadPaise: Number.isSafeInteger(raw.pricePerDownloadPaise) && (raw.pricePerDownloadPaise ?? 0) >= 0 ? raw.pricePerDownloadPaise! : 0,
+      features: Array.isArray(raw.features) ? raw.features.filter((feature): feature is string => typeof feature === "string") : [],
+      utr: typeof raw.utr === "string" ? raw.utr : "",
+      status: raw.status === "approved" || raw.status === "rejected" ? raw.status : "pending",
+      createdAt: typeof raw.createdAt === "string" ? raw.createdAt : new Date(0).toISOString(),
+      reviewedAt: typeof raw.reviewedAt === "string" ? raw.reviewedAt : null,
+      reviewNote: typeof raw.reviewNote === "string" ? raw.reviewNote : null,
+      screenshotPath: typeof raw.screenshotPath === "string" && raw.screenshotPath.startsWith("/objects/payment-proof/") ? raw.screenshotPath : null,
+      screenshotUrl: null,
+    } as PaymentRequestRecord];
+  }));
+}
+
+function validPackDuration(packType: "Days" | "Monthly" | "Yearly", durationDays: number): boolean {
+  if (!Number.isInteger(durationDays)) return false;
+  if (packType === "Days") return durationDays >= 1 && durationDays <= 30;
+  if (packType === "Monthly") return durationDays >= 30 && durationDays <= 360 && durationDays % 30 === 0;
+  return durationDays >= 365 && durationDays <= 3650 && durationDays % 365 === 0;
+}
+
+async function paymentQuote(
   plans: PlanMap,
   settings: PaymentSettingsRecord,
-  input: { planId: string; durationDays: number; streamLimit: number; downloadsPerDay: number },
-): PaymentQuote | null {
+  input: {
+    planId: string;
+    packType: "Days" | "Monthly" | "Yearly";
+    durationDays: number;
+    streamsPerDay: number;
+    downloadsPerDay: number;
+  },
+  currentStreamLimit: number,
+): Promise<PaymentQuote | null> {
   const plan = plans[input.planId];
-  if (!plan || !plan.active || plan.isTrial || plan.durationDays !== 1) return null;
-  const dailyPricePaise = plan.pricePerStreamDayPaise || 0;
-  const includedDownloads = plan.downloadsPerDay || 0;
-  if (!Number.isSafeInteger(dailyPricePaise) || dailyPricePaise < 1 || includedDownloads < 1) return null;
-  if (!Number.isInteger(input.durationDays) || input.durationDays < 1 || input.durationDays > 3650) return null;
-  if (!Number.isInteger(input.streamLimit) || input.streamLimit < 1 || input.streamLimit > (plan.streamLimit || 1)) return null;
+  if (!plan || plan.id !== "custom-subscription" || !plan.active || plan.isTrial) return null;
+  const pricePerStreamDayPaise = plan.pricePerStreamDayPaise ?? 0;
+  const pricePerDownloadPaise = plan.pricePerDownloadPaise ?? 0;
+  if (!Number.isSafeInteger(pricePerStreamDayPaise) || pricePerStreamDayPaise < 0
+    || !Number.isSafeInteger(pricePerDownloadPaise) || pricePerDownloadPaise < 0
+    || (pricePerStreamDayPaise === 0 && pricePerDownloadPaise === 0)) return null;
+  if (!validPackDuration(input.packType, input.durationDays)) return null;
+  if (!Number.isInteger(input.streamsPerDay) || input.streamsPerDay < 1 || input.streamsPerDay > 100) return null;
   if (!Number.isInteger(input.downloadsPerDay) || input.downloadsPerDay < 1 || input.downloadsPerDay > 1_000_000) return null;
-  if (!isValidUpiId(settings.upiId) || !settings.payeeName.trim()) return null;
+  if (!Number.isInteger(currentStreamLimit) || currentStreamLimit < 1) return null;
+  if (!isValidUpiId(settings.upiId) || !settings.payeeName.trim() || !settings.qrImagePath) return null;
 
-  const numerator = BigInt(dailyPricePaise)
-    * BigInt(input.durationDays)
-    * BigInt(input.streamLimit)
-    * BigInt(input.downloadsPerDay);
-  const denominator = BigInt(includedDownloads);
-  const amountPaise = Number((numerator + denominator / 2n) / denominator);
+  const perDayPaise = BigInt(pricePerStreamDayPaise) * BigInt(input.streamsPerDay)
+    + BigInt(pricePerDownloadPaise) * BigInt(input.downloadsPerDay);
+  const amountPaise = Number(perDayPaise * BigInt(input.durationDays));
   const totalDownloads = input.durationDays * input.downloadsPerDay;
   if (!Number.isSafeInteger(amountPaise) || amountPaise < 1 || amountPaise > 100_000_000_000 || !Number.isSafeInteger(totalDownloads)) return null;
+  let qrImageUrl: string;
+  try {
+    qrImageUrl = await objectStorageService.getSignedDownloadURL(settings.qrImagePath);
+  } catch {
+    return null;
+  }
 
   return {
     planId: plan.id,
     planName: plan.name,
+    packType: input.packType,
     durationDays: input.durationDays,
-    streamLimit: input.streamLimit,
+    streamLimit: currentStreamLimit,
+    streamsPerDay: input.streamsPerDay,
     downloadsPerDay: input.downloadsPerDay,
     totalDownloads,
     amountPaise,
     amountRupees: amountPaise / 100,
+    pricePerStreamDayPaise,
+    pricePerDownloadPaise,
     upiId: settings.upiId.trim(),
     payeeName: settings.payeeName.trim(),
+    qrImagePath: settings.qrImagePath,
+    qrImageUrl,
     features: plan.features || [],
   };
 }
@@ -702,15 +857,24 @@ router.post("/account/payment-quote", requireAccountAuth, async (req, res): Prom
     return;
   }
   try {
-    const { plans } = await ensureAccount(req);
+    const { account, plans } = await ensureAccount(req);
     const settings = await loadPaymentSettings();
     if (!isValidUpiId(settings.upiId) || !settings.payeeName.trim()) {
       res.status(409).json({ error: "UPI payment is not configured yet. Please try again later." });
       return;
     }
-    const quote = paymentQuote(plans, settings, parsed.data);
+    if (!settings.qrImagePath) {
+      res.status(409).json({ error: "The payment QR code is not configured yet. Please try again later." });
+      return;
+    }
+    const quote = await paymentQuote(
+      plans,
+      settings,
+      parsed.data,
+      account.streamLimit || plans[account.activePlanId]?.streamLimit || 1,
+    );
     if (!quote) {
-      res.status(400).json({ error: "This plan or selection is unavailable. Check the plan price, duration, stream limit, and download quota." });
+      res.status(400).json({ error: "This plan or selection is unavailable. Check the duration, daily stream starts, download quota, and configured prices." });
       return;
     }
     res.json(quote);
@@ -745,10 +909,33 @@ router.post("/account/payment-requests", requireAccountAuth, async (req, res): P
   try {
     const { account, plans } = await ensureAccount(req);
     const settings = await loadPaymentSettings();
-    const quote = paymentQuote(plans, settings, parsed.data);
+    if (!settings.qrImagePath || !isValidUpiId(settings.upiId) || !settings.payeeName.trim()) {
+      res.status(409).json({ error: "UPI payment is not configured yet. Refresh and try again later." });
+      return;
+    }
+    const quote = await paymentQuote(
+      plans,
+      settings,
+      parsed.data,
+      account.streamLimit || plans[account.activePlanId]?.streamLimit || 1,
+    );
     if (!quote) {
       res.status(400).json({ error: "The plan or payment settings changed. Refresh the quote before submitting your UTR." });
       return;
+    }
+    const screenshotPath = typeof parsed.data.screenshotPath === "string" ? parsed.data.screenshotPath : null;
+    if (screenshotPath) {
+      const ownProofPrefix = `/objects/payment-proof/${encodeURIComponent(account.id)}/`;
+      if (!screenshotPath.startsWith(ownProofPrefix)) {
+        res.status(400).json({ error: "Upload a payment screenshot using this account's secure upload link." });
+        return;
+      }
+      try {
+        await objectStorageService.getObjectEntityFile(screenshotPath);
+      } catch {
+        res.status(400).json({ error: "The payment screenshot could not be verified. Upload it again." });
+        return;
+      }
     }
     await withBillingLock("payment-submissions", async () => {
       const existing = Object.values(await loadPaymentRequests());
@@ -767,18 +954,24 @@ router.post("/account/payment-requests", requireAccountAuth, async (req, res): P
         accountEmail: account.email,
         planId: quote.planId,
         planName: quote.planName,
+        packType: quote.packType,
         durationDays: quote.durationDays,
         streamLimit: quote.streamLimit,
+        streamsPerDay: quote.streamsPerDay,
         downloadsPerDay: quote.downloadsPerDay,
         totalDownloads: quote.totalDownloads,
         amountPaise: quote.amountPaise,
         amountRupees: quote.amountRupees,
+        pricePerStreamDayPaise: quote.pricePerStreamDayPaise,
+        pricePerDownloadPaise: quote.pricePerDownloadPaise,
         features: quote.features,
         utr,
         status: "pending",
         createdAt: new Date().toISOString(),
         reviewedAt: null,
         reviewNote: null,
+        screenshotPath,
+        screenshotUrl: null,
       };
       await firebasePut(`${paymentRequestsPath}/${encodeURIComponent(paymentRequest.id)}`, paymentRequest);
       res.status(201).json({ request: paymentRequest });
@@ -885,6 +1078,7 @@ router.post("/owner/plans", async (req, res): Promise<void> => {
   }
   const values = parsed.data;
   if (!Number.isInteger(values.durationDays) || !Number.isInteger(values.pricePerStreamDayPaise)
+    || (values.pricePerDownloadPaise !== undefined && !Number.isInteger(values.pricePerDownloadPaise))
     || !Number.isInteger(values.downloadsPerDay) || !Number.isInteger(values.streamLimit)) {
     res.status(400).json({ error: "Plan duration, price, stream limit, and download limit must be whole numbers." });
     return;
@@ -898,6 +1092,7 @@ router.post("/owner/plans", async (req, res): Promise<void> => {
       durationDays: daysValue(values.durationDays, 1),
       price: values.price.trim() || formatDailyPrice(values.pricePerStreamDayPaise),
       pricePerStreamDayPaise: values.pricePerStreamDayPaise,
+      pricePerDownloadPaise: values.pricePerDownloadPaise ?? 0,
       downloadsPerDay: values.downloadsPerDay,
       streamLimit: values.streamLimit,
       features: values.features.map((feature) => feature.trim()).filter(Boolean),
@@ -922,6 +1117,7 @@ router.put("/owner/plans/:planId", async (req, res): Promise<void> => {
   const patch = parsed.data;
   if ((patch.durationDays !== undefined && !Number.isInteger(patch.durationDays))
     || (patch.pricePerStreamDayPaise !== undefined && !Number.isInteger(patch.pricePerStreamDayPaise))
+    || (patch.pricePerDownloadPaise !== undefined && !Number.isInteger(patch.pricePerDownloadPaise))
     || (patch.downloadsPerDay !== undefined && !Number.isInteger(patch.downloadsPerDay))
     || (patch.streamLimit !== undefined && !Number.isInteger(patch.streamLimit))) {
     res.status(400).json({ error: "Plan duration, price, stream limit, and download limit must be whole numbers." });
@@ -943,6 +1139,7 @@ router.put("/owner/plans/:planId", async (req, res): Promise<void> => {
         ? current.price
         : formatDailyPrice(patch.pricePerStreamDayPaise)),
       pricePerStreamDayPaise: patch.pricePerStreamDayPaise ?? current.pricePerStreamDayPaise ?? 0,
+      pricePerDownloadPaise: patch.pricePerDownloadPaise ?? current.pricePerDownloadPaise ?? 0,
       downloadsPerDay: patch.downloadsPerDay ?? current.downloadsPerDay ?? 50,
       streamLimit: patch.streamLimit ?? current.streamLimit ?? 1,
       features: patch.features === undefined ? current.features || [] : patch.features.map((feature) => feature.trim()).filter(Boolean),
@@ -959,7 +1156,7 @@ router.put("/owner/plans/:planId", async (req, res): Promise<void> => {
 router.get("/owner/payment-settings", async (req, res): Promise<void> => {
   if (!(await requireAccountOwner(req, res))) return;
   try {
-    res.json(await loadPaymentSettings());
+    res.json(await paymentSettingsResponse(await loadPaymentSettings()));
   } catch (error) {
     sendError(req, res, error, "Could not load UPI payment settings.");
   }
@@ -978,10 +1175,30 @@ router.put("/owner/payment-settings", async (req, res): Promise<void> => {
     res.status(400).json({ error: "Enter a valid UPI ID and payee name." });
     return;
   }
-  const settings: PaymentSettingsRecord = { upiId, payeeName, updatedAt: new Date().toISOString() };
   try {
+    const current = await loadPaymentSettings();
+    const qrImagePath = parsed.data.qrImagePath === undefined ? current.qrImagePath : parsed.data.qrImagePath;
+    if (qrImagePath !== null && !qrImagePath.startsWith("/objects/payment-qr/")) {
+      res.status(400).json({ error: "Choose a valid uploaded payment QR image." });
+      return;
+    }
+    if (qrImagePath) {
+      try {
+        await objectStorageService.getObjectEntityFile(qrImagePath);
+      } catch {
+        res.status(400).json({ error: "The payment QR image could not be verified. Upload it again." });
+        return;
+      }
+    }
+    const settings: PaymentSettingsRecord = {
+      upiId,
+      payeeName,
+      qrImagePath,
+      qrImageUrl: null,
+      updatedAt: new Date().toISOString(),
+    };
     await firebasePut(paymentSettingsPath, settings);
-    res.json(settings);
+    res.json(await paymentSettingsResponse(settings));
   } catch (error) {
     sendError(req, res, error, "Could not save UPI payment settings.");
   }
@@ -998,7 +1215,16 @@ router.get("/owner/payment-requests", async (req, res): Promise<void> => {
     const requests = Object.values(await loadPaymentRequests())
       .filter((request) => !status || request.status === status)
       .sort((left, right) => right.createdAt.localeCompare(left.createdAt));
-    res.json({ requests });
+    const requestsWithImages = await Promise.all(requests.map(async (request) => {
+      if (!request.screenshotPath) return { ...request, screenshotUrl: null };
+      try {
+        return { ...request, screenshotUrl: await objectStorageService.getSignedDownloadURL(request.screenshotPath) };
+      } catch (error) {
+        req.log.warn({ requestId: request.id, error: error instanceof Error ? error.message : "unknown" }, "Payment proof image is unavailable");
+        return { ...request, screenshotUrl: null };
+      }
+    }));
+    res.json({ requests: requestsWithImages });
   } catch (error) {
     sendError(req, res, error, "Could not load payment requests.");
   }
@@ -1065,6 +1291,7 @@ router.post("/owner/payment-requests/:requestId/review", async (req, res): Promi
           planId: latestRequest.planId,
           days: latestRequest.durationDays,
           streamLimit: latestRequest.streamLimit,
+          streamsPerDay: latestRequest.streamsPerDay,
           downloadsPerDay: latestRequest.downloadsPerDay,
           totalDownloads: latestRequest.totalDownloads,
           amountPaise: latestRequest.amountPaise,
@@ -1076,7 +1303,8 @@ router.post("/owner/payment-requests/:requestId/review", async (req, res): Promi
           ...account,
           activePlanId: latestRequest.planId,
           accessEndsAt,
-          streamLimit: latestRequest.streamLimit,
+          streamLimit: account.streamLimit || plans[account.activePlanId]?.streamLimit || 1,
+          streamsPerDay: latestRequest.streamsPerDay,
           downloadsPerDay: latestRequest.downloadsPerDay,
           activeFeatures: latestRequest.features,
           history: [purchase, ...(account.history || [])].slice(0, 50),
@@ -1113,14 +1341,67 @@ export async function accountLicenseExists(licenseId: string): Promise<boolean> 
   return Object.values(accounts).some((account) => account.licenseId === licenseId);
 }
 
-export async function getAccountStreamAccess(userId: string): Promise<{ active: boolean; streamLimit: number }> {
+export async function getAccountStreamAccess(userId: string): Promise<{
+  active: boolean;
+  streamLimit: number;
+  streamsPerDay: number;
+  streamsStartedToday: number;
+}> {
   const account = await loadAccount(userId);
-  if (!account) return { active: false, streamLimit: 0 };
+  if (!account) return { active: false, streamLimit: 0, streamsPerDay: 0, streamsStartedToday: 0 };
   const plans = await loadPlans();
+  const streamsPerDay = typeof account.streamsPerDay === "number" && Number.isSafeInteger(account.streamsPerDay) && account.streamsPerDay > 0
+    ? account.streamsPerDay
+    : plans[account.activePlanId]?.isTrial ? 1 : 100;
+  const dayKey = currentUsageDayKey();
   return {
     active: isActive(account),
     streamLimit: account.streamLimit || plans[account.activePlanId]?.streamLimit || 1,
+    streamsPerDay,
+    streamsStartedToday: account.streamUsageDate === dayKey ? Math.max(0, account.streamsStartedToday || 0) : 0,
   };
+}
+
+export type StreamStartQuotaReservation<T> =
+  | { ok: true; result: T; streamsPerDay: number; streamsStartedToday: number }
+  | { ok: false; status: number; error: string };
+
+export async function startAccountStreamWithQuota<T>(
+  userId: string,
+  start: () => Promise<T> | T,
+): Promise<StreamStartQuotaReservation<T>> {
+  return withBillingLock(`billing-account:${userId}`, async () => {
+    const account = await loadAccount(userId);
+    if (!account) return { ok: false, status: 403, error: "This signed-in account does not have a workspace." };
+    if (!isActive(account)) return { ok: false, status: 403, error: "Your access has ended. Please upgrade your plan." };
+    const plans = await loadPlans();
+    const streamsPerDay = typeof account.streamsPerDay === "number" && Number.isSafeInteger(account.streamsPerDay) && account.streamsPerDay > 0
+      ? account.streamsPerDay
+      : plans[account.activePlanId]?.isTrial ? 1 : 100;
+    const dayKey = currentUsageDayKey();
+    const used = account.streamUsageDate === dayKey ? Math.max(0, account.streamsStartedToday || 0) : 0;
+    if (used >= streamsPerDay) {
+      return {
+        ok: false,
+        status: 429,
+        error: `Your plan allows ${streamsPerDay} new stream${streamsPerDay === 1 ? "" : "s"} per day. You have used them all today.`,
+      };
+    }
+    const updated: AccountRecord = {
+      ...account,
+      streamsPerDay,
+      streamUsageDate: dayKey,
+      streamsStartedToday: used + 1,
+    };
+    await firebasePut(accountPath(userId), updated);
+    try {
+      const result = await start();
+      return { ok: true, result, streamsPerDay, streamsStartedToday: used + 1 };
+    } catch (error) {
+      await firebasePut(accountPath(userId), account);
+      throw error;
+    }
+  });
 }
 
 export type DownloadQuotaReservation =

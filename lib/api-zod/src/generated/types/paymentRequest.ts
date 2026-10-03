@@ -5,6 +5,7 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { PaymentRequestPackType } from './paymentRequestPackType';
 import type { PaymentRequestStatus } from './paymentRequestStatus';
 
 export interface PaymentRequest {
@@ -14,12 +15,16 @@ export interface PaymentRequest {
   accountEmail: string;
   planId: string;
   planName: string;
+  packType: PaymentRequestPackType;
   durationDays: number;
   streamLimit: number;
+  streamsPerDay: number;
   downloadsPerDay: number;
   totalDownloads: number;
   amountPaise: number;
   amountRupees: number;
+  pricePerStreamDayPaise: number;
+  pricePerDownloadPaise: number;
   features: string[];
   utr: string;
   status: PaymentRequestStatus;
@@ -28,4 +33,11 @@ export interface PaymentRequest {
   reviewedAt: Date | null;
   /** @nullable */
   reviewNote: string | null;
+  /**
+     * @nullable
+     * @pattern ^/objects/payment-proof/
+     */
+  screenshotPath: string | null;
+  /** @nullable */
+  screenshotUrl: string | null;
 }
