@@ -360,10 +360,15 @@ export function FeedbackGalleryPage() {
   return (
     <main className="feedback-page">
       <div className="feedback-page-inner">
-        <Link href="/" className="feedback-brand-link" aria-label="Loop Stream home">
+        <div className="feedback-page-topbar">
+          <a href="/" className="feedback-top-back-link" aria-label="Back to YT Loop homepage">
+            <span aria-hidden="true">←</span> Back to YT Loop
+          </a>
+          <span className="feedback-brand-link" aria-label="Loop Stream">
           <span className="feedback-brand-orbit" aria-hidden="true"><i /></span>
           <span>LOOP <b>STREAM</b></span>
-        </Link>
+          </span>
+        </div>
         <header className="feedback-page-heading">
           <p className="feedback-eyebrow">CHANNEL FEEDBACK</p>
           <h1>Feedback from live channels.</h1>
@@ -381,7 +386,6 @@ export function FeedbackGalleryPage() {
         )}
         <footer className="feedback-page-footer">
           <span>{showingDemoEntries ? "Development preview only." : "Channel images shown as shared."}</span>
-          <Link href="/" className="feedback-footer-home">Back to Loop Stream <span aria-hidden="true">↗</span></Link>
         </footer>
       </div>
       {selected && <FeedbackModal entry={selected} onClose={closeModal} />}
@@ -398,7 +402,13 @@ export function FeedbackDetailPage({ feedbackId }: { feedbackId: string }) {
   return (
     <main className="feedback-page feedback-detail-page">
       <div className="feedback-page-inner">
-        <Link href="/feedback" className="feedback-back-link"><span aria-hidden="true">←</span> All creator feedback</Link>
+        <div className="feedback-page-topbar">
+          <Link href="/feedback" className="feedback-top-back-link"><span aria-hidden="true">←</span> All feedback</Link>
+          <a href="/" className="feedback-brand-link" aria-label="Back to YT Loop homepage">
+            <span className="feedback-brand-orbit" aria-hidden="true"><i /></span>
+            <span>LOOP <b>STREAM</b></span>
+          </a>
+        </div>
         {isLoading ? (
           <div className="feedback-detail-loading" aria-label="Loading feedback detail">
             <div className="feedback-detail-skeleton" />

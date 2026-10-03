@@ -14,7 +14,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/toaster";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import NotFound from "@/pages/not-found";
-import { GatewayPage, LandingPage, PricingPage } from "@/pages/public";
+import { GatewayPage, PricingPage } from "@/pages/public";
 import { FeedbackDetailPage, FeedbackGalleryPage } from "@/components/FeedbackShowcase";
 import { OwnerFeedbackPanel } from "@/pages/FeedbackAdmin";
 import { extractYoutubeChannelLinks, getStreamStatus, startStream, stopStream, trimMediaFile, updateStream } from "@workspace/api-client-react";
@@ -5380,7 +5380,6 @@ function App() {
   if (location === "/pricing") return isSignedIn || hasAccountSession ? <Redirect to="/dashboard" /> : <Redirect to="/sign-in" />;
   if (location === "/gateway") return <GatewayPage />;
   if (isSignedIn && accountSession.error && !accountSession.account) return <div className="workspace-loading workspace-loading-error"><span>{accountSession.error}</span></div>;
-  if (location === "/" && !isLicenseActive(activeLicense)) return <LandingPage />;
   const openMobileRoom = () => { setMobileGiftKey(""); setLocation("/dashboard"); };
   if (location === "/access") return <LicenseGate license={activeLicense} busy={license.busy} error={license.error || firebaseError} signedIn={Boolean(isSignedIn || hasAccountSession)} onActivate={license.activate} onRenew={license.renew} onGoogleLogin={() => setLocation("/sign-in")} onMobileAccountLogin={accountSession.reload} onGiftReady={setMobileGiftKey} onOpenRoom={openMobileRoom}/>;
   if (!hasAccountSession && (!activeLicense || !isLicenseActive(activeLicense))) return <LicenseGate license={activeLicense} busy={license.busy} error={license.error || firebaseError} signedIn={Boolean(isSignedIn || hasAccountSession)} onActivate={license.activate} onRenew={license.renew} onGoogleLogin={() => setLocation("/sign-in")} onMobileAccountLogin={accountSession.reload} onGiftReady={setMobileGiftKey} onOpenRoom={openMobileRoom}/>;
