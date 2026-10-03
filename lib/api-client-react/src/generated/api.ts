@@ -37,6 +37,7 @@ import type {
   ExtractYoutubeChannelLinksInput,
   FeedbackImageUploadInput,
   FeedbackImageUploadResponse,
+  FeedbackUpdate,
   HealthStatus,
   IncludedFileMoveInput,
   IncludedFileMoveResponse,
@@ -179,6 +180,88 @@ export function useListPublicFeedback<TData = Awaited<ReturnType<typeof listPubl
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
   const queryOptions = getListPublicFeedbackQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetPublicFeedbackImageByIndexUrl = (feedbackId: string,
+    imageIndex: string,) => {
+
+
+
+
+  return `/api/public/feedback/${feedbackId}/images/${imageIndex}`
+}
+
+/**
+ * @summary Serve an image from a published feedback entry
+ */
+export const getPublicFeedbackImageByIndex = async (feedbackId: string,
+    imageIndex: string, options?: Parameters<typeof customFetch>[1]): Promise<Blob> => {
+
+  return customFetch<Blob>(getGetPublicFeedbackImageByIndexUrl(feedbackId,imageIndex),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetPublicFeedbackImageByIndexQueryKey = (feedbackId: string,
+    imageIndex: string,) => {
+    return [
+    `/api/public/feedback/${feedbackId}/images/${imageIndex}`
+    ] as const;
+    }
+
+
+export const getGetPublicFeedbackImageByIndexQueryOptions = <TData = Awaited<ReturnType<typeof getPublicFeedbackImageByIndex>>, TError = ErrorType<void>>(feedbackId: string,
+    imageIndex: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPublicFeedbackImageByIndex>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetPublicFeedbackImageByIndexQueryKey(feedbackId,imageIndex);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getPublicFeedbackImageByIndex>>> = ({ signal }) => getPublicFeedbackImageByIndex(feedbackId,imageIndex, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: feedbackId !== null && feedbackId !== undefined && imageIndex !== null && imageIndex !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getPublicFeedbackImageByIndex>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetPublicFeedbackImageByIndexQueryResult = NonNullable<Awaited<ReturnType<typeof getPublicFeedbackImageByIndex>>>
+export type GetPublicFeedbackImageByIndexQueryError = ErrorType<void>
+
+
+/**
+ * @summary Serve an image from a published feedback entry
+ */
+
+export function useGetPublicFeedbackImageByIndex<TData = Awaited<ReturnType<typeof getPublicFeedbackImageByIndex>>, TError = ErrorType<void>>(
+ feedbackId: string,
+    imageIndex: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPublicFeedbackImageByIndex>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetPublicFeedbackImageByIndexQueryOptions(feedbackId,imageIndex,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 
@@ -485,6 +568,78 @@ export const useCreateOwnerFeedbackUploadUrl = <TError = ErrorType<void>,
         TContext
       > => {
       return useMutation(getCreateOwnerFeedbackUploadUrlMutationOptions(options));
+    }
+
+export const getUpdateOwnerFeedbackUrl = (feedbackId: string,) => {
+
+
+
+
+  return `/api/owner/feedback/${feedbackId}`
+}
+
+/**
+ * @summary Update a channel feedback entry and its homepage pin
+ */
+export const updateOwnerFeedback = async (feedbackId: string,
+    feedbackUpdate: FeedbackUpdate, options?: Parameters<typeof customFetch>[1]): Promise<OwnerFeedbackResponse> => {
+
+  return customFetch<OwnerFeedbackResponse>(getUpdateOwnerFeedbackUrl(feedbackId),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(feedbackUpdate)
+  }
+);}
+
+
+
+
+
+export const getUpdateOwnerFeedbackMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateOwnerFeedback>>, TError,{feedbackId: string;data: BodyType<FeedbackUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateOwnerFeedback>>, TError,{feedbackId: string;data: BodyType<FeedbackUpdate>}, TContext> => {
+
+const mutationKey = ['updateOwnerFeedback'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateOwnerFeedback>>, {feedbackId: string;data: BodyType<FeedbackUpdate>}> = (props) => {
+          const {feedbackId,data} = props ?? {};
+
+          return  updateOwnerFeedback(feedbackId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateOwnerFeedbackMutationResult = NonNullable<Awaited<ReturnType<typeof updateOwnerFeedback>>>
+    export type UpdateOwnerFeedbackMutationBody = BodyType<FeedbackUpdate>
+    export type UpdateOwnerFeedbackMutationError = ErrorType<void>
+
+    /**
+ * @summary Update a channel feedback entry and its homepage pin
+ */
+export const useUpdateOwnerFeedback = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateOwnerFeedback>>, TError,{feedbackId: string;data: BodyType<FeedbackUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateOwnerFeedback>>,
+        TError,
+        {feedbackId: string;data: BodyType<FeedbackUpdate>},
+        TContext
+      > => {
+      return useMutation(getUpdateOwnerFeedbackMutationOptions(options));
     }
 
 export const getDeleteOwnerFeedbackUrl = (feedbackId: string,) => {

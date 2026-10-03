@@ -18,9 +18,25 @@ export const ListPublicFeedbackResponse = zod.object({
   "channelName": zod.string(),
   "channelUrl": zod.string(),
   "imageUrl": zod.string(),
+  "imageUrls": zod.array(zod.string()),
+  "pinned": zod.boolean(),
   "createdAt": zod.coerce.date()
 }))
 })
+
+
+/**
+ * @summary Serve an image from a published feedback entry
+ */
+export const getPublicFeedbackImageByIndexPathImageIndexRegExp = new RegExp('^[0-9]+$');
+
+
+export const GetPublicFeedbackImageByIndexParams = zod.object({
+  "feedbackId": zod.coerce.string(),
+  "imageIndex": zod.coerce.string().regex(getPublicFeedbackImageByIndexPathImageIndexRegExp)
+})
+
+export const GetPublicFeedbackImageByIndexResponse = zod.unknown()
 
 
 /**
@@ -47,9 +63,12 @@ export const ListOwnerFeedbackResponse = zod.object({
   "channelName": zod.string(),
   "channelUrl": zod.string(),
   "imageUrl": zod.string(),
+  "imageUrls": zod.array(zod.string()),
+  "pinned": zod.boolean(),
   "createdAt": zod.coerce.date()
 }).and(zod.object({
-  "imagePath": zod.string()
+  "imagePath": zod.string(),
+  "imagePaths": zod.array(zod.string())
 })))
 })
 
@@ -69,14 +88,17 @@ export const createOwnerFeedbackBodyChannelNameMax = 80;
 
 export const createOwnerFeedbackBodyChannelUrlMax = 500;
 
-export const createOwnerFeedbackBodyImagePathRegExp = new RegExp('^/objects');
+export const createOwnerFeedbackBodyImagePathsItemRegExp = new RegExp('^/objects');
+export const createOwnerFeedbackBodyImagePathsMax = 8;
+
 
 
 export const CreateOwnerFeedbackBody = zod.object({
   "title": zod.string().min(createOwnerFeedbackBodyTitleMin).max(createOwnerFeedbackBodyTitleMax),
   "channelName": zod.string().min(createOwnerFeedbackBodyChannelNameMin).max(createOwnerFeedbackBodyChannelNameMax),
   "channelUrl": zod.string().max(createOwnerFeedbackBodyChannelUrlMax),
-  "imagePath": zod.string().regex(createOwnerFeedbackBodyImagePathRegExp)
+  "imagePaths": zod.array(zod.string().regex(createOwnerFeedbackBodyImagePathsItemRegExp)).min(1).max(createOwnerFeedbackBodyImagePathsMax),
+  "pinned": zod.boolean()
 })
 
 export const CreateOwnerFeedbackResponse = zod.object({
@@ -86,9 +108,12 @@ export const CreateOwnerFeedbackResponse = zod.object({
   "channelName": zod.string(),
   "channelUrl": zod.string(),
   "imageUrl": zod.string(),
+  "imageUrls": zod.array(zod.string()),
+  "pinned": zod.boolean(),
   "createdAt": zod.coerce.date()
 }).and(zod.object({
-  "imagePath": zod.string()
+  "imagePath": zod.string(),
+  "imagePaths": zod.array(zod.string())
 }))
 })
 
@@ -114,6 +139,55 @@ export const CreateOwnerFeedbackUploadUrlResponse = zod.object({
   "objectPath": zod.string(),
   "contentType": zod.string(),
   "maxBytes": zod.number()
+})
+
+
+/**
+ * @summary Update a channel feedback entry and its homepage pin
+ */
+export const UpdateOwnerFeedbackParams = zod.object({
+  "feedbackId": zod.coerce.string()
+})
+
+export const UpdateOwnerFeedbackHeader = zod.object({
+  "X-Owner-Password": zod.string()
+})
+
+export const updateOwnerFeedbackBodyTitleMin = 2;
+export const updateOwnerFeedbackBodyTitleMax = 120;
+
+export const updateOwnerFeedbackBodyChannelNameMin = 2;
+export const updateOwnerFeedbackBodyChannelNameMax = 80;
+
+export const updateOwnerFeedbackBodyChannelUrlMax = 500;
+
+export const updateOwnerFeedbackBodyImagePathsItemRegExp = new RegExp('^/objects');
+export const updateOwnerFeedbackBodyImagePathsMax = 8;
+
+
+
+export const UpdateOwnerFeedbackBody = zod.object({
+  "title": zod.string().min(updateOwnerFeedbackBodyTitleMin).max(updateOwnerFeedbackBodyTitleMax),
+  "channelName": zod.string().min(updateOwnerFeedbackBodyChannelNameMin).max(updateOwnerFeedbackBodyChannelNameMax),
+  "channelUrl": zod.string().max(updateOwnerFeedbackBodyChannelUrlMax),
+  "imagePaths": zod.array(zod.string().regex(updateOwnerFeedbackBodyImagePathsItemRegExp)).min(1).max(updateOwnerFeedbackBodyImagePathsMax),
+  "pinned": zod.boolean()
+})
+
+export const UpdateOwnerFeedbackResponse = zod.object({
+  "feedback": zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "channelName": zod.string(),
+  "channelUrl": zod.string(),
+  "imageUrl": zod.string(),
+  "imageUrls": zod.array(zod.string()),
+  "pinned": zod.boolean(),
+  "createdAt": zod.coerce.date()
+}).and(zod.object({
+  "imagePath": zod.string(),
+  "imagePaths": zod.array(zod.string())
+}))
 })
 
 

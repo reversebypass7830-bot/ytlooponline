@@ -9,4 +9,5 @@ import type { PublicFeedback } from './publicFeedback';
 
 export type OwnerFeedback = PublicFeedback & {
   imagePath: string;
+  imagePaths: string[];
 };

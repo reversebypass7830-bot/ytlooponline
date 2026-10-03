@@ -11,11 +11,14 @@ export interface PublicFeedback {
   channelName: string;
   channelUrl: string;
   imageUrl: string;
+  imageUrls: string[];
+  pinned: boolean;
   createdAt: string;
 }
 
 export type OwnerFeedback = PublicFeedback & {
   imagePath: string;
+  imagePaths: string[];
 };
 
 export interface PublicFeedbackListResponse {
@@ -30,6 +33,13 @@ export interface OwnerFeedbackResponse {
   feedback: OwnerFeedback;
 }
 
+/**
+ * @minItems 1
+ * @maxItems 8
+ * @items.pattern ^/objects/
+ */
+export type FeedbackImagePaths = string[];
+
 export interface CreateFeedbackInput {
   /**
      * @minLength 2
@@ -43,8 +53,25 @@ export interface CreateFeedbackInput {
   channelName: string;
   /** @maxLength 500 */
   channelUrl: string;
-  /** @pattern ^/objects/ */
-  imagePath: string;
+  imagePaths: FeedbackImagePaths;
+  pinned: boolean;
+}
+
+export interface FeedbackUpdate {
+  /**
+     * @minLength 2
+     * @maxLength 120
+     */
+  title: string;
+  /**
+     * @minLength 2
+     * @maxLength 80
+     */
+  channelName: string;
+  /** @maxLength 500 */
+  channelUrl: string;
+  imagePaths: FeedbackImagePaths;
+  pinned: boolean;
 }
 
 export type FeedbackImageUploadInputContentType = typeof FeedbackImageUploadInputContentType[keyof typeof FeedbackImageUploadInputContentType];

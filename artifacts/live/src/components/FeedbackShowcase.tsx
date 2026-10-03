@@ -14,7 +14,6 @@ const feedbackQueryOptions = {
 
 type FeedbackEntry = PublicFeedback & {
   avatarUrl?: string;
-  imageUrls?: string[];
 };
 
 const demoFeedbackEntries: FeedbackEntry[] = [
@@ -28,6 +27,7 @@ const demoFeedbackEntries: FeedbackEntry[] = [
       "/images/feedback-demo/kai-asmr-live.webp",
       "/images/feedback-demo/kai-asmr-about.webp",
     ],
+    pinned: true,
     avatarUrl: "/images/feedback-demo/kai-asmr-avatar.webp",
     createdAt: "2026-10-03T00:00:00.000Z",
   },
@@ -41,6 +41,7 @@ const demoFeedbackEntries: FeedbackEntry[] = [
       "/images/feedback-demo/dambiesyt-live.webp",
       "/images/feedback-demo/dambiesyt-about.webp",
     ],
+    pinned: true,
     avatarUrl: "/images/feedback-demo/dambiesyt-avatar.webp",
     createdAt: "2026-10-03T00:00:00.000Z",
   },
@@ -54,6 +55,7 @@ const demoFeedbackEntries: FeedbackEntry[] = [
       "/images/feedback-demo/tang-tien-live.webp",
       "/images/feedback-demo/tang-tien-about.webp",
     ],
+    pinned: true,
     avatarUrl: "/images/feedback-demo/tang-tien-avatar.webp",
     createdAt: "2026-10-03T00:00:00.000Z",
   },
@@ -67,14 +69,20 @@ const demoFeedbackEntries: FeedbackEntry[] = [
       "/images/feedback-demo/candy-talks-live.webp",
       "/images/feedback-demo/candy-talks-about.webp",
     ],
+    pinned: true,
     avatarUrl: "/images/feedback-demo/candy-talks-avatar.webp",
     createdAt: "2026-10-03T00:00:00.000Z",
   },
 ];
 
-function getDisplayEntries(entries: PublicFeedback[], limit = 5): FeedbackEntry[] {
-  if (entries.length > 0) return entries.slice(0, limit);
-  return import.meta.env.DEV ? demoFeedbackEntries.slice(0, limit) : [];
+function getDisplayEntries(entries: PublicFeedback[], limit?: number): FeedbackEntry[] {
+  const source = entries.length > 0 ? entries : import.meta.env.DEV ? demoFeedbackEntries : [];
+  return limit === undefined ? source : source.slice(0, limit);
+}
+
+function getLandingEntries(entries: PublicFeedback[]): FeedbackEntry[] {
+  if (entries.length === 0) return import.meta.env.DEV ? demoFeedbackEntries.slice(0, 4) : [];
+  return entries.filter((entry) => entry.pinned).slice(0, 4);
 }
 
 function getEntryImages(entry: FeedbackEntry): string[] {
@@ -105,7 +113,7 @@ function FeedbackPreviewNote() {
 export function LandingFeedbackSection() {
   const { data, isLoading, isError, refetch } = useListPublicFeedback(feedbackQueryOptions);
   const [selected, setSelected] = useState<FeedbackEntry | null>(null);
-  const entries = getDisplayEntries(data?.feedback ?? [], 4);
+  const entries = getLandingEntries(data?.feedback ?? []);
   const showingDemoEntries = entries.some(isDemoEntry);
   const closeModal = useCallback(() => setSelected(null), []);
   const openEntry = (entry: FeedbackEntry) => {
@@ -376,11 +384,11 @@ export function FeedbackGalleryPage() {
           {showingDemoEntries && <FeedbackPreviewNote />}
         </header>
         <div className="feedback-gallery-topline">
-          <span>Featured channels</span>
+          <span>All channels</span>
           <span className="feedback-gallery-count">{isLoading ? "Updating" : `${entries.length} ${entries.length === 1 ? "channel" : "channels"}`}</span>
         </div>
         {isLoading ? <FeedbackLoading /> : isError ? <FeedbackError onRetry={() => { void refetch(); }} /> : entries.length === 0 ? <FeedbackEmpty /> : (
-          <section className="feedback-grid" aria-label="Featured creator channels">
+          <section className="feedback-grid" aria-label="All creator feedback">
             {entries.map((entry) => <FeedbackCard key={entry.id} entry={entry} onOpen={openEntry} />)}
           </section>
         )}

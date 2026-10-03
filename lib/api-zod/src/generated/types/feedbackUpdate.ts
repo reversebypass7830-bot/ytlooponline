@@ -7,7 +7,7 @@
  */
 import type { FeedbackImagePaths } from './feedbackImagePaths';
 
-export interface CreateFeedbackInput {
+export interface FeedbackUpdate {
   /**
      * @minLength 2
      * @maxLength 120

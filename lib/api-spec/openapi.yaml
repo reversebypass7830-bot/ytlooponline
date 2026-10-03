@@ -28,11 +28,46 @@ paths:
       summary: List published channel feedback
       responses:
         "200":
-          description: Latest public feedback entries
+          description: All public feedback entries, with pinned entries first
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/PublicFeedbackListResponse"
+  /public/feedback/{feedbackId}/images/{imageIndex}:
+    get:
+      operationId: getPublicFeedbackImageByIndex
+      tags: [feedback]
+      summary: Serve an image from a published feedback entry
+      parameters:
+        - name: feedbackId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: imageIndex
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: "^[0-9]+$"
+      responses:
+        "200":
+          description: Feedback image
+          content:
+            image/jpeg:
+              schema:
+                type: string
+                format: binary
+            image/png:
+              schema:
+                type: string
+                format: binary
+            image/webp:
+              schema:
+                type: string
+                format: binary
+        "404":
+          description: Feedback image not found
   /public/feedback/{feedbackId}/image:
     get:
       operationId: getPublicFeedbackImage
@@ -99,6 +134,8 @@ paths:
                 $ref: "#/components/schemas/OwnerFeedbackResponse"
         "400":
           description: Invalid feedback details
+        "409":
+          description: The four homepage feature slots are already full
         "401":
           description: Owner access is required
   /owner/feedback/upload-url:
@@ -126,6 +163,38 @@ paths:
         "401":
           description: Owner access is required
   /owner/feedback/{feedbackId}:
+    patch:
+      operationId: updateOwnerFeedback
+      tags: [feedback]
+      summary: Update a channel feedback entry and its homepage pin
+      parameters:
+        - $ref: "#/components/parameters/OwnerPassword"
+        - name: feedbackId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FeedbackUpdate"
+      responses:
+        "200":
+          description: Feedback entry updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OwnerFeedbackResponse"
+        "400":
+          description: Invalid feedback details
+        "401":
+          description: Owner access is required
+        "404":
+          description: Feedback entry not found
+        "409":
+          description: The four homepage feature slots are already full
     delete:
       operationId: deleteOwnerFeedback
       tags: [feedback]
@@ -1123,10 +1192,16 @@ components:
           type: string
         imageUrl:
           type: string
+        imageUrls:
+          type: array
+          items:
+            type: string
+        pinned:
+          type: boolean
         createdAt:
           type: string
           format: date-time
-      required: [id, title, channelName, channelUrl, imageUrl, createdAt]
+      required: [id, title, channelName, channelUrl, imageUrl, imageUrls, pinned, createdAt]
     OwnerFeedback:
       allOf:
         - $ref: "#/components/schemas/PublicFeedback"
@@ -1134,7 +1209,11 @@ components:
           properties:
             imagePath:
               type: string
-          required: [imagePath]
+            imagePaths:
+              type: array
+              items:
+                type: string
+          required: [imagePath, imagePaths]
     PublicFeedbackListResponse:
       type: object
       properties:
@@ -1157,6 +1236,13 @@ components:
         feedback:
           $ref: "#/components/schemas/OwnerFeedback"
       required: [feedback]
+    FeedbackImagePaths:
+      type: array
+      minItems: 1
+      maxItems: 8
+      items:
+        type: string
+        pattern: "^/objects/"
     CreateFeedbackInput:
       type: object
       properties:
@@ -1171,10 +1257,30 @@ components:
         channelUrl:
           type: string
           maxLength: 500
-        imagePath:
+        imagePaths:
+          $ref: "#/components/schemas/FeedbackImagePaths"
+        pinned:
+          type: boolean
+      required: [title, channelName, channelUrl, imagePaths, pinned]
+    FeedbackUpdate:
+      type: object
+      properties:
+        title:
           type: string
-          pattern: "^/objects/"
-      required: [title, channelName, channelUrl, imagePath]
+          minLength: 2
+          maxLength: 120
+        channelName:
+          type: string
+          minLength: 2
+          maxLength: 80
+        channelUrl:
+          type: string
+          maxLength: 500
+        imagePaths:
+          $ref: "#/components/schemas/FeedbackImagePaths"
+        pinned:
+          type: boolean
+      required: [title, channelName, channelUrl, imagePaths, pinned]
     FeedbackImageUploadInput:
       type: object
       properties:

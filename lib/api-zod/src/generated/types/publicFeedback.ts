@@ -12,5 +12,7 @@ export interface PublicFeedback {
   channelName: string;
   channelUrl: string;
   imageUrl: string;
+  imageUrls: string[];
+  pinned: boolean;
   createdAt: Date;
 }
