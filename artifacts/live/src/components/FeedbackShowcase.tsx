@@ -12,8 +12,14 @@ const feedbackQueryOptions = {
   },
 };
 
+type FeedbackChannelStats = {
+  views: string;
+  joined: string;
+};
+
 type FeedbackEntry = PublicFeedback & {
   avatarUrl?: string;
+  channelStats?: FeedbackChannelStats;
 };
 
 const feedbackAvatarById: Record<string, string> = {
@@ -25,6 +31,17 @@ const feedbackAvatarById: Record<string, string> = {
   "seed-tang-tien": "/images/feedback-demo/tang-tien-avatar.webp",
   "demo-candy-talks": "/images/feedback-demo/candy-talks-avatar.webp",
   "seed-candy-talks": "/images/feedback-demo/candy-talks-avatar.webp",
+};
+
+const feedbackChannelStatsById: Record<string, FeedbackChannelStats> = {
+  "demo-kai-asmr": { views: "871,184,265", joined: "18 Sept 2018" },
+  "seed-kai-asmr": { views: "871,184,265", joined: "18 Sept 2018" },
+  "demo-dambiesyt": { views: "350,244,301", joined: "2 Oct 2018" },
+  "seed-dambiesyt": { views: "350,244,301", joined: "2 Oct 2018" },
+  "demo-tang-tien": { views: "285,397,416", joined: "9 Nov 2014" },
+  "seed-tang-tien": { views: "285,397,416", joined: "9 Nov 2014" },
+  "demo-candy-talks": { views: "8,609,866", joined: "25 Oct 2025" },
+  "seed-candy-talks": { views: "8,609,866", joined: "25 Oct 2025" },
 };
 
 const demoFeedbackEntries: FeedbackEntry[] = [
@@ -98,6 +115,7 @@ function getLandingEntries(entries: PublicFeedback[]): FeedbackEntry[] {
   return source.map((entry) => ({
     ...entry,
     avatarUrl: (entry as FeedbackEntry).avatarUrl ?? feedbackAvatarById[entry.id],
+    channelStats: feedbackChannelStatsById[entry.id],
   }));
 }
 
@@ -234,6 +252,14 @@ function FeedbackCard({ entry, onOpen }: { entry: FeedbackEntry; onOpen: (entry:
         </span>
         <span className="feedback-card-copy">
           <span className="feedback-card-title">{entry.title}</span>
+          {entry.channelStats && (
+            <span className="feedback-card-details">
+              <span className="feedback-card-view-count">
+                <span>{entry.channelStats.views} views</span>
+              </span>
+              <span className="feedback-card-joined">Joined {entry.channelStats.joined}</span>
+            </span>
+          )}
         </span>
       </button>
     </article>
