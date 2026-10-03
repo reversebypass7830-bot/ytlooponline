@@ -1249,8 +1249,6 @@ export const QuoteAccountPaymentResponse = zod.object({
   "pricePerDownloadPaise": zod.number(),
   "upiId": zod.string(),
   "payeeName": zod.string(),
-  "qrImagePath": zod.string().nullable(),
-  "qrImageUrl": zod.string().nullable(),
   "features": zod.array(zod.string())
 })
 
@@ -1565,14 +1563,9 @@ export const GetOwnerPaymentSettingsHeader = zod.object({
   "X-Owner-Password": zod.string()
 })
 
-export const getOwnerPaymentSettingsResponseQrImagePathRegExp = new RegExp('^/objects/payment-qr');
-
-
 export const GetOwnerPaymentSettingsResponse = zod.object({
   "upiId": zod.string(),
   "payeeName": zod.string(),
-  "qrImagePath": zod.string().regex(getOwnerPaymentSettingsResponseQrImagePathRegExp).nullable(),
-  "qrImageUrl": zod.string().nullable(),
   "updatedAt": zod.coerce.date().nullable()
 })
 
@@ -1596,39 +1589,10 @@ export const UpdateOwnerPaymentSettingsBody = zod.object({
   "payeeName": zod.string().min(1).max(updateOwnerPaymentSettingsBodyPayeeNameMax)
 })
 
-export const updateOwnerPaymentSettingsResponseQrImagePathRegExp = new RegExp('^/objects/payment-qr');
-
-
 export const UpdateOwnerPaymentSettingsResponse = zod.object({
   "upiId": zod.string(),
   "payeeName": zod.string(),
-  "qrImagePath": zod.string().regex(updateOwnerPaymentSettingsResponseQrImagePathRegExp).nullable(),
-  "qrImageUrl": zod.string().nullable(),
   "updatedAt": zod.coerce.date().nullable()
-})
-
-
-/**
- * @summary Prepare an owner-only QR image upload
- */
-export const CreateOwnerPaymentQrUploadUrlHeader = zod.object({
-  "X-Owner-Password": zod.string()
-})
-
-export const createOwnerPaymentQrUploadUrlBodySizeMax = 5242880;
-
-
-
-export const CreateOwnerPaymentQrUploadUrlBody = zod.object({
-  "contentType": zod.enum(['image/jpeg', 'image/png', 'image/webp']),
-  "size": zod.number().min(1).max(createOwnerPaymentQrUploadUrlBodySizeMax)
-})
-
-export const CreateOwnerPaymentQrUploadUrlResponse = zod.object({
-  "uploadURL": zod.string(),
-  "objectPath": zod.string(),
-  "contentType": zod.string(),
-  "maxBytes": zod.number()
 })
 
 

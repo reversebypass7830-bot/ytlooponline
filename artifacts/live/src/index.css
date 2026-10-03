@@ -11816,3 +11816,79 @@ body:has(.owner-payment-content) .mini-user { border-color: #e5e7eb; }
 @media (prefers-reduced-motion: reduce) {
   .subscription-page *, .owner-payment-content * { scroll-behavior: auto !important; animation-duration: .01ms !important; transition-duration: .01ms !important; }
 }
+
+.shell .account-access-timer {
+  appearance:none;
+  cursor:pointer;
+  text-align:left;
+  font-family:var(--app-font-mono);
+}
+.shell .account-access-timer:focus-visible {
+  outline:3px solid rgba(240,24,125,.45);
+  outline-offset:3px;
+}
+.account-access-history-hint {
+  border-left:1px solid currentColor;
+  padding-left:8px;
+  opacity:.75;
+  font:600 9px var(--app-font-sans);
+  white-space:nowrap;
+}
+.profile-plan-dialog {
+  width:min(720px, calc(100vw - 28px));
+  max-width:720px;
+  max-height:calc(100dvh - 32px);
+  overflow-y:auto;
+  padding:24px;
+  border:1px solid #e8e3eb;
+  border-radius:20px;
+  color:#25212a;
+  background:#fff;
+  box-shadow:0 24px 80px rgba(25,13,32,.32);
+}
+.profile-plan-dialog-header { margin-bottom:14px; }
+.profile-plan-dialog-header [data-slot="dialog-title"] { color:#25212a; font-size:21px; }
+.profile-plan-dialog-header [data-slot="dialog-description"] { color:#716a78; }
+.profile-plan-history { display:grid; gap:12px; }
+.profile-plan-current,
+.profile-plan-previous,
+.profile-plan-all-history {
+  display:grid;
+  gap:9px;
+  padding:16px;
+  border:1px solid #ece7ef;
+  border-radius:14px;
+  background:#fcfbfd;
+}
+.profile-plan-current { grid-template-columns:minmax(0,1fr) auto; align-items:center; }
+.profile-plan-current .metric-kicker,
+.profile-plan-current > strong,
+.profile-plan-current > small { grid-column:1; }
+.profile-plan-current > strong { font-size:19px; }
+.profile-plan-current > small { color:#77717e; }
+.profile-plan-state {
+  display:inline-flex;
+  align-items:center;
+  width:max-content;
+  padding:4px 8px;
+  border-radius:999px;
+  color:#6b6570;
+  background:#eeeaf1;
+  font:700 9px var(--app-font-mono);
+  text-transform:uppercase;
+}
+.profile-plan-state.active { color:#286948; background:#e2f4e8; }
+.profile-plan-state.expired { color:#92523d; background:#f8ebe3; }
+.profile-plan-current .profile-plan-state { grid-column:2; grid-row:1 / span 2; }
+.profile-plan-period-list { display:grid; gap:8px; }
+.profile-plan-period { display:grid; gap:4px; padding:11px 12px; border:1px solid #eee9f1; border-radius:11px; background:#fff; }
+.profile-plan-period > strong { display:flex; align-items:center; justify-content:space-between; gap:10px; }
+.profile-plan-period > span { color:#49434d; font-size:12px; }
+.profile-plan-period > small,
+.profile-plan-empty { margin:0; color:#77717e; font-size:11px; }
+@media (max-width: 760px) {
+  .shell .mobile-nav { grid-template-columns:repeat(4, minmax(0, 1fr)); }
+  .account-access-history-hint { display:none; }
+  .profile-plan-dialog { width:calc(100vw - 20px); max-height:calc(100dvh - 20px); padding:18px; }
+  .profile-plan-period > strong { align-items:flex-start; flex-direction:column; }
+}

@@ -9,13 +9,6 @@
 export interface PaymentSettings {
   upiId: string;
   payeeName: string;
-  /**
-     * @nullable
-     * @pattern ^/objects/payment-qr/
-     */
-  qrImagePath: string | null;
-  /** @nullable */
-  qrImageUrl: string | null;
   /** @nullable */
   updatedAt: Date | null;
 }

@@ -862,13 +862,6 @@ export interface BillingPlanResponse {
 export interface PaymentSettings {
   upiId: string;
   payeeName: string;
-  /**
-     * @nullable
-     * @pattern ^/objects/payment-qr/
-     */
-  qrImagePath: string | null;
-  /** @nullable */
-  qrImageUrl: string | null;
   /** @nullable */
   updatedAt: string | null;
 }
@@ -965,10 +958,6 @@ export interface AccountPaymentQuote {
   pricePerDownloadPaise: number;
   upiId: string;
   payeeName: string;
-  /** @nullable */
-  qrImagePath: string | null;
-  /** @nullable */
-  qrImageUrl: string | null;
   features: string[];
 }
 

@@ -45,6 +45,7 @@ type AccountHistoryItem = {
   type: "trial_started" | "purchase" | "grant" | "login";
   message: string;
   at: string;
+  planName?: string;
   planId?: string;
   days?: number;
   streamLimit?: number;
@@ -55,6 +56,9 @@ type AccountHistoryItem = {
   utr?: string;
   features?: string[];
   paymentRequestId?: string;
+  startsAt?: string;
+  endsAt?: string;
+  periodEstimated?: boolean;
 };
 
 type AccountRecord = {
@@ -90,8 +94,6 @@ type PaymentStatus = "pending" | "approved" | "rejected";
 type PaymentSettingsRecord = {
   upiId: string;
   payeeName: string;
-  qrImagePath: string | null;
-  qrImageUrl: string | null;
   updatedAt: string | null;
 };
 type PaymentRequestRecord = {
@@ -136,8 +138,6 @@ type PaymentQuote = {
   pricePerDownloadPaise: number;
   upiId: string;
   payeeName: string;
-  qrImagePath: string | null;
-  qrImageUrl: string | null;
   features: string[];
 };
 
@@ -400,8 +400,45 @@ function publicAccount(account: AccountRecord, plans: PlanMap) {
     activeFeatures: account.activeFeatures || plan?.features || [],
     active: isActive(account),
     createdAt: account.createdAt,
-    history: account.history,
+    history: addLegacyAccessPeriods(account.history || [], plans),
   };
+}
+
+function addLegacyAccessPeriods(history: AccountHistoryItem[], plans: PlanMap): AccountHistoryItem[] {
+  const accessEvents = history
+    .filter((item) => item.type === "trial_started" || item.type === "purchase" || item.type === "grant")
+    .slice()
+    .sort((left, right) => left.at.localeCompare(right.at));
+  let previousEndsAt = 0;
+  const resolvedPeriods = new Map<string, { startsAt: string; endsAt: string; periodEstimated: boolean }>();
+
+  for (const item of accessEvents) {
+    const eventTime = Date.parse(item.at);
+    const savedStart = item.startsAt ? Date.parse(item.startsAt) : Number.NaN;
+    const savedEnd = item.endsAt ? Date.parse(item.endsAt) : Number.NaN;
+    const startsAt = Number.isFinite(savedStart) ? savedStart : Math.max(eventTime, previousEndsAt);
+    const durationMs = typeof item.days === "number" && Number.isSafeInteger(item.days) && item.days > 0
+      ? item.days * dayMs
+      : 0;
+    const endsAt = Number.isFinite(savedEnd) ? savedEnd : startsAt + durationMs;
+    if (!Number.isFinite(startsAt) || !Number.isFinite(endsAt) || endsAt <= startsAt) continue;
+    previousEndsAt = Math.max(previousEndsAt, endsAt);
+    resolvedPeriods.set(item.id, {
+      startsAt: new Date(startsAt).toISOString(),
+      endsAt: new Date(endsAt).toISOString(),
+      periodEstimated: !Number.isFinite(savedStart) || !Number.isFinite(savedEnd),
+    });
+  }
+
+  return history.map((item) => {
+    const period = resolvedPeriods.get(item.id);
+    if (!period) return item;
+    const planName = item.planName
+      || (item.planId ? plans[item.planId]?.name : undefined)
+      || (item.type === "trial_started" ? item.message.replace(/ started$/, "") : undefined)
+      || (item.type === "purchase" ? item.message.replace(/ payment approved$/, "") : undefined);
+    return { ...item, ...period, ...(planName ? { planName } : {}) };
+  });
 }
 
 async function ensureAccount(req: Request): Promise<{ account: AccountRecord; plans: PlanMap }> {
@@ -465,7 +502,7 @@ async function ensureAccount(req: Request): Promise<{ account: AccountRecord; pl
     createdAt: now.toISOString(),
     lastLoginAt: now.toISOString(),
     history: [
-      { id: randomUUID(), type: "trial_started", message: `${trial.name} started`, at: now.toISOString(), planId: trial.id, days: trial.durationDays },
+      { id: randomUUID(), type: "trial_started", message: `${trial.name} started`, at: now.toISOString(), planName: trial.name, planId: trial.id, days: trial.durationDays, startsAt: now.toISOString(), endsAt: trialEndsAt },
     ],
   };
   await Promise.all([
@@ -541,7 +578,7 @@ export async function ensureFirebaseAccount(identity: { userId: string; email: s
     createdAt: now.toISOString(),
     lastLoginAt: now.toISOString(),
     history: [
-      { id: randomUUID(), type: "trial_started", message: `${trial.name} started`, at: now.toISOString(), planId: trial.id, days: trial.durationDays },
+      { id: randomUUID(), type: "trial_started", message: `${trial.name} started`, at: now.toISOString(), planName: trial.name, planId: trial.id, days: trial.durationDays, startsAt: now.toISOString(), endsAt: trialEndsAt },
     ],
   };
   await Promise.all([
@@ -592,7 +629,7 @@ export async function createMobileAccount(input: {
     createdAt: now.toISOString(),
     lastLoginAt: now.toISOString(),
     history: [
-      { id: randomUUID(), type: "trial_started", message: `${trial.name} started`, at: now.toISOString(), planId: trial.id, days: trial.durationDays },
+      { id: randomUUID(), type: "trial_started", message: `${trial.name} started`, at: now.toISOString(), planName: trial.name, planId: trial.id, days: trial.durationDays, startsAt: now.toISOString(), endsAt: trialEndsAt },
     ],
   };
   await Promise.all([
@@ -666,27 +703,16 @@ async function withBillingLock<T>(key: string, action: () => Promise<T>): Promis
 
 async function loadPaymentSettings(): Promise<PaymentSettingsRecord> {
   const stored = await firebaseGet<Partial<PaymentSettingsRecord> | null>(paymentSettingsPath);
-  if (!stored) return {
-    upiId: "",
-    payeeName: "",
-    qrImagePath: null,
-    qrImageUrl: null,
-    updatedAt: null,
-  };
-  const qrImagePath = typeof stored.qrImagePath === "string" && stored.qrImagePath.startsWith("/objects/payment-qr/")
-    ? stored.qrImagePath
-    : null;
+  if (!stored) return { upiId: "", payeeName: "", updatedAt: null };
   return {
     upiId: typeof stored.upiId === "string" ? stored.upiId : "",
     payeeName: typeof stored.payeeName === "string" ? stored.payeeName : "",
-    qrImagePath,
-    qrImageUrl: null,
     updatedAt: typeof stored.updatedAt === "string" ? stored.updatedAt : null,
   };
 }
 
 async function paymentSettingsResponse(settings: PaymentSettingsRecord): Promise<PaymentSettingsRecord> {
-  return { ...settings, qrImagePath: null, qrImageUrl: null };
+  return settings;
 }
 
 async function loadPaymentRequests(): Promise<Record<string, PaymentRequestRecord>> {
@@ -779,8 +805,6 @@ async function paymentQuote(
     pricePerDownloadPaise,
     upiId: settings.upiId.trim(),
     payeeName: settings.payeeName.trim(),
-    qrImagePath: null,
-    qrImageUrl: null,
     features: plan.features || [],
   };
 }
@@ -925,10 +949,6 @@ router.post("/account/payment-requests", requireAccountAuth, async (req, res): P
     }
     await withBillingLock("payment-submissions", async () => {
       const existing = Object.values(await loadPaymentRequests());
-      if (existing.some((request) => request.accountId === account.id && request.status === "pending")) {
-        res.status(409).json({ error: "You already have a payment request awaiting review." });
-        return;
-      }
       if (existing.some((request) => request.utr.toUpperCase() === utr)) {
         res.status(409).json({ error: "This UTR has already been submitted." });
         return;
@@ -1015,6 +1035,7 @@ router.post("/owner/users/:userId/grant", async (req, res): Promise<void> => {
     const plan = plans[planId];
     const days = daysValue(req.body?.days, plan?.durationDays || 1);
     const start = Math.max(Date.now(), new Date(account.accessEndsAt).getTime() || Date.now());
+    const startsAt = new Date(start).toISOString();
     const accessEndsAt = new Date(start + days * dayMs).toISOString();
     const streamLimit = plan?.streamLimit || account.streamLimit || 1;
     const next: AccountRecord = {
@@ -1025,7 +1046,7 @@ router.post("/owner/users/:userId/grant", async (req, res): Promise<void> => {
       downloadsPerDay: plan?.downloadsPerDay || account.downloadsPerDay || 50,
       activeFeatures: plan?.features || account.activeFeatures || [],
       history: [
-        { id: randomUUID(), type: "grant" as const, message: `Owner granted ${days} days`, at: new Date().toISOString(), planId, days, streamLimit, downloadsPerDay: plan?.downloadsPerDay || account.downloadsPerDay || 50 },
+        { id: randomUUID(), type: "grant" as const, message: `Owner granted ${days} days of ${plan?.name || planId}`, at: new Date().toISOString(), planName: plan?.name || planId, planId, days, startsAt, endsAt: accessEndsAt, streamLimit, downloadsPerDay: plan?.downloadsPerDay || account.downloadsPerDay || 50 },
         ...(account.history || []),
       ].slice(0, 50),
     };
@@ -1165,8 +1186,6 @@ router.put("/owner/payment-settings", async (req, res): Promise<void> => {
     const settings: PaymentSettingsRecord = {
       upiId,
       payeeName,
-      qrImagePath: null,
-      qrImageUrl: null,
       updatedAt: new Date().toISOString(),
     };
     await firebasePut(paymentSettingsPath, settings);
@@ -1260,8 +1279,11 @@ router.post("/owner/payment-requests/:requestId/review", async (req, res): Promi
           type: "purchase",
           message: `${latestRequest.planName} payment approved`,
           at: new Date(now).toISOString(),
+          planName: latestRequest.planName,
           planId: latestRequest.planId,
           days: latestRequest.durationDays,
+          startsAt: new Date(startsAt).toISOString(),
+          endsAt: accessEndsAt,
           streamLimit: latestRequest.streamLimit,
           streamsPerDay: latestRequest.streamsPerDay,
           downloadsPerDay: latestRequest.downloadsPerDay,

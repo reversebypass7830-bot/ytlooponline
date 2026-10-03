@@ -24,7 +24,7 @@ const maxPaymentImageBytes = 5 * 1024 * 1024;
 async function preparePaymentAssetUpload(
   req: Request,
   res: Response,
-  kind: "proof" | "qr",
+  kind: "proof",
   ownerId: string,
 ): Promise<void> {
   const parsed = CreateAccountPaymentProofUploadUrlBody.safeParse(req.body);
@@ -51,11 +51,6 @@ router.post("/account/payment-proof/upload-url", requireAccountAuth, async (req:
     return;
   }
   await preparePaymentAssetUpload(req, res, "proof", userId);
-});
-
-router.post("/owner/payment-qr/upload-url", async (req: Request, res: Response): Promise<void> => {
-  if (!(await requireAccountOwner(req, res))) return;
-  await preparePaymentAssetUpload(req, res, "qr", accountUserId(req) || "owner");
 });
 
 router.post("/account/profile-image/upload-url", requireAccountAuth, async (req: Request, res: Response): Promise<void> => {

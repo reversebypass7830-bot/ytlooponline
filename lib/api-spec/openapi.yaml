@@ -921,28 +921,6 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/PaymentSettings"
-  /owner/payment-qr/upload-url:
-    post:
-      operationId: createOwnerPaymentQrUploadUrl
-      tags: [billing]
-      summary: Prepare an owner-only QR image upload
-      parameters:
-        - $ref: "#/components/parameters/OwnerPassword"
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/PaymentAssetUploadUrlInput"
-      responses:
-        "200":
-          description: Signed upload URL and private object path
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/PaymentAssetUploadUrl"
-        "400":
-          description: Unsupported image or file size
   /owner/payment-requests:
     get:
       operationId: listOwnerPaymentRequests
@@ -2092,15 +2070,10 @@ components:
           type: string
         payeeName:
           type: string
-        qrImagePath:
-          type: ["string", "null"]
-          pattern: "^/objects/payment-qr/"
-        qrImageUrl:
-          type: ["string", "null"]
         updatedAt:
           type: ["string", "null"]
           format: date-time
-      required: [upiId, payeeName, qrImagePath, qrImageUrl, updatedAt]
+      required: [upiId, payeeName, updatedAt]
     PaymentSettingsInput:
       type: object
       properties:
@@ -2190,10 +2163,6 @@ components:
           type: string
         payeeName:
           type: string
-        qrImagePath:
-          type: ["string", "null"]
-        qrImageUrl:
-          type: ["string", "null"]
         features:
           type: array
           items:
@@ -2213,8 +2182,6 @@ components:
         - pricePerDownloadPaise
         - upiId
         - payeeName
-        - qrImagePath
-        - qrImageUrl
         - features
     AccountPaymentRequestInput:
       allOf:

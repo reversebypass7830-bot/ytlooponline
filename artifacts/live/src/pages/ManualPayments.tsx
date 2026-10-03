@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from "r
 import "./ManualPayments.css";
 import { useQueryClient } from "@tanstack/react-query";
 import { QRCodeSVG } from "qrcode.react";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   ArrowLeft, Check, CheckCircle2, ChevronUp, CircleDollarSign, Copy,
   Download, FileText, Filter, LoaderCircle, Minus, RefreshCw, Save,
@@ -35,6 +36,8 @@ const money = (paise: number) => `₹${(paise / 100).toLocaleString("en-IN", { m
 const errorText = (error: unknown, fallback: string) => error instanceof Error ? error.message : fallback;
 const customSubscriptionPlan = (plans: BillingPlan[]) =>
   plans.find((plan) => plan.id === "custom-subscription" && plan.active && !plan.isTrial);
+const ownerCustomPricingPlan = (plans: BillingPlan[]) =>
+  plans.find((plan) => plan.id === "custom-subscription" && !plan.isTrial);
 const sharedBenefits = [
   { label: "Stream as live", image: streamsArt },
   { label: "Premium quality", image: downloadsArt },
@@ -145,7 +148,7 @@ export function ManualSubscriptionPage({ account, onRefresh }: { account: Accoun
 
   return <div className="page subscription-page manual-payment-page">
     <header className="page-head subscription-heading">
-      <div><p className="eyebrow">Workspace / Access</p><h1>Subscription</h1><p className="subtle">Choose a term, set your daily allowance, then submit your UPI payment for owner review.</p></div>
+          <div><p className="eyebrow">Duplo Access</p><h1>Duplo Access</h1><p className="subtle">Choose your access term and set your daily allowances.</p></div>
     </header>
     {notice && <div className="pay-alert success" role="status" data-testid="status-payment-notice"><CheckCircle2 size={17}/><span>{notice}</span><button className="pay-alert-close" onClick={() => setNotice("")} aria-label="Dismiss notification"><X size={15}/></button></div>}
     {error && <div className="pay-alert error" role="alert" data-testid="status-payment-error"><XCircle size={17}/><span>{error}</span><button className="pay-alert-close" onClick={() => setError("")} aria-label="Dismiss error"><X size={15}/></button></div>}
@@ -154,7 +157,7 @@ export function ManualSubscriptionPage({ account, onRefresh }: { account: Accoun
         {(["Days", "Monthly", "Yearly"] as const).map((kind) => <button type="button" role="tab" aria-selected={packType === kind} className={packType === kind ? "selected" : ""} key={kind} onClick={() => changePack(kind)} data-testid={`tab-select-pack-${kind.toLowerCase()}`}>{kind}</button>)}
       </div>
       <div className="card pay-select-card">
-        <span className="metric-kicker">YT Loop access</span>
+         <span className="metric-kicker">Duplo Access</span>
         <h2>Choose your access term</h2>
         <p className="pay-select-intro">Start with the term that fits your schedule. You’ll set broadcast starts and daily downloads next.</p>
         <div className="pay-selected-term" aria-live="polite"><strong>{packType}</strong><span>{packType === "Days" ? "Choose 1–30 days in the next step." : packType === "Monthly" ? "Choose 1–12 months in the next step." : "Choose 1, 5, 10, or 15 years in the next step."}</span></div>
@@ -168,7 +171,13 @@ export function ManualSubscriptionPage({ account, onRefresh }: { account: Accoun
     </section> : step === "pending" ? <section className="card pay-pending-state" data-testid="status-pending-review">
       <span className="pending-dot"/><h2>Waiting for owner approval</h2><p>Your UPI payment and UTR are queued for a human owner to review. Access and allowances change only after the owner approves the request.</p>
       <button className="button pay-quote-button" type="button" onClick={reset}>Start another request</button>
-    </section> : step === "payment" && quote ? <section className="pay-checkout card">
+    </section> : step === "payment" && quote ? <Dialog open onOpenChange={(open) => { if (!open) setStep("configure"); }}>
+      <DialogContent className="pay-checkout-dialog">
+        <DialogHeader className="pay-checkout-dialog-header">
+          <DialogTitle>Complete your UPI payment</DialogTitle>
+          <DialogDescription>Scan the QR, confirm the payee and amount in your UPI app, then submit the UTR for owner review.</DialogDescription>
+        </DialogHeader>
+        <section className="pay-checkout card">
       <button type="button" className="pay-back-link pay-back-button" onClick={() => setStep("configure")} data-testid="button-back-to-config"><ArrowLeft size={18}/> Back to configuration</button>
       <div className="pay-checkout-grid">
         <div className="pay-checkout-summary">
@@ -182,13 +191,12 @@ export function ManualSubscriptionPage({ account, onRefresh }: { account: Accoun
           </dl>
         </div>
         <div className="pay-qr-side">
-          <img className="pay-clay-small" src={qrArt} alt="" />
           <div className="pay-qr-frame">
-             {quote.qrImageUrl ? <img src={quote.qrImageUrl} alt="Owner's UPI payment QR code" /> : <QRCodeSVG value={`upi://pay?${new URLSearchParams({ pa: quote.upiId, pn: quote.payeeName, am: quote.amountRupees.toFixed(2), cu: "INR", tn: `YT Loop ${quote.planName}` })}`} size={220} level="M" includeMargin bgColor="#ffffff" fgColor="#17191d"/>}
+             <QRCodeSVG value={`upi://pay?${new URLSearchParams({ pa: quote.upiId, pn: quote.payeeName, am: quote.amountRupees.toFixed(2), cu: "INR", tn: `YT Loop ${quote.planName}` })}`} size={220} level="M" includeMargin bgColor="#ffffff" fgColor="#17191d"/>
           </div>
           <strong className="pay-scan-heading">Please pay {money(quote.amountPaise)}</strong><span className="pay-scan-copy">Scan the QR with your UPI app. Confirm the payee and amount before sending.</span>
           <div className="payee-details"><span>Payee</span><strong>{quote.payeeName}</strong><span>UPI ID</span><div><strong className="mono">{quote.upiId}</strong><button type="button" className="icon-button" aria-label="Copy UPI ID" onClick={() => void copy(quote.upiId)} data-testid="button-copy-upi"><Copy size={14}/></button></div></div>
-            {!paymentConfirmed ? <button type="button" className="button pay-quote-button pay-confirm-paid" onClick={() => setPaymentConfirmed(true)} data-testid="button-verify-payment"><Check size={16}/> Verify your payment</button> : <form onSubmit={(event) => void submitPayment(event)} className="pay-utr-form">
+            {!paymentConfirmed ? <button type="button" className="button pay-quote-button pay-confirm-paid" onClick={() => setPaymentConfirmed(true)} data-testid="button-verify-payment"><Check size={16}/> I have paid</button> : <form onSubmit={(event) => void submitPayment(event)} className="pay-utr-form">
             <label htmlFor="utr-input">Enter your UTR number</label>
              <input id="utr-input" data-testid="input-payment-utr" value={utr} onChange={(event) => setUtr(event.target.value.replace(/[^A-Za-z0-9]/g, "").slice(0, 32))} placeholder="12-digit UTR number" minLength={6} maxLength={32} required pattern="[A-Za-z0-9]{6,32}" autoComplete="off" />
             <small>Found in your UPI payment receipt. Letters and numbers only.</small>
@@ -199,7 +207,9 @@ export function ManualSubscriptionPage({ account, onRefresh }: { account: Accoun
            </form>}
         </div>
       </div>
-    </section> : <div className="pay-config-flow">
+        </section>
+      </DialogContent>
+    </Dialog> : <div className="pay-config-flow">
       <header className="pay-config-sticky">
         <button type="button" className="pay-config-back" onClick={() => setStep("select")} data-testid="button-back-to-selection"><ArrowLeft size={17}/><span>Pack selection</span></button>
         <div className="pay-config-sticky-title">Configure access</div>
@@ -220,7 +230,7 @@ export function ManualSubscriptionPage({ account, onRefresh }: { account: Accoun
            <div className="pay-quick-choices" aria-label="Quick stream quantities">{[1, 5, 10, 20].map((count) => <button key={count} type="button" aria-pressed={streams === count} className={streams === count ? "active" : ""} onClick={() => setStreams(count)} data-testid={`button-streams-${count}`}>{count}</button>)}</div>
           </section>
           <section className="pay-control-block">
-             <div className="pay-control-label"><img src={downloadsArt} alt="" /><div><strong>YouTube bulk downloads</strong><small>How many videos do you want to download each day?</small></div></div>
+              <div className="pay-control-label"><img src={downloadsArt} alt="" /><div><strong>Video downloads</strong><small>How many videos do you want to download each day?</small></div></div>
              <div className="pay-download-options">{[10, 20, 30, 40, 50].map((count) => <button type="button" key={count} aria-pressed={downloads === count} className={downloads === count ? "active" : ""} onClick={() => setDownloads(count)} data-testid={`button-downloads-${count}`}>{count}</button>)}</div>
             <label className="pay-custom-download"><span>Custom amount</span><input type="number" min="1" max="1000000" value={downloads} onChange={(event) => setDownloads(Math.min(1000000, Math.max(1, Number(event.target.value) || 1)))} data-testid="input-downloads-per-day"/></label>
           </section>
@@ -261,8 +271,8 @@ function StatusGlyph({ status }: { status: PaymentRequest["status"] }) {
   return status === "approved" ? <CheckCircle2 size={17}/> : status === "rejected" ? <XCircle size={17}/> : <LoaderCircle size={17}/>;
 }
 
-type PlanDraft = { name: string; description: string; pricePerStreamDayRupees: string; pricePerDownloadRupees: string; downloadsPerDay: string; features: string; active: boolean };
-const toDraft = (plan: BillingPlan): PlanDraft => ({ name: plan.name, description: plan.description, pricePerStreamDayRupees: String(plan.pricePerStreamDayPaise / 100), pricePerDownloadRupees: String(plan.pricePerDownloadPaise / 100), downloadsPerDay: String(plan.downloadsPerDay), features: plan.features.join("\n"), active: plan.active });
+type PlanDraft = { pricePerStreamDayRupees: string; pricePerDownloadRupees: string };
+const toDraft = (plan: BillingPlan): PlanDraft => ({ pricePerStreamDayRupees: String(plan.pricePerStreamDayPaise / 100), pricePerDownloadRupees: String(plan.pricePerDownloadPaise / 100) });
 
 export function OwnerPaymentPanel({ ownerPassword }: { ownerPassword: string }) {
   const queryClient = useQueryClient();
@@ -280,7 +290,7 @@ export function OwnerPaymentPanel({ ownerPassword }: { ownerPassword: string }) 
   const [feedback, setFeedback] = useState("");
   const [error, setError] = useState("");
   const requests = requestsQuery.data?.requests ?? [];
-  const activePlan = customSubscriptionPlan(plansQuery.data?.plans ?? []) ?? null;
+  const activePlan = ownerCustomPricingPlan(plansQuery.data?.plans ?? []) ?? null;
   const currentDraft = draft ?? (activePlan ? toDraft(activePlan) : null);
   const initialized = useRef(false);
   useEffect(() => {
@@ -295,16 +305,18 @@ export function OwnerPaymentPanel({ ownerPassword }: { ownerPassword: string }) 
     queryClient.invalidateQueries({ queryKey: getListAccountPaymentRequestsQueryKey() }),
   ]);
   const parsePlan = (value: PlanDraft): BillingPlanUpdate => ({
-    name: value.name.trim(), description: value.description.trim(), durationDays: 1,
     price: `₹${(Number(value.pricePerStreamDayRupees) || 0).toFixed(2)} / stream start / day`,
     pricePerStreamDayPaise: Math.max(0, Math.round((Number(value.pricePerStreamDayRupees) || 0) * 100)),
     pricePerDownloadPaise: Math.max(0, Math.round((Number(value.pricePerDownloadRupees) || 0) * 100)),
-    downloadsPerDay: Math.max(1, Number(value.downloadsPerDay) || 1),
-    features: value.features.split("\n").map((feature) => feature.trim()).filter(Boolean).slice(0, 30), active: value.active,
+    active: true,
   });
   const persistPlan = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault(); if (!activePlan || !currentDraft) return;
     setError(""); setFeedback("");
+    if ((Number(currentDraft.pricePerStreamDayRupees) || 0) <= 0 && (Number(currentDraft.pricePerDownloadRupees) || 0) <= 0) {
+      setError("Set a positive price for a live-stream start or a video download.");
+      return;
+    }
     try {
       await updatePlan.mutateAsync({ planId: activePlan.id, data: parsePlan(currentDraft) });
       setFeedback("Custom subscription pricing saved."); setDraft(null); await refreshOwnerLists();
@@ -326,7 +338,7 @@ export function OwnerPaymentPanel({ ownerPassword }: { ownerPassword: string }) 
     } catch (reason) { setError(errorText(reason, "Could not review this payment request.")); }
   };
   const reviewRequest = useReviewOwnerPaymentRequest({ request: requestOpts });
-  const changeDraft = (key: keyof PlanDraft, value: string | boolean) => setDraft((old) => ({ ...(old ?? (activePlan ? toDraft(activePlan) : { name: "", description: "", pricePerStreamDayRupees: "0", pricePerDownloadRupees: "0", downloadsPerDay: "1", features: "", active: true })), [key]: value }));
+  const changeDraft = (key: keyof PlanDraft, value: string) => setDraft((old) => ({ ...(old ?? (activePlan ? toDraft(activePlan) : { pricePerStreamDayRupees: "0", pricePerDownloadRupees: "0" })), [key]: value }));
   const ownerQrValue = upiId.trim() && payeeName.trim()
     ? `upi://pay?${new URLSearchParams({ pa: upiId.trim(), pn: payeeName.trim(), cu: "INR" })}`
     : "";
@@ -336,18 +348,14 @@ export function OwnerPaymentPanel({ ownerPassword }: { ownerPassword: string }) 
     {error && <div className="pay-alert error" role="alert" data-testid="status-owner-error"><XCircle size={17}/><span>{error}</span><button className="pay-alert-close" onClick={() => setError("")} aria-label="Dismiss error"><X size={15}/></button></div>}
     <div className="owner-payment-columns">
       <section className="card owner-pay-card">
-        <div className="pay-section-title"><div><span className="metric-kicker">Custom subscription</span><h2>Daily pricing</h2><p>Rates are multiplied by each pack's duration and per-day allowance.</p></div><span className="pay-icon"><CircleDollarSign size={19}/></span></div>
+        <div className="pay-section-title"><div><span className="metric-kicker">Duplo Access</span><h2>Daily pricing</h2><p>Set the rate for one live-stream start per day and for one video download.</p></div><span className="pay-icon"><CircleDollarSign size={19}/></span></div>
         {plansQuery.isLoading ? <div className="pay-loading-line"/> : plansQuery.isError ? <div className="pay-empty"><XCircle size={20}/><strong>Could not load pricing</strong><button className="button secondary small" onClick={() => void plansQuery.refetch()}>Retry</button></div> : !activePlan || !currentDraft ? <div className="pay-empty"><CircleDollarSign size={24}/><strong>Custom subscription plan missing</strong><span>Create or enable the custom-subscription billing plan in the owner configuration.</span></div> : <form className="owner-plan-editor owner-custom-pricing" onSubmit={(event) => void persistPlan(event)}>
-          <div className="owner-plan-editor-head"><div><span className="metric-kicker">One shared pricing plan</span><strong>{currentDraft.name || activePlan.name}</strong></div><label className="pay-active-toggle"><input type="checkbox" checked={currentDraft.active} onChange={(event) => changeDraft("active", event.target.checked)} data-testid="input-plan-enabled"/><span>{currentDraft.active ? "Enabled" : "Disabled"}</span></label></div>
+          <div className="owner-plan-editor-head"><div><span className="metric-kicker">Set just two rates</span><strong>Daily pricing</strong></div></div>
           <div className="owner-plan-fields">
-            <label className="field"><span>Plan name</span><input value={currentDraft.name} onChange={(event) => changeDraft("name", event.target.value)} required data-testid="input-custom-plan-name"/></label>
-            <label className="field"><span>Price per stream start / day · ₹</span><input type="number" min="0" step="0.01" value={currentDraft.pricePerStreamDayRupees} onChange={(event) => changeDraft("pricePerStreamDayRupees", event.target.value)} required data-testid="input-price-per-stream"/></label>
-            <label className="field"><span>Price per YouTube download · ₹</span><input type="number" min="0" step="0.01" value={currentDraft.pricePerDownloadRupees} onChange={(event) => changeDraft("pricePerDownloadRupees", event.target.value)} required data-testid="input-price-per-download"/></label>
-            <label className="field"><span>Default downloads per day</span><input type="number" min="1" step="1" value={currentDraft.downloadsPerDay} onChange={(event) => changeDraft("downloadsPerDay", event.target.value)} data-testid="input-default-downloads"/></label>
-            <label className="field full"><span>Description</span><input value={currentDraft.description} onChange={(event) => changeDraft("description", event.target.value)} data-testid="input-plan-description"/></label>
-            <label className="field full"><span>Included features · one per line</span><textarea rows={3} value={currentDraft.features} onChange={(event) => changeDraft("features", event.target.value)} data-testid="input-plan-features"/></label>
+            <label className="field"><span>One live-stream start · per day (₹)</span><input type="number" min="0" step="0.01" value={currentDraft.pricePerStreamDayRupees} onChange={(event) => changeDraft("pricePerStreamDayRupees", event.target.value)} required data-testid="input-price-per-stream"/></label>
+            <label className="field"><span>One video download (₹)</span><input type="number" min="0" step="0.01" value={currentDraft.pricePerDownloadRupees} onChange={(event) => changeDraft("pricePerDownloadRupees", event.target.value)} required data-testid="input-price-per-download"/></label>
           </div>
-          <div className="owner-plan-editor-foot"><small>Customers see this one custom plan.</small><button className="button small" type="submit" disabled={updatePlan.isPending} data-testid="button-save-pricing"><Save size={13}/>{updatePlan.isPending ? "Saving…" : "Save pricing"}</button></div>
+          <div className="owner-plan-editor-foot"><small>Total = selected daily quantities × these rates × term length.</small><button className="button small" type="submit" disabled={updatePlan.isPending} data-testid="button-save-pricing"><Save size={13}/>{updatePlan.isPending ? "Saving…" : "Save pricing"}</button></div>
         </form>}
       </section>
       <section className="card owner-pay-card owner-upi-card">
@@ -355,7 +363,7 @@ export function OwnerPaymentPanel({ ownerPassword }: { ownerPassword: string }) 
         {settingsQuery.isLoading ? <div className="pay-loading-line"/> : settingsQuery.isError ? <div className="pay-empty"><XCircle size={20}/><strong>Payment details unavailable</strong><button className="button secondary small" onClick={() => void settingsQuery.refetch()}>Retry</button></div> : <form className="owner-upi-form" onSubmit={(event) => void saveSettings(event)}>
           <label className="field"><span>UPI ID</span><input required minLength={3} maxLength={100} value={upiId} onChange={(event) => setUpiId(event.target.value)} placeholder="name@bank" data-testid="input-owner-upi"/></label>
           <label className="field"><span>Payee name</span><input required minLength={1} maxLength={100} value={payeeName} onChange={(event) => setPayeeName(event.target.value)} placeholder="Account holder" data-testid="input-owner-payee"/></label>
-          <div className="owner-qr-upload">
+          <div className="owner-qr-preview-wrap">
             <div className="owner-qr-preview">{ownerQrValue ? <QRCodeSVG value={ownerQrValue} size={164} level="M" includeMargin bgColor="#ffffff" fgColor="#17191d"/> : <span className="owner-qr-empty">Enter a UPI ID and payee name to preview the QR.</span>}</div>
             <p className="owner-qr-generated-note">This preview has no amount. Each customer checkout QR will include the server-calculated amount.</p>
           </div>

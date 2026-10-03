@@ -17,6 +17,7 @@ import NotFound from "@/pages/not-found";
 import { GatewayPage, LandingPage, PricingPage } from "@/pages/public";
 import { extractYoutubeChannelLinks, getStreamStatus, startStream, stopStream, trimMediaFile, updateStream } from "@workspace/api-client-react";
 import { ManualSubscriptionPage, OwnerPaymentPanel } from "./pages/ManualPayments";
+import { TransactionsPage } from "./pages/Transactions";
 import logoImage from "@assets/image_1788788255512.png";
 import analyticsVideoIcon from "@assets/video_files_clay_icon_cutout_1790011470854.png";
 import analyticsFolderIcon from "@assets/folder_tag_clay_cutout_1790011484726.png";
@@ -160,7 +161,7 @@ type Activity = { id: string; type: string; message: string; time: string };
 type DataState = { channels: LiveChannel[]; videos: VideoItem[]; groups: VideoGroup[]; editorAssets: EditorAsset[]; activities: Activity[]; editorDraft?: EditorDraft };
 type LicenseSession = { licenseId: string; key: string; name: string; expiresAt: string; active: boolean; clientId?: string };
 type AccountPlan = { id: string; name: string; description: string; durationDays: number; price: string; pricePerStreamDayPaise?: number; pricePerDownloadPaise?: number; streamLimit?: number; isTrial?: boolean; active: boolean; createdAt: string; updatedAt: string };
-type AccountHistoryItem = { id: string; type: "trial_started" | "purchase" | "grant" | "login"; message: string; at: string; planId?: string; days?: number; streamLimit?: number; streamsPerDay?: number };
+type AccountHistoryItem = { id: string; type: "trial_started" | "purchase" | "grant" | "login"; message: string; at: string; planName?: string; planId?: string; days?: number; streamLimit?: number; streamsPerDay?: number; startsAt?: string; endsAt?: string; periodEstimated?: boolean };
 type AccountSummary = {
   id: string; displayName: string; email: string; phone?: string; profileImagePath?: string; profileCompleted?: boolean; role: "owner" | "user";
   licenseId: string; licenseKey: string; trialStartedAt: string; trialEndsAt: string;
@@ -1435,6 +1436,7 @@ function Sidebar({ path, open, onClose, user, photo, data }: { path:string; open
     { href:"/live-preview", label:"Stream preview", icon:Radio, count:data.channels.filter(c=>c.status==="live").length || undefined },
     { href:"/editor", label:"Video editor", icon:Wand2 },
     { href:"/subscription", label:"Subscription", icon:CreditCard },
+    { href:"/transactions", label:"Transactions", icon:Receipt },
   ];
   return <aside className={`sidebar ${open ? "open" : ""}`} data-testid="sidebar">
     <Brand />
@@ -1456,8 +1458,8 @@ function Sidebar({ path, open, onClose, user, photo, data }: { path:string; open
 function Header({ title, account, onMenu, onBack }: { title:string; account?: AccountSummary | null; onMenu:()=>void; onBack:()=>void }) {
   const showMobileBack = title === "Video library" || title === "Video editor";
   return <header className={`topbar ${title === "Subscription" ? "subscription-topbar" : ""}`}>
-    <div className="crumb"><button className={`icon-button mobile-menu ${showMobileBack ? "mobile-back" : ""}`} onClick={showMobileBack ? onBack : onMenu} aria-label={showMobileBack ? "Back to dashboard" : "Open navigation"} data-testid={showMobileBack ? "button-mobile-back" : "button-open-menu"}>{showMobileBack ? <ArrowLeft size={18}/> : <Menu size={18}/>}</button>{title === "Subscription" && <img className="subscription-mobile-logo" src="/images/ytloop-logo.png" alt="YT Loop" />}<span className="crumb-label">Reverse Bypass /</span><span className="crumb-title">{title}</span></div>
-    <div className="top-actions"><AccountAccessTimer account={account}/></div>
+    <div className="crumb"><button className={`icon-button mobile-menu ${showMobileBack ? "mobile-back" : ""}`} onClick={showMobileBack ? onBack : onMenu} aria-label={showMobileBack ? "Back to dashboard" : "Open navigation"} data-testid={showMobileBack ? "button-mobile-back" : "button-open-menu"}>{showMobileBack ? <ArrowLeft size={18}/> : <Menu size={18}/>}</button>{title === "Subscription" && <img className="subscription-mobile-logo" src="/images/ytloop-logo.png" alt="YT Loop" />}<span className="crumb-label">{title === "Subscription" ? "" : "Reverse Bypass /"}</span><span className="crumb-title">{title === "Subscription" ? "Duplo Access" : title}</span></div>
+     <div className="top-actions">{title !== "Subscription" && <AccountAccessTimer account={account}/>}</div>
   </header>;
 }
 
@@ -1493,6 +1495,7 @@ function MobileNav({ path }: { path:string }) {
   const primary = [
     { href: "/dashboard", label: "Home", icon: LayoutDashboard },
     { href: "/subscription", label: "Subscription", icon: CreditCard },
+    { href: "/transactions", label: "Transactions", icon: Receipt },
     { href: "/profile", label: "Profile", icon: UserRound },
   ];
   return <div className="mobile-nav-wrap">
@@ -2460,8 +2463,89 @@ function ActivityList({ activities }: { activities:Activity[] }) {
   return <div className="activity">{activities.map(a=><div className="activity-item" key={a.id} data-testid={`activity-${a.id}`}><div className="activity-icon"><Icon type={a.type}/></div><div><p className="activity-message">{a.message}</p><div className="activity-time">{a.time}</div></div></div>)}</div>;
 }
 
+type AccessPeriod = { item: AccountHistoryItem; startsAt: number; endsAt: number; planName: string; estimated: boolean };
+
+function getAccessPeriods(account: AccountSummary): AccessPeriod[] {
+  return account.history
+    .filter((item) => item.type === "trial_started" || item.type === "purchase" || item.type === "grant")
+    .map((item) => {
+      const startsAt = Date.parse(item.startsAt || item.at);
+      const endsAt = Date.parse(item.endsAt || "");
+      const fallbackEndsAt = Number.isFinite(startsAt) && item.days ? startsAt + item.days * 86_400_000 : Number.NaN;
+      const end = Number.isFinite(endsAt) ? endsAt : fallbackEndsAt;
+      return {
+        item,
+        startsAt,
+        endsAt: end,
+        planName: item.planName || (item.planId === account.activePlanId ? account.activePlan?.name : undefined) || item.planId || item.message,
+        estimated: item.periodEstimated ?? (!item.startsAt || !item.endsAt),
+      };
+    })
+    .filter((period) => Number.isFinite(period.startsAt) && Number.isFinite(period.endsAt) && period.endsAt > period.startsAt)
+    .sort((left, right) => right.startsAt - left.startsAt);
+}
+
+function AccountPlanHistoryDialog({ account, open, onOpenChange }: {
+  account: AccountSummary;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
+  const now = new Date();
+  const previousMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const monthLabel = previousMonthStart.toLocaleDateString("en-IN", { month: "long", year: "numeric" });
+  const periods = getAccessPeriods(account);
+  const currentPeriod = periods.find((period) => period.startsAt <= now.getTime() && period.endsAt > now.getTime());
+  const previousMonthPeriods = periods.filter((period) => period.startsAt < currentMonthStart.getTime() && period.endsAt > previousMonthStart.getTime());
+  const currentPlanName = currentPeriod?.planName || (account.active ? account.activePlan?.name : undefined) || "No active plan";
+  const formatPeriodDate = (time: number) => new Date(time).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" });
+  const periodRange = (period: AccessPeriod) => `${formatPeriodDate(period.startsAt)} – ${formatPeriodDate(period.endsAt)}`;
+
+  return <Dialog open={open} onOpenChange={onOpenChange}>
+    <DialogContent className="profile-plan-dialog">
+      <DialogHeader className="profile-plan-dialog-header">
+        <DialogTitle>Plan status & history</DialogTitle>
+        <DialogDescription>See your current access and which plan periods overlapped the previous calendar month.</DialogDescription>
+      </DialogHeader>
+      <div className="profile-plan-history">
+        <section className="profile-plan-current">
+          <span className="metric-kicker">Current access</span>
+          <strong>{currentPlanName}</strong>
+          <span className={`profile-plan-state ${account.active ? "active" : "expired"}`}>{account.active ? "Active" : "Expired"}</span>
+          <small>{account.active ? `Current period ends ${formatPeriodDate(currentPeriod?.endsAt ?? Date.parse(account.accessEndsAt))}` : "No access is active right now."}</small>
+          {currentPeriod && <small>Current period: {periodRange(currentPeriod)}</small>}
+        </section>
+        <section className="profile-plan-previous">
+          <span className="metric-kicker">Previous month · {monthLabel}</span>
+          {previousMonthPeriods.length ? <div className="profile-plan-period-list">
+            {previousMonthPeriods.map((period) => <article className="profile-plan-period" key={period.item.id}>
+              <strong>{period.planName}</strong>
+              <span>{periodRange(period)}</span>
+              <small>{period.item.type === "grant" ? "Owner grant" : period.item.type === "trial_started" ? "Trial access" : "Purchase"}{period.estimated ? " · estimated from recorded term" : ""}</small>
+            </article>)}
+          </div> : <p className="profile-plan-empty">No access period was recorded for {monthLabel}.</p>}
+        </section>
+        <section className="profile-plan-all-history">
+          <span className="metric-kicker">Access history</span>
+          {periods.length ? <div className="profile-plan-period-list">
+            {periods.map((period) => {
+              const isCurrent = period.startsAt <= now.getTime() && period.endsAt > now.getTime();
+              return <article className="profile-plan-period" key={period.item.id}>
+                <strong>{period.planName}<span className={`profile-plan-state ${isCurrent ? "active" : "expired"}`}>{isCurrent ? "Current" : period.startsAt > now.getTime() ? "Upcoming" : "Ended"}</span></strong>
+                <span>{periodRange(period)}</span>
+                <small>{period.item.message}{period.estimated ? " · estimated from recorded term" : ""}</small>
+              </article>;
+            })}
+          </div> : <p className="profile-plan-empty">Your access periods will appear here.</p>}
+        </section>
+      </div>
+    </DialogContent>
+  </Dialog>;
+}
+
 function AccountAccessTimer({ account }: { account?: AccountSummary | null }) {
   const [remaining, setRemaining] = useState("");
+  const [historyOpen, setHistoryOpen] = useState(false);
   useEffect(() => {
     const update = () => {
       if (!account) return setRemaining("");
@@ -2476,7 +2560,13 @@ function AccountAccessTimer({ account }: { account?: AccountSummary | null }) {
     return () => window.clearInterval(timer);
   }, [account?.accessEndsAt]);
   if (!account || !remaining) return null;
-  return <div className={`account-access-timer ${remaining === "Expired" ? "expired" : ""}`}><span className="status-dot"/><span>{account.activePlan?.name || "Access"} · {remaining}</span></div>;
+  const currentPlanName = getAccessPeriods(account).find((period) => period.startsAt <= Date.now() && period.endsAt > Date.now())?.planName || account.activePlan?.name || "Access";
+  return <>
+    <button type="button" className={`account-access-timer ${remaining === "Expired" ? "expired" : ""}`} onClick={() => setHistoryOpen(true)} aria-haspopup="dialog" aria-label={`Plan status: ${currentPlanName}, ${remaining}. Open plan history.`} data-testid="button-account-plan-history">
+      <span className="status-dot"/><span>{currentPlanName} · {remaining}</span><span className="account-access-history-hint">View plan history</span>
+    </button>
+    <AccountPlanHistoryDialog account={account} open={historyOpen} onOpenChange={setHistoryOpen}/>
+  </>;
 }
 
 function SubscriptionPage({ workspace, account, plans }: { workspace: ReturnType<typeof useWorkspace>; account: AccountSummary; plans: AccountPlan[] }) {
@@ -5162,7 +5252,7 @@ function Routed({workspace, account, onRefreshAccount, firebaseUser, profilePhot
     createdAt: "",
     history: [],
   };
-  return <Switch><Route path="/dashboard"><Dashboard workspace={workspace} account={account}/></Route><Route path="/analytics"><AnalyticsPage workspace={workspace} account={account}/></Route><Route path="/aesthetics"><Redirect to="/analytics"/></Route><Route path="/live"><LivePage workspace={workspace} account={account} onRefreshAccount={onRefreshAccount}/></Route><Route path="/live-preview"><LivePreviewPage workspace={workspace}/></Route><Route path="/videos"><VideosPage workspace={workspace}/></Route><Route path="/editor"><VideoEditorPage workspace={workspace}/></Route><Route path="/subscription">{account ? <ManualSubscriptionPage account={account} onRefresh={() => void onRefreshAccount()}/> : <Redirect to="/sign-in"/>}</Route><Route path="/profile"><ProfilePage workspace={workspace} account={profileAccount} firebaseUser={firebaseUser} profilePhoto={profilePhoto} onProfilePhotoChange={onProfilePhotoChange} onSaveProfile={account ? onSaveProfile : undefined} onLogout={onLogout}/></Route><Route path="/settings"><Redirect to="/profile"/></Route><Route><NotFound/></Route></Switch>;
+  return <Switch><Route path="/dashboard"><Dashboard workspace={workspace} account={account}/></Route><Route path="/analytics"><AnalyticsPage workspace={workspace} account={account}/></Route><Route path="/aesthetics"><Redirect to="/analytics"/></Route><Route path="/live"><LivePage workspace={workspace} account={account} onRefreshAccount={onRefreshAccount}/></Route><Route path="/live-preview"><LivePreviewPage workspace={workspace}/></Route><Route path="/videos"><VideosPage workspace={workspace}/></Route><Route path="/editor"><VideoEditorPage workspace={workspace}/></Route><Route path="/subscription">{account ? <ManualSubscriptionPage account={account} onRefresh={() => void onRefreshAccount()}/> : <Redirect to="/sign-in"/>}</Route><Route path="/transactions">{account ? <TransactionsPage account={account}/> : <Redirect to="/sign-in"/>}</Route><Route path="/profile"><ProfilePage workspace={workspace} account={profileAccount} firebaseUser={firebaseUser} profilePhoto={profilePhoto} onProfilePhotoChange={onProfilePhotoChange} onSaveProfile={account ? onSaveProfile : undefined} onLogout={onLogout}/></Route><Route path="/settings"><Redirect to="/profile"/></Route><Route><NotFound/></Route></Switch>;
 }
 
 function useMinimumLoadingDuration(pending: boolean, durationMs = 2000) {

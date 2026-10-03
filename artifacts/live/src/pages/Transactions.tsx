@@ -36,6 +36,7 @@ type TransactionRow = {
   message: string;
   at: string;
   planId?: string;
+  paymentRequestId?: string;
   packType?: PaymentRequest["packType"];
   days?: number;
   streamLimit?: number;
