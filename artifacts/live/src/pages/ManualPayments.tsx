@@ -171,7 +171,7 @@ export function ManualSubscriptionPage({ account, onRefresh }: { account: Accoun
       <span className="pending-dot"/><h2>Waiting for owner approval</h2><p>Your UPI payment and UTR are queued for a human owner to review. Access and allowances change only after the owner approves the request.</p>
       <button className="button pay-quote-button" type="button" onClick={reset}>Start another request</button>
     </section> : step === "payment" && quote ? <Dialog open onOpenChange={(open) => { if (!open) setStep("configure"); }}>
-      <DialogContent className="pay-checkout-dialog">
+       <DialogContent className="pay-checkout-dialog manual-payment-page">
         <DialogHeader className="pay-checkout-dialog-header">
           <DialogTitle>Complete your UPI payment</DialogTitle>
           <DialogDescription>Scan the QR, confirm the payee and amount in your UPI app, then submit the UTR for owner review.</DialogDescription>
