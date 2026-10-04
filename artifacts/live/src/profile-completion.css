@@ -99,6 +99,131 @@
   box-shadow: 0 0 0 3px #e2f1e5;
 }
 
+.account-phone-linker {
+  display: grid;
+  gap: 12px;
+}
+
+.account-phone-linker form {
+  display: grid;
+  gap: 12px;
+}
+
+.account-phone-linker .field {
+  display: grid;
+  gap: 7px;
+}
+
+.account-phone-linker .field span {
+  color: #526e60;
+  font: 9px var(--app-font-mono);
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+
+.account-phone-linker input {
+  width: 100%;
+  min-height: 46px;
+  padding: 0 12px;
+  border: 1px solid #cfe1d3;
+  border-radius: 12px;
+  outline: none;
+  color: #16352a;
+  background: #fcfefc;
+  font-size: 13px;
+}
+
+.account-phone-linker input:focus {
+  border-color: #4a9b6b;
+  box-shadow: 0 0 0 3px #e2f1e5;
+}
+
+.account-phone-linker .account-phone-hint {
+  margin: 0;
+  color: #71877b;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.account-phone-linker .account-phone-back {
+  justify-self: start;
+  padding: 2px 0;
+  border: 0;
+  color: #597366;
+  background: transparent;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.account-phone-linker .account-phone-back:hover {
+  color: #2e6843;
+}
+
+.account-phone-success {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin: 0;
+  color: #327746;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.account-phone-error {
+  margin: 0;
+  color: #b42318;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.account-phone-completion .field span {
+  font: 9px var(--app-font-mono);
+}
+
+.profile-phone-panel {
+  display: grid;
+  gap: 15px;
+  margin-top: 20px;
+  padding: 19px;
+  border: 1px solid #e0e9e2;
+  border-radius: 17px;
+  background: #fbfdfb;
+}
+
+.profile-phone-panel .profile-action-panel-head {
+  margin: 0;
+}
+
+.profile-phone-panel .profile-action-panel-head h2 {
+  margin: 0;
+  color: #1e3429;
+  font-size: 14px;
+}
+
+.profile-phone-verified {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 43px;
+  padding: 10px 12px;
+  border: 1px solid #dcebdd;
+  border-radius: 11px;
+  color: #1e3429;
+  background: #f2f8f1;
+  font-size: 13px;
+}
+
+.profile-phone-verified span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: #327746;
+  font-size: 10px;
+  font-weight: 700;
+}
+
 .profile-completion-gift {
   display: grid;
   justify-items: center;

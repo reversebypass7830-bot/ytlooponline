@@ -1688,32 +1688,145 @@ function FirebaseAuthPage({ mode, onGoogleLogin, busy, error }: {
   </div>;
 }
 
-function AccountCompletionDialog({ account, onSave, onClose }: {
-  account: AccountSummary;
-  onSave: (profile: { displayName: string; email: string; phone?: string }) => Promise<void>;
-  onClose: () => void;
+function AccountPhoneLinker({ onVerified, className = "" }: {
+  onVerified: (phone: string) => void | Promise<void>;
+  className?: string;
 }) {
-  const [phone, setPhone] = useState(account.phone || "");
+  const fieldId = useId();
+  const phoneInputId = `${fieldId}-phone`;
+  const otpInputId = `${fieldId}-otp`;
+  const [phone, setPhone] = useState("");
+  const [otp, setOtp] = useState("");
+  const [requestId, setRequestId] = useState("");
+  const [step, setStep] = useState<"phone" | "otp" | "verified">("phone");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  const [saved, setSaved] = useState(false);
-  const [revealed, setRevealed] = useState(false);
-  const [phoneTouched, setPhoneTouched] = useState(false);
-  const isNewAccount = account.profileCompleted === false;
-  const validPhone = phone.replace(/\D/g, "").length >= 10;
+  const verifyInFlight = useRef(false);
+  const phoneDigits = phone.replace(/\D/g, "").slice(-10);
+  const otpDigits = otp.replace(/\D/g, "").slice(0, 4);
 
-  const save = async (event: FormEvent) => {
+  const sendOtp = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    setPhoneTouched(true);
-    if (!validPhone) return;
+    if (phoneDigits.length !== 10 || busy) return;
     setBusy(true);
     setError("");
     try {
-      await onSave({ displayName: account.displayName, email: account.email, phone: phone.trim() });
-      if (isNewAccount) setSaved(true);
-      else onClose();
+      const result = await apiJson<{ requestId: string }>("/api/account/phone/send-otp", {
+        method: "POST",
+        body: JSON.stringify({ phone: phoneDigits, deviceId: getMobileDeviceId() }),
+      });
+      setRequestId(result.requestId);
+      setOtp("");
+      setStep("otp");
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : "Could not save your profile.");
+      setError(reason instanceof Error ? reason.message : "Could not send the verification code.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const verifyOtp = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!requestId || otpDigits.length !== 4 || busy || verifyInFlight.current) return;
+    verifyInFlight.current = true;
+    setBusy(true);
+    setError("");
+    try {
+      const result = await apiJson<{ phone: string }>("/api/account/phone/verify-otp", {
+        method: "POST",
+        body: JSON.stringify({ phone: phoneDigits, requestId, otp: otpDigits }),
+      });
+      setStep("verified");
+      try {
+        await onVerified(result.phone);
+      } catch {
+        setError("Your number is verified, but we could not refresh your account. Refresh the page to see the update.");
+      }
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "Could not verify the code.");
+    } finally {
+      verifyInFlight.current = false;
+      setBusy(false);
+    }
+  };
+
+  if (step === "verified") {
+    return <div className={`account-phone-linker ${className}`}>
+      <p className="account-phone-success" role="status"><Check size={15}/> Number verified and saved.</p>
+      {error && <p className="account-phone-error" role="alert">{error}</p>}
+    </div>;
+  }
+
+  return <div className={`account-phone-linker ${className}`}>
+    {error && <div className="error-note" role="alert">{error}</div>}
+    {step === "phone" ? <form onSubmit={sendOtp}>
+      <label className="field" htmlFor={phoneInputId}>
+        <span>Mobile number</span>
+        <input
+          id={phoneInputId}
+          value={phone}
+          onChange={(event) => setPhone(event.target.value)}
+          autoComplete="tel"
+          inputMode="tel"
+          type="tel"
+          placeholder="+91 98765 43210"
+          data-testid="input-account-phone"
+          autoFocus={className.includes("completion")}
+        />
+      </label>
+      <p className="account-phone-hint">We will send a one-time code to verify this number.</p>
+      <button className="button login-submit" type="submit" disabled={busy || phoneDigits.length !== 10} data-testid="button-send-account-phone-otp">
+        {busy ? "Sending code…" : "Send verification code"} <ArrowRight size={15}/>
+      </button>
+    </form> : <form onSubmit={verifyOtp}>
+      <p className="account-phone-hint">Enter the 4-digit code sent to +91 {phoneDigits}.</p>
+      <label className="field" htmlFor={otpInputId}>
+        <span>Verification code</span>
+        <input
+          id={otpInputId}
+          value={otp}
+          onChange={(event) => setOtp(event.target.value)}
+          autoComplete="one-time-code"
+          inputMode="numeric"
+          type="text"
+          maxLength={4}
+          placeholder="0000"
+          data-testid="input-account-phone-otp"
+          autoFocus
+        />
+      </label>
+      <button className="button login-submit" type="submit" disabled={busy || otpDigits.length !== 4} data-testid="button-verify-account-phone-otp">
+        {busy ? "Verifying…" : "Verify and save number"} <ShieldCheck size={15}/>
+      </button>
+      <button className="account-phone-back" type="button" onClick={() => { setStep("phone"); setRequestId(""); setOtp(""); setError(""); }} disabled={busy}>
+        Use a different number
+      </button>
+    </form>}
+  </div>;
+}
+
+function AccountCompletionDialog({ account, onSave, onRefreshAccount, onClose }: {
+  account: AccountSummary;
+  onSave: (profile: { displayName: string; email: string; phone?: string }) => Promise<void>;
+  onRefreshAccount: () => Promise<void>;
+  onClose: () => void;
+}) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const isNewAccount = account.profileCompleted === false;
+  const [saved, setSaved] = useState(isNewAccount && Boolean(account.phone));
+  const [revealed, setRevealed] = useState(false);
+  const [verifiedPhone, setVerifiedPhone] = useState(account.phone || "");
+
+  const finishAccount = async () => {
+    if (busy) return;
+    setBusy(true);
+    setError("");
+    try {
+      await onSave({ displayName: account.displayName, email: account.email, phone: verifiedPhone });
+      onClose();
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "Could not finish your account.");
     } finally {
       setBusy(false);
     }
@@ -1729,30 +1842,18 @@ function AccountCompletionDialog({ account, onSave, onClose }: {
         <div className="profile-completion-icon"><Smartphone size={24}/></div>
         <p className="eyebrow">Complete your account</p>
         <DialogHeader>
-          <DialogTitle id="profile-completion-title">Please enter your number</DialogTitle>
-          <DialogDescription className="profile-completion-copy">Add a mobile number to finish setting up your account. You can update it anytime from Profile.</DialogDescription>
+          <DialogTitle id="profile-completion-title">Please add your number</DialogTitle>
+          <DialogDescription className="profile-completion-copy">Verify a mobile number to finish setting up your account. You can add it later from Profile.</DialogDescription>
         </DialogHeader>
-        {error && <div className="error-note" role="alert">{error}</div>}
-        <form className="profile-completion-form" onSubmit={save}>
-          <label className="field">
-            <span>Mobile number</span>
-            <input
-              value={phone}
-              onChange={(event) => setPhone(event.target.value)}
-              onBlur={() => setPhoneTouched(true)}
-              autoComplete="tel"
-              inputMode="tel"
-              type="tel"
-              placeholder="+91 98765 43210"
-              aria-invalid={phoneTouched && !validPhone}
-              aria-describedby={phoneTouched && !validPhone ? "required-phone-error" : undefined}
-              data-testid="input-required-mobile-number"
-              autoFocus
-            />
-            {phoneTouched && !validPhone && <span id="required-phone-error" className="profile-completion-error" role="alert">Enter a valid mobile number with at least 10 digits.</span>}
-          </label>
-          <button className="button login-submit" type="submit" disabled={busy || !validPhone} data-testid="button-save-required-mobile-number">{busy ? "Saving number…" : "Save and continue"} <ArrowRight size={15}/></button>
-        </form>
+        <AccountPhoneLinker
+          className="account-phone-completion"
+          onVerified={async (phone) => {
+            setVerifiedPhone(phone);
+            await onRefreshAccount();
+            if (isNewAccount) setSaved(true);
+            else onClose();
+          }}
+        />
       </> : <>
         <div className="profile-completion-icon"><Gift size={25}/></div>
         <p className="eyebrow">Your room is ready</p>
@@ -1765,7 +1866,8 @@ function AccountCompletionDialog({ account, onSave, onClose }: {
           <span>{revealed ? account.licenseKey : "Tap to reveal your license"}</span>
           <Sparkles size={17}/>
         </button>
-        {revealed && <button className="button login-submit" type="button" onClick={onClose}>Open my room <ArrowRight size={15}/></button>}
+        {error && <div className="error-note" role="alert">{error}</div>}
+        {revealed && <button className="button login-submit" type="button" onClick={() => void finishAccount()} disabled={busy}>{busy ? "Opening your room…" : "Open my room"} <ArrowRight size={15}/></button>}
         {!revealed && <p className="profile-completion-footnote"><ShieldCheck size={14}/> Generated securely for this account.</p>}
       </>}
     </DialogContent>
@@ -5049,13 +5151,14 @@ function EditorTransformControls({ selectedLayer, hasWebcam, hasAnimation, mainT
   </div>;
 }
 
-function ProfilePage({ workspace, account, firebaseUser, profilePhoto, onProfilePhotoChange, onSaveProfile, onLogout }: {
+function ProfilePage({ workspace, account, firebaseUser, profilePhoto, onProfilePhotoChange, onSaveProfile, onRefreshAccount, onLogout }: {
   workspace: ReturnType<typeof useWorkspace>;
   account: AccountSummary;
   firebaseUser: FirebaseUser | null;
   profilePhoto: string;
   onProfilePhotoChange: (photo: string) => void;
   onSaveProfile?: (profile: { displayName: string; email: string; phone?: string; profileImagePath?: string }) => Promise<void>;
+  onRefreshAccount: () => Promise<void>;
   onLogout: () => Promise<void>;
 }) {
   const [name, setName] = useState(account.displayName || "");
@@ -5191,6 +5294,18 @@ function ProfilePage({ workspace, account, firebaseUser, profilePhoto, onProfile
           <button type="button" className={`profile-action-button ${profilePanel === "password" ? "active" : ""}`} onClick={() => setProfilePanel(profilePanel === "password" ? null : "password")}><img src={profileSettingsClay} alt="" /><span>Change password</span><ArrowRight size={14}/></button>
           <button type="button" className="profile-action-button danger-button" onClick={() => void onLogout()} data-testid="button-profile-logout"><img src={subscriptionShieldClay} alt="" /><span>Logout</span><ArrowRight size={14}/></button>
         </div>
+        <section className="profile-phone-panel" aria-labelledby="profile-phone-title">
+          <div className="profile-action-panel-head">
+            <div><h2 id="profile-phone-title">Mobile number</h2><p className="subtle">A verified number is linked to your account.</p></div>
+            <Smartphone size={18}/>
+          </div>
+          {account.phone ? <div className="profile-phone-verified">
+            <strong>{account.phone}</strong>
+            <span><Check size={14}/> Verified</span>
+          </div> : onSaveProfile ? <AccountPhoneLinker
+            onVerified={async () => { await onRefreshAccount(); }}
+          /> : <p className="account-phone-hint">Sign in to verify and add a mobile number to this account.</p>}
+        </section>
         {profilePanel === "details" && <div className="profile-action-panel">
           <div className="profile-action-panel-head"><div><h2>Personal details</h2><p className="subtle">These details are used for your workspace account.</p></div><UserRound size={18}/></div>
           <form className="profile-form" onSubmit={saveDetails}>
@@ -5258,7 +5373,7 @@ function Routed({workspace, account, onRefreshAccount, firebaseUser, profilePhot
     createdAt: "",
     history: [],
   };
-  return <Switch><Route path="/dashboard"><Dashboard workspace={workspace} account={account}/></Route><Route path="/analytics"><AnalyticsPage workspace={workspace} account={account}/></Route><Route path="/aesthetics"><Redirect to="/analytics"/></Route><Route path="/live"><LivePage workspace={workspace} account={account} onRefreshAccount={onRefreshAccount}/></Route><Route path="/live-preview"><LivePreviewPage workspace={workspace}/></Route><Route path="/videos"><VideosPage workspace={workspace}/></Route><Route path="/editor"><VideoEditorPage workspace={workspace}/></Route><Route path="/subscription">{account ? <ManualSubscriptionPage account={account} onRefresh={() => void onRefreshAccount()}/> : <Redirect to="/sign-in"/>}</Route><Route path="/transactions">{account ? <TransactionsPage account={account} onRefreshAccount={onRefreshAccount}/> : <Redirect to="/sign-in"/>}</Route><Route path="/profile"><ProfilePage workspace={workspace} account={profileAccount} firebaseUser={firebaseUser} profilePhoto={profilePhoto} onProfilePhotoChange={onProfilePhotoChange} onSaveProfile={account ? onSaveProfile : undefined} onLogout={onLogout}/></Route><Route path="/settings"><Redirect to="/profile"/></Route><Route><NotFound/></Route></Switch>;
+  return <Switch><Route path="/dashboard"><Dashboard workspace={workspace} account={account}/></Route><Route path="/analytics"><AnalyticsPage workspace={workspace} account={account}/></Route><Route path="/aesthetics"><Redirect to="/analytics"/></Route><Route path="/live"><LivePage workspace={workspace} account={account} onRefreshAccount={onRefreshAccount}/></Route><Route path="/live-preview"><LivePreviewPage workspace={workspace}/></Route><Route path="/videos"><VideosPage workspace={workspace}/></Route><Route path="/editor"><VideoEditorPage workspace={workspace}/></Route><Route path="/subscription">{account ? <ManualSubscriptionPage account={account} onRefresh={() => void onRefreshAccount()}/> : <Redirect to="/sign-in"/>}</Route><Route path="/transactions">{account ? <TransactionsPage account={account} onRefreshAccount={onRefreshAccount}/> : <Redirect to="/sign-in"/>}</Route><Route path="/profile"><ProfilePage workspace={workspace} account={profileAccount} firebaseUser={firebaseUser} profilePhoto={profilePhoto} onProfilePhotoChange={onProfilePhotoChange} onSaveProfile={account ? onSaveProfile : undefined} onRefreshAccount={onRefreshAccount} onLogout={onLogout}/></Route><Route path="/settings"><Redirect to="/profile"/></Route><Route><NotFound/></Route></Switch>;
 }
 
 function useMinimumLoadingDuration(pending: boolean, durationMs = 2000) {
@@ -5335,10 +5450,17 @@ function App() {
     void signOut();
   }, Boolean(accountSession.account));
   useEffect(() => {
-    if (accountSession.account?.profileCompleted === false && !profileGateId) {
-      setProfileGateId(accountSession.account.id);
+    const account = accountSession.account;
+    if (!account) {
+      setProfileGateId(null);
+      return;
     }
-  }, [accountSession.account, profileGateId]);
+    if (account.profileCompleted === false || !account.phone) {
+      setProfileGateId(account.id);
+      return;
+    }
+    setProfileGateId((current) => current === account.id ? null : current);
+  }, [accountSession.account?.id, accountSession.account?.phone, accountSession.account?.profileCompleted]);
   useEffect(() => {
     if (firebaseLoading || (isSignedIn && accountSession.loading)) return;
     if (!mobileGiftKey && accountSession.account && (location === "/" || location === "/access" || location.startsWith("/sign-in") || location.startsWith("/sign-up"))) {
@@ -5391,7 +5513,7 @@ function App() {
     }
     workspace.logout();
   };
-  return <><Routed workspace={workspace} account={accountSession.account} onRefreshAccount={accountSession.reload} firebaseUser={user} profilePhoto={profilePhoto} onProfilePhotoChange={handleProfilePhotoChange} onSaveProfile={accountSession.saveProfile} onLogout={handleLogout}/>{accountSession.account && profileGateId === accountSession.account.id && <AccountCompletionDialog account={accountSession.account} onSave={accountSession.saveProfile} onClose={() => setProfileGateId(null)} />}</>;
+  return <><Routed workspace={workspace} account={accountSession.account} onRefreshAccount={accountSession.reload} firebaseUser={user} profilePhoto={profilePhoto} onProfilePhotoChange={handleProfilePhotoChange} onSaveProfile={accountSession.saveProfile} onLogout={handleLogout}/>{accountSession.account && profileGateId === accountSession.account.id && <AccountCompletionDialog account={accountSession.account} onSave={accountSession.saveProfile} onRefreshAccount={accountSession.reload} onClose={() => setProfileGateId(null)} />}</>;
 }
 
 export default function RootApp() {
