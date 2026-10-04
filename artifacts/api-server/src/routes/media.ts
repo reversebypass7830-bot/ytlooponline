@@ -19,7 +19,7 @@ import {
   TrimMediaFileResponse,
 } from "@workspace/api-zod";
 import { cleanupVidKrakenDownload, downloadVidKraken, getVidKrakenInfo } from "../lib/vidkraken";
-import { accountLicenseExists, releaseAccountDownload, reserveAccountDownload } from "./accounts";
+import { accountWorkspaceExists, releaseAccountDownload, reserveAccountDownload } from "./accounts";
 
 const router: IRouter = Router();
 const mediaDir = path.resolve(process.cwd(), "attached_assets", "live-media");
@@ -53,6 +53,19 @@ type IncludedFolderRecord = {
 function ownerAuthorized(req: Request): boolean {
   const expected = process.env.OWNER_PASSWORD?.trim() || defaultOwnerPassword;
   return Boolean(expected && req.header("x-owner-password") === expected);
+}
+
+function requestedWorkspaceId(req: Request): string {
+  const raw = req.query.workspaceId ?? req.query.licenseId;
+  const queryValue = typeof raw === "string"
+    ? raw
+    : Array.isArray(raw)
+      ? String(raw.at(-1) || "")
+      : "";
+  return queryValue.trim()
+    || req.header("x-workspace-id")?.trim()
+    || req.header("x-license-id")?.trim()
+    || "";
 }
 
 let mediaIndexWrite = Promise.resolve();
@@ -602,17 +615,17 @@ async function performYoutubeDownload(input: YoutubeDownloadInput): Promise<Yout
   });
 }
 
-async function reserveYoutubeDownloadQuota(req: Request, licenseId: string): Promise<YoutubeQuotaCheck> {
-  if (licenseId === includedMediaLicenseId) return { ok: true };
-  if (!licenseId.trim()) return { ok: false, status: 400, error: "A license or account is required to download." };
+async function reserveYoutubeDownloadQuota(req: Request, workspaceId: string): Promise<YoutubeQuotaCheck> {
+  if (workspaceId === includedMediaLicenseId) return { ok: true };
+  if (!workspaceId.trim()) return { ok: false, status: 400, error: "A signed-in workspace is required to download." };
   const identity = accountIdentity(req);
   if (!identity) {
-    if (licenseId.startsWith("acct-") || await accountLicenseExists(licenseId)) {
+    if (workspaceId.startsWith("acct-") || workspaceId.startsWith("workspace-") || await accountWorkspaceExists(workspaceId)) {
       return { ok: false, status: 401, error: "Sign in to use the download limit on this account." };
     }
     return { ok: true };
   }
-  const reservation = await reserveAccountDownload(identity.userId, licenseId);
+  const reservation = await reserveAccountDownload(identity.userId, workspaceId);
   if (!reservation.ok) return reservation;
   return { ok: true, reservation };
 }
@@ -641,10 +654,9 @@ async function runYoutubeDownloadJob(jobId: string, input: YoutubeDownloadInput,
 }
 
 router.get("/media/files", async (req, res): Promise<void> => {
-  const rawLicenseId = req.query.licenseId;
-  const licenseId = typeof rawLicenseId === "string" ? rawLicenseId.trim() : "";
-  if (!licenseId) {
-    res.status(400).json({ error: "A license or shared-library scope is required." });
+  const workspaceId = requestedWorkspaceId(req);
+  if (!workspaceId) {
+    res.status(400).json({ error: "A workspace or shared-library scope is required." });
     return;
   }
   await mediaIndexWrite;
@@ -676,7 +688,7 @@ router.get("/media/files", async (req, res): Promise<void> => {
       sizeBytes: fileStats.size,
     });
   }
-  const filtered = result.filter((file) => file.licenseId === licenseId || file.licenseId === includedMediaLicenseId);
+  const filtered = result.filter((file) => file.licenseId === workspaceId || file.licenseId === includedMediaLicenseId);
   res.json(ListMediaFilesResponse.parse({ files: filtered.sort((a, b) => b.createdAt.localeCompare(a.createdAt)) }));
 });
 
@@ -878,23 +890,23 @@ router.patch("/owner/included-files/:fileId", async (req, res): Promise<void> =>
 });
 
 router.delete("/media/files", async (req, res): Promise<void> => {
-  const licenseId = typeof req.query.licenseId === "string" ? req.query.licenseId.trim() : "";
+  const workspaceId = requestedWorkspaceId(req);
   const folderName = typeof req.query.folderName === "string" ? req.query.folderName.trim() : "";
-  if (!licenseId) {
-    res.status(400).json({ error: "A license id is required to delete workspace media." });
+  if (!workspaceId) {
+    res.status(400).json({ error: "A workspace id is required to delete workspace media." });
     return;
   }
-  if (licenseId === includedMediaLicenseId && !ownerAuthorized(req)) {
+  if (workspaceId === includedMediaLicenseId && !ownerAuthorized(req)) {
     res.status(403).json({ error: "Only the owner can remove included animations." });
     return;
   }
   try {
     const deleted = folderName
-      ? await deleteMediaFilesForFolder(licenseId, folderName)
-      : await deleteMediaFilesForLicense(licenseId);
-    res.json({ licenseId, folderName, deleted });
+      ? await deleteMediaFilesForFolder(workspaceId, folderName)
+      : await deleteMediaFilesForLicense(workspaceId);
+    res.json({ workspaceId, folderName, deleted });
   } catch (error) {
-    req.log.warn({ licenseId, folderName, error: error instanceof Error ? error.message : "unknown" }, "Media bulk deletion failed");
+    req.log.warn({ workspaceId, folderName, error: error instanceof Error ? error.message : "unknown" }, "Media bulk deletion failed");
     res.status(500).json({ error: "The workspace video files could not be deleted." });
   }
 });
@@ -926,8 +938,8 @@ router.post("/media/upload", async (req, res): Promise<void> => {
   await mkdir(mediaDir, { recursive: true });
   const fileId = randomUUID();
   const context: MediaContext = {
-    licenseId: req.header("x-license-id") || undefined,
-    licenseName: req.header("x-license-name") || undefined,
+    licenseId: req.header("x-workspace-id") || req.header("x-license-id") || undefined,
+    licenseName: req.header("x-workspace-name") || req.header("x-license-name") || undefined,
     folderName: req.header("x-folder-name") || undefined,
   };
   if (context.licenseId === includedMediaLicenseId && !ownerAuthorized(req)) {
@@ -1178,7 +1190,7 @@ router.post("/media/compose", async (req, res): Promise<void> => {
     && licenseId
     && record.licenseId !== licenseId
   )) {
-    res.status(403).json({ error: "Selected media belongs to another license workspace." });
+    res.status(403).json({ error: "Selected media belongs to another workspace." });
     return;
   }
 
@@ -1393,7 +1405,7 @@ router.post("/media/files/:fileId/trim", async (req, res): Promise<void> => {
     && sourceRecord.licenseId !== includedMediaLicenseId
     && sourceRecord.licenseId !== licenseId
   ) {
-    res.status(403).json({ error: "This video belongs to another license workspace." });
+    res.status(403).json({ error: "This video belongs to another workspace." });
     return;
   }
   const destination = path.join(mediaDir, `${fileId}.mp4`);
@@ -1470,18 +1482,13 @@ router.post("/media/files/:fileId/trim", async (req, res): Promise<void> => {
 
 router.get("/media/files/:fileId", async (req, res): Promise<void> => {
   const record = (await readMediaIndex()).find((item) => item.fileId === req.params.fileId);
-  const rawLicenseId = req.query.licenseId;
-  const requestedLicenseId = typeof rawLicenseId === "string"
-    ? rawLicenseId.trim()
-    : Array.isArray(rawLicenseId)
-      ? String(rawLicenseId.at(-1) || "").trim()
-    : req.header("x-license-id")?.trim() || "";
+  const requestedId = requestedWorkspaceId(req);
   if (
     record?.licenseId
     && record.licenseId !== includedMediaLicenseId
-    && record.licenseId !== requestedLicenseId
+    && record.licenseId !== requestedId
   ) {
-    res.status(403).json({ error: "This video belongs to another license workspace." });
+    res.status(403).json({ error: "This video belongs to another workspace." });
     return;
   }
   const filename = await findMediaFile(req.params.fileId);
@@ -1497,16 +1504,14 @@ router.get("/media/files/:fileId", async (req, res): Promise<void> => {
 });
 
 router.delete("/media/files/:fileId", async (req, res): Promise<void> => {
-  const requestedLicenseId = typeof req.query.licenseId === "string"
-    ? req.query.licenseId.trim()
-    : req.header("x-license-id")?.trim() || "";
+  const requestedId = requestedWorkspaceId(req);
   const record = (await readMediaIndex()).find((item) => item.fileId === req.params.fileId);
   if (record?.licenseId === includedMediaLicenseId && !ownerAuthorized(req)) {
     res.status(403).json({ error: "Only the owner can remove included animations." });
     return;
   }
-  if (record?.licenseId && record.licenseId !== requestedLicenseId) {
-    res.status(403).json({ error: "This video belongs to another license workspace." });
+  if (record?.licenseId && record.licenseId !== requestedId) {
+    res.status(403).json({ error: "This video belongs to another workspace." });
     return;
   }
   const filename = await findMediaFile(req.params.fileId);

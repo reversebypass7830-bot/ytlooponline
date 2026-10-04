@@ -6,12 +6,11 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface CreateLicenseInput {
-  /** @minLength 1 */
-  name: string;
+export interface AccountWorkspaceGetInput {
   /**
-     * @minimum 1
-     * @maximum 3650
+     * @minLength 8
+     * @maxLength 128
+     * @pattern ^[a-zA-Z0-9_-]+$
      */
-  days?: number;
+  clientId: string;
 }

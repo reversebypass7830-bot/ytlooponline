@@ -6,7 +6,6 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface DeleteLicenseResult {
-  licenseId: string;
-  deleted: boolean;
+export interface AccountWorkspaceSavedResponse {
+  saved: boolean;
 }

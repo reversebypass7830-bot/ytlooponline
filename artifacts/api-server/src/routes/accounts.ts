@@ -1,4 +1,4 @@
-import { createHash, randomBytes, randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { Router, type IRouter, type Request, type Response } from "express";
 import {
   CreateCashfreeOrderBody,
@@ -15,7 +15,7 @@ import { firebaseDelete, firebaseGet, firebasePut } from "../lib/firebase-rest";
 import { getOwnerSupportLink, ownerSettingsPath, safeSupportLink } from "../lib/account-access";
 import { ObjectStorageService } from "../lib/objectStorage";
 import { accountIdentity, accountUserId, clerkSessionClaims, requireAccountAuth, requireClerkAuth } from "../middlewares/requireClerkAuth";
-import { clerkOwnerAuthorized, ownerAuthorized } from "./licenses";
+import { clerkOwnerAuthorized, ownerAuthorized } from "../lib/owner-auth";
 import { deleteMediaFilesForLicense } from "./media";
 import {
   createCashfreeOrder,
@@ -34,7 +34,6 @@ const router: IRouter = Router();
 const objectStorageService = new ObjectStorageService();
 const dayMs = 24 * 60 * 60 * 1000;
 const accountPath = (id: string) => `accounts/${encodeURIComponent(id)}`;
-const licensePath = (id: string) => `licenses/${encodeURIComponent(id)}`;
 const planPath = (id: string) => `plans/${encodeURIComponent(id)}`;
 const paymentSettingsPath = "billing/paymentSettings";
 const paymentRequestsPath = "paymentRequests";
@@ -88,8 +87,7 @@ type AccountRecord = {
   trialOfferAvailable?: boolean;
   trialOfferClaimedAt?: string;
   role: "owner" | "user";
-  licenseId: string;
-  licenseKey: string;
+  workspaceId: string;
   trialStartedAt: string;
   trialEndsAt: string;
   activePlanId: string;
@@ -109,7 +107,12 @@ type AccountRecord = {
   history: AccountHistoryItem[];
 };
 
-type AccountMap = Record<string, AccountRecord>;
+type StoredAccountRecord = Omit<AccountRecord, "workspaceId"> & {
+  workspaceId?: string;
+  licenseId?: string;
+  licenseKey?: string;
+};
+type AccountMap = Record<string, StoredAccountRecord>;
 type PlanMap = Record<string, PlanRecord>;
 type PaymentStatus = "pending" | "approved" | "rejected";
 type PaymentSettingsRecord = {
@@ -397,7 +400,18 @@ async function loadPlans(): Promise<PlanMap> {
 }
 
 async function loadAccount(userId: string): Promise<AccountRecord | null> {
-  return firebaseGet<AccountRecord | null>(accountPath(userId));
+  const stored = await firebaseGet<StoredAccountRecord | null>(accountPath(userId));
+  if (!stored) return null;
+  const { licenseId, licenseKey, ...rest } = stored;
+  const account: AccountRecord = {
+    ...rest,
+    workspaceId: stored.workspaceId || licenseId || stored.id || userId,
+  };
+  if (!stored.workspaceId || licenseId || licenseKey) {
+    await firebasePut(accountPath(userId), account);
+    if (licenseId) await firebaseDelete(`licenses/${encodeURIComponent(licenseId)}`);
+  }
+  return account;
 }
 
 function publicAccount(account: AccountRecord, plans: PlanMap) {
@@ -423,8 +437,7 @@ function publicAccount(account: AccountRecord, plans: PlanMap) {
     trialOfferAvailable: account.trialOfferAvailable === true,
     trialOfferClaimedAt: account.trialOfferClaimedAt,
     role: account.role,
-    licenseId: account.licenseId,
-    licenseKey: account.licenseKey,
+    workspaceId: account.workspaceId,
     trialStartedAt: account.trialStartedAt,
     trialEndsAt: account.trialEndsAt,
     activePlanId: account.activePlanId,
@@ -449,23 +462,19 @@ function publicAccount(account: AccountRecord, plans: PlanMap) {
 
 function ownerUserSummary(account: AccountRecord, plans: PlanMap): Record<string, unknown> {
   const summary = publicAccount(account, plans);
-  const safeSummary: Record<string, unknown> = {
+  return {
     ...summary,
     history: summary.history || [],
   };
-  delete safeSummary.licenseId;
-  delete safeSummary.licenseKey;
-  return safeSummary;
 }
 
 async function deleteUserAccountData(userId: string, account: AccountRecord): Promise<number> {
   const { stopAccountStreams } = await import("./streaming");
   stopAccountStreams(userId);
-  const deletedMedia = await deleteMediaFilesForLicense(account.licenseId);
+  const deletedMedia = await deleteMediaFilesForLicense(account.workspaceId);
   await Promise.all([
     firebaseDelete(accountPath(userId)),
-    firebaseDelete(licensePath(account.licenseId)),
-    firebaseDelete(`workspaces/${encodeURIComponent(account.licenseId)}`),
+    firebaseDelete(`workspaces/${encodeURIComponent(account.workspaceId)}`),
   ]);
   return deletedMedia;
 }
@@ -545,16 +554,14 @@ async function ensureAccount(req: Request): Promise<{ account: AccountRecord; pl
 
   const trial = plans["trial-1-day"] || defaultPlans[0];
   const trialEndsAt = new Date(now.getTime() + trial.durationDays * dayMs).toISOString();
-  const licenseId = `acct-${randomUUID()}`;
-  const licenseKey = `ACCT-${randomBytes(6).toString("hex").toUpperCase()}`;
+  const workspaceId = `workspace-${randomUUID()}`;
   const account: AccountRecord = {
     id: userId,
     displayName: claimName || `Workspace ${userId.slice(-6)}`,
     email: claimEmail,
     profileCompleted: false,
     role: ownerIds().has(userId) ? "owner" : "user",
-    licenseId,
-    licenseKey,
+    workspaceId,
     trialStartedAt: now.toISOString(),
     trialEndsAt,
     activePlanId: trial.id,
@@ -571,17 +578,7 @@ async function ensureAccount(req: Request): Promise<{ account: AccountRecord; pl
       { id: randomUUID(), type: "trial_started", message: `${trial.name} started`, at: now.toISOString(), planName: trial.name, planId: trial.id, days: trial.durationDays, startsAt: now.toISOString(), endsAt: trialEndsAt },
     ],
   };
-  await Promise.all([
-    firebasePut(accountPath(userId), account),
-    firebasePut(licensePath(licenseId), {
-      key: licenseKey,
-      name: account.displayName,
-      createdAt: account.createdAt,
-      expiresAt: account.accessEndsAt,
-      active: true,
-      accountId: userId,
-    }),
-  ]);
+  await firebasePut(accountPath(userId), account);
   return { account, plans };
 }
 
@@ -589,8 +586,11 @@ export async function ensureFirebaseAccount(identity: { userId: string; email: s
   const plans = await loadPlans();
   const accounts = (await firebaseGet<AccountMap | null>("accounts")) ?? {};
   const firebaseUserId = `firebase-${identity.userId}`;
-  const existing = accounts[firebaseUserId]
+  const storedExisting = accounts[firebaseUserId]
     || (identity.email ? Object.values(accounts).find((candidate) => candidate.email.trim().toLowerCase() === identity.email.trim().toLowerCase()) : undefined);
+  const existing = storedExisting
+    ? await loadAccount(storedExisting.id)
+    : null;
   const now = new Date();
 
   if (existing) {
@@ -620,8 +620,7 @@ export async function ensureFirebaseAccount(identity: { userId: string; email: s
   }
 
   const trial = plans["trial-1-day"] || defaultPlans[0];
-  const licenseId = `acct-${randomUUID()}`;
-  const licenseKey = `ACCT-${randomBytes(6).toString("hex").toUpperCase()}`;
+  const workspaceId = `workspace-${randomUUID()}`;
   const account: AccountRecord = {
     id: firebaseUserId,
     displayName: identity.name || `Workspace ${identity.userId.slice(-6)}`,
@@ -629,8 +628,7 @@ export async function ensureFirebaseAccount(identity: { userId: string; email: s
     profileCompleted: true,
     trialOfferAvailable: true,
     role: ownerIds().has(identity.userId) ? "owner" : "user",
-    licenseId,
-    licenseKey,
+    workspaceId,
     trialStartedAt: "",
     trialEndsAt: "",
     activePlanId: trial.id,
@@ -645,17 +643,7 @@ export async function ensureFirebaseAccount(identity: { userId: string; email: s
     lastLoginAt: now.toISOString(),
     history: [],
   };
-  await Promise.all([
-    firebasePut(accountPath(account.id), account),
-    firebasePut(licensePath(licenseId), {
-      key: licenseKey,
-      name: account.displayName,
-      createdAt: account.createdAt,
-      expiresAt: account.accessEndsAt,
-      active: false,
-      accountId: account.id,
-    }),
-  ]);
+  await firebasePut(accountPath(account.id), account);
   return { account, plans };
 }
 
@@ -669,8 +657,7 @@ export async function createMobileAccount(input: {
   const now = new Date();
   const trialEndsAt = new Date(now.getTime() + trial.durationDays * dayMs).toISOString();
   const userId = `mobile-${randomUUID()}`;
-  const licenseId = `acct-${randomUUID()}`;
-  const licenseKey = `ACCT-${randomBytes(6).toString("hex").toUpperCase()}`;
+  const workspaceId = `workspace-${randomUUID()}`;
   const account: AccountRecord = {
     id: userId,
     displayName: input.displayName.trim(),
@@ -678,8 +665,7 @@ export async function createMobileAccount(input: {
     phone: input.phone,
     profileCompleted: true,
     role: "user",
-    licenseId,
-    licenseKey,
+    workspaceId,
     trialStartedAt: now.toISOString(),
     trialEndsAt,
     activePlanId: trial.id,
@@ -696,17 +682,7 @@ export async function createMobileAccount(input: {
       { id: randomUUID(), type: "trial_started", message: `${trial.name} started`, at: now.toISOString(), planName: trial.name, planId: trial.id, days: trial.durationDays, startsAt: now.toISOString(), endsAt: trialEndsAt },
     ],
   };
-  await Promise.all([
-    firebasePut(accountPath(userId), account),
-    firebasePut(licensePath(licenseId), {
-      key: licenseKey,
-      name: account.displayName,
-      createdAt: account.createdAt,
-      expiresAt: account.accessEndsAt,
-      active: true,
-      accountId: userId,
-    }),
-  ]);
+  await firebasePut(accountPath(userId), account);
   return { account, plans };
 }
 
@@ -968,14 +944,6 @@ async function approvePaymentRequest(
       };
       await Promise.all([
         firebasePut(accountPath(account.id), nextAccount),
-        firebasePut(licensePath(account.licenseId), {
-          key: account.licenseKey,
-          name: nextAccount.displayName,
-          createdAt: nextAccount.createdAt,
-          expiresAt: accessEndsAt,
-          active: true,
-          accountId: account.id,
-        }),
         firebasePut(`${paymentRequestsPath}/${encodeURIComponent(requestId)}`, approved),
       ]);
       return { kind: "approved", request: approved };
@@ -1085,16 +1053,6 @@ router.post("/account/trial-offer/claim", requireAccountAuth, async (req, res): 
         return;
       }
       if (latest.trialOfferClaimedAt) {
-        if (plans[latest.activePlanId]?.isTrial) {
-          await firebasePut(licensePath(latest.licenseId), {
-            key: latest.licenseKey,
-            name: latest.displayName,
-            createdAt: latest.trialStartedAt || latest.createdAt,
-            expiresAt: latest.accessEndsAt,
-            active: isActive(latest),
-            accountId: latest.id,
-          });
-        }
         res.json({ account: publicAccount(latest, plans) });
         return;
       }
@@ -1147,14 +1105,6 @@ router.post("/account/trial-offer/claim", requireAccountAuth, async (req, res): 
         ].slice(0, 50),
       };
       await firebasePut(accountPath(next.id), next);
-      await firebasePut(licensePath(next.licenseId), {
-        key: next.licenseKey,
-        name: next.displayName,
-        createdAt: startsAt,
-        expiresAt: endsAt,
-        active: true,
-        accountId: next.id,
-      });
       res.json({ account: publicAccount(next, plans) });
     });
   } catch (error) {
@@ -1590,8 +1540,9 @@ router.get("/owner/users", async (req, res): Promise<void> => {
   try {
     const accounts = (await firebaseGet<AccountMap | null>("accounts")) ?? {};
     const plans = await loadPlans();
+    const users = await Promise.all(Object.keys(accounts).map((userId) => loadAccount(userId)));
     res.json({
-      users: Object.values(accounts)
+      users: users.filter((account): account is AccountRecord => account !== null)
         .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
         .map((account) => ownerUserSummary(account, plans)),
     });
@@ -1736,17 +1687,7 @@ router.post("/owner/users/:userId/grant", async (req, res): Promise<void> => {
         ...(account.history || []),
       ].slice(0, 50),
     };
-    await Promise.all([
-      firebasePut(accountPath(userId), next),
-      firebasePut(licensePath(account.licenseId), {
-        key: account.licenseKey,
-        name: account.displayName,
-        createdAt: account.createdAt,
-        expiresAt: accessEndsAt,
-        active: true,
-        accountId: userId,
-      }),
-    ]);
+    await firebasePut(accountPath(userId), next);
     res.json({ user: publicAccount(next, plans) });
   } catch (error) {
     sendError(req, res, error, "Could not grant access.");
@@ -2046,14 +1987,6 @@ router.post("/owner/payment-requests/:requestId/review", async (req, res): Promi
         };
         await Promise.all([
           firebasePut(accountPath(account.id), nextAccount),
-          firebasePut(licensePath(account.licenseId), {
-            key: account.licenseKey,
-            name: nextAccount.displayName,
-            createdAt: nextAccount.createdAt,
-            expiresAt: accessEndsAt,
-            active: true,
-            accountId: account.id,
-          }),
           firebasePut(`${paymentRequestsPath}/${encodeURIComponent(requestId)}`, approved),
         ]);
         res.json({ request: approved });
@@ -2064,9 +1997,11 @@ router.post("/owner/payment-requests/:requestId/review", async (req, res): Promi
   }
 });
 
-export async function accountLicenseExists(licenseId: string): Promise<boolean> {
+export async function accountWorkspaceExists(workspaceId: string): Promise<boolean> {
   const accounts = (await firebaseGet<AccountMap | null>("accounts")) ?? {};
-  return Object.values(accounts).some((account) => account.licenseId === licenseId);
+  return Object.values(accounts).some((account) =>
+    account.workspaceId === workspaceId || account.licenseId === workspaceId,
+  );
 }
 
 export async function getAccountStreamAccess(userId: string): Promise<{
@@ -2083,7 +2018,7 @@ export async function getAccountStreamAccess(userId: string): Promise<{
     : plans[account.activePlanId]?.isTrial ? 1 : 100;
   const dayKey = currentUsageDayKey();
   return {
-    active: isActive(account),
+    active: isActive(account) && !account.suspended,
     streamLimit: account.streamLimit || plans[account.activePlanId]?.streamLimit || 1,
     streamsPerDay,
     streamsStartedToday: account.streamUsageDate === dayKey ? Math.max(0, account.streamsStartedToday || 0) : 0,
@@ -2101,6 +2036,9 @@ export async function startAccountStreamWithQuota<T>(
   return withBillingLock(`billing-account:${userId}`, async () => {
     const account = await loadAccount(userId);
     if (!account) return { ok: false, status: 403, error: "This signed-in account does not have a workspace." };
+    if (account.suspended && account.role !== "owner") {
+      return { ok: false, status: 403, error: "Your account has been suspend. Please contact support." };
+    }
     if (!isActive(account)) return { ok: false, status: 403, error: "Your access has ended. Please upgrade your plan." };
     const plans = await loadPlans();
     const streamsPerDay = typeof account.streamsPerDay === "number" && Number.isSafeInteger(account.streamsPerDay) && account.streamsPerDay > 0
@@ -2137,15 +2075,15 @@ export type DownloadQuotaReservation =
   | { ok: true; accountId: string; dayKey: string }
   | { ok: false; status: number; error: string };
 
-export async function reserveAccountDownload(userId: string, licenseId: string): Promise<DownloadQuotaReservation> {
+export async function reserveAccountDownload(userId: string, workspaceId: string): Promise<DownloadQuotaReservation> {
   const initial = await loadAccount(userId);
-  if (!initial || initial.licenseId !== licenseId) {
-    return { ok: false, status: 403, error: "This license does not belong to the signed-in account." };
+  if (!initial || initial.workspaceId !== workspaceId) {
+    return { ok: false, status: 403, error: "This workspace does not belong to the signed-in account." };
   }
   return withBillingLock(`billing-account:${userId}`, async () => {
     const account = await loadAccount(userId);
-    if (!account || account.licenseId !== licenseId) {
-      return { ok: false, status: 403, error: "This license does not belong to the signed-in account." };
+    if (!account || account.workspaceId !== workspaceId) {
+      return { ok: false, status: 403, error: "This workspace does not belong to the signed-in account." };
     }
     if (!isActive(account)) {
       return { ok: false, status: 403, error: "Your access has ended. Please upgrade your plan." };

@@ -5,8 +5,5 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
-import type { LicenseAccess } from './licenseAccess';
 
-export interface LicenseListResponse {
-  licenses: LicenseAccess[];
-}
+export interface AccountWorkspaceData { [key: string]: unknown }

@@ -16,8 +16,6 @@ tags:
     description: Live stream control operations
   - name: media
     description: Local media upload operations
-  - name: licenses
-    description: License access and workspace operations
   - name: billing
     description: Manual UPI payments, subscription pricing, and owner review
 paths:
@@ -415,7 +413,7 @@ paths:
       tags: [media]
       summary: List media files stored on the server
       parameters:
-        - name: licenseId
+        - name: workspaceId
           in: query
           required: true
           schema:
@@ -429,7 +427,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/MediaFileListResponse"
         "400":
-          description: A license or shared-library scope is required
+          description: A workspace or shared-library scope is required
           content:
             application/json:
               schema:
@@ -616,12 +614,12 @@ paths:
       tags: [media]
       summary: Merge and loop server media into an edited video
       parameters:
-        - name: X-License-Id
+        - name: X-Workspace-Id
           in: header
           required: false
           schema:
             type: string
-        - name: X-License-Name
+        - name: X-Workspace-Name
           in: header
           required: false
           schema:
@@ -746,95 +744,10 @@ paths:
                 $ref: "#/components/schemas/YoutubeChannelLinksResponse"
         "400":
           description: Invalid channel URL or extraction failure
-  /licenses:
-    get:
-      operationId: listLicenses
-      tags: [licenses]
-      summary: List licenses for the owner
-      parameters:
-        - $ref: "#/components/parameters/OwnerPassword"
-      responses:
-        "200":
-          description: License list
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/LicenseListResponse"
-        "401":
-          description: Owner password is incorrect
-    post:
-      operationId: createLicense
-      tags: [licenses]
-      summary: Create a license
-      parameters:
-        - $ref: "#/components/parameters/OwnerPassword"
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/CreateLicenseInput"
-      responses:
-        "201":
-          description: License created
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/LicenseAccess"
-        "401":
-          description: Owner password is incorrect
-  /licenses/{licenseId}:
-    delete:
-      operationId: deleteLicense
-      tags: [licenses]
-      summary: Delete a license and its workspace data
-      parameters:
-        - $ref: "#/components/parameters/OwnerPassword"
-        - name: licenseId
-          in: path
-          required: true
-          schema:
-            type: string
-      responses:
-        "200":
-          description: License deleted
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/DeleteLicenseResult"
-        "401":
-          description: Owner password is incorrect
-  /licenses/{licenseId}/renew:
-    post:
-      operationId: renewLicense
-      tags: [licenses]
-      summary: Renew a license as the owner
-      parameters:
-        - $ref: "#/components/parameters/OwnerPassword"
-        - name: licenseId
-          in: path
-          required: true
-          schema:
-            type: string
-      requestBody:
-        required: false
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/RenewLicenseInput"
-      responses:
-        "200":
-          description: License renewed
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/LicenseAccess"
-        "401":
-          description: Owner password is incorrect
   /owner/vidkraken-keys:
     get:
       operationId: listVidKrakenTokens
-      tags: [licenses]
+      tags: [owner]
       summary: List the owner's VidKraken token pool without exposing token values
       parameters:
         - $ref: "#/components/parameters/OwnerPassword"
@@ -849,7 +762,7 @@ paths:
           description: Owner password is incorrect
     post:
       operationId: addVidKrakenToken
-      tags: [licenses]
+      tags: [owner]
       summary: Add a VidKraken token to the owner's rotation pool
       parameters:
         - $ref: "#/components/parameters/OwnerPassword"
@@ -873,7 +786,7 @@ paths:
   /owner/vidkraken-keys/{tokenKey}:
     delete:
       operationId: deleteVidKrakenToken
-      tags: [licenses]
+      tags: [owner]
       summary: Remove a VidKraken token from the owner's rotation pool
       parameters:
         - $ref: "#/components/parameters/OwnerPassword"
@@ -894,86 +807,50 @@ paths:
           description: Invalid token key
         "401":
           description: Owner password is incorrect
-  /licenses/validate:
+  /account/workspace/get:
     post:
-      operationId: validateLicense
-      tags: [licenses]
-      summary: Validate a license key for a browser
+      operationId: getAccountWorkspace
+      tags: [account]
+      summary: Load workspace data for the signed-in account and current browser
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/LicenseClientInput"
+              $ref: "#/components/schemas/AccountWorkspaceGetInput"
       responses:
         "200":
-          description: License is active
+          description: Workspace data
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/LicenseAccess"
-        "403":
-          description: License is invalid or expired
-  /licenses/workspace/get:
-    post:
-      operationId: getLicenseWorkspace
-      tags: [licenses]
-      summary: Load a browser-specific license workspace
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/LicenseClientInput"
-      responses:
-        "200":
-          description: Workspace loaded
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/LicenseWorkspaceResponse"
-        "403":
-          description: License is invalid or expired
-  /licenses/workspace:
+                $ref: "#/components/schemas/AccountWorkspaceResponse"
+        "401":
+          description: Sign-in is required
+        "404":
+          description: Account workspace is missing
+  /account/workspace:
     put:
-      operationId: saveLicenseWorkspace
-      tags: [licenses]
-      summary: Save a browser-specific license workspace
+      operationId: saveAccountWorkspace
+      tags: [account]
+      summary: Save workspace data for the signed-in account and current browser
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/SaveLicenseWorkspaceInput"
+              $ref: "#/components/schemas/AccountWorkspaceInput"
       responses:
         "200":
           description: Workspace saved
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/WorkspaceSaveResponse"
-        "403":
-          description: License is invalid or expired
-  /licenses/renew:
-    post:
-      operationId: renewLicenseForUser
-      tags: [licenses]
-      summary: Renew a license from the user side
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/RenewLicenseForUserInput"
-      responses:
-        "200":
-          description: License renewed
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/LicenseAccess"
+                $ref: "#/components/schemas/AccountWorkspaceSavedResponse"
+        "401":
+          description: Sign-in is required
         "404":
-          description: License key not found
+          description: Account workspace is missing
   /account/phone/send-otp:
     post:
       operationId: sendAccountPhoneOtp
@@ -2336,90 +2213,6 @@ components:
         - channelUrl
         - links
         - count
-    CreateLicenseInput:
-      type: object
-      properties:
-        name:
-          type: string
-          minLength: 1
-        days:
-          type: number
-          minimum: 1
-          maximum: 3650
-          default: 30
-      required:
-        - name
-    RenewLicenseInput:
-      type: object
-      properties:
-        days:
-          type: number
-          minimum: 1
-          maximum: 3650
-          default: 30
-    LicenseClientInput:
-      type: object
-      properties:
-        key:
-          type: string
-          minLength: 8
-        clientId:
-          type: string
-          minLength: 8
-      required:
-        - key
-        - clientId
-    RenewLicenseForUserInput:
-      allOf:
-        - $ref: "#/components/schemas/LicenseClientInput"
-        - type: object
-          properties:
-            days:
-              type: number
-              minimum: 1
-              maximum: 3650
-              default: 30
-    LicenseAccess:
-      type: object
-      properties:
-        licenseId:
-          type: string
-        key:
-          type: string
-        name:
-          type: string
-        expiresAt:
-          type: string
-          format: date-time
-        active:
-          type: boolean
-        clientId:
-          type: string
-      required:
-        - licenseId
-        - key
-        - name
-        - expiresAt
-        - active
-    LicenseListResponse:
-      type: object
-      properties:
-        licenses:
-          type: array
-          items:
-            $ref: "#/components/schemas/LicenseAccess"
-      required:
-        - licenses
-    DeleteLicenseResult:
-      type: object
-      properties:
-        licenseId:
-          type: string
-        deleted:
-          type: boolean
-      required:
-        - licenseId
-        - deleted
     VidKrakenTokenStatus:
       type: object
       properties:
@@ -2468,37 +2261,43 @@ components:
           type: boolean
       required:
         - key
-    LicenseWorkspaceData:
-      type: object
-      additionalProperties: true
-    LicenseWorkspaceResponse:
+    AccountWorkspaceGetInput:
       type: object
       properties:
-        license:
-          $ref: "#/components/schemas/LicenseAccess"
+        clientId:
+          type: string
+          minLength: 8
+          maxLength: 128
+          pattern: "^[a-zA-Z0-9_-]+$"
+      required: [clientId]
+    AccountWorkspaceData:
+      type: object
+      additionalProperties: true
+    AccountWorkspaceInput:
+      type: object
+      properties:
+        clientId:
+          type: string
+          minLength: 8
+          maxLength: 128
+          pattern: "^[a-zA-Z0-9_-]+$"
+        data:
+          $ref: "#/components/schemas/AccountWorkspaceData"
+      required: [clientId, data]
+    AccountWorkspaceResponse:
+      type: object
+      properties:
         data:
           oneOf:
-            - $ref: "#/components/schemas/LicenseWorkspaceData"
+            - $ref: "#/components/schemas/AccountWorkspaceData"
             - type: "null"
-      required:
-        - license
-        - data
-    SaveLicenseWorkspaceInput:
-      allOf:
-        - $ref: "#/components/schemas/LicenseClientInput"
-        - type: object
-          properties:
-            data:
-              $ref: "#/components/schemas/LicenseWorkspaceData"
-          required:
-            - data
-    WorkspaceSaveResponse:
+      required: [data]
+    AccountWorkspaceSavedResponse:
       type: object
       properties:
         saved:
           type: boolean
-      required:
-        - saved
+      required: [saved]
     OwnerAccountHistoryItem:
       type: object
       properties:

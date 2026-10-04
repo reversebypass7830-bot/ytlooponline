@@ -10,5 +10,5 @@ export type ListMediaFilesParams = {
 /**
  * @minLength 1
  */
-licenseId: string;
+workspaceId: string;
 };

@@ -19,7 +19,7 @@ const challengeTtlMs = 5 * 60 * 1000;
 const challengeTtlSeconds = challengeTtlMs / 1000;
 const maxAttempts = 5;
 
-type AccountRecord = { id: string; phone?: string; displayName: string; email: string; role: "owner" | "user"; licenseId: string; licenseKey: string; trialStartedAt: string; trialEndsAt: string; activePlanId: string; accessEndsAt: string; createdAt: string; lastLoginAt: string; history: Array<{ id: string; type: string; message: string; at: string; planId?: string; days?: number }> };
+type AccountRecord = { id: string; phone?: string; displayName: string; email: string; role: "owner" | "user"; workspaceId?: string; trialStartedAt: string; trialEndsAt: string; activePlanId: string; accessEndsAt: string; createdAt: string; lastLoginAt: string; history: Array<{ id: string; type: string; message: string; at: string; planId?: string; days?: number }> };
 type AccountMap = Record<string, AccountRecord>;
 type Challenge = { requestId: string; phone: string; deviceId: string; issuedAt: string; expiresAt: string; attempts: number };
 type AccountPhoneChallenge = Challenge & { accountId: string };
@@ -519,7 +519,6 @@ router.post("/mobile-auth/complete-profile", async (req: Request, res: Response)
         displayName: account.displayName,
         email: account.email,
         phone: account.phone,
-        licenseKey: account.licenseKey,
         accessEndsAt: account.accessEndsAt,
       },
     });

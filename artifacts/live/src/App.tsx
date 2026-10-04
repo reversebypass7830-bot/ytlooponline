@@ -162,13 +162,13 @@ type VideoGroup = { id: string; name: string; description: string; videoIds: str
 type EditorAsset = { id: string; fileId: string; title: string; playbackUrl: string; sourcePath: string; kind: "logo"; createdAt: string };
 type Activity = { id: string; type: string; message: string; time: string };
 type DataState = { channels: LiveChannel[]; videos: VideoItem[]; groups: VideoGroup[]; editorAssets: EditorAsset[]; activities: Activity[]; editorDraft?: EditorDraft };
-type LicenseSession = { licenseId: string; key: string; name: string; expiresAt: string; active: boolean; clientId?: string };
+type WorkspaceSession = { workspaceId: string; name: string; expiresAt: string; active: boolean; clientId?: string };
 type AccountPlan = { id: string; name: string; description: string; durationDays: number; price: string; pricePerStreamDayPaise?: number; pricePerDownloadPaise?: number; streamLimit?: number; isTrial?: boolean; active: boolean; createdAt: string; updatedAt: string };
 type AccountHistoryItem = { id: string; type: "trial_started" | "purchase" | "grant" | "login"; message: string; at: string; planName?: string; planId?: string; days?: number; streamLimit?: number; streamsPerDay?: number; startsAt?: string; endsAt?: string; periodEstimated?: boolean };
 type AccountSummary = {
   id: string; displayName: string; email: string; phone?: string | null; profileImagePath?: string; profileCompleted?: boolean;
   trialOfferAvailable?: boolean; trialOfferClaimedAt?: string; role: "owner" | "user";
-  licenseId: string; licenseKey: string; trialStartedAt: string; trialEndsAt: string;
+  workspaceId: string; trialStartedAt: string; trialEndsAt: string;
   activePlanId: string; activePlan: AccountPlan | null; accessEndsAt: string; active: boolean; streamLimit: number;
   streamsPerDay: number; streamsStartedToday: number; downloadsPerDay: number; downloadsUsedToday: number; downloadsRemainingToday: number;
   history: AccountHistoryItem[]; createdAt: string; suspended?: boolean; lifetimeLiveStarts?: number;
@@ -225,11 +225,7 @@ const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
 const purchasePath = "/pricing";
 const now = () => new Date().toISOString();
 const uid = (prefix: string) => `${prefix}-${Math.random().toString(36).slice(2, 9)}`;
-const isLicenseActive = (license: LicenseSession | null) => Boolean(license && license.active && new Date(license.expiresAt).getTime() > Date.now());
-const isLicenseRequirementMessage = (message: string) => {
-  const normalized = message.toLowerCase();
-  return normalized.includes("license") && normalized.includes("required");
-};
+const isWorkspaceActive = (workspace: WorkspaceSession | null) => Boolean(workspace && workspace.active && new Date(workspace.expiresAt).getTime() > Date.now());
 const profilePhotoKey = (userId: string) => `reverse-bypass-profile-photo:${userId}`;
 const defaultProfilePhoto = (userId: string) => `https://i.pravatar.cc/200?img=${(Array.from(userId).reduce((sum, char) => sum + char.charCodeAt(0), 0) % 70) + 1}`;
 const profileImageUrl = (path?: string) => path ? `/api/storage${path}` : "";
@@ -411,8 +407,8 @@ const includedFolderRoot = `${youtubeAnimationRootName}/Included Animations`;
 const youtubeAnimationRootAliases = new Set(["youtube animations", "my youtube animation", "my youtube animations"]);
 const defaultYoutubeFolders = [
   { id: youtubeAnimationFolderId, name: youtubeAnimationRootName, description: "Reusable YouTube animation clips shared through the workspace.", parentId: undefined },
-  { id: includedAnimationFolderId, name: "Included Animations", description: "Animations added by the admin and shared with every license.", parentId: youtubeAnimationFolderId },
-  { id: myAnimationFolderId, name: "My Animations", description: "Your private downloaded animations for this license only.", parentId: youtubeAnimationFolderId },
+  { id: includedAnimationFolderId, name: "Included Animations", description: "Animations added by the admin and shared with every active account.", parentId: youtubeAnimationFolderId },
+  { id: myAnimationFolderId, name: "My Animations", description: "Your private downloaded animations for this workspace only.", parentId: youtubeAnimationFolderId },
 ] as const;
 const legacyYoutubeFolderIds = new Set(["folder-youtube-starting-ending", "folder-youtube-subscribe", "folder-youtube-like", "folder-youtube-follow"]);
 const builtInYoutubeFolderIds = new Set([youtubeAnimationFolderId, includedAnimationFolderId, myAnimationFolderId]);
@@ -829,7 +825,7 @@ function normalizeWorkspace(value: unknown): DataState {
     group.videoIds.length > 0
     || (
       !["gta", "default videos"].includes(group.name.trim().toLowerCase())
-      && group.description.trim().toLowerCase() !== "default folder for this license workspace."
+      && group.description.trim().toLowerCase() !== "default folder for this workspace."
     ),
   );
   const youtubeFolders = ensureDefaultYoutubeFolders(legacyGroups);
@@ -1068,7 +1064,7 @@ function useAccountSession(isSignedIn: boolean, userId?: string, authReady = tru
 
   useEffect(() => {
     if (!authReady || (!isSignedIn && !account)) return;
-    const timer = window.setInterval(() => void load(), 60_000);
+    const timer = window.setInterval(() => void load(), 5_000);
     return () => window.clearInterval(timer);
   }, [authReady, isSignedIn, Boolean(account)]);
 
@@ -1109,38 +1105,38 @@ function useAccountSession(isSignedIn: boolean, userId?: string, authReady = tru
   return { account, plans, supportLink, loading, error, reload, saveProfile, claimOwner, clear };
 }
 
-function useWorkspace(license: LicenseSession | null, clearLicense: () => void, allowSharedOnly = false) {
+function useWorkspace(license: WorkspaceSession | null, clearLicense: () => void, allowSharedOnly = false) {
   const [data, setData] = useState<DataState>(seed);
   const [ready, setReady] = useState(false);
   const [privateWorkspaceLoaded, setPrivateWorkspaceLoaded] = useState(false);
   const [toast, setToast] = useState("");
   const [youtubeDownloads, setYoutubeDownloads] = useState<YoutubeDownloadTask[]>([]);
   const user = license?.name || "";
-  const licenseIdRef = useRef(license?.licenseId || "");
-  licenseIdRef.current = license?.licenseId || "";
+  const licenseIdRef = useRef(license?.workspaceId || "");
+  licenseIdRef.current = license?.workspaceId || "";
   useEffect(() => {
     let cancelled = false;
     setReady(false);
     setPrivateWorkspaceLoaded(false);
     setData(seed);
-    const hasPrivateAccess = isLicenseActive(license);
+    const hasPrivateAccess = isWorkspaceActive(license);
     if (!license || (!hasPrivateAccess && !allowSharedOnly)) {
       setReady(true);
       return () => { cancelled = true; };
     }
     const currentLicense = license;
-    const mediaScope = hasPrivateAccess ? currentLicense.licenseId : includedMediaLicenseId;
+    const mediaScope = hasPrivateAccess ? currentLicense.workspaceId : includedMediaLicenseId;
     const workspaceClientId = currentLicense.clientId || getClientId();
     const defaultIncludedFolder: IncludedFolderRecord = { path: includedFolderRoot, createdAt: now() };
     void Promise.all([
       hasPrivateAccess
-        ? apiJson<{ data: DataState | null }>("/api/licenses/workspace/get", {
+        ? apiJson<{ data: DataState | null }>("/api/account/workspace/get", {
             method: "POST",
-            body: JSON.stringify({ key: currentLicense.key, clientId: workspaceClientId }),
+            body: JSON.stringify({ clientId: workspaceClientId }),
           }).then((result) => ({ result, error: null as unknown }))
             .catch((error: unknown) => ({ result: { data: null }, error }))
         : Promise.resolve({ result: { data: null }, error: null as unknown }),
-      apiJson<{ files: MediaFileRecord[] }>(`/api/media/files?licenseId=${encodeURIComponent(mediaScope)}`)
+      apiJson<{ files: MediaFileRecord[] }>(`/api/media/files?workspaceId=${encodeURIComponent(mediaScope)}`)
         .then((result) => ({ result, error: null as unknown }))
         .catch((error: unknown) => ({ result: { files: [] as MediaFileRecord[] }, error })),
       apiJson<IncludedFolderTreeResponse>("/api/media/included-folders")
@@ -1157,11 +1153,11 @@ function useWorkspace(license: LicenseSession | null, clearLicense: () => void, 
         ...base,
         videos: base.videos.map((video) => ({
           ...video,
-          sourceUrl: scopedMediaPlaybackUrl(video.sourceUrl, video.licenseId, currentLicense.licenseId),
+          sourceUrl: scopedMediaPlaybackUrl(video.sourceUrl, video.licenseId, currentLicense.workspaceId),
         })),
         editorAssets: base.editorAssets.map((asset) => ({
           ...asset,
-          playbackUrl: scopedMediaPlaybackUrl(asset.playbackUrl, currentLicense.licenseId, currentLicense.licenseId),
+          playbackUrl: scopedMediaPlaybackUrl(asset.playbackUrl, currentLicense.workspaceId, currentLicense.workspaceId),
         })),
       };
       const availableMediaIds = new Set(mediaFiles.map((file) => file.fileId));
@@ -1193,7 +1189,7 @@ function useWorkspace(license: LicenseSession | null, clearLicense: () => void, 
             duration: file.duration || "00:00",
             status: "published",
             groupId: group?.id || "",
-            sourceUrl: scopedMediaPlaybackUrl(file.playbackUrl, file.licenseId, currentLicense.licenseId),
+            sourceUrl: scopedMediaPlaybackUrl(file.playbackUrl, file.licenseId, currentLicense.workspaceId),
             serverSource: file.sourcePath,
             thumbnailColor: colors[index % colors.length],
             views: 0,
@@ -1227,19 +1223,19 @@ function useWorkspace(license: LicenseSession | null, clearLicense: () => void, 
         setData(normalizeWorkspace(null));
         setPrivateWorkspaceLoaded(false);
         const message = reason instanceof Error ? reason.message : "Could not load the workspace.";
-        if (!isLicenseRequirementMessage(message)) setToast(message);
+        setToast(message);
         setReady(true);
       }
     });
     return () => { cancelled = true; };
-  }, [license?.licenseId, license?.key, license?.clientId, license?.active, license?.expiresAt, allowSharedOnly]);
+  }, [license?.workspaceId, license?.clientId, license?.active, license?.expiresAt, allowSharedOnly]);
   const refreshIncludedAnimations = useCallback(async () => {
-    const requestedLicenseId = license?.licenseId;
-    const hasPrivateAccess = isLicenseActive(license);
+    const requestedLicenseId = license?.workspaceId;
+    const hasPrivateAccess = isWorkspaceActive(license);
     if (!requestedLicenseId || (!hasPrivateAccess && !(allowSharedOnly && license))) return;
     const mediaScope = hasPrivateAccess ? requestedLicenseId : includedMediaLicenseId;
     const [mediaOutcome, folderOutcome] = await Promise.all([
-      apiJson<{ files: MediaFileRecord[] }>(`/api/media/files?licenseId=${encodeURIComponent(mediaScope)}`)
+      apiJson<{ files: MediaFileRecord[] }>(`/api/media/files?workspaceId=${encodeURIComponent(mediaScope)}`)
         .then((result) => ({ result, error: null as unknown }))
         .catch((error: unknown) => ({ result: { files: [] as MediaFileRecord[] }, error })),
       apiJson<IncludedFolderTreeResponse>("/api/media/included-folders")
@@ -1299,20 +1295,20 @@ function useWorkspace(license: LicenseSession | null, clearLicense: () => void, 
     if (mediaOutcome.error || folderOutcome.error) {
       setToast("Shared animations were only partially refreshed. Existing animations remain available.");
     }
-  }, [license?.licenseId, license?.active, license?.expiresAt, allowSharedOnly]);
+  }, [license?.workspaceId, license?.active, license?.expiresAt, allowSharedOnly]);
   useEffect(() => {
-    if (!ready || !privateWorkspaceLoaded || !license || !isLicenseActive(license)) return;
+    if (!ready || !privateWorkspaceLoaded || !license || !isWorkspaceActive(license)) return;
     const timer = window.setTimeout(() => {
-      void apiJson("/api/licenses/workspace", {
+      void apiJson("/api/account/workspace", {
         method: "PUT",
-        body: JSON.stringify({ key: license.key, clientId: license.clientId || getClientId(), data }),
+        body: JSON.stringify({ clientId: license.clientId || getClientId(), data }),
        }).catch((reason) => {
          const message = reason instanceof Error ? reason.message : "Could not save the workspace.";
-          if (!isLicenseRequirementMessage(message)) setToast(message);
+          setToast(message);
        });
     }, 250);
     return () => window.clearTimeout(timer);
-  }, [data, ready, privateWorkspaceLoaded, license?.licenseId, license?.key, license?.clientId]);
+  }, [data, ready, privateWorkspaceLoaded, license?.workspaceId, license?.clientId]);
   useEffect(() => { if (!toast) return; const timer = setTimeout(() => setToast(""), 2600); return () => clearTimeout(timer); }, [toast]);
   const addActivity = (message: string, type = "edit") => ({ id:uid("act"), type, message, time:"Just now" });
   const update = (next: Partial<DataState>, activity?: { message: string; type?: string }) => {
@@ -1394,7 +1390,7 @@ function useWorkspace(license: LicenseSession | null, clearLicense: () => void, 
     })();
   };
   const logout = () => { clearLicense(); };
-  return { clientId: license?.clientId || "", licenseId: license?.licenseId || "", data, user, toast, ready, update, logout, setToast, youtubeDownloads, startYoutubeDownloads, dismissYoutubeDownload, refreshIncludedAnimations };
+  return { clientId: license?.clientId || "", licenseId: license?.workspaceId || "", data, user, toast, ready, update, logout, setToast, youtubeDownloads, startYoutubeDownloads, dismissYoutubeDownload, refreshIncludedAnimations };
 }
 
 function Brand({ compact = false }: { compact?: boolean }) {
@@ -1427,7 +1423,7 @@ function Sidebar({ path, open, onClose, user, photo, data }: { path:string; open
       <Link href="/profile" onClick={onClose} className={`nav-link ${path === "/profile" ? "active" : ""}`} data-testid="link-profile"><UserRound size={16}/><span>Profile</span></Link>
     </nav>
     <div className="sidebar-bottom">
-      <div className="workspace-card"><strong>Private workspace</strong><p>Your private workspace is saved in your Firebase license workspace.</p></div>
+      <div className="workspace-card"><strong>Private workspace</strong><p>Your private workspace is saved with your account.</p></div>
       <div className="mini-user"><span className="avatar">{photo ? <img src={photo} alt="" /> : user.slice(0,2).toUpperCase()}</span><span style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{user}</span></div>
     </div>
   </aside>;
@@ -2019,7 +2015,7 @@ function IncludedAnimationsModal({ ownerPassword, onClose, folderName = included
     if (failures.length) {
       setError(`${uploaded} uploaded, ${failures.length} failed.\n${failures.join("\n")}`);
     } else {
-      setMessage(`${uploaded} included animation${uploaded === 1 ? "" : "s"} added. They are now available to every active license.`);
+      setMessage(`${uploaded} included animation${uploaded === 1 ? "" : "s"} added. They are now available to every active workspace.`);
       setFiles([]);
       onChanged?.();
     }
@@ -2149,7 +2145,7 @@ function OwnerFoldersPage({ ownerPassword, onBack, onKeys, onNavigate }: { owner
   };
 
   const deleteVideo = async (file: MediaFileRecord) => {
-    if (busy || !window.confirm(`Delete "${file.title}"? This removes the shared video for every license.`)) return;
+    if (busy || !window.confirm(`Delete "${file.title}"? This removes the shared video for every workspace.`)) return;
     setBusy(true);
     setError("");
     try {
@@ -2166,7 +2162,7 @@ function OwnerFoldersPage({ ownerPassword, onBack, onKeys, onNavigate }: { owner
   return <div className="owner-page owner-folders-page">{onNavigate && <OwnerDesktopSidebar active="folders" onNavigate={onNavigate} />}
     <header className="owner-topbar"><div className="owner-topbar-title"><span className="owner-topbar-kicker">Slash Owner</span><strong>My Folder</strong></div><div className="actions"><button className="button secondary" onClick={onBack}><ArrowRight size={14} style={{ transform: "rotate(180deg)" }} /> Dashboard</button></div></header>
     <main className="owner-content">
-      <div className="page-head owner-folder-page-head"><div><p className="eyebrow">Admin library control</p><h1>My folders</h1><p className="subtle">Organize the shared Included Animations library. Changes here are visible to every active license.</p></div><div className="owner-folder-summary"><strong>{folders.length}</strong><span>folders</span><strong>{files.length}</strong><span>videos · {formatBytes(totalBytes)}</span></div></div>
+      <div className="page-head owner-folder-page-head"><div><p className="eyebrow">Admin library control</p><h1>My folders</h1><p className="subtle">Organize the shared Included Animations library. Changes here are visible to every active workspace.</p></div><div className="owner-folder-summary"><strong>{folders.length}</strong><span>folders</span><strong>{files.length}</strong><span>videos · {formatBytes(totalBytes)}</span></div></div>
       {error && <div className="error-note" style={{ marginBottom: 16 }}>{error}</div>}
       {message && <div className="form-note owner-folder-message"><Check size={14} /> {message}</div>}
       <div className="folder-manager-grid">
@@ -2264,7 +2260,7 @@ function OwnerDashboardPage({ ownerPassword, error, message, keyBusy, showInclud
       <OwnerMobileNav active="dashboard" onDashboard={() => undefined} onKeys={onKeys} />
       <section className="owner-action-grid" aria-label="Owner actions">
         <button className="owner-action-card folder" onClick={onFolder}><span className="owner-action-icon"><FolderOpen size={22}/></span><span><strong>My Folder</strong><small>Organize shared animation folders and videos.</small></span><ArrowRight size={17}/></button>
-        <button className="owner-action-card animation" onClick={onAnimations}><span className="owner-action-icon"><Upload size={22}/></span><span><strong>Include Animation</strong><small>Add videos available to every active license.</small></span><ArrowRight size={17}/></button>
+        <button className="owner-action-card animation" onClick={onAnimations}><span className="owner-action-icon"><Upload size={22}/></span><span><strong>Include Animation</strong><small>Add videos available to every active workspace.</small></span><ArrowRight size={17}/></button>
          <button className="owner-action-card system-key" onClick={onKeys} disabled={keyBusy}><span className="owner-action-icon"><ShieldCheck size={22}/></span><span><strong>Key</strong><small>Manage the secure downloader key pool.</small></span><ArrowRight size={17}/></button>
           {onUsers && <button className="owner-action-card users" onClick={onUsers}><span className="owner-action-icon"><Users size={22}/></span><span><strong>Users</strong><small>Review account identity, plans, status, and history.</small></span><ArrowRight size={17}/></button>}
           {onPayments && <button className="owner-action-card payments" onClick={onPayments}><span className="owner-action-icon"><Receipt size={22}/></span><span><strong>Payments</strong><small>Configure UPI plans and review customer UTRs.</small></span><ArrowRight size={17}/></button>}
@@ -2491,7 +2487,6 @@ function SubscriptionPage({ workspace, account, plans }: { workspace: ReturnType
       `Date: ${new Date(item.at).toLocaleString()}`,
       `Customer: ${account.displayName || account.email}`,
       `Email: ${account.email}`,
-      `License key: ${account.licenseKey}`,
       `Plan: ${plan?.name || item.planId || "Subscription"}`,
       `Access duration: ${item.days || plan?.durationDays || 0} days`,
       `Stream limit: ${item.streamLimit || account.streamLimit}`,
@@ -2543,7 +2538,7 @@ function SubscriptionPage({ workspace, account, plans }: { workspace: ReturnType
          <div><span className="subscription-banner-label">{trialActive ? "TRIAL IN PROGRESS" : active ? "TRIAL COMPLETE · PLAN ACTIVE" : "FREE TRIAL · EXPIRED"}</span><h2>{trialBannerTitle}</h2><p>{trialBannerCopy}</p></div>
          <button type="button" className="button subscription-banner-button" onClick={() => document.getElementById("subscription-plans")?.scrollIntoView({ behavior: "smooth", block: "start" })}>{active ? "Compare plans" : "Choose a plan"} <ArrowRight size={14}/></button>
        </section>
-      <section className="subscription-current card"><div><span className="metric-kicker">Current access</span><strong>{account.activePlan?.name || "No active plan"}</strong><span>{active ? `Until ${new Date(account.accessEndsAt).toLocaleString()}` : "Your trial has ended. Choose a plan to continue."}</span></div><div><span className="metric-kicker">Stream limit</span><strong>{account.streamLimit}</strong><span>simultaneous live streams</span></div><div><span className="metric-kicker">License</span><strong className="mono">{account.licenseKey}</strong><span>same key on every renewal</span></div></section>
+       <section className="subscription-current card"><div><span className="metric-kicker">Current access</span><strong>{account.activePlan?.name || "No active plan"}</strong><span>{active ? `Until ${new Date(account.accessEndsAt).toLocaleString()}` : "Your trial has ended. Choose a plan to continue."}</span></div><div><span className="metric-kicker">Stream limit</span><strong>{account.streamLimit}</strong><span>simultaneous live streams</span></div><div><span className="metric-kicker">Live starts</span><strong>{fmtNumber(account.lifetimeLiveStarts || 0)}</strong><span>lifetime total</span></div></section>
        <section className="subscription-pricing" id="subscription-plans">
         <div className="subscription-controls"><div className="billing-switch">{(["Day", "Month", "Year"] as const).map((item) => <button key={item} type="button" className={billing === item ? "active" : ""} onClick={() => { setBilling(item); setDuration(1); }}>{item}</button>)}</div><div className="duration-control"><button type="button" onClick={() => setDuration((value) => Math.max(1, value - 1))} disabled={duration === 1} aria-label="Decrease duration">−</button><strong>{duration} {selected.unit}{duration === 1 ? "" : "s"}</strong><button type="button" onClick={() => setDuration((value) => Math.min(selected.limit, value + 1))} disabled={duration === selected.limit} aria-label="Increase duration">+</button></div></div>
         <div className="subscription-plan-grid">
@@ -2557,7 +2552,7 @@ function SubscriptionPage({ workspace, account, plans }: { workspace: ReturnType
              <ul className="subscription-features"><li><img src={subscriptionShieldClay} alt="" />Create and loop playlists</li><li><img src={subscriptionShieldClay} alt="" />Premium audio clarity</li><li><img src={subscriptionShieldClay} alt="" />Schedule in advance</li><li><img src={subscriptionShieldClay} alt="" />Upload from cloud</li></ul>
             <div className="subscription-best"><span>BEST FOR</span><p>Creators who want to try Loop Stream before choosing a plan</p></div>
             <button className="button subscription-select secondary" type="button" disabled><Check size={15}/>{trialActive ? "Current plan" : "Trial already used"}</button>
-            <small>No card required. Your existing license key stays with this workspace.</small>
+            <small>No card required. Your account and saved workspace stay in place.</small>
           </article>
           {paidOptions.map((option) => {
           const plan = findPlan(option.id);
@@ -3553,7 +3548,7 @@ function VideoModal({video,groups,defaultGroupId="",licenseId="",licenseName="",
       setUploading(true);
       try{
          const folderName=folderPathForGroup(form.groupId, groups);
-         const response=await fetch("/api/media/upload",{method:"POST",headers:{"Content-Type":file.type||"application/octet-stream","X-File-Name":file.name,"X-License-Id":licenseId,"X-License-Name":licenseName,"X-Folder-Name":folderName},body:file});
+         const response=await fetch("/api/media/upload",{method:"POST",headers:{"Content-Type":file.type||"application/octet-stream","X-File-Name":file.name,"X-Workspace-Id":licenseId,"X-Workspace-Name":licenseName,"X-Folder-Name":folderName},body:file});
         const payload=await response.json() as {sourcePath?:string;playbackUrl?:string;error?:string};
         if(!response.ok || !payload.sourcePath || !payload.playbackUrl) throw new Error(payload.error||"Video upload failed.");
          serverSource=payload.sourcePath; sourceUrl=scopedMediaPlaybackUrl(payload.playbackUrl, licenseId, licenseId);
@@ -3719,7 +3714,7 @@ function BulkUploadModal({groups,defaultGroupId="",licenseId="",licenseName="",o
       const file=files[index];
       try{
          const folderName=folderPathForGroup(groupId, groups);
-         const response=await fetch("/api/media/upload",{method:"POST",headers:{"Content-Type":file.type||"application/octet-stream","X-File-Name":file.name,"X-License-Id":licenseId,"X-License-Name":licenseName,"X-Folder-Name":folderName},body:file});
+         const response=await fetch("/api/media/upload",{method:"POST",headers:{"Content-Type":file.type||"application/octet-stream","X-File-Name":file.name,"X-Workspace-Id":licenseId,"X-Workspace-Name":licenseName,"X-Folder-Name":folderName},body:file});
         const payload=await response.json() as {sourcePath?:string;playbackUrl?:string;error?:string};
         if(!response.ok||!payload.sourcePath||!payload.playbackUrl)throw new Error(payload.error||"Upload failed.");
           videos.push({id:uid("vid"),title:file.name.replace(/\.[^.]+$/,""),duration:"00:00",status:"published",groupId,sourceUrl:scopedMediaPlaybackUrl(payload.playbackUrl, licenseId, licenseId),serverSource:payload.sourcePath,thumbnailColor:colors[index%colors.length],views:0,createdAt:now(),licenseId,licenseName,folderName:folderPathForGroup(groupId, groups),quality:"uploaded"});
@@ -3816,7 +3811,7 @@ function VideosPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}) {
   const openEditVideo=(video:VideoItem)=>{setEditingVideo(video);setVideoGroupId(video.groupId);setVideoModal(true);};
    const saveGroup=(g:VideoGroup)=>{const exists=data.groups.some(x=>x.id===g.id);update({groups:exists?data.groups.map(x=>x.id===g.id?g:x):[...data.groups,g]},{message:exists?`${g.name} was updated`:`${g.name} was created`,type:"group"});setGroupModal(false);setEditingGroup(undefined);setNewGroupParentId("");};
     const remove=async()=>{if(!deleting)return;try{if(deleting.kind==="video"){const video=data.videos.find(item=>item.id===deleting.id);if(isIncludedVideo(video)){setDeleting(undefined);return;}const fileId=getMediaFileId(video);if(fileId)await apiJson(`/api/media/files/${encodeURIComponent(fileId)}?licenseId=${encodeURIComponent(workspace.licenseId)}`,{method:"DELETE"});update({videos:data.videos.filter(v=>v.id!==deleting.id),groups:data.groups.map(g=>({...g,videoIds:g.videoIds.filter(id=>id!==deleting.id)}))},{message:`${deleting.name} and its stored file were deleted`,type:"video"});}else{const target=data.groups.find((item)=>item.id===deleting.id);if(!target||isBuiltInYoutubeFolder(target)){setDeleting(undefined);return;}const removedGroupIds=new Set<string>([deleting.id]);let changed=true;while(changed){changed=false;for(const item of data.groups){if(item.parentId&&removedGroupIds.has(item.parentId)&&!removedGroupIds.has(item.id)){removedGroupIds.add(item.id);changed=true;}}}const groupVideos=data.videos.filter((video)=>removedGroupIds.has(video.groupId));const fileIds=groupVideos.map(getMediaFileId).filter((id):id is string=>Boolean(id));await Promise.all([...new Set(groupVideos.map((video)=>folderPathForGroup(video.groupId,data.groups)))].map((folderName)=>apiJson(`/api/media/files?licenseId=${encodeURIComponent(workspace.licenseId)}&folderName=${encodeURIComponent(folderName)}`,{method:"DELETE"}).catch(()=>undefined)));await Promise.all(fileIds.map(fileId=>apiJson(`/api/media/files/${encodeURIComponent(fileId)}?licenseId=${encodeURIComponent(workspace.licenseId)}`,{method:"DELETE"}).catch(()=>undefined)));update({groups:data.groups.filter(g=>!removedGroupIds.has(g.id)),videos:data.videos.filter(v=>!removedGroupIds.has(v.groupId))},{message:`${deleting.name} and its nested folders were deleted`,type:"group"});if(removedGroupIds.has(group))setGroup("all");}setDeleting(undefined);}catch(reason){workspace.setToast(reason instanceof Error?reason.message:"The video files could not be deleted.");}};
-    const removeAll=async()=>{if(!workspace.licenseId)return;try{await apiJson(`/api/media/files?licenseId=${encodeURIComponent(workspace.licenseId)}`,{method:"DELETE"});const includedVideos=data.videos.filter((video)=>isIncludedVideo(video));update({videos:includedVideos,groups:rebuildGroupMembership(data.groups,includedVideos)},{message:"All personal videos and stored files were deleted from this license workspace",type:"video"});setDeletingAll(false);}catch(reason){workspace.setToast(reason instanceof Error?reason.message:"All workspace videos could not be deleted.");}};
+     const removeAll=async()=>{if(!workspace.licenseId)return;try{await apiJson(`/api/media/files?workspaceId=${encodeURIComponent(workspace.licenseId)}`,{method:"DELETE"});const includedVideos=data.videos.filter((video)=>isIncludedVideo(video));update({videos:includedVideos,groups:rebuildGroupMembership(data.groups,includedVideos)},{message:"All personal videos and stored files were deleted from this workspace",type:"video"});setDeletingAll(false);}catch(reason){workspace.setToast(reason instanceof Error?reason.message:"All workspace videos could not be deleted.");}};
      const library=<section className="video-library-content"><div className="video-library-content-head"><div><h2 className="section-title">{filtered.length} personal video{filtered.length===1?"":"s"}</h2><p className="subtle">{search||status!=="all"||group!=="all"?"Filtered personal library":"Your private server media index · shared YouTube animations are available in Video editor"}</p></div></div>{filtered.length===0?<div className="video-library-empty-card"><img src={videoFolderClay} alt="" /><div><h2>No personal videos found</h2><p>Add a personal video or open Video editor to use shared YouTube animations.</p><button className="button video-library-primary" onClick={()=>openAddVideo(group!=="all"?group:"")}><img src={videoPlusClay} alt="" /> Add video <ArrowRight size={15}/></button></div></div>:<div className="video-library-video-grid">{filtered.map(v=><article className="video-library-video-card" key={v.id} data-testid={`row-video-${v.id}`}><div className="video-library-thumbnail" style={{background:v.thumbnailColor}}><Video size={25}/><span>{v.duration}</span></div><div className="video-library-video-copy"><div><h3 title={v.title}>{v.title}</h3><p>Added {new Date(v.createdAt).toLocaleDateString()}</p></div><span className={`status ${v.status==="published"?"live":v.status==="draft"?"scheduled":"stopped"}`}><span className="status-dot"/>{v.status}</span></div><div className="video-library-video-meta"><span><img src={videoTagClay} alt="" />{folderPathForGroup(v.groupId,data.groups)||v.folderName||"Unassigned"}</span><span>{v.quality&&v.quality!=="best"?v.quality:v.quality==="best"?"Best":"Ready"}</span></div><div className="video-library-video-actions">{v.serverSource&&<button className="icon-button" onClick={()=>setTrimVideo(v)} title="Trim clip" aria-label={`Trim ${v.title}`} data-testid={`button-trim-video-${v.id}`}><Scissors size={14}/></button>}<button className="icon-button" onClick={()=>openEditVideo(v)} title="Edit video" aria-label={`Edit ${v.title}`} data-testid={`button-edit-video-${v.id}`}><Pencil size={14}/></button><button className="icon-button" onClick={()=>setDeleting({kind:"video",id:v.id,name:v.title})} title="Delete video" aria-label={`Delete ${v.title}`} data-testid={`button-delete-video-${v.id}`}><Trash2 size={14}/></button></div></article>)}</div>}</section>;
     const openNewGroup=(parentId="")=>{setEditingGroup(undefined);setNewGroupParentId(isIncludedFolder(parentId,data.groups)? "":parentId);setGroupModal(true);};
     const renderGroupCard=(g:VideoGroup):ReactNode=>{
@@ -3825,12 +3820,12 @@ function VideosPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}) {
       const canAddChild=!isIncludedFolder(g.id,data.groups);
       const canAddVideo=isUserUploadFolder(g.id,data.groups);
       const canManageChildren=!isProtectedWorkspaceFolder(g,data.groups);
-      const openLabel=isRoot?"Choose Included Animations or My Animations":g.id===includedAnimationFolderId?"Admin managed · shared with every license":g.id===myAnimationFolderId?"Private to this license":isEditedVideosFolder(g.id,data.groups)?"Protected media destination":"Open folder";
+      const openLabel=isRoot?"Choose Included Animations or My Animations":g.id===includedAnimationFolderId?"Admin managed · shared with every workspace":g.id===myAnimationFolderId?"Private to this workspace":isEditedVideosFolder(g.id,data.groups)?"Protected media destination":"Open folder";
        return <div className="folder-tree-node" key={g.id}><div className={`card group-card ${children.length ? "group-card-parent" : ""}`} data-testid={`card-group-${g.id}`}><button className={`group-open ${isRoot ? "group-open-static" : ""}`} disabled={isRoot} onClick={()=>openGroup(g.id)} data-testid={`button-open-group-${g.id}`}><h3>{g.name}{isEditedVideosFolder(g.id,data.groups)&&<span className="folder-protected-badge">Protected</span>}</h3><p>{g.description||"No description yet."}</p><span className="group-open-label">{openLabel} {!isRoot&&<ArrowRight size={12}/>}</span></button><div className="group-foot"><span>{g.videoIds.length} video{g.videoIds.length===1?"":"s"}</span><div className="group-actions">{canAddVideo&&<button onClick={()=>openAddVideo(g.id)} className="section-link" data-testid={`button-add-video-${g.id}`}>Add video</button>}{canAddChild&&canManageChildren&&<button onClick={()=>openNewGroup(g.id)} className="section-link" data-testid={`button-add-subfolder-${g.id}`}>Add folder inside</button>}{!isProtectedWorkspaceFolder(g,data.groups)&&<button onClick={()=>setDeleting({kind:"group",id:g.id,name:g.name})} className="section-link" style={{color:"#a05b45"}} data-testid={`button-delete-group-${g.id}`}>Delete</button>}</div></div>{children.length>0&&<div className="folder-tree-children"><span className="folder-tree-label">Inside {g.name}</span>{children.filter((child)=>!isIncludedFolder(child.id,data.groups)).map(renderGroupCard)}</div>}</div></div>;
     };
       const personalGroups = data.groups.filter((item) => !isYoutubeAnimationRoot(item.id, data.groups) && !isIncludedFolder(item.id, data.groups));
       const groups=<div className="video-library-folder-content">{personalGroups.length===0?<section className="video-library-empty-card video-library-folder-empty" data-testid="empty-video-categories"><img src={videoFolderClay} alt="" /><div><h2>No content in this category</h2><p>Create a category to organize your personal videos. Shared YouTube animations are available inside Video editor.</p><button className="button video-library-primary" onClick={()=>openNewGroup()}>Create category <ArrowRight size={15}/></button></div></section>:<div className="group-tree">{personalGroups.filter((item)=>!item.parentId).map(renderGroupCard)}</div>}</div>;
-       return <AppShell title="Video library" workspace={workspace}><div className="page video-library-page"><div className="page-head"><div><p className="eyebrow">Archive & distribution</p><h1>Video library</h1><p className="subtle">Personal videos live here. Shared YouTube animations are available only inside Video editor.</p></div><div className="video-library-actions"><Link className="button video-library-secondary" href="/editor" data-testid="link-open-video-editor"><img src={videoEditorClay} alt="" /> Video editor</Link>{tab==="groups"&&<button className="button video-library-secondary" onClick={()=>openNewGroup()} data-testid="button-add-group"><img src={videoTagClay} alt="" /> New category</button>}{tab==="library"&&<button className="button video-library-secondary" onClick={()=>setDeletingAll(true)} disabled={!data.videos.some((video)=>!isIncludedVideo(video))} data-testid="button-delete-all-videos"><Trash2 size={15}/> Delete personal videos</button>}<button className="button video-library-secondary" onClick={()=>setFolderModal(true)} data-testid="button-folder-upload"><img src={videoNewFolderClay} alt="" /> Add folder</button><button className="button video-library-secondary" onClick={()=>setYoutubeModal(true)} data-testid="button-youtube-downloader"><img src={videoDownloadClay} alt="" /> Bulk YouTube download</button><button className="button video-library-primary" onClick={()=>openAddVideo(group!=="all"?group:myAnimationFolderId)} data-testid="button-add-video"><img src={videoPlusClay} alt="" /> Add video</button></div></div><div className="video-library-toolbar"><div className="video-library-tabs"><button className={tab==="library"?"active":"inactive"} onClick={()=>setTab("library")} data-testid="button-tab-library"><img src={videoTagClay} alt="" /> Videos</button><button className={tab==="groups"?"active":"inactive"} onClick={()=>setTab("groups")} data-testid="button-tab-groups"><img src={videoFolderClay} alt="" /> Folders</button></div>{tab==="library"&&<div className="filter-row"><div className="input-wrap"><Search size={14}/><input type="search" value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search personal videos…" data-testid="input-search-videos"/></div><select value={status} onChange={e=>setStatus(e.target.value)} data-testid="select-filter-status"><option value="all">All statuses</option><option value="published">Published</option><option value="draft">Draft</option><option value="archived">Archived</option></select><select value={group} onChange={e=>setGroup(e.target.value)} data-testid="select-filter-group"><option value="all">All personal folders</option>{data.groups.filter((item)=>!isIncludedFolder(item.id,data.groups)).map(g=><option value={g.id} key={g.id}>{folderPathForGroup(g.id,data.groups)}</option>)}</select></div>}</div>{tab==="library"?library:groups}</div>{videoModal&&<VideoModal video={editingVideo} groups={data.groups} defaultGroupId={videoGroupId} licenseId={workspace.licenseId} licenseName={workspace.user} onSave={saveVideo} onClose={()=>{setVideoModal(false);setVideoGroupId("");setEditingVideo(undefined)}}/>}{trimVideo&&<TrimModal video={trimVideo} licenseId={workspace.licenseId} licenseName={workspace.user} folderName={folderPathForGroup(trimVideo.groupId,data.groups)||trimVideo.folderName||""} onCreate={clip=>{const videos=data.videos.filter(video=>video.id!==trimVideo.id);update({videos:[...videos,clip],groups:rebuildGroupMembership(data.groups,[...videos,clip])},{message:`${trimVideo.title} was replaced by ${clip.title}`,type:"video"});setTrimVideo(undefined)}} onClose={()=>setTrimVideo(undefined)}/>} {youtubeModal&&<YoutubeDownloadModal groups={data.groups} defaultGroupId={group!=="all"&&isVideoDestinationFolder(group,data.groups)?group:myAnimationFolderId} licenseId={workspace.licenseId} licenseName={workspace.user} onSaveMany={saveVideos} onClose={()=>setYoutubeModal(false)}/>} {folderModal&&<BulkUploadModal groups={data.groups} defaultGroupId={group!=="all"&&isVideoDestinationFolder(group,data.groups)?group:myAnimationFolderId} licenseId={workspace.licenseId} licenseName={workspace.user} onSaveMany={saveVideos} onClose={()=>setFolderModal(false)}/>} {groupModal&&<GroupModal group={editingGroup} groups={data.groups} defaultParentId={newGroupParentId} onSave={saveGroup} onClose={()=>{setGroupModal(false);setEditingGroup(undefined);setNewGroupParentId("")}}/>}{deleting&&<ConfirmModal title={`Delete this ${deleting.kind}?`} copy={`“${deleting.name}” will be removed from the ${deleting.kind==="video"?"library and its stored file":"workspace along with every video inside it"}. This cannot be undone.`} onClose={()=>setDeleting(undefined)} onConfirm={()=>void remove()}/>} {deletingAll&&<ConfirmModal title="Delete personal videos?" copy="Every stored video file for this license will be deleted. Included Animations will stay available." onClose={()=>setDeletingAll(false)} onConfirm={()=>void removeAll()}/>}</AppShell>;
+       return <AppShell title="Video library" workspace={workspace}><div className="page video-library-page"><div className="page-head"><div><p className="eyebrow">Archive & distribution</p><h1>Video library</h1><p className="subtle">Personal videos live here. Shared YouTube animations are available only inside Video editor.</p></div><div className="video-library-actions"><Link className="button video-library-secondary" href="/editor" data-testid="link-open-video-editor"><img src={videoEditorClay} alt="" /> Video editor</Link>{tab==="groups"&&<button className="button video-library-secondary" onClick={()=>openNewGroup()} data-testid="button-add-group"><img src={videoTagClay} alt="" /> New category</button>}{tab==="library"&&<button className="button video-library-secondary" onClick={()=>setDeletingAll(true)} disabled={!data.videos.some((video)=>!isIncludedVideo(video))} data-testid="button-delete-all-videos"><Trash2 size={15}/> Delete personal videos</button>}<button className="button video-library-secondary" onClick={()=>setFolderModal(true)} data-testid="button-folder-upload"><img src={videoNewFolderClay} alt="" /> Add folder</button><button className="button video-library-secondary" onClick={()=>setYoutubeModal(true)} data-testid="button-youtube-downloader"><img src={videoDownloadClay} alt="" /> Bulk YouTube download</button><button className="button video-library-primary" onClick={()=>openAddVideo(group!=="all"?group:myAnimationFolderId)} data-testid="button-add-video"><img src={videoPlusClay} alt="" /> Add video</button></div></div><div className="video-library-toolbar"><div className="video-library-tabs"><button className={tab==="library"?"active":"inactive"} onClick={()=>setTab("library")} data-testid="button-tab-library"><img src={videoTagClay} alt="" /> Videos</button><button className={tab==="groups"?"active":"inactive"} onClick={()=>setTab("groups")} data-testid="button-tab-groups"><img src={videoFolderClay} alt="" /> Folders</button></div>{tab==="library"&&<div className="filter-row"><div className="input-wrap"><Search size={14}/><input type="search" value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search personal videos…" data-testid="input-search-videos"/></div><select value={status} onChange={e=>setStatus(e.target.value)} data-testid="select-filter-status"><option value="all">All statuses</option><option value="published">Published</option><option value="draft">Draft</option><option value="archived">Archived</option></select><select value={group} onChange={e=>setGroup(e.target.value)} data-testid="select-filter-group"><option value="all">All personal folders</option>{data.groups.filter((item)=>!isIncludedFolder(item.id,data.groups)).map(g=><option value={g.id} key={g.id}>{folderPathForGroup(g.id,data.groups)}</option>)}</select></div>}</div>{tab==="library"?library:groups}</div>{videoModal&&<VideoModal video={editingVideo} groups={data.groups} defaultGroupId={videoGroupId} licenseId={workspace.licenseId} licenseName={workspace.user} onSave={saveVideo} onClose={()=>{setVideoModal(false);setVideoGroupId("");setEditingVideo(undefined)}}/>}{trimVideo&&<TrimModal video={trimVideo} licenseId={workspace.licenseId} licenseName={workspace.user} folderName={folderPathForGroup(trimVideo.groupId,data.groups)||trimVideo.folderName||""} onCreate={clip=>{const videos=data.videos.filter(video=>video.id!==trimVideo.id);update({videos:[...videos,clip],groups:rebuildGroupMembership(data.groups,[...videos,clip])},{message:`${trimVideo.title} was replaced by ${clip.title}`,type:"video"});setTrimVideo(undefined)}} onClose={()=>setTrimVideo(undefined)}/>} {youtubeModal&&<YoutubeDownloadModal groups={data.groups} defaultGroupId={group!=="all"&&isVideoDestinationFolder(group,data.groups)?group:myAnimationFolderId} licenseId={workspace.licenseId} licenseName={workspace.user} onSaveMany={saveVideos} onClose={()=>setYoutubeModal(false)}/>} {folderModal&&<BulkUploadModal groups={data.groups} defaultGroupId={group!=="all"&&isVideoDestinationFolder(group,data.groups)?group:myAnimationFolderId} licenseId={workspace.licenseId} licenseName={workspace.user} onSaveMany={saveVideos} onClose={()=>setFolderModal(false)}/>} {groupModal&&<GroupModal group={editingGroup} groups={data.groups} defaultParentId={newGroupParentId} onSave={saveGroup} onClose={()=>{setGroupModal(false);setEditingGroup(undefined);setNewGroupParentId("")}}/>}{deleting&&<ConfirmModal title={`Delete this ${deleting.kind}?`} copy={`“${deleting.name}” will be removed from the ${deleting.kind==="video"?"library and its stored file":"workspace along with every video inside it"}. This cannot be undone.`} onClose={()=>setDeleting(undefined)} onConfirm={()=>void remove()}/>} {deletingAll&&<ConfirmModal title="Delete personal videos?" copy="Every stored video file for this workspace will be deleted. Included Animations will stay available." onClose={()=>setDeletingAll(false)} onConfirm={()=>void removeAll()}/>}</AppShell>;
 }
 
 function VideoEditorPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}) {
@@ -4162,8 +4157,8 @@ function VideoEditorPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}
         headers: {
           "Content-Type": file.type || "application/octet-stream",
           "X-File-Name": file.name,
-          "X-License-Id": workspace.licenseId,
-          "X-License-Name": workspace.user,
+          "X-Workspace-Id": workspace.licenseId,
+          "X-Workspace-Name": workspace.user,
           "X-Folder-Name": "__editor-assets",
           "X-Media-Title": file.name.replace(/\.[^.]+$/, ""),
           "X-Quality": "logo",
@@ -4417,7 +4412,7 @@ function VideoEditorPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}
              <div className="section-head"><div><h2 className="section-title">3. Face cam & brand layers</h2><p className="subtle">Place a face cam video on top of the main video, then add a logo if needed.</p></div><Image size={17} color="#6c8b83"/></div>
             <div className="field"><label>Logo / watermark</label><div className="input-action-row"><select value={logoId} onChange={(event) => setLogoId(event.target.value)}><option value="">No logo</option>{data.editorAssets.map((asset) => <option key={asset.id} value={asset.id}>{asset.title}</option>)}</select><label className="button secondary small editor-file-button"><Upload size={13}/>{uploadingLogo ? "Uploading…" : "Upload"}<input type="file" accept="image/png,image/jpeg,image/webp" disabled={uploadingLogo} onChange={(event) => { const file = event.target.files?.[0]; if (file) void uploadLogo(file); event.currentTarget.value = ""; }}/></label></div></div>
             {logo && <div className="form-grid"><div className="field"><label>Logo position</label><select value={logoPosition} onChange={(event) => setLogoPosition(event.target.value)}><option value="top-left">Top left</option><option value="top-right">Top right</option><option value="bottom-left">Bottom left</option><option value="bottom-right">Bottom right</option></select></div><div className="field"><label>Logo size · {overlayScale}%</label><input type="range" min="10" max="60" value={overlayScale} onChange={(event) => setOverlayScale(event.target.value)}/></div></div>}
-              <div className="field"><label>Face cam video</label><select value={webcamId} onChange={(event) => { setWebcamId(event.target.value); setSelectedLayer(event.target.value ? "webcam" : "main"); }} data-testid="select-editor-facecam"><option value="">No face cam</option>{webcamVideos.map((video) => <option key={video.id} value={video.id}>{video.title}</option>)}</select><span className="field-hint">Only videos from this license workspace are available here.</span></div>
+              <div className="field"><label>Face cam video</label><select value={webcamId} onChange={(event) => { setWebcamId(event.target.value); setSelectedLayer(event.target.value ? "webcam" : "main"); }} data-testid="select-editor-facecam"><option value="">No face cam</option>{webcamVideos.map((video) => <option key={video.id} value={video.id}>{video.title}</option>)}</select><span className="field-hint">Only videos from this workspace are available here.</span></div>
              {webcam && <div className="editor-layer-note"><span>Canvas face cam: {Math.round(webcamTransform.scale * 100)}%</span><button type="button" className="section-link" onClick={() => setSelectedLayer("webcam")}>Edit on canvas <ArrowRight size={12}/></button></div>}
                  <div className="field"><label>Add animation overlay</label><select value="" onChange={(event) => { if (event.target.value) selectAnimation(event.target.value); }} data-testid="select-editor-animation-overlay"><option value="">Choose an animation to add</option>{includedAnimationVideos.length > 0 && <optgroup label="Admin · Included Animations">{includedAnimationVideos.map((video) => <option key={video.id} value={video.id} disabled={animationIds.includes(video.id)}>{video.title}{animationIds.includes(video.id) ? " · added" : ""}</option>)}</optgroup>}{myAnimationVideos.length > 0 && <optgroup label="My Animations">{myAnimationVideos.map((video) => <option key={video.id} value={video.id} disabled={animationIds.includes(video.id)}>{video.title}{animationIds.includes(video.id) ? " · added" : ""}</option>)}</optgroup>}</select><span className="field-hint">Choose multiple animations one after another. Selecting a new one keeps the others.</span></div>
               {selectedAnimations.length > 0 && <div className="editor-animation-selection-list"><strong>{selectedAnimations.length} animation{selectedAnimations.length === 1 ? "" : "s"} active together</strong>{selectedAnimations.map((video) => <div className="editor-layer-note" key={video.id}><span>{video.title} · {Math.round((animationTransforms[video.id]?.scale || 0.25) * 100)}%</span><div><button type="button" className="section-link" onClick={() => { setActiveAnimationId(video.id); setSelectedLayer("animation"); }}>Edit</button><button type="button" className="section-link" onClick={() => selectAnimation(video.id)} aria-label={`Remove ${video.title}`}>Remove</button></div></div>)}</div>}
@@ -5209,8 +5204,7 @@ function Routed({workspace, account, onRefreshAccount, firebaseUser, profilePhot
     displayName: localProfile.displayName || workspace.user || "Workspace user",
     email: localProfile.email || "",
     role: "user" as const,
-    licenseId: workspace.licenseId,
-    licenseKey: "",
+    workspaceId: workspace.licenseId,
     trialStartedAt: "",
     trialEndsAt: "",
     activePlanId: "",
@@ -5283,15 +5277,13 @@ function App() {
   };
   const [dismissedTrialOfferAccountId, setDismissedTrialOfferAccountId] = useState("");
   const [promptTrialPhone, setPromptTrialPhone] = useState(false);
-  const accountLicense = accountSession.account ? {
-    licenseId: accountSession.account.licenseId,
-    key: accountSession.account.licenseKey,
+  const accountWorkspaceSession = accountSession.account ? {
+    workspaceId: accountSession.account.workspaceId,
     name: accountSession.account.displayName || user?.email || "Workspace",
     expiresAt: accountSession.account.accessEndsAt,
     active: accountSession.account.active,
     clientId: workspaceClientId,
-  } satisfies LicenseSession : null;
-  const activeLicense = accountLicense;
+  } satisfies WorkspaceSession : null;
   const [location, setLocation] = useLocation();
   const openTrialOfferInProfile = () => {
     setPromptTrialPhone(true);
@@ -5300,7 +5292,7 @@ function App() {
   const authLoading = useMinimumLoadingDuration(firebaseLoading || accountSession.loading || firebaseBusy);
   const browserPath = window.location.pathname.replace(/\/+$/, "") || "/";
   const isOwnerRoute = ["/owner", "/owner.html"].includes(location) || ["/owner", "/owner.html"].includes(browserPath);
-  const workspace = useWorkspace(activeLicense, () => {
+  const workspace = useWorkspace(accountWorkspaceSession, () => {
     accountSession.clear();
     void apiJson("/api/mobile-auth/logout", { method: "POST" }).catch(() => undefined);
     void signOut();

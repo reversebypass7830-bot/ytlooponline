@@ -44,3 +44,4 @@
 - [Feedback image hosting](feedback-imgbb-hosting.md) — store feedback-gallery screenshots on ImgBB and serve the direct ImgBB URLs in the gallery.
 - [Landing-page audience claims](social-proof-claim.md) — treat the 7.3K count and displayed geographies as user-supplied marketing claims, not verified analytics.
 - [Workflow restart port collisions](workflow-restart-port-collisions.md) — stale child processes may keep artifact ports bound after restart; clear them before retrying.
+- [Account workspace migration](account-workspace-migration.md) — removing license keys must reuse each account's legacy workspace namespace so saved data stays attached.

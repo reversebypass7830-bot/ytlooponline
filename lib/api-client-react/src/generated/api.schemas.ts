@@ -721,57 +721,6 @@ export interface YoutubeChannelLinksResponse {
   count: number;
 }
 
-export interface CreateLicenseInput {
-  /** @minLength 1 */
-  name: string;
-  /**
-     * @minimum 1
-     * @maximum 3650
-     */
-  days?: number;
-}
-
-export interface RenewLicenseInput {
-  /**
-     * @minimum 1
-     * @maximum 3650
-     */
-  days?: number;
-}
-
-export interface LicenseClientInput {
-  /** @minLength 8 */
-  key: string;
-  /** @minLength 8 */
-  clientId: string;
-}
-
-export type RenewLicenseForUserInput = LicenseClientInput & {
-  /**
-     * @minimum 1
-     * @maximum 3650
-     */
-  days?: number;
-};
-
-export interface LicenseAccess {
-  licenseId: string;
-  key: string;
-  name: string;
-  expiresAt: string;
-  active: boolean;
-  clientId?: string;
-}
-
-export interface LicenseListResponse {
-  licenses: LicenseAccess[];
-}
-
-export interface DeleteLicenseResult {
-  licenseId: string;
-  deleted: boolean;
-}
-
 export type VidKrakenTokenStatusStatus = typeof VidKrakenTokenStatusStatus[keyof typeof VidKrakenTokenStatusStatus];
 
 
@@ -802,18 +751,32 @@ export interface VidKrakenTokenMutationResponse {
   deleted?: boolean;
 }
 
-export interface LicenseWorkspaceData { [key: string]: unknown }
-
-export interface LicenseWorkspaceResponse {
-  license: LicenseAccess;
-  data: LicenseWorkspaceData | null;
+export interface AccountWorkspaceGetInput {
+  /**
+     * @minLength 8
+     * @maxLength 128
+     * @pattern ^[a-zA-Z0-9_-]+$
+     */
+  clientId: string;
 }
 
-export type SaveLicenseWorkspaceInput = LicenseClientInput & {
-  data: LicenseWorkspaceData;
-};
+export interface AccountWorkspaceData { [key: string]: unknown }
 
-export interface WorkspaceSaveResponse {
+export interface AccountWorkspaceInput {
+  /**
+     * @minLength 8
+     * @maxLength 128
+     * @pattern ^[a-zA-Z0-9_-]+$
+     */
+  clientId: string;
+  data: AccountWorkspaceData;
+}
+
+export interface AccountWorkspaceResponse {
+  data: AccountWorkspaceData | null;
+}
+
+export interface AccountWorkspaceSavedResponse {
   saved: boolean;
 }
 
@@ -1414,7 +1377,7 @@ export type ListMediaFilesParams = {
 /**
  * @minLength 1
  */
-licenseId: string;
+workspaceId: string;
 };
 
 export type ListMediaFiles400 = {

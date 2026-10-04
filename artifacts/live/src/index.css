@@ -3960,7 +3960,7 @@ select { height: 41px; }
 }
 
 /* Login keeps the Loop landing atmosphere while reducing the screen to the
-   three supported access methods: phone, Google, and license key. */
+   two supported access methods: phone and Google. */
 .streamly-login-page {
   min-height: 100dvh;
   overflow: hidden;

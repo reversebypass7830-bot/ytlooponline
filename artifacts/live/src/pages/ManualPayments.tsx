@@ -28,7 +28,7 @@ import downloadsArt from "@assets/image_1790996859856.png";
 import durationArt from "@assets/image_1790996866685.png";
 
 type Account = {
-  id: string; email: string; displayName: string; licenseKey: string; streamLimit: number;
+  id: string; email: string; displayName: string; streamLimit: number;
   activePlan: { name: string } | null; activePlanId: string; active: boolean; accessEndsAt: string;
   streamsPerDay: number; streamsStartedToday: number; downloadsUsedToday?: number; downloadsPerDay?: number;
   history: Array<{ id: string; type: "purchase" | "grant" | string; message: string; at: string; planId?: string; days?: number; streamLimit?: number; streamsPerDay?: number; downloadsPerDay?: number; amountPaise?: number; utr?: string }>;
