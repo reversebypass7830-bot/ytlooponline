@@ -11,10 +11,12 @@ import {
   UpdateBillingPlanBody,
   UpdateOwnerPaymentSettingsBody,
 } from "@workspace/api-zod";
-import { firebaseGet, firebasePut } from "../lib/firebase-rest";
+import { firebaseDelete, firebaseGet, firebasePut } from "../lib/firebase-rest";
+import { getOwnerSupportLink, ownerSettingsPath, safeSupportLink } from "../lib/account-access";
 import { ObjectStorageService } from "../lib/objectStorage";
 import { accountIdentity, accountUserId, clerkSessionClaims, requireAccountAuth, requireClerkAuth } from "../middlewares/requireClerkAuth";
 import { clerkOwnerAuthorized, ownerAuthorized } from "./licenses";
+import { deleteMediaFilesForLicense } from "./media";
 import {
   createCashfreeOrder,
   fetchCashfreeOrder,
@@ -98,6 +100,8 @@ type AccountRecord = {
   activeFeatures?: string[];
   streamUsageDate?: string;
   streamsStartedToday?: number;
+  lifetimeLiveStarts?: number;
+  suspended?: boolean;
   downloadUsageDate?: string;
   downloadsUsedToday?: number;
   createdAt: string;
@@ -413,7 +417,7 @@ function publicAccount(account: AccountRecord, plans: PlanMap) {
     id: account.id,
     displayName: account.displayName,
     email: account.email,
-    phone: account.phone,
+    phone: account.phone ?? null,
     profileImagePath: account.profileImagePath,
     profileCompleted: account.profileCompleted ?? true,
     trialOfferAvailable: account.trialOfferAvailable === true,
@@ -434,9 +438,36 @@ function publicAccount(account: AccountRecord, plans: PlanMap) {
     downloadsRemainingToday: Math.max(0, downloadsPerDay - downloadsUsedToday),
     activeFeatures: account.activeFeatures || plan?.features || [],
     active: isActive(account),
+    suspended: account.suspended === true,
+    lifetimeLiveStarts: Number.isSafeInteger(account.lifetimeLiveStarts) && (account.lifetimeLiveStarts ?? 0) >= 0
+      ? account.lifetimeLiveStarts
+      : 0,
     createdAt: account.createdAt,
     history: addLegacyAccessPeriods(account.history || [], plans),
   };
+}
+
+function ownerUserSummary(account: AccountRecord, plans: PlanMap): Record<string, unknown> {
+  const summary = publicAccount(account, plans);
+  const safeSummary: Record<string, unknown> = {
+    ...summary,
+    history: summary.history || [],
+  };
+  delete safeSummary.licenseId;
+  delete safeSummary.licenseKey;
+  return safeSummary;
+}
+
+async function deleteUserAccountData(userId: string, account: AccountRecord): Promise<number> {
+  const { stopAccountStreams } = await import("./streaming");
+  stopAccountStreams(userId);
+  const deletedMedia = await deleteMediaFilesForLicense(account.licenseId);
+  await Promise.all([
+    firebaseDelete(accountPath(userId)),
+    firebaseDelete(licensePath(account.licenseId)),
+    firebaseDelete(`workspaces/${encodeURIComponent(account.licenseId)}`),
+  ]);
+  return deletedMedia;
 }
 
 function addLegacyAccessPeriods(history: AccountHistoryItem[], plans: PlanMap): AccountHistoryItem[] {
@@ -1034,7 +1065,11 @@ function sendError(req: Request, res: Response, error: unknown, message: string)
 router.get("/account", requireAccountAuth, async (req, res): Promise<void> => {
   try {
     const { account, plans } = await ensureAccount(req);
-    res.json({ account: publicAccount(account, plans), plans: Object.values(plans).filter((plan) => plan.active) });
+    res.json({
+      account: publicAccount(account, plans),
+      plans: Object.values(plans).filter((plan) => plan.active),
+      supportLink: await getOwnerSupportLink(),
+    });
   } catch (error) {
     sendError(req, res, error, "Could not load your account.");
   }
@@ -1557,11 +1592,118 @@ router.get("/owner/users", async (req, res): Promise<void> => {
     const plans = await loadPlans();
     res.json({
       users: Object.values(accounts)
-        .map((account) => ({ ...publicAccount(account, plans), history: account.history || [] }))
-        .sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
+        .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+        .map((account) => ownerUserSummary(account, plans)),
     });
   } catch (error) {
     sendError(req, res, error, "Could not load users.");
+  }
+});
+
+router.patch("/owner/users/:userId/suspension", async (req, res): Promise<void> => {
+  if (!(await requireAccountOwner(req, res))) return;
+  if (typeof req.body?.suspended !== "boolean") {
+    res.status(400).json({ error: "A suspended boolean is required." });
+    return;
+  }
+  try {
+    const userId = req.params.userId;
+    const account = await loadAccount(userId);
+    if (!account) {
+      res.status(404).json({ error: "User account not found." });
+      return;
+    }
+    if (account.role === "owner") {
+      res.status(403).json({ error: "Owner accounts cannot be suspended." });
+      return;
+    }
+    const next = { ...account, suspended: req.body.suspended };
+    await firebasePut(accountPath(userId), next);
+    if (next.suspended) {
+      const { stopAccountStreams } = await import("./streaming");
+      stopAccountStreams(userId);
+    }
+    const plans = await loadPlans();
+    res.json({ user: ownerUserSummary(next, plans) });
+  } catch (error) {
+    sendError(req, res, error, "Could not update account suspension.");
+  }
+});
+
+router.delete("/owner/users/:userId", async (req, res): Promise<void> => {
+  if (!(await requireAccountOwner(req, res))) return;
+  try {
+    const userId = req.params.userId;
+    const account = await loadAccount(userId);
+    if (!account) {
+      res.status(404).json({ error: "User account not found." });
+      return;
+    }
+    if (account.role === "owner") {
+      res.status(403).json({ error: "Owner accounts cannot be deleted." });
+      return;
+    }
+    const deletedMedia = await deleteUserAccountData(userId, account);
+    res.json({ userId, deleted: true, deletedMedia });
+  } catch (error) {
+    sendError(req, res, error, "Could not delete the user account.");
+  }
+});
+
+router.post("/owner/users/bulk-delete", async (req, res): Promise<void> => {
+  if (!(await requireAccountOwner(req, res))) return;
+  const userIds: unknown = req.body?.userIds;
+  if (!Array.isArray(userIds) || userIds.length < 1 || userIds.length > 100
+    || userIds.some((userId) => typeof userId !== "string" || !userId.trim())
+    || new Set(userIds).size !== userIds.length) {
+    res.status(400).json({ error: "Choose between 1 and 100 unique user accounts." });
+    return;
+  }
+  const deletedUserIds: string[] = [];
+  const failedUserIds: string[] = [];
+  for (const userId of userIds as string[]) {
+    try {
+      const account = await loadAccount(userId);
+      if (!account || account.role === "owner") {
+        failedUserIds.push(userId);
+        continue;
+      }
+      await deleteUserAccountData(userId, account);
+      deletedUserIds.push(userId);
+    } catch (error) {
+      req.log.warn({ userId, error: error instanceof Error ? error.message : "unknown" }, "Bulk user deletion failed");
+      failedUserIds.push(userId);
+    }
+  }
+  res.json({ deletedUserIds, failedUserIds });
+});
+
+router.get("/owner/settings", async (req, res): Promise<void> => {
+  if (!(await requireAccountOwner(req, res))) return;
+  try {
+    res.json({ supportLink: await getOwnerSupportLink() });
+  } catch (error) {
+    sendError(req, res, error, "Could not load owner settings.");
+  }
+});
+
+router.put("/owner/settings", async (req, res): Promise<void> => {
+  if (!(await requireAccountOwner(req, res))) return;
+  const rawSupportLink = typeof req.body?.supportLink === "string" ? req.body.supportLink.trim() : "";
+  if (rawSupportLink.length > 2048) {
+    res.status(400).json({ error: "Support link must be 2048 characters or fewer." });
+    return;
+  }
+  const supportLink = rawSupportLink ? safeSupportLink(rawSupportLink) : "";
+  if (rawSupportLink && !supportLink) {
+    res.status(400).json({ error: "Enter a valid HTTP or HTTPS support link, or leave it blank." });
+    return;
+  }
+  try {
+    await firebasePut(ownerSettingsPath, { supportLink });
+    res.json({ supportLink });
+  } catch (error) {
+    sendError(req, res, error, "Could not save owner settings.");
   }
 });
 
@@ -1978,6 +2120,7 @@ export async function startAccountStreamWithQuota<T>(
       streamsPerDay,
       streamUsageDate: dayKey,
       streamsStartedToday: used + 1,
+      lifetimeLiveStarts: Math.max(0, account.lifetimeLiveStarts || 0) + 1,
     };
     await firebasePut(accountPath(userId), updated);
     try {

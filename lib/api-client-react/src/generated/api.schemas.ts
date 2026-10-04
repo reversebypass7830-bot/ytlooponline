@@ -817,6 +817,37 @@ export interface WorkspaceSaveResponse {
   saved: boolean;
 }
 
+export type OwnerAccountHistoryItemType = typeof OwnerAccountHistoryItemType[keyof typeof OwnerAccountHistoryItemType];
+
+
+export const OwnerAccountHistoryItemType = {
+  trial_started: 'trial_started',
+  purchase: 'purchase',
+  grant: 'grant',
+  login: 'login',
+} as const;
+
+export interface OwnerAccountHistoryItem {
+  id: string;
+  type: OwnerAccountHistoryItemType;
+  message: string;
+  at: string;
+  planName?: string;
+  planId?: string;
+  days?: number;
+  startsAt?: string;
+  endsAt?: string;
+  amountPaise?: number;
+}
+
+export type OwnerUserRole = typeof OwnerUserRole[keyof typeof OwnerUserRole];
+
+
+export const OwnerUserRole = {
+  owner: 'owner',
+  user: 'user',
+} as const;
+
 export interface BillingPlan {
   id: string;
   name: string;
@@ -838,6 +869,72 @@ export interface BillingPlan {
   active: boolean;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface OwnerUser {
+  id: string;
+  displayName: string;
+  email: string;
+  /** @nullable */
+  phone: string | null;
+  role: OwnerUserRole;
+  createdAt: string;
+  /** @nullable */
+  trialStartedAt: string | null;
+  /** @nullable */
+  trialEndsAt: string | null;
+  activePlanId: string;
+  activePlan: BillingPlan | null;
+  accessEndsAt: string;
+  active: boolean;
+  suspended: boolean;
+  streamLimit: number;
+  /** @minimum 0 */
+  lifetimeLiveStarts: number;
+  history: OwnerAccountHistoryItem[];
+}
+
+export interface OwnerUsersResponse {
+  users: OwnerUser[];
+}
+
+export interface OwnerUserResponse {
+  user: OwnerUser;
+}
+
+export interface OwnerUserSuspensionInput {
+  suspended: boolean;
+}
+
+export interface OwnerUserDeleteResponse {
+  userId: string;
+  deleted: boolean;
+  /** @minimum 0 */
+  deletedMedia: number;
+}
+
+export interface OwnerUsersBulkDeleteInput {
+  /**
+     * @minItems 1
+     * @maxItems 100
+     * @items.minLength 1
+     */
+  userIds: string[];
+}
+
+export interface OwnerUsersBulkDeleteResponse {
+  deletedUserIds: string[];
+  failedUserIds: string[];
+}
+
+export interface OwnerSettings {
+  /** @maxLength 2048 */
+  supportLink: string;
+}
+
+export interface OwnerSettingsInput {
+  /** @maxLength 2048 */
+  supportLink: string;
 }
 
 export interface BillingPlanInput {

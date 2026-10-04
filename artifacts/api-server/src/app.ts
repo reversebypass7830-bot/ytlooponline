@@ -11,6 +11,8 @@ import {
   clerkProxyMiddleware,
   getClerkProxyHost,
 } from "./middlewares/clerkProxyMiddleware";
+import { accountIdentity } from "./middlewares/requireClerkAuth";
+import { getSuspendedAccountSupport, suspendedAccountNotice } from "./lib/account-access";
 
 const app: Express = express();
 
@@ -63,6 +65,30 @@ app.use(
     limit: "5mb",
   }),
 );
+
+app.use("/api", async (req, res, next) => {
+  const identity = accountIdentity(req);
+  if (!identity || (req.method === "GET" && req.path === "/account")
+    || (req.method === "POST" && (req.path === "/mobile-auth/logout" || req.path === "/firebase-auth/logout"))) {
+    next();
+    return;
+  }
+  try {
+    const suspension = await getSuspendedAccountSupport(identity.userId);
+    if (suspension) {
+      res.status(403).json({
+        error: suspendedAccountNotice,
+        suspended: true,
+        supportLink: suspension.supportLink,
+      });
+      return;
+    }
+    next();
+  } catch (error) {
+    req.log.error({ error: error instanceof Error ? error.message : "unknown" }, "Account suspension check failed");
+    res.status(503).json({ error: "Account access could not be verified. Please try again." });
+  }
+});
 
 app.use("/api", router);
 

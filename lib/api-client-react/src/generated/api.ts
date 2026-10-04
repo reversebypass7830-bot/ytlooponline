@@ -70,6 +70,14 @@ import type {
   MediaUploadResponse,
   OwnerFeedbackListResponse,
   OwnerFeedbackResponse,
+  OwnerSettings,
+  OwnerSettingsInput,
+  OwnerUserDeleteResponse,
+  OwnerUserResponse,
+  OwnerUserSuspensionInput,
+  OwnerUsersBulkDeleteInput,
+  OwnerUsersBulkDeleteResponse,
+  OwnerUsersResponse,
   PaymentAssetUploadUrl,
   PaymentAssetUploadUrlInput,
   PaymentRequestListResponse,
@@ -4378,5 +4386,444 @@ export const useReviewOwnerPaymentRequest = <TError = ErrorType<void>,
         TContext
       > => {
       return useMutation(getReviewOwnerPaymentRequestMutationOptions(options));
+    }
+
+export const getListOwnerUsersUrl = () => {
+
+
+
+
+  return `/api/owner/users`
+}
+
+/**
+ * @summary List account details for owner review
+ */
+export const listOwnerUsers = async ( options?: Parameters<typeof customFetch>[1]): Promise<OwnerUsersResponse> => {
+
+  return customFetch<OwnerUsersResponse>(getListOwnerUsersUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListOwnerUsersQueryKey = () => {
+    return [
+    `/api/owner/users`
+    ] as const;
+    }
+
+
+export const getListOwnerUsersQueryOptions = <TData = Awaited<ReturnType<typeof listOwnerUsers>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listOwnerUsers>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListOwnerUsersQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listOwnerUsers>>> = ({ signal }) => listOwnerUsers({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listOwnerUsers>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListOwnerUsersQueryResult = NonNullable<Awaited<ReturnType<typeof listOwnerUsers>>>
+export type ListOwnerUsersQueryError = ErrorType<void>
+
+
+/**
+ * @summary List account details for owner review
+ */
+
+export function useListOwnerUsers<TData = Awaited<ReturnType<typeof listOwnerUsers>>, TError = ErrorType<void>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listOwnerUsers>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListOwnerUsersQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getUpdateOwnerUserSuspensionUrl = (userId: string,) => {
+
+
+
+
+  return `/api/owner/users/${userId}/suspension`
+}
+
+/**
+ * @summary Suspend or restore a user account
+ */
+export const updateOwnerUserSuspension = async (userId: string,
+    ownerUserSuspensionInput: OwnerUserSuspensionInput, options?: Parameters<typeof customFetch>[1]): Promise<OwnerUserResponse> => {
+
+  return customFetch<OwnerUserResponse>(getUpdateOwnerUserSuspensionUrl(userId),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(ownerUserSuspensionInput)
+  }
+);}
+
+
+
+
+
+export const getUpdateOwnerUserSuspensionMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateOwnerUserSuspension>>, TError,{userId: string;data: BodyType<OwnerUserSuspensionInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateOwnerUserSuspension>>, TError,{userId: string;data: BodyType<OwnerUserSuspensionInput>}, TContext> => {
+
+const mutationKey = ['updateOwnerUserSuspension'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateOwnerUserSuspension>>, {userId: string;data: BodyType<OwnerUserSuspensionInput>}> = (props) => {
+          const {userId,data} = props ?? {};
+
+          return  updateOwnerUserSuspension(userId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateOwnerUserSuspensionMutationResult = NonNullable<Awaited<ReturnType<typeof updateOwnerUserSuspension>>>
+    export type UpdateOwnerUserSuspensionMutationBody = BodyType<OwnerUserSuspensionInput>
+    export type UpdateOwnerUserSuspensionMutationError = ErrorType<void>
+
+    /**
+ * @summary Suspend or restore a user account
+ */
+export const useUpdateOwnerUserSuspension = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateOwnerUserSuspension>>, TError,{userId: string;data: BodyType<OwnerUserSuspensionInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateOwnerUserSuspension>>,
+        TError,
+        {userId: string;data: BodyType<OwnerUserSuspensionInput>},
+        TContext
+      > => {
+      return useMutation(getUpdateOwnerUserSuspensionMutationOptions(options));
+    }
+
+export const getDeleteOwnerUserUrl = (userId: string,) => {
+
+
+
+
+  return `/api/owner/users/${userId}`
+}
+
+/**
+ * @summary Delete a user account and its workspace data
+ */
+export const deleteOwnerUser = async (userId: string, options?: Parameters<typeof customFetch>[1]): Promise<OwnerUserDeleteResponse> => {
+
+  return customFetch<OwnerUserDeleteResponse>(getDeleteOwnerUserUrl(userId),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getDeleteOwnerUserMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteOwnerUser>>, TError,{userId: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteOwnerUser>>, TError,{userId: string}, TContext> => {
+
+const mutationKey = ['deleteOwnerUser'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteOwnerUser>>, {userId: string}> = (props) => {
+          const {userId} = props ?? {};
+
+          return  deleteOwnerUser(userId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteOwnerUserMutationResult = NonNullable<Awaited<ReturnType<typeof deleteOwnerUser>>>
+
+    export type DeleteOwnerUserMutationError = ErrorType<void>
+
+    /**
+ * @summary Delete a user account and its workspace data
+ */
+export const useDeleteOwnerUser = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteOwnerUser>>, TError,{userId: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof deleteOwnerUser>>,
+        TError,
+        {userId: string},
+        TContext
+      > => {
+      return useMutation(getDeleteOwnerUserMutationOptions(options));
+    }
+
+export const getBulkDeleteOwnerUsersUrl = () => {
+
+
+
+
+  return `/api/owner/users/bulk-delete`
+}
+
+/**
+ * @summary Delete multiple user accounts and their workspace data
+ */
+export const bulkDeleteOwnerUsers = async (ownerUsersBulkDeleteInput: OwnerUsersBulkDeleteInput, options?: Parameters<typeof customFetch>[1]): Promise<OwnerUsersBulkDeleteResponse> => {
+
+  return customFetch<OwnerUsersBulkDeleteResponse>(getBulkDeleteOwnerUsersUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(ownerUsersBulkDeleteInput)
+  }
+);}
+
+
+
+
+
+export const getBulkDeleteOwnerUsersMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof bulkDeleteOwnerUsers>>, TError,{data: BodyType<OwnerUsersBulkDeleteInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof bulkDeleteOwnerUsers>>, TError,{data: BodyType<OwnerUsersBulkDeleteInput>}, TContext> => {
+
+const mutationKey = ['bulkDeleteOwnerUsers'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof bulkDeleteOwnerUsers>>, {data: BodyType<OwnerUsersBulkDeleteInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  bulkDeleteOwnerUsers(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type BulkDeleteOwnerUsersMutationResult = NonNullable<Awaited<ReturnType<typeof bulkDeleteOwnerUsers>>>
+    export type BulkDeleteOwnerUsersMutationBody = BodyType<OwnerUsersBulkDeleteInput>
+    export type BulkDeleteOwnerUsersMutationError = ErrorType<void>
+
+    /**
+ * @summary Delete multiple user accounts and their workspace data
+ */
+export const useBulkDeleteOwnerUsers = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof bulkDeleteOwnerUsers>>, TError,{data: BodyType<OwnerUsersBulkDeleteInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof bulkDeleteOwnerUsers>>,
+        TError,
+        {data: BodyType<OwnerUsersBulkDeleteInput>},
+        TContext
+      > => {
+      return useMutation(getBulkDeleteOwnerUsersMutationOptions(options));
+    }
+
+export const getGetOwnerSettingsUrl = () => {
+
+
+
+
+  return `/api/owner/settings`
+}
+
+/**
+ * @summary Get owner-configured support link
+ */
+export const getOwnerSettings = async ( options?: Parameters<typeof customFetch>[1]): Promise<OwnerSettings> => {
+
+  return customFetch<OwnerSettings>(getGetOwnerSettingsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetOwnerSettingsQueryKey = () => {
+    return [
+    `/api/owner/settings`
+    ] as const;
+    }
+
+
+export const getGetOwnerSettingsQueryOptions = <TData = Awaited<ReturnType<typeof getOwnerSettings>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getOwnerSettings>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetOwnerSettingsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getOwnerSettings>>> = ({ signal }) => getOwnerSettings({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getOwnerSettings>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetOwnerSettingsQueryResult = NonNullable<Awaited<ReturnType<typeof getOwnerSettings>>>
+export type GetOwnerSettingsQueryError = ErrorType<void>
+
+
+/**
+ * @summary Get owner-configured support link
+ */
+
+export function useGetOwnerSettings<TData = Awaited<ReturnType<typeof getOwnerSettings>>, TError = ErrorType<void>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getOwnerSettings>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetOwnerSettingsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getUpdateOwnerSettingsUrl = () => {
+
+
+
+
+  return `/api/owner/settings`
+}
+
+/**
+ * @summary Save the support link shown to suspended accounts
+ */
+export const updateOwnerSettings = async (ownerSettingsInput: OwnerSettingsInput, options?: Parameters<typeof customFetch>[1]): Promise<OwnerSettings> => {
+
+  return customFetch<OwnerSettings>(getUpdateOwnerSettingsUrl(),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(ownerSettingsInput)
+  }
+);}
+
+
+
+
+
+export const getUpdateOwnerSettingsMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateOwnerSettings>>, TError,{data: BodyType<OwnerSettingsInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateOwnerSettings>>, TError,{data: BodyType<OwnerSettingsInput>}, TContext> => {
+
+const mutationKey = ['updateOwnerSettings'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateOwnerSettings>>, {data: BodyType<OwnerSettingsInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  updateOwnerSettings(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateOwnerSettingsMutationResult = NonNullable<Awaited<ReturnType<typeof updateOwnerSettings>>>
+    export type UpdateOwnerSettingsMutationBody = BodyType<OwnerSettingsInput>
+    export type UpdateOwnerSettingsMutationError = ErrorType<void>
+
+    /**
+ * @summary Save the support link shown to suspended accounts
+ */
+export const useUpdateOwnerSettings = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateOwnerSettings>>, TError,{data: BodyType<OwnerSettingsInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateOwnerSettings>>,
+        TError,
+        {data: BodyType<OwnerSettingsInput>},
+        TContext
+      > => {
+      return useMutation(getUpdateOwnerSettingsMutationOptions(options));
     }
 

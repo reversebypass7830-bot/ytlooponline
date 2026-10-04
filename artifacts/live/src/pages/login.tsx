@@ -1,20 +1,15 @@
 import { useEffect, useRef, useState, type CSSProperties, type FormEvent } from "react";
 import "./login.css";
 
-type LoginMethod = "google" | "phone" | "license";
+type LoginMethod = "google" | "phone";
 
 export type LoginPageProps = {
-  expired: boolean;
   error?: string;
   busy: boolean;
-  signedIn: boolean;
-  onActivate: (key: string) => void | Promise<void>;
-  onRenew: () => void | Promise<void>;
   onGoogleLogin: () => void | Promise<void>;
   onSendMobileOtp: (phone: string) => Promise<{ expiresAt: string; expiresInSeconds: number }>;
   onVerifyMobileOtp: (phone: string, otp: string) => boolean | void | Promise<boolean | void>;
   onCompleteProfile: (profile: { displayName: string; email: string }) => void | Promise<void>;
-  onOpenRoom?: () => void;
 };
 
 const otpLength = 4;
@@ -77,17 +72,12 @@ function OtpBoxes({ value, onChange, onComplete }: { value: string; onChange: (v
 }
 
 export default function LoginPage({
-  expired,
   error,
   busy,
-  signedIn,
-  onActivate,
-  onRenew,
   onGoogleLogin,
   onSendMobileOtp,
   onVerifyMobileOtp,
   onCompleteProfile,
-  onOpenRoom,
 }: LoginPageProps) {
   const [method, setMethod] = useState<LoginMethod>("google");
   const [phone, setPhone] = useState("");
@@ -97,8 +87,6 @@ export default function LoginPage({
   const [resendCooldown, setResendCooldown] = useState(30);
   const [otpExpiresAt, setOtpExpiresAt] = useState("");
   const [otpRemainingSeconds, setOtpRemainingSeconds] = useState(0);
-  const [licenseKey, setLicenseKey] = useState("");
-  const [licenseError, setLicenseError] = useState("");
   const [profileNeeded, setProfileNeeded] = useState(false);
   const [profile, setProfile] = useState({ displayName: "", email: "" });
   const [localError, setLocalError] = useState("");
@@ -121,7 +109,7 @@ export default function LoginPage({
     return () => window.clearInterval(timer);
   }, [resendCooldown, otpSent]);
 
-  const shownError = error || localError || licenseError;
+  const shownError = error || localError;
   const cleanPhone = phone.replace(/\D/g, "").slice(0, 10);
   const phoneError = phoneTouched && cleanPhone.length > 0 && cleanPhone.length !== 10
     ? "Enter a valid 10-digit Indian mobile number."
@@ -157,19 +145,6 @@ export default function LoginPage({
       setLocalError(reason instanceof Error ? reason.message : "That code could not be verified.");
     } finally {
       verifyingRef.current = false;
-    }
-  };
-
-  const activateLicense = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    if (!licenseKey.trim() || busy) return;
-    setLicenseError("");
-    setLocalError("");
-    try {
-      if (expired) await onRenew();
-      else await onActivate(licenseKey.trim());
-    } catch (reason) {
-      setLicenseError(reason instanceof Error ? reason.message : "That license key could not be activated.");
     }
   };
 
@@ -218,9 +193,9 @@ export default function LoginPage({
             <img className="streamly-login-card-logo" src="/images/ytloop-logo.png" alt="YT Loop" />
             <span>24/7 broadcast control</span>
           </div>
-          <p className="streamly-login-copy text-center">{expired ? "Renew your current license to keep your channels, videos, and settings exactly as you left them." : "Continue with Google. No phone number is needed to sign in."}</p>
+          <p className="streamly-login-copy text-center">Continue with Google. No phone number is needed to sign in.</p>
           {shownError && <div className="streamly-login-error" role="alert"><MaterialIcon name="warning" /><span>{shownError}</span></div>}
-          <div id="login-method-panel" className="streamly-login-method-panel" role="region" aria-label={method === "google" ? "Google sign-in" : method === "phone" ? "Phone sign-in" : "License key sign-in"}>
+          <div id="login-method-panel" className="streamly-login-method-panel" role="region" aria-label={method === "google" ? "Google sign-in" : "Phone sign-in"}>
             {method === "google" && <div className="streamly-login-google-first">
               <button className="streamly-login-google-primary" type="button" onClick={() => { void onGoogleLogin(); }} disabled={busy}>
                 <img className="streamly-google-logo" src="/images/google-logo.png" alt="" aria-hidden="true" />
@@ -231,7 +206,6 @@ export default function LoginPage({
                 <div className="streamly-login-alternatives-divider"><span>or sign in another way</span></div>
                 <div className="streamly-login-alternative-grid">
                   <button className="streamly-login-alternative-button streamly-login-dark-alternative" type="button" onClick={() => { setMethod("phone"); setLocalError(""); }} disabled={busy}>Use mobile OTP</button>
-                  <button className="streamly-login-alternative-button streamly-login-dark-alternative" type="button" onClick={() => { setMethod("license"); setLocalError(""); setLicenseError(""); }} disabled={busy}><MaterialIcon name="key" /> License key</button>
                 </div>
               </div>
             </div>}
@@ -258,7 +232,6 @@ export default function LoginPage({
               )
             )}
 
-            {method === "license" && <form className="streamly-login-form" onSubmit={activateLicense}><label htmlFor="license-key">License key<div className={`streamly-key-field ${licenseError ? "has-error" : ""}`}><MaterialIcon name="key" /><input id="license-key" value={licenseKey} onChange={(event) => { setLicenseKey(event.target.value.toUpperCase()); setLicenseError(""); }} placeholder="XXXX-XXXX-XXXX-XXXX" autoComplete="off" aria-invalid={Boolean(licenseError)} /></div><small>Find your license key in your purchase confirmation email.</small></label><button className="streamly-login-primary" type="submit" disabled={busy || !licenseKey.trim()}>{busy ? "Activating…" : expired ? "Renew & login" : "Activate & login"} <MaterialIcon name="arrow_forward" /></button><button className="streamly-login-back" type="button" onClick={() => { setMethod("google"); setLocalError(""); setLicenseError(""); }}>Back to Google sign-in</button></form>}
           </div>
 
           {method === "phone" && !otpSent && (
@@ -267,9 +240,6 @@ export default function LoginPage({
               <div className="streamly-login-alternative-grid">
                 <button className="streamly-login-alternative-button" type="button" onClick={() => { void onGoogleLogin(); }} disabled={busy}>
                   <img className="streamly-google-logo" src="/images/google-logo.png" alt="" aria-hidden="true" /> Google
-                </button>
-                <button className="streamly-login-alternative-button" type="button" onClick={() => { setMethod("license"); setLocalError(""); setLicenseError(""); }} disabled={busy}>
-                  <MaterialIcon name="key" /> License key
                 </button>
               </div>
             </div>

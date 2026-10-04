@@ -3,7 +3,7 @@ import { Router, type IRouter, type Request, type Response } from "express";
 import { firebaseDelete, firebaseGet, firebasePut } from "../lib/firebase-rest";
 import { deleteMediaFilesForLicense, ensureLicenseMediaFolder } from "./media";
 import { addVidKrakenToken, deleteVidKrakenToken, listVidKrakenTokens } from "../lib/vidkraken";
-import { clerkUserId } from "../middlewares/requireClerkAuth";
+import { accountUserId, clerkUserId, requireAccountAuth } from "../middlewares/requireClerkAuth";
 
 const router: IRouter = Router();
 const dayMs = 24 * 60 * 60 * 1000;
@@ -227,11 +227,20 @@ router.delete("/owner/vidkraken-keys/:tokenKey", async (req, res): Promise<void>
   }
 });
 
-router.post("/licenses/validate", async (req, res): Promise<void> => {
+router.post("/licenses/validate", (_req, res): void => {
+  res.status(410).json({ error: "License-key sign-in has been removed. Sign in with Google or mobile OTP." });
+});
+
+router.post("/licenses/workspace/get", requireAccountAuth, async (req, res): Promise<void> => {
   const key = typeof req.body?.key === "string" ? req.body.key.trim() : "";
   const clientId = req.body?.clientId;
+  const userId = accountUserId(req);
   if (!validKey(key) || !validClientId(clientId)) {
-    res.status(400).json({ error: "Enter a valid license key." });
+    res.status(400).json({ error: "A license key and browser id are required." });
+    return;
+  }
+  if (!userId) {
+    res.status(401).json({ error: "Sign in is required to load this workspace." });
     return;
   }
   try {
@@ -240,24 +249,9 @@ router.post("/licenses/validate", async (req, res): Promise<void> => {
       res.status(403).json({ error: "This license is invalid or expired." });
       return;
     }
-    res.json(publicLicense(record, clientId));
-  } catch (error) {
-    req.log.error({ error: error instanceof Error ? error.message : "unknown" }, "License validation failed");
-    res.status(502).json({ error: "Could not validate the license right now." });
-  }
-});
-
-router.post("/licenses/workspace/get", async (req, res): Promise<void> => {
-  const key = typeof req.body?.key === "string" ? req.body.key.trim() : "";
-  const clientId = req.body?.clientId;
-  if (!validKey(key) || !validClientId(clientId)) {
-    res.status(400).json({ error: "A license key and browser id are required." });
-    return;
-  }
-  try {
-    const record = await findLicense(key);
-    if (!record || !licenseIsActive(record)) {
-      res.status(403).json({ error: "This license is invalid or expired." });
+    const account = await firebaseGet<{ licenseId?: string; licenseKey?: string } | null>(`accounts/${encodeURIComponent(userId)}`);
+    if (account?.licenseId !== record.id || account.licenseKey !== record.key) {
+      res.status(403).json({ error: "This workspace does not belong to the signed-in account." });
       return;
     }
     const data = await firebaseGet<unknown>(`workspaces/${encodeURIComponent(record.id)}/${encodeURIComponent(clientId)}`);
@@ -268,17 +262,27 @@ router.post("/licenses/workspace/get", async (req, res): Promise<void> => {
   }
 });
 
-router.put("/licenses/workspace", async (req, res): Promise<void> => {
+router.put("/licenses/workspace", requireAccountAuth, async (req, res): Promise<void> => {
   const key = typeof req.body?.key === "string" ? req.body.key.trim() : "";
   const clientId = req.body?.clientId;
+  const userId = accountUserId(req);
   if (!validKey(key) || !validClientId(clientId) || !req.body?.data || typeof req.body.data !== "object") {
     res.status(400).json({ error: "A license key, browser id, and workspace data are required." });
+    return;
+  }
+  if (!userId) {
+    res.status(401).json({ error: "Sign in is required to save this workspace." });
     return;
   }
   try {
     const record = await findLicense(key);
     if (!record || !licenseIsActive(record)) {
       res.status(403).json({ error: "This license is invalid or expired." });
+      return;
+    }
+    const account = await firebaseGet<{ licenseId?: string; licenseKey?: string } | null>(`accounts/${encodeURIComponent(userId)}`);
+    if (account?.licenseId !== record.id || account.licenseKey !== record.key) {
+      res.status(403).json({ error: "This workspace does not belong to the signed-in account." });
       return;
     }
     await firebasePut(

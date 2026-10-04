@@ -26,3 +26,9 @@ Google sign-in must not require a mobile number. Phone OTP is required only to c
 **Why:** The user explicitly wants Google onboarding to stay friction-free and phone verification to prove eligibility for the offer, not to gate account creation or sign-in.
 
 **How to apply:** Keep Google sign-in as the primary login path, make mobile OTP optional for account access, and enforce verified phone ownership server-side when activating the offer.
+
+License keys are internal workspace identifiers, not sign-in credentials. Keep Google and mobile OTP as the account sign-in methods, and preserve existing account-to-license mappings and workspace records when changing authentication.
+
+**Why:** The product change removes license-key access without migrating or discarding existing user workspaces.
+
+**How to apply:** Authenticate workspace reads and writes through the account session, then verify that the requested license belongs to that account.

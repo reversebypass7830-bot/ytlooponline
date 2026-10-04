@@ -1325,6 +1325,135 @@ paths:
                 $ref: "#/components/schemas/PaymentRequestResponse"
         "404":
           description: Payment request not found
+  /owner/users:
+    get:
+      operationId: listOwnerUsers
+      tags: [accounts]
+      summary: List account details for owner review
+      parameters:
+        - $ref: "#/components/parameters/OwnerPassword"
+      responses:
+        "200":
+          description: Account records with subscription history and live-start totals
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OwnerUsersResponse"
+        "401":
+          description: Owner access is required
+  /owner/users/{userId}/suspension:
+    patch:
+      operationId: updateOwnerUserSuspension
+      tags: [accounts]
+      summary: Suspend or restore a user account
+      parameters:
+        - $ref: "#/components/parameters/OwnerPassword"
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OwnerUserSuspensionInput"
+      responses:
+        "200":
+          description: Updated user account
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OwnerUserResponse"
+        "400":
+          description: Invalid suspension state
+        "403":
+          description: Owner accounts cannot be suspended
+        "404":
+          description: User account not found
+  /owner/users/{userId}:
+    delete:
+      operationId: deleteOwnerUser
+      tags: [accounts]
+      summary: Delete a user account and its workspace data
+      parameters:
+        - $ref: "#/components/parameters/OwnerPassword"
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Account, workspace, and uploaded media deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OwnerUserDeleteResponse"
+        "403":
+          description: Owner accounts cannot be deleted
+        "404":
+          description: User account not found
+  /owner/users/bulk-delete:
+    post:
+      operationId: bulkDeleteOwnerUsers
+      tags: [accounts]
+      summary: Delete multiple user accounts and their workspace data
+      parameters:
+        - $ref: "#/components/parameters/OwnerPassword"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OwnerUsersBulkDeleteInput"
+      responses:
+        "200":
+          description: Per-user results for the requested deletions
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OwnerUsersBulkDeleteResponse"
+        "400":
+          description: Invalid user selection
+  /owner/settings:
+    get:
+      operationId: getOwnerSettings
+      tags: [accounts]
+      summary: Get owner-configured support link
+      parameters:
+        - $ref: "#/components/parameters/OwnerPassword"
+      responses:
+        "200":
+          description: Owner settings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OwnerSettings"
+        "401":
+          description: Owner access is required
+    put:
+      operationId: updateOwnerSettings
+      tags: [accounts]
+      summary: Save the support link shown to suspended accounts
+      parameters:
+        - $ref: "#/components/parameters/OwnerPassword"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OwnerSettingsInput"
+      responses:
+        "200":
+          description: Owner settings saved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OwnerSettings"
+        "400":
+          description: Support link must be a valid HTTP or HTTPS URL, or blank
 components:
   parameters:
     OwnerPassword:
@@ -2370,6 +2499,165 @@ components:
           type: boolean
       required:
         - saved
+    OwnerAccountHistoryItem:
+      type: object
+      properties:
+        id:
+          type: string
+        type:
+          type: string
+          enum: [trial_started, purchase, grant, login]
+        message:
+          type: string
+        at:
+          type: string
+          format: date-time
+        planName:
+          type: string
+        planId:
+          type: string
+        days:
+          type: number
+        startsAt:
+          type: string
+          format: date-time
+        endsAt:
+          type: string
+          format: date-time
+        amountPaise:
+          type: number
+      required: [id, type, message, at]
+    OwnerUser:
+      type: object
+      properties:
+        id:
+          type: string
+        displayName:
+          type: string
+        email:
+          type: string
+        phone:
+          type: ["string", "null"]
+        role:
+          type: string
+          enum: [owner, user]
+        createdAt:
+          type: string
+          format: date-time
+        trialStartedAt:
+          type: ["string", "null"]
+          format: date-time
+        trialEndsAt:
+          type: ["string", "null"]
+          format: date-time
+        activePlanId:
+          type: string
+        activePlan:
+          anyOf:
+            - $ref: "#/components/schemas/BillingPlan"
+            - type: "null"
+        accessEndsAt:
+          type: string
+          format: date-time
+        active:
+          type: boolean
+        suspended:
+          type: boolean
+        streamLimit:
+          type: number
+        lifetimeLiveStarts:
+          type: number
+          minimum: 0
+        history:
+          type: array
+          items:
+            $ref: "#/components/schemas/OwnerAccountHistoryItem"
+      required:
+        - id
+        - displayName
+        - email
+        - phone
+        - role
+        - createdAt
+        - trialStartedAt
+        - trialEndsAt
+        - activePlanId
+        - activePlan
+        - accessEndsAt
+        - active
+        - suspended
+        - streamLimit
+        - lifetimeLiveStarts
+        - history
+    OwnerUsersResponse:
+      type: object
+      properties:
+        users:
+          type: array
+          items:
+            $ref: "#/components/schemas/OwnerUser"
+      required: [users]
+    OwnerUserResponse:
+      type: object
+      properties:
+        user:
+          $ref: "#/components/schemas/OwnerUser"
+      required: [user]
+    OwnerUserSuspensionInput:
+      type: object
+      properties:
+        suspended:
+          type: boolean
+      required: [suspended]
+    OwnerUserDeleteResponse:
+      type: object
+      properties:
+        userId:
+          type: string
+        deleted:
+          type: boolean
+        deletedMedia:
+          type: number
+          minimum: 0
+      required: [userId, deleted, deletedMedia]
+    OwnerUsersBulkDeleteInput:
+      type: object
+      properties:
+        userIds:
+          type: array
+          minItems: 1
+          maxItems: 100
+          uniqueItems: true
+          items:
+            type: string
+            minLength: 1
+      required: [userIds]
+    OwnerUsersBulkDeleteResponse:
+      type: object
+      properties:
+        deletedUserIds:
+          type: array
+          items:
+            type: string
+        failedUserIds:
+          type: array
+          items:
+            type: string
+      required: [deletedUserIds, failedUserIds]
+    OwnerSettings:
+      type: object
+      properties:
+        supportLink:
+          type: string
+          maxLength: 2048
+      required: [supportLink]
+    OwnerSettingsInput:
+      type: object
+      properties:
+        supportLink:
+          type: string
+          maxLength: 2048
+      required: [supportLink]
     BillingPlan:
       type: object
       properties:

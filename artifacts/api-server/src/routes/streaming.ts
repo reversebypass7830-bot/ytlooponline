@@ -24,6 +24,14 @@ import {
 const router: IRouter = Router();
 const accountStreamOwners = new Map<string, string>();
 
+export function stopAccountStreams(userId: string): void {
+  for (const [streamId, ownerId] of accountStreamOwners) {
+    if (ownerId !== userId) continue;
+    stopStream(streamId);
+    accountStreamOwners.delete(streamId);
+  }
+}
+
 router.post("/stream/start", requireAccountAuth, async (req, res): Promise<void> => {
   const parsed = StartStreamBody.safeParse(req.body);
   if (!parsed.success) {

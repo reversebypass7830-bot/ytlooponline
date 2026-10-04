@@ -4,3 +4,20 @@
   font-size: 11px;
   text-align: center;
 }
+
+.streamly-login-support-link {
+  display: inline-flex;
+  justify-content: center;
+  margin: 10px auto 18px;
+  color: #b9f5c8;
+  font-size: 14px;
+  font-weight: 650;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.streamly-login-support-link:focus-visible {
+  outline: 2px solid #b9f5c8;
+  outline-offset: 4px;
+  border-radius: 2px;
+}

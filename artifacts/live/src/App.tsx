@@ -20,6 +20,7 @@ import { OwnerFeedbackPanel } from "@/pages/FeedbackAdmin";
 import { extractYoutubeChannelLinks, getStreamStatus, startStream, stopStream, trimMediaFile, updateStream } from "@workspace/api-client-react";
 import { ManualSubscriptionPage, OwnerPaymentPanel } from "./pages/ManualPayments";
 import { TransactionsPage } from "./pages/Transactions";
+import { OwnerSettingsPanel, OwnerUsersPanel } from "./components/owner-users";
 import logoImage from "@assets/image_1788788255512.png";
 import analyticsVideoIcon from "@assets/video_files_clay_icon_cutout_1790011470854.png";
 import analyticsFolderIcon from "@assets/folder_tag_clay_cutout_1790011484726.png";
@@ -52,7 +53,6 @@ import livePowerClay from "@assets/power_button_clay_cutout_1790012840748.png";
 import livePreviewEyeClay from "@assets/eye_play_broadcast_1790014126923.png";
 import liveChannelListClay from "@assets/clay_tv_list_cutout_1790014126924.png";
 import liveChannelSettingsClay from "@assets/settings_tv_channels_clay_1790014126925.png";
-import { type AccessGateProfile } from "./components/AccessGate";
 import LoginPage from "./pages/login";
 import { firebaseAuth } from "./lib/firebase-auth";
 import "./profile-completion.css";
@@ -166,14 +166,14 @@ type LicenseSession = { licenseId: string; key: string; name: string; expiresAt:
 type AccountPlan = { id: string; name: string; description: string; durationDays: number; price: string; pricePerStreamDayPaise?: number; pricePerDownloadPaise?: number; streamLimit?: number; isTrial?: boolean; active: boolean; createdAt: string; updatedAt: string };
 type AccountHistoryItem = { id: string; type: "trial_started" | "purchase" | "grant" | "login"; message: string; at: string; planName?: string; planId?: string; days?: number; streamLimit?: number; streamsPerDay?: number; startsAt?: string; endsAt?: string; periodEstimated?: boolean };
 type AccountSummary = {
-  id: string; displayName: string; email: string; phone?: string; profileImagePath?: string; profileCompleted?: boolean;
+  id: string; displayName: string; email: string; phone?: string | null; profileImagePath?: string; profileCompleted?: boolean;
   trialOfferAvailable?: boolean; trialOfferClaimedAt?: string; role: "owner" | "user";
   licenseId: string; licenseKey: string; trialStartedAt: string; trialEndsAt: string;
   activePlanId: string; activePlan: AccountPlan | null; accessEndsAt: string; active: boolean; streamLimit: number;
   streamsPerDay: number; streamsStartedToday: number; downloadsPerDay: number; downloadsUsedToday: number; downloadsRemainingToday: number;
-  history: AccountHistoryItem[]; createdAt: string;
+  history: AccountHistoryItem[]; createdAt: string; suspended?: boolean; lifetimeLiveStarts?: number;
 };
-type AccountResponse = { account: AccountSummary; plans: AccountPlan[] };
+type AccountResponse = { account: AccountSummary; plans: AccountPlan[]; supportLink?: string };
 type OwnerUser = AccountSummary;
 type VidKrakenTokenStatus = { key: string; status: "ready" | "cooldown"; cooldownUntil: string | null };
 const accessSocialLinks = [
@@ -942,40 +942,9 @@ function formatTimecode(value: number): string {
   return milliseconds ? `${base}.${String(milliseconds).padStart(3, "0")}` : base;
 }
 
-function useLicense() {
+function useWorkspaceClientId() {
   const [clientId] = useState(getClientId);
-  const [license, setLicense] = useState<LicenseSession | null>(() => {
-    try {
-      const stored = JSON.parse(localStorage.getItem("signal-desk-license") || "null") as LicenseSession | null;
-      return stored ? { ...stored, clientId: stored.clientId || getClientId() } : null;
-    } catch { return null; }
-  });
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState("");
-  const activate = async (key: string) => {
-    setBusy(true); setError("");
-    try {
-      const result = await apiJson<LicenseSession>("/api/licenses/validate", { method: "POST", body: JSON.stringify({ key: key.trim(), clientId }) });
-      const next = { ...result, clientId };
-      setLicense(next); localStorage.setItem("signal-desk-license", JSON.stringify(next));
-    } catch (reason) {
-      setError(reason instanceof Error ? reason.message : "This license could not be activated.");
-      throw reason;
-    } finally { setBusy(false); }
-  };
-  const renew = async () => {
-    if (!license) return;
-    setBusy(true); setError("");
-    try {
-      const result = await apiJson<LicenseSession>("/api/licenses/renew", { method: "POST", body: JSON.stringify({ key: license.key, clientId, days: 30 }) });
-      const next = { ...result, clientId };
-      setLicense(next); localStorage.setItem("signal-desk-license", JSON.stringify(next));
-    } catch (reason) {
-      setError(reason instanceof Error ? reason.message : "This license could not be renewed.");
-    } finally { setBusy(false); }
-  };
-  const clear = () => { setLicense(null); localStorage.removeItem("signal-desk-license"); };
-  return { clientId, license, busy, error, activate, renew, clear, setError };
+  return clientId;
 }
 
 function useFirebaseAuth() {
@@ -1054,6 +1023,7 @@ function useFirebaseAuth() {
 function useAccountSession(isSignedIn: boolean, userId?: string, authReady = true) {
   const [account, setAccount] = useState<AccountSummary | null>(null);
   const [plans, setPlans] = useState<AccountPlan[]>([]);
+  const [supportLink, setSupportLink] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const requestIdRef = useRef(0);
@@ -1065,6 +1035,7 @@ function useAccountSession(isSignedIn: boolean, userId?: string, authReady = tru
       if (requestId !== requestIdRef.current) return result.account;
       setAccount(result.account);
       setPlans(result.plans || []);
+      setSupportLink(result.supportLink || "");
       setError("");
       return result.account;
     } catch (reason) {
@@ -1108,6 +1079,7 @@ function useAccountSession(isSignedIn: boolean, userId?: string, authReady = tru
     });
     setAccount(result.account);
     setPlans(result.plans || []);
+    if (result.supportLink !== undefined) setSupportLink(result.supportLink || "");
   };
 
   const claimOwner = async (password: string) => {
@@ -1117,12 +1089,14 @@ function useAccountSession(isSignedIn: boolean, userId?: string, authReady = tru
     });
     setAccount(result.account);
     setPlans(result.plans || []);
+    if (result.supportLink !== undefined) setSupportLink(result.supportLink || "");
   };
 
   const clear = () => {
     requestIdRef.current += 1;
     setAccount(null);
     setPlans([]);
+    setSupportLink("");
     setError("");
   };
 
@@ -1132,7 +1106,7 @@ function useAccountSession(isSignedIn: boolean, userId?: string, authReady = tru
     if (!nextAccount) throw new Error("Your session could not be restored. Please sign in again.");
   };
 
-  return { account, plans, loading, error, reload, saveProfile, claimOwner, clear };
+  return { account, plans, supportLink, loading, error, reload, saveProfile, claimOwner, clear };
 }
 
 function useWorkspace(license: LicenseSession | null, clearLicense: () => void, allowSharedOnly = false) {
@@ -1557,25 +1531,17 @@ function WaterFillAvatar({ src, alt, animate, animationKey }: { src: string; alt
   </svg>;
 }
 
-function LicenseGate({ license, busy, error, signedIn, onActivate, onRenew, onGoogleLogin, onMobileAccountLogin, onGiftReady, onOpenRoom }: {
-  license: LicenseSession | null;
+function SignInGate({ busy, error, onGoogleLogin, onMobileAccountLogin }: {
   busy: boolean;
   error: string;
-  signedIn: boolean;
-  onActivate: (key: string) => Promise<void>;
-  onRenew: () => Promise<void>;
   onGoogleLogin: () => void;
   onMobileAccountLogin: () => Promise<void>;
-  onGiftReady: (key: string) => void;
-  onOpenRoom: () => void;
 }) {
   const [, setLocation] = useLocation();
   const [mobileRequestId, setMobileRequestId] = useState("");
   const [mobileOnboardingToken, setMobileOnboardingToken] = useState("");
-  const [giftKey, setGiftKey] = useState("");
   const [mobileBusy, setMobileBusy] = useState(false);
   const [mobileError, setMobileError] = useState("");
-  const expired = Boolean(license && !isLicenseActive(license));
 
   const sendMobileOtp = async (phone: string): Promise<{ expiresAt: string; expiresInSeconds: number }> => {
     setMobileBusy(true);
@@ -1620,18 +1586,17 @@ function LicenseGate({ license, busy, error, signedIn, onActivate, onRenew, onGo
     }
   };
 
-  const completeMobileProfile = async (profile: AccessGateProfile) => {
+  const completeMobileProfile = async (profile: { displayName: string; email: string }) => {
     if (!mobileOnboardingToken) throw new Error("This verification has expired. Request a new OTP.");
     setMobileBusy(true);
     setMobileError("");
     try {
-      const result = await apiJson<{ account: { licenseKey: string } }>("/api/mobile-auth/complete-profile", {
+      await apiJson<{ account: AccountSummary }>("/api/mobile-auth/complete-profile", {
         method: "POST",
         body: JSON.stringify({ onboardingToken: mobileOnboardingToken, ...profile }),
       });
       await onMobileAccountLogin();
-      setGiftKey(result.account.licenseKey);
-      onGiftReady(result.account.licenseKey);
+      setLocation("/dashboard");
     } catch (reason) {
       const message = reason instanceof Error ? reason.message : "Could not create your workspace.";
       setMobileError(message);
@@ -1642,18 +1607,31 @@ function LicenseGate({ license, busy, error, signedIn, onActivate, onRenew, onGo
   };
 
   return <LoginPage
-    expired={expired}
     error={error || mobileError}
     busy={busy || mobileBusy}
-    signedIn={signedIn}
-    onActivate={onActivate}
-    onRenew={onRenew}
     onGoogleLogin={onGoogleLogin}
     onSendMobileOtp={sendMobileOtp}
     onVerifyMobileOtp={verifyMobileOtp}
     onCompleteProfile={completeMobileProfile}
-    onOpenRoom={onOpenRoom}
   />;
+}
+
+function SuspendedAccountNotice({ supportLink, onSignOut }: { supportLink: string; onSignOut: () => void }) {
+  return <div className="streamly-login-page">
+    <div className="streamly-login-orb streamly-login-orb-one" />
+    <div className="streamly-login-orb streamly-login-orb-two" />
+    <main className="streamly-login-main">
+      <section className="streamly-login-card" aria-labelledby="suspended-account-title">
+        <img className="streamly-login-card-logo" src="/images/ytloop-logo.png" alt="YT Loop" />
+        <div className="streamly-login-icon"><ShieldCheck size={20} /></div>
+        <span className="streamly-login-eyebrow">Account access</span>
+        <h1 id="suspended-account-title">Account suspended</h1>
+        <p className="streamly-login-copy">Your account has been suspend. Please contact support.</p>
+        {supportLink && <a className="streamly-login-support-link" href={supportLink} target="_blank" rel="noreferrer" data-testid="suspended-account-support-link">Contact support</a>}
+        <button className="streamly-login-primary" type="button" onClick={onSignOut}>Sign out <ArrowRight size={16} /></button>
+      </section>
+    </main>
+  </div>;
 }
 
 function FirebaseAuthPage({ mode, onGoogleLogin, busy, error }: {
@@ -2213,7 +2191,7 @@ function OwnerMobileNav({ active, onDashboard, onKeys }: { active: "dashboard" |
   </nav>;
 }
 
-type OwnerSection = "dashboard" | "folders" | "animations" | "licenses" | "users" | "keys" | "payments" | "feedback";
+type OwnerSection = "dashboard" | "folders" | "animations" | "users" | "keys" | "payments" | "feedback" | "settings";
 
 function OwnerDesktopSidebar({ active, onNavigate }: { active: OwnerSection; onNavigate: (section: OwnerSection) => void }) {
   const [collapsed, setCollapsed] = useState(() => localStorage.getItem("loop-owner-sidebar") === "collapsed");
@@ -2221,11 +2199,11 @@ function OwnerDesktopSidebar({ active, onNavigate }: { active: OwnerSection; onN
     { section: "dashboard", label: "Dashboard", icon: LayoutDashboard },
     { section: "folders", label: "My Folder", icon: FolderOpen },
     { section: "animations", label: "Include Animation", icon: Upload },
-    { section: "licenses", label: "License key", icon: KeyRound },
     { section: "users", label: "Users", icon: Users },
     { section: "keys", label: "Key", icon: ShieldCheck },
     { section: "payments", label: "Payments", icon: Receipt },
     { section: "feedback", label: "Feedback", icon: MessageCircle },
+    { section: "settings", label: "Settings", icon: Settings },
   ];
   const toggle = () => setCollapsed((current) => {
     const next = !current;
@@ -2262,36 +2240,7 @@ function OwnerKeysPanel({ tokens, tokenDraft, keyBusy, error, onDraftChange, onA
   </div>;
 }
 
-function OwnerLicensePage({ licenses, name, days, busy, error, message, onNameChange, onDaysChange, onCreate, onRenew, onRemove, onRecover, onDashboard, onKeys, onNavigate }: {
-  licenses: LicenseSession[];
-  name: string;
-  days: string;
-  busy: boolean;
-  error: string;
-  message: string;
-  onNameChange: (value: string) => void;
-  onDaysChange: (value: string) => void;
-  onCreate: (event: FormEvent) => void;
-  onRenew: (licenseId: string) => void;
-  onRemove: (license: LicenseSession) => void;
-  onRecover: (license: LicenseSession) => void;
-  onDashboard: () => void;
-  onKeys: () => void;
-  onNavigate?: (section: OwnerSection) => void;
-}) {
-  return <div className="owner-page owner-license-page">{onNavigate && <OwnerDesktopSidebar active="licenses" onNavigate={onNavigate} />}
-    <header className="owner-topbar"><div className="owner-topbar-title"><span className="owner-topbar-kicker">Slash Owner</span><strong>License key</strong></div><button className="button secondary owner-desktop-back" onClick={onDashboard} type="button"><ArrowRight size={14} style={{ transform: "rotate(180deg)" }} /> Back to dashboard</button></header>
-    <main className="owner-content">
-      <div className="page-head owner-page-heading"><div><p className="eyebrow">Customer access</p><h1>License key</h1><p className="subtle">Create, recover, renew, and remove workspace access keys from one place.</p></div><div className="owner-page-badge"><KeyRound size={16}/> {licenses.length} configured</div></div>
-      {error && <div className="error-note">{error}</div>}{message && <div className="owner-success">{message}</div>}
-      <OwnerMobileNav active="dashboard" onDashboard={onDashboard} onKeys={onKeys} />
-      <section className="card section-card owner-create"><div className="section-head"><div><h2 className="section-title">Create license key</h2><p className="subtle" style={{ margin: "5px 0 0", fontSize: 11 }}>Create a separate workspace and access key for each customer.</p></div><KeyRound size={18} color="#5b52c7"/></div><form className="owner-create-form" onSubmit={onCreate}><div className="field"><label>Customer / workspace name</label><input value={name} onChange={(event) => onNameChange(event.target.value)} placeholder="Studio A" data-testid="input-license-name"/></div><div className="field"><label>Valid for days</label><input type="number" min="1" max="3650" value={days} onChange={(event) => onDaysChange(event.target.value)} data-testid="input-license-days"/></div><button className="button" type="submit" disabled={busy || !name.trim()}><Plus size={15}/> Create license key</button></form></section>
-      <section className="card section-card owner-list"><div className="section-head"><div><h2 className="section-title">Existing license keys</h2><p className="subtle" style={{ margin: "5px 0 0", fontSize: 11 }}>Recover a key for a customer or renew their access.</p></div><KeyRound size={18} color="#5b52c7"/></div>{licenses.length === 0 ? <EmptyState icon={<KeyRound size={21}/>} title="No license keys yet" copy="Create the first key above to give a workspace access."/> : <div className="license-list">{licenses.map((license) => { const active = isLicenseActive(license); return <div className="license-row" key={license.licenseId}><div className="license-row-main"><div className="license-key-badge"><KeyRound size={15}/></div><div><strong>{license.name}</strong><span className="mono">{license.key}</span></div></div><div className={`status ${active ? "live" : "stopped"}`}><span className="status-dot"/>{active ? "Active" : "Expired"} · {new Date(license.expiresAt).toLocaleDateString()}</div><div className="actions"><button className="button secondary small" onClick={() => onRecover(license)} disabled={busy}><KeyRound size={13}/> Recover</button><button className="button secondary small" onClick={() => onRenew(license.licenseId)} disabled={busy}>Renew</button><button className="icon-button" onClick={() => onRemove(license)} disabled={busy} title="Delete license" aria-label={`Delete ${license.name}`}><Trash2 size={13}/></button></div></div>; })}</div>}</section>
-    </main>
-  </div>;
-}
-
-function OwnerDashboardPage({ ownerPassword, error, message, keyBusy, showIncludedAnimations, onFolder, onAnimations, onLicense, onKeys, onUsers, onPayments, onFeedback, onNavigate, onCloseAnimations }: {
+function OwnerDashboardPage({ ownerPassword, error, message, keyBusy, showIncludedAnimations, onFolder, onAnimations, onKeys, onUsers, onPayments, onFeedback, onSettings, onNavigate, onCloseAnimations }: {
   ownerPassword: string;
   error: string;
   message: string;
@@ -2299,79 +2248,46 @@ function OwnerDashboardPage({ ownerPassword, error, message, keyBusy, showInclud
   showIncludedAnimations: boolean;
   onFolder: () => void;
   onAnimations: () => void;
-  onLicense: () => void;
   onKeys: () => void;
   onCloseAnimations: () => void;
   onUsers?: () => void;
   onPayments?: () => void;
   onFeedback?: () => void;
+  onSettings?: () => void;
   onNavigate?: (section: OwnerSection) => void;
 }) {
   return <div className="owner-page owner-dashboard-page">{onNavigate && <OwnerDesktopSidebar active="dashboard" onNavigate={onNavigate} />}
     <header className="owner-topbar"><div className="owner-topbar-title"><span className="owner-topbar-kicker">Slash Owner</span><strong>Dashboard</strong></div><span className="owner-secure-label"><ShieldCheck size={15}/> Secure owner workspace</span></header>
     <main className="owner-content">
-      <div className="page-head owner-page-heading"><div><p className="eyebrow">Owner workspace</p><h1>Dashboard</h1><p className="subtle">Choose a workspace area to manage your folders, animations, or system access.</p></div><div className="owner-page-badge"><ShieldCheck size={16}/> Connected</div></div>
+      <div className="page-head owner-page-heading"><div><p className="eyebrow">Owner workspace</p><h1>Dashboard</h1><p className="subtle">Manage shared media, user access, payments, and support settings.</p></div><div className="owner-page-badge"><ShieldCheck size={16}/> Connected</div></div>
       {error && <div className="error-note">{error}</div>}{message && <div className="owner-success">{message}</div>}
       <OwnerMobileNav active="dashboard" onDashboard={() => undefined} onKeys={onKeys} />
       <section className="owner-action-grid" aria-label="Owner actions">
         <button className="owner-action-card folder" onClick={onFolder}><span className="owner-action-icon"><FolderOpen size={22}/></span><span><strong>My Folder</strong><small>Organize shared animation folders and videos.</small></span><ArrowRight size={17}/></button>
         <button className="owner-action-card animation" onClick={onAnimations}><span className="owner-action-icon"><Upload size={22}/></span><span><strong>Include Animation</strong><small>Add videos available to every active license.</small></span><ArrowRight size={17}/></button>
-        <button className="owner-action-card license" onClick={onLicense}><span className="owner-action-icon"><KeyRound size={22}/></span><span><strong>License key</strong><small>Create and recover customer access keys.</small></span><ArrowRight size={17}/></button>
          <button className="owner-action-card system-key" onClick={onKeys} disabled={keyBusy}><span className="owner-action-icon"><ShieldCheck size={22}/></span><span><strong>Key</strong><small>Manage the secure downloader key pool.</small></span><ArrowRight size={17}/></button>
-         {onUsers && <button className="owner-action-card users" onClick={onUsers}><span className="owner-action-icon"><Users size={22}/></span><span><strong>Users</strong><small>Review account identity, plans, keys, and history.</small></span><ArrowRight size={17}/></button>}
+          {onUsers && <button className="owner-action-card users" onClick={onUsers}><span className="owner-action-icon"><Users size={22}/></span><span><strong>Users</strong><small>Review account identity, plans, status, and history.</small></span><ArrowRight size={17}/></button>}
           {onPayments && <button className="owner-action-card payments" onClick={onPayments}><span className="owner-action-icon"><Receipt size={22}/></span><span><strong>Payments</strong><small>Configure UPI plans and review customer UTRs.</small></span><ArrowRight size={17}/></button>}
           {onFeedback && <button className="owner-action-card feedback" onClick={onFeedback}><span className="owner-action-icon"><MessageCircle size={22}/></span><span><strong>Feedback</strong><small>Add and manage public channel examples.</small></span><ArrowRight size={17}/></button>}
+           {onSettings && <button className="owner-action-card settings" onClick={onSettings}><span className="owner-action-icon"><Settings size={22}/></span><span><strong>Settings</strong><small>Choose the support link shown to suspended users.</small></span><ArrowRight size={17}/></button>}
       </section>
     </main>
     {showIncludedAnimations && <IncludedAnimationsModal ownerPassword={ownerPassword} onClose={onCloseAnimations} />}
   </div>;
 }
 
-function OwnerUsersPage({ ownerPassword, onNavigate }: { ownerPassword: string; onNavigate: (section: OwnerSection) => void }) {
-  const [users, setUsers] = useState<OwnerUser[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [selected, setSelected] = useState("");
-  const load = async () => {
-    setLoading(true);
-    try {
-      const result = await apiJson<{ users: OwnerUser[] }>("/api/owner/users", { headers: { "X-Owner-Password": ownerPassword } });
-      setUsers(result.users || []); setError("");
-    } catch (reason) {
-      setError(reason instanceof Error ? reason.message : "Could not load users.");
-    } finally {
-      setLoading(false);
-    }
-  };
-  useEffect(() => { void load(); }, [ownerPassword]);
-  const downloadUserInvoice = (user: OwnerUser, item: AccountHistoryItem) => {
-    const text = ["LOOP STREAM ACCOUNT INVOICE", "--------------------------", `Reference: ${item.id}`, `Date: ${new Date(item.at).toLocaleString()}`, `Customer: ${user.displayName || user.email}`, `Email: ${user.email}`, `Mobile: ${user.phone || "Not provided"}`, `License key: ${user.licenseKey}`, `Plan: ${user.activePlan?.name || item.planId || "Subscription"}`, `Access duration: ${item.days || 0} days`, `Stream limit: ${item.streamLimit || user.streamLimit}`].join("\n");
-    const url = URL.createObjectURL(new Blob([text], { type: "text/plain;charset=utf-8" }));
-    const anchor = document.createElement("a"); anchor.href = url; anchor.download = `invoice-${user.id}-${item.id}.txt`; anchor.click(); URL.revokeObjectURL(url);
-  };
-  return <div className="owner-page owner-users-page"><OwnerDesktopSidebar active="users" onNavigate={onNavigate}/><header className="owner-topbar"><div className="owner-topbar-title"><span className="owner-topbar-kicker">Slash Owner</span><strong>Users</strong></div><button className="button secondary" onClick={() => void load()} disabled={loading}>Refresh</button></header><main className="owner-content"><div className="page-head owner-page-heading"><div><p className="eyebrow">Customer accounts</p><h1>Users</h1><p className="subtle">Every account keeps one generated license key and one workspace. Renewals update the same access record.</p></div><div className="owner-page-badge"><Users size={16}/> {users.length} accounts</div></div>{error && <div className="error-note">{error}</div>}{loading ? <div className="owner-users-empty">Loading account records…</div> : users.length === 0 ? <div className="owner-users-empty">No user accounts yet.</div> : <div className="owner-users-list">{users.map((user) => { const expanded = selected === user.id; const history = user.history.filter((item) => item.type === "purchase" || item.type === "grant"); const active = user.active && new Date(user.accessEndsAt).getTime() > Date.now(); return <article className={`owner-user-card ${expanded ? "expanded" : ""}`} key={user.id}><div className="owner-user-card-main"><div className="account-avatar">{(user.displayName || user.email || "U").slice(0, 1).toUpperCase()}</div><div className="owner-user-identity"><strong>{user.displayName || "Unnamed account"}</strong><span>{user.email || "No email"}{user.phone ? ` · ${user.phone}` : ""}</span><small>Registered {new Date(user.createdAt).toLocaleDateString()}</small></div><div className={`status ${active ? "live" : "stopped"}`}><span className="status-dot"/>{active ? "Active" : "Expired"}</div><button className="button secondary small" onClick={() => setSelected(expanded ? "" : user.id)}>{expanded ? "Close" : "View account"}</button></div>{expanded && <div className="owner-user-detail-grid"><div><span className="metric-kicker">License key</span><strong className="mono">{user.licenseKey}</strong><small>One key for this account</small></div><div><span className="metric-kicker">Active subscription</span><strong>{user.activePlan?.name || user.activePlanId || "None"}</strong><small>Until {new Date(user.accessEndsAt).toLocaleString()}</small></div><div><span className="metric-kicker">Stream limit</span><strong>{user.streamLimit}</strong><small>simultaneous streams</small></div><div className="owner-user-history"><span className="metric-kicker">Subscription history</span>{history.length === 0 ? <small>No paid subscription history.</small> : history.map((item) => <div key={item.id}><span>{item.message} · {item.days || 0} days</span><small>{new Date(item.at).toLocaleString()}</small><button className="button ghost small" onClick={() => downloadUserInvoice(user, item)}><Download size={12}/> Invoice</button></div>)}</div></div>}</article>; })}</div>}</main></div>;
-}
-
 function OwnerConsolePage() {
   const [password, setPassword] = useState("");
   const [authorizedPassword, setAuthorizedPassword] = useState("");
-  const [licenses, setLicenses] = useState<LicenseSession[]>([]);
   const [vidKrakenTokens, setVidKrakenTokens] = useState<VidKrakenTokenStatus[]>([]);
   const [tokenDraft, setTokenDraft] = useState("");
   const [keyBusy, setKeyBusy] = useState(false);
-  const [name, setName] = useState("");
-  const [days, setDays] = useState("30");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [showIncludedAnimations, setShowIncludedAnimations] = useState(false);
-  const [ownerView, setOwnerView] = useState<"dashboard" | "licenses" | "keys" | "folders" | "users" | "payments" | "feedback">("dashboard");
+  const [ownerView, setOwnerView] = useState<OwnerSection>("dashboard");
 
-  const load = async (ownerPassword: string) => {
-    const result = await apiJson<{ licenses?: LicenseSession[] }>("/api/licenses", { headers: { "X-Owner-Password": ownerPassword } });
-    if (!Array.isArray(result?.licenses)) throw new Error("License list could not be loaded. Please try again.");
-    setLicenses(result.licenses);
-  };
   const loadVidKrakenTokens = async (ownerPassword: string) => {
     const result = await apiJson<{ count: number; tokens: VidKrakenTokenStatus[] }>("/api/owner/vidkraken-keys", { headers: { "X-Owner-Password": ownerPassword } });
     if (!Array.isArray(result?.tokens)) throw new Error("Key list could not be loaded.");
@@ -2379,7 +2295,7 @@ function OwnerConsolePage() {
   };
   const signIn = async (event: FormEvent) => {
     event.preventDefault(); setBusy(true); setError("");
-    try { await load(password); await loadVidKrakenTokens(password); setAuthorizedPassword(password); }
+    try { await loadVidKrakenTokens(password); setAuthorizedPassword(password); }
     catch (reason) { setError(reason instanceof Error ? reason.message : "Owner access was denied."); }
     finally { setBusy(false); }
   };
@@ -2414,140 +2330,16 @@ function OwnerConsolePage() {
     catch (reason) { setError(reason instanceof Error ? reason.message : "Could not delete the key."); }
     finally { setKeyBusy(false); }
   };
-  const create = async (event: FormEvent) => {
-    event.preventDefault(); if (!name.trim()) return;
-    setBusy(true); setError(""); setMessage("");
-    try { await apiJson<LicenseSession>("/api/licenses", { method: "POST", headers: { "X-Owner-Password": authorizedPassword }, body: JSON.stringify({ name: name.trim(), days: Number(days) }) }); setName(""); await load(authorizedPassword); setMessage("License key created."); }
-    catch (reason) { setError(reason instanceof Error ? reason.message : "Could not create the license key."); }
-    finally { setBusy(false); }
-  };
-  const renew = async (licenseId: string) => {
-    setBusy(true); setError(""); setMessage("");
-    try { await apiJson<LicenseSession>(`/api/licenses/${encodeURIComponent(licenseId)}/renew`, { method: "POST", headers: { "X-Owner-Password": authorizedPassword }, body: JSON.stringify({ days: 30 }) }); await load(authorizedPassword); setMessage("License key renewed for 30 days."); }
-    catch (reason) { setError(reason instanceof Error ? reason.message : "Could not renew the license key."); }
-    finally { setBusy(false); }
-  };
-  const remove = async (license: LicenseSession) => {
-    if (!window.confirm(`Delete ${license.name} and its workspace data?`)) return;
-    setBusy(true); setError(""); setMessage("");
-    try { await apiJson(`/api/licenses/${encodeURIComponent(license.licenseId)}`, { method: "DELETE", headers: { "X-Owner-Password": authorizedPassword } }); await load(authorizedPassword); setMessage("License key removed."); }
-    catch (reason) { setError(reason instanceof Error ? reason.message : "Could not delete the license key."); }
-    finally { setBusy(false); }
-  };
-  const recover = async (license: LicenseSession) => {
-    try {
-      await navigator.clipboard.writeText(license.key);
-      setMessage(`License key for ${license.name} copied.`);
-    } catch {
-      setMessage(`License key: ${license.key}`);
-    }
-  };
   const goDashboard = () => setOwnerView("dashboard");
 
-  if (!authorizedPassword) return <div className="owner-login-page"><section className="owner-login-panel"><div className="owner-login-mark"><KeyRound size={22}/></div><p className="eyebrow">Slash Owner</p><h1>Owner console</h1><p className="subtle">Create license keys, manage shared animations, and keep system keys organized.</p>{error && <div className="error-note">{error}</div>}<form className="login-form" onSubmit={signIn}><div className="field"><label htmlFor="slash-owner-password">Owner password</label><input id="slash-owner-password" type="password" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="current-password" autoFocus data-testid="input-owner-password"/></div><button className="button login-submit" type="submit" disabled={busy || !password} data-testid="button-owner-login">{busy ? "Checking…" : "Open dashboard"} <ArrowRight size={16}/></button></form></section></div>;
+  if (!authorizedPassword) return <div className="owner-login-page"><section className="owner-login-panel"><div className="owner-login-mark"><ShieldCheck size={22}/></div><p className="eyebrow">Slash Owner</p><h1>Owner console</h1><p className="subtle">Manage users, shared media, payments, and support settings.</p>{error && <div className="error-note">{error}</div>}<form className="login-form" onSubmit={signIn}><div className="field"><label htmlFor="slash-owner-password">Owner password</label><input id="slash-owner-password" type="password" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="current-password" autoFocus data-testid="input-owner-password"/></div><button className="button login-submit" type="submit" disabled={busy || !password} data-testid="button-owner-login">{busy ? "Checking…" : "Open dashboard"} <ArrowRight size={16}/></button></form></section></div>;
   if (ownerView === "folders") return <OwnerFoldersPage ownerPassword={authorizedPassword} onBack={goDashboard} onKeys={openKeys} onNavigate={navigateOwner} />;
   if (ownerView === "keys") return <OwnerKeysPanel tokens={vidKrakenTokens} tokenDraft={tokenDraft} keyBusy={keyBusy} error={error} onDraftChange={setTokenDraft} onAdd={(event) => void addToken(event)} onRemove={(token) => void removeToken(token)} onDashboard={goDashboard} onNavigate={navigateOwner} />;
-  if (ownerView === "licenses") return <OwnerLicensePage licenses={licenses} name={name} days={days} busy={busy} error={error} message={message} onNameChange={setName} onDaysChange={setDays} onCreate={(event) => void create(event)} onRenew={(licenseId) => void renew(licenseId)} onRemove={(license) => void remove(license)} onRecover={(license) => void recover(license)} onDashboard={goDashboard} onKeys={openKeys} onNavigate={navigateOwner} />;
-  if (ownerView === "users") return <OwnerUsersPage ownerPassword={authorizedPassword} onNavigate={navigateOwner} />;
+  if (ownerView === "users") return <div className="owner-page owner-payment-page owner-users-view"><OwnerDesktopSidebar active="users" onNavigate={navigateOwner}/><header className="owner-topbar"><div className="owner-topbar-title"><span className="owner-topbar-kicker">Slash Owner</span><strong>Users</strong></div><button className="button secondary small owner-payment-mobile-back" onClick={goDashboard} type="button"><ArrowLeft size={14}/> Dashboard</button></header><main className="owner-content"><OwnerUsersPanel ownerPassword={authorizedPassword}/></main></div>;
   if (ownerView === "payments") return <div className="owner-page owner-payment-page"><OwnerDesktopSidebar active="payments" onNavigate={navigateOwner}/><header className="owner-topbar"><div className="owner-topbar-title"><span className="owner-topbar-kicker">Slash Owner</span><strong>Payments</strong></div><button className="button secondary small owner-payment-mobile-back" onClick={goDashboard} type="button"><ArrowLeft size={14}/> Dashboard</button></header><OwnerPaymentPanel ownerPassword={authorizedPassword}/></div>;
   if (ownerView === "feedback") return <div className="owner-page owner-payment-page owner-feedback-page"><OwnerDesktopSidebar active="feedback" onNavigate={navigateOwner}/><header className="owner-topbar"><div className="owner-topbar-title"><span className="owner-topbar-kicker">Slash Owner</span><strong>Feedback</strong></div><button className="button secondary small owner-payment-mobile-back" onClick={goDashboard} type="button"><ArrowLeft size={14}/> Dashboard</button></header><OwnerFeedbackPanel ownerPassword={authorizedPassword}/></div>;
-  if (ownerView === "dashboard") return <OwnerDashboardPage ownerPassword={authorizedPassword} error={error} message={message} keyBusy={keyBusy} showIncludedAnimations={showIncludedAnimations} onFolder={() => setOwnerView("folders")} onAnimations={() => setShowIncludedAnimations(true)} onLicense={() => setOwnerView("licenses")} onKeys={openKeys} onUsers={() => setOwnerView("users")} onPayments={() => setOwnerView("payments")} onFeedback={() => setOwnerView("feedback")} onNavigate={navigateOwner} onCloseAnimations={() => setShowIncludedAnimations(false)} />;
-
-  return <div className="owner-page owner-dashboard-page">
-    <header className="owner-topbar"><div className="owner-topbar-title"><span className="owner-topbar-kicker">Slash Owner</span><strong>Dashboard</strong></div><span className="owner-secure-label"><ShieldCheck size={15}/> Secure owner workspace</span></header>
-    <main className="owner-content">
-      <div className="page-head owner-page-heading"><div><p className="eyebrow">Owner workspace</p><h1>Dashboard</h1><p className="subtle">Choose a workspace area to manage your folders, animations, or system access.</p></div><div className="owner-page-badge"><ShieldCheck size={16}/> Connected</div></div>
-      {error && <div className="error-note">{error}</div>}{message && <div className="owner-success">{message}</div>}
-      <OwnerMobileNav active="dashboard" onDashboard={goDashboard} onKeys={openKeys} />
-      <section className="owner-action-grid" aria-label="Owner actions">
-        <button className="owner-action-card folder" onClick={() => setOwnerView("folders")}><span className="owner-action-icon"><FolderOpen size={22}/></span><span><strong>My Folder</strong><small>Organize shared animation folders and videos.</small></span><ArrowRight size={17}/></button>
-        <button className="owner-action-card animation" onClick={() => setShowIncludedAnimations(true)}><span className="owner-action-icon"><Upload size={22}/></span><span><strong>Include Animation</strong><small>Add videos available to every active license.</small></span><ArrowRight size={17}/></button>
-        <button className="owner-action-card license" onClick={() => setOwnerView("licenses")}><span className="owner-action-icon"><KeyRound size={22}/></span><span><strong>License key</strong><small>Create and recover customer access keys.</small></span><ArrowRight size={17}/></button>
-        <button className="owner-action-card system-key" onClick={() => void openKeys()} disabled={keyBusy}><span className="owner-action-icon"><ShieldCheck size={22}/></span><span><strong>Key</strong><small>Manage the secure downloader key pool.</small></span><ArrowRight size={17}/></button>
-      </section>
-      <section className="card section-card owner-create"><div className="section-head"><div><h2 className="section-title">Create license key</h2><p className="subtle" style={{ margin: "5px 0 0", fontSize: 11 }}>Create a separate workspace and access key for each customer.</p></div><KeyRound size={18} color="#5b52c7"/></div><form className="owner-create-form" onSubmit={create}><div className="field"><label>Customer / workspace name</label><input value={name} onChange={(event) => setName(event.target.value)} placeholder="Studio A" data-testid="input-license-name"/></div><div className="field"><label>Valid for days</label><input type="number" min="1" max="3650" value={days} onChange={(event) => setDays(event.target.value)} data-testid="input-license-days"/></div><button className="button" type="submit" disabled={busy || !name.trim()}><Plus size={15}/> Create key</button></form></section>
-      <section className="card section-card owner-list"><div className="section-head"><div><h2 className="section-title">License keys</h2><p className="subtle" style={{ margin: "5px 0 0", fontSize: 11 }}>{licenses.length} key{licenses.length === 1 ? "" : "s"} · Recover or renew access below.</p></div><KeyRound size={18} color="#5b52c7"/></div>{licenses.length === 0 ? <EmptyState icon={<KeyRound size={21}/>} title="No license keys yet" copy="Create the first key above to give a workspace access."/> : <div className="license-list">{licenses.map((license) => { const active = isLicenseActive(license); return <div className="license-row" key={license.licenseId}><div className="license-row-main"><div className="license-key-badge"><KeyRound size={15}/></div><div><strong>{license.name}</strong><span className="mono">{license.key}</span></div></div><div className={`status ${active ? "live" : "stopped"}`}><span className="status-dot"/>{active ? "Active" : "Expired"} · {new Date(license.expiresAt).toLocaleDateString()}</div><div className="actions"><button className="button secondary small" onClick={() => void recover(license)} disabled={busy}><KeyRound size={13}/> Recover</button><button className="button secondary small" onClick={() => void renew(license.licenseId)} disabled={busy}>Renew</button><button className="icon-button" onClick={() => void remove(license)} disabled={busy} title="Delete license" aria-label={`Delete ${license.name}`}><Trash2 size={13}/></button></div></div>; })}</div>}</section>
-    </main>
-    {showIncludedAnimations && <IncludedAnimationsModal ownerPassword={authorizedPassword} onClose={() => setShowIncludedAnimations(false)} />}
-  </div>;
-}
-
-function OwnerPage() {
-  const [password, setPassword] = useState("");
-  const [authorizedPassword, setAuthorizedPassword] = useState("");
-  const [licenses, setLicenses] = useState<LicenseSession[]>([]);
-  const [vidKrakenTokens, setVidKrakenTokens] = useState<VidKrakenTokenStatus[]>([]);
-  const [showKeys, setShowKeys] = useState(false);
-  const [tokenDraft, setTokenDraft] = useState("");
-  const [keyBusy, setKeyBusy] = useState(false);
-  const [name, setName] = useState("");
-  const [days, setDays] = useState("30");
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState("");
-  const [showIncludedAnimations, setShowIncludedAnimations] = useState(false);
-  const [ownerView, setOwnerView] = useState<"licenses" | "folders">("licenses");
-  const load = async (ownerPassword: string) => {
-    const result = await apiJson<{ licenses?: LicenseSession[] }>("/api/licenses", { headers: { "X-Owner-Password": ownerPassword } });
-    if (!Array.isArray(result?.licenses)) {
-      throw new Error("License list could not be loaded. Please try again.");
-    }
-    setLicenses(result.licenses);
-  };
-  const loadVidKrakenTokens = async (ownerPassword: string) => {
-    const result = await apiJson<{ count: number; tokens: VidKrakenTokenStatus[] }>("/api/owner/vidkraken-keys", { headers: { "X-Owner-Password": ownerPassword } });
-    if (!Array.isArray(result?.tokens)) throw new Error("VidKraken key list could not be loaded.");
-    setVidKrakenTokens(result.tokens);
-  };
-  const signIn = async (event:FormEvent) => {
-    event.preventDefault(); setBusy(true); setError("");
-    try { await load(password); await loadVidKrakenTokens(password); setAuthorizedPassword(password); } catch (reason) { setError(reason instanceof Error ? reason.message : "Owner access was denied."); } finally { setBusy(false); }
-  };
-  const openKeys = async () => {
-    setKeyBusy(true); setError("");
-    try { await loadVidKrakenTokens(authorizedPassword); setShowKeys(true); }
-    catch (reason) { setError(reason instanceof Error ? reason.message : "Could not load VidKraken keys."); }
-    finally { setKeyBusy(false); }
-  };
-  const addToken = async (event:FormEvent) => {
-    event.preventDefault(); if (!tokenDraft.trim()) return;
-    setKeyBusy(true); setError("");
-    try {
-      await apiJson("/api/owner/vidkraken-keys", { method:"POST", headers: { "X-Owner-Password": authorizedPassword }, body: JSON.stringify({ token: tokenDraft }) });
-      setTokenDraft(""); await loadVidKrakenTokens(authorizedPassword);
-    } catch (reason) { setError(reason instanceof Error ? reason.message : "Could not add the VidKraken key."); }
-    finally { setKeyBusy(false); }
-  };
-  const removeToken = async (token:VidKrakenTokenStatus) => {
-    if (!window.confirm(`Delete ${token.key} from the VidKraken token pool?`)) return;
-    setKeyBusy(true); setError("");
-    try {
-      await apiJson(`/api/owner/vidkraken-keys/${encodeURIComponent(token.key)}`, { method:"DELETE", headers: { "X-Owner-Password": authorizedPassword } });
-      await loadVidKrakenTokens(authorizedPassword);
-    } catch (reason) { setError(reason instanceof Error ? reason.message : "Could not delete the VidKraken key."); }
-    finally { setKeyBusy(false); }
-  };
-  const create = async (event:FormEvent) => {
-    event.preventDefault(); if (!name.trim()) return;
-    setBusy(true); setError("");
-    try {
-      await apiJson<LicenseSession>("/api/licenses", { method:"POST", headers: { "X-Owner-Password": authorizedPassword }, body: JSON.stringify({ name: name.trim(), days: Number(days) }) });
-      setName(""); await load(authorizedPassword);
-    } catch (reason) { setError(reason instanceof Error ? reason.message : "Could not create the license."); } finally { setBusy(false); }
-  };
-  const renew = async (licenseId:string) => {
-    setBusy(true); setError("");
-    try { await apiJson<LicenseSession>(`/api/licenses/${encodeURIComponent(licenseId)}/renew`, { method:"POST", headers: { "X-Owner-Password": authorizedPassword }, body: JSON.stringify({ days: 30 }) }); await load(authorizedPassword); }
-    catch (reason) { setError(reason instanceof Error ? reason.message : "Could not renew the license."); } finally { setBusy(false); }
-  };
-  const remove = async (license:LicenseSession) => {
-    if (!window.confirm(`Delete ${license.name} and its workspace data?`)) return;
-    setBusy(true); setError("");
-    try { await apiJson(`/api/licenses/${encodeURIComponent(license.licenseId)}`, { method:"DELETE", headers: { "X-Owner-Password": authorizedPassword } }); await load(authorizedPassword); }
-    catch (reason) { setError(reason instanceof Error ? reason.message : "Could not delete the license."); } finally { setBusy(false); }
-  };
-  if (!authorizedPassword) return <div className="login-page owner-login-page"><section className="login-visual"><div className="login-logo"><div className="brand-mark"><img src={logoImage} alt="Reverse Bypass logo" /></div><div><div className="brand-name">Reverse Bypass</div><div className="brand-note">owner console</div></div></div><div className="login-copy"><div className="signal-line"><span/>OWNER CONSOLE · PRIVATE</div><h1>Keep every<br/><em>key in hand.</em></h1><p>Create, renew, and remove license access for the workspaces you manage.</p></div><div className="signal-line"><span/>LICENSE ADMINISTRATION</div></section><section className="login-panel"><div className="login-card"><p className="eyebrow">Owner access</p><h2>Welcome, owner.</h2><p className="subtle">Enter the owner password to manage license keys.</p>{error&&<div className="error-note">{error}</div>}<form className="login-form" onSubmit={signIn}><div className="field"><label htmlFor="owner-password">Owner password</label><input id="owner-password" type="password" value={password} onChange={e=>setPassword(e.target.value)} autoFocus data-testid="input-owner-password"/></div><button className="button login-submit" type="submit" disabled={busy||!password} data-testid="button-owner-login">{busy?"Checking…":"Open owner console"} <ArrowRight size={16}/></button></form><div className="demo-note"><ShieldCheck size={15}/><span>Public license access is enabled by the Firebase Realtime Database rules.</span></div><a href="/" className="section-link">Back to license access</a></div></section></div>;
-  if (ownerView === "folders") return <OwnerFoldersPage ownerPassword={authorizedPassword} onBack={() => setOwnerView("licenses")} />;
-  return <div className="owner-page"><header className="owner-topbar"><Brand/><div className="actions"><button className="button secondary" onClick={()=>setOwnerView("folders")} data-testid="button-owner-folders"><FolderOpen size={14}/> My folders</button><button className="button secondary" onClick={()=>setShowIncludedAnimations(true)} data-testid="button-owner-included-animations"><Upload size={14}/> Included animations</button><button className="button secondary" onClick={()=>void openKeys()} disabled={keyBusy} data-testid="button-owner-keys"><ShieldCheck size={14}/> KEY{vidKrakenTokens.length ? ` · ${vidKrakenTokens.length}` : ""}</button><a href="/" className="button secondary">Open license gate <ArrowRight size={14}/></a></div></header><main className="owner-content"><div className="page-head"><div><p className="eyebrow">Owner console</p><h1>License keys</h1><p className="subtle">Create access keys, keep customer workspaces separate, and manage the shared Included Animations library.</p></div><div className="status live"><span className="status-dot"/>Firebase connected</div></div>{error&&<div className="error-note">{error}</div>}<section className="card section-card owner-create"><div className="section-head"><div><h2 className="section-title">Create license</h2><p className="subtle" style={{margin:"5px 0 0",fontSize:11}}>The generated key can be used by more than one browser; each browser gets its own workspace.</p></div><Plus size={17} color="#6c8b83"/></div><form className="owner-create-form" onSubmit={create}><div className="field"><label>Customer / workspace name</label><input value={name} onChange={e=>setName(e.target.value)} placeholder="Studio A" data-testid="input-license-name"/></div><div className="field"><label>Valid for days</label><input type="number" min="1" max="3650" value={days} onChange={e=>setDays(e.target.value)} data-testid="input-license-days"/></div><button className="button" type="submit" disabled={busy||!name.trim()} data-testid="button-create-license"><Plus size={15}/> Create license</button></form></section><section className="card section-card owner-list"><div className="section-head"><div><h2 className="section-title">{licenses.length} license{licenses.length===1?"":"s"}</h2><p className="subtle" style={{margin:"5px 0 0",fontSize:11}}>Existing access keys and renewal controls.</p></div><Clipboard size={17} color="#6c8b83"/></div>{licenses.length===0?<EmptyState icon={<ShieldCheck size={21}/>} title="No licenses yet" copy="Create the first key above to give a workspace access."/>:<div className="license-list">{licenses.map(license=>{const active=isLicenseActive(license);return <div className="license-row" key={license.licenseId}><div className="license-row-main"><div className="license-key-badge"><ShieldCheck size={15}/></div><div><strong>{license.name}</strong><span className="mono">{license.key}</span></div></div><div className={`status ${active?"live":"stopped"}`}><span className="status-dot"/>{active?"Active":"Expired"} · {new Date(license.expiresAt).toLocaleDateString()}</div><div className="actions"><button className="button secondary small" onClick={()=>void renew(license.licenseId)} disabled={busy}>Renew 30 days</button><button className="icon-button" onClick={()=>void remove(license)} disabled={busy} title="Delete license" data-testid={`button-delete-license-${license.licenseId}`}><Trash2 size={13}/></button></div></div>})}</div>}</section></main>{showKeys&&<Modal title="VidKraken KEY pool" onClose={()=>setShowKeys(false)} footer={<button className="button ghost" onClick={()=>setShowKeys(false)} data-testid="button-close-owner-keys">Close</button>}><div className="key-panel"><div className="key-panel-summary"><div><p className="eyebrow">Server token rotation</p><h3 data-testid="text-vidkraken-token-count">{vidKrakenTokens.length} token{vidKrakenTokens.length===1?"":"s"} configured</h3><p className="subtle">Token values stay hidden. A limited token is paused for 3 hours, then becomes available again.</p></div><a className="button secondary" href="https://vidkraken.com/" target="_blank" rel="noreferrer" data-testid="link-get-vidkraken-key">Get key <ArrowRight size={14}/></a></div><form className="owner-key-form" onSubmit={addToken}><div className="field"><label htmlFor="vidkraken-token">Add new VidKraken token</label><input id="vidkraken-token" type="password" autoComplete="new-password" value={tokenDraft} onChange={e=>setTokenDraft(e.target.value)} placeholder="Paste token securely" disabled={keyBusy} data-testid="input-vidkraken-token"/></div><button className="button" type="submit" disabled={keyBusy||!tokenDraft.trim()} data-testid="button-add-vidkraken-token"><Plus size={15}/> Add token</button></form>{vidKrakenTokens.length===0?<EmptyState icon={<ShieldCheck size={21}/>} title="No VidKraken tokens" copy="Add a token to enable YouTube downloads."/>:<div className="key-list">{vidKrakenTokens.map(token=>{const cooling=token.status==="cooldown";return <div className="key-row" key={token.key} data-testid={`row-vidkraken-token-${token.key}`}><div><strong>{token.key}</strong><span className="subtle">Secret value hidden</span></div><div className={`status ${cooling?"stopped":"live"}`} data-testid={`status-vidkraken-token-${token.key}`}><span className="status-dot"/>{cooling&&token.cooldownUntil?`Cooldown until ${new Date(token.cooldownUntil).toLocaleTimeString()}`:"Ready"}</div><button className="icon-button" onClick={()=>void removeToken(token)} disabled={keyBusy} title={`Delete ${token.key}`} data-testid={`button-delete-vidkraken-token-${token.key}`}><Trash2 size={13}/></button></div>})}</div>}</div></Modal>}{showIncludedAnimations&&<IncludedAnimationsModal ownerPassword={authorizedPassword} onClose={()=>setShowIncludedAnimations(false)}/>}</div>;
+  if (ownerView === "settings") return <div className="owner-page owner-payment-page owner-settings-view"><OwnerDesktopSidebar active="settings" onNavigate={navigateOwner}/><header className="owner-topbar"><div className="owner-topbar-title"><span className="owner-topbar-kicker">Slash Owner</span><strong>Settings</strong></div><button className="button secondary small owner-payment-mobile-back" onClick={goDashboard} type="button"><ArrowLeft size={14}/> Dashboard</button></header><main className="owner-content"><OwnerSettingsPanel ownerPassword={authorizedPassword}/></main></div>;
+  return <OwnerDashboardPage ownerPassword={authorizedPassword} error={error} message={message} keyBusy={keyBusy} showIncludedAnimations={showIncludedAnimations} onFolder={() => setOwnerView("folders")} onAnimations={() => setShowIncludedAnimations(true)} onKeys={openKeys} onUsers={() => setOwnerView("users")} onPayments={() => setOwnerView("payments")} onFeedback={() => setOwnerView("feedback")} onSettings={() => setOwnerView("settings")} onNavigate={navigateOwner} onCloseAnimations={() => setShowIncludedAnimations(false)} />;
 }
 
 function Metric({ label, value, detail, image, dim }: { label:string; value:string|number; detail:string; image?:string; dim?:boolean }) {
@@ -5211,7 +5003,7 @@ function ProfilePage({ workspace, account, firebaseUser, profilePhoto, onProfile
         await updateProfile(firebaseUser, { displayName: name.trim() });
       }
       if (onSaveProfile) {
-        await onSaveProfile({ displayName: name.trim(), email: email.trim(), phone: account.phone });
+        await onSaveProfile({ displayName: name.trim(), email: email.trim(), phone: account.phone ?? undefined });
       } else {
         localStorage.setItem(`reverse-bypass-profile:${workspace.licenseId}`, JSON.stringify({ displayName: name.trim(), email: email.trim() }));
       }
@@ -5286,7 +5078,7 @@ function ProfilePage({ workspace, account, firebaseUser, profilePhoto, onProfile
       });
       const response = await fetch(upload.uploadURL, { method: "PUT", headers: { "Content-Type": file.type }, body: file });
       if (!response.ok) throw new Error("The image could not be stored.");
-      await onSaveProfile({ displayName: name.trim(), email: email.trim(), phone: account.phone, profileImagePath: upload.objectPath });
+      await onSaveProfile({ displayName: name.trim(), email: email.trim(), phone: account.phone ?? undefined, profileImagePath: upload.objectPath });
       const photo = profileImageUrl(upload.objectPath);
       onProfilePhotoChange(photo);
       setPhotoAnimationKey((value) => value + 1);
@@ -5473,11 +5265,11 @@ function WorkspaceLoading({ label }: { label: string }) {
 function App() {
   const { user, loading: firebaseLoading, busy: firebaseBusy, error: firebaseError, signInWithGoogle, signOut } = useFirebaseAuth();
   const isSignedIn = Boolean(user);
-  const license = useLicense();
+  const workspaceClientId = useWorkspaceClientId();
   const accountSession = useAccountSession(isSignedIn, user?.uid, !firebaseLoading);
   const hasAccountSession = Boolean(accountSession.account);
   const [profilePhoto, setProfilePhoto] = useState("");
-  const profileOwnerId = user?.uid || license.license?.licenseId || "";
+  const profileOwnerId = user?.uid || accountSession.account?.id || "";
   useEffect(() => {
     if (!profileOwnerId) {
       setProfilePhoto("");
@@ -5489,7 +5281,6 @@ function App() {
     if (!profileOwnerId) return;
     setProfilePhoto(photo);
   };
-  const [mobileGiftKey, setMobileGiftKey] = useState("");
   const [dismissedTrialOfferAccountId, setDismissedTrialOfferAccountId] = useState("");
   const [promptTrialPhone, setPromptTrialPhone] = useState(false);
   const accountLicense = accountSession.account ? {
@@ -5498,33 +5289,29 @@ function App() {
     name: accountSession.account.displayName || user?.email || "Workspace",
     expiresAt: accountSession.account.accessEndsAt,
     active: accountSession.account.active,
-    clientId: license.clientId,
+    clientId: workspaceClientId,
   } satisfies LicenseSession : null;
-  const activeLicense = hasAccountSession ? accountLicense : license.license;
+  const activeLicense = accountLicense;
   const [location, setLocation] = useLocation();
   const openTrialOfferInProfile = () => {
     setPromptTrialPhone(true);
     setLocation("/profile");
   };
-  const authLoading = useMinimumLoadingDuration(firebaseLoading || accountSession.loading || firebaseBusy || license.busy);
+  const authLoading = useMinimumLoadingDuration(firebaseLoading || accountSession.loading || firebaseBusy);
   const browserPath = window.location.pathname.replace(/\/+$/, "") || "/";
   const isOwnerRoute = ["/owner", "/owner.html"].includes(location) || ["/owner", "/owner.html"].includes(browserPath);
   const workspace = useWorkspace(activeLicense, () => {
-    license.clear();
     accountSession.clear();
     void apiJson("/api/mobile-auth/logout", { method: "POST" }).catch(() => undefined);
     void signOut();
   }, Boolean(accountSession.account));
   useEffect(() => {
     if (firebaseLoading || (isSignedIn && accountSession.loading)) return;
-    if (!mobileGiftKey && accountSession.account && (location === "/" || location === "/access" || location.startsWith("/sign-in") || location.startsWith("/sign-up"))) {
+    if (accountSession.account && (location === "/" || location === "/access" || location.startsWith("/sign-in") || location.startsWith("/sign-up"))) {
       setLocation(accountSession.account.role === "owner" ? "/owner" : "/dashboard");
       return;
     }
-    if (!isSignedIn && isLicenseActive(license.license) && (location === "/" || location === "/access")) {
-      setLocation("/dashboard");
-    }
-  }, [accountSession.account, accountSession.loading, firebaseLoading, hasAccountSession, isSignedIn, license.license, location, mobileGiftKey, setLocation]);
+  }, [accountSession.account, accountSession.loading, firebaseLoading, isSignedIn, location, setLocation]);
   if (authLoading) {
     const label = firebaseLoading
       ? "Connecting secure sign-in…"
@@ -5539,26 +5326,26 @@ function App() {
     return <FeedbackDetailPage feedbackId={decodeURIComponent(feedbackId)} />;
   }
   if (isOwnerRoute) return <OwnerConsolePage/>;
+  if (accountSession.account?.suspended && accountSession.account.role !== "owner") {
+    return <SuspendedAccountNotice supportLink={accountSession.supportLink} onSignOut={async () => {
+      await apiJson("/api/mobile-auth/logout", { method: "POST" }).catch(() => undefined);
+      await signOut();
+      accountSession.clear();
+      setLocation("/sign-in");
+    }} />;
+  }
   if (location.startsWith("/sign-in") || location.startsWith("/sign-up")) {
-    return <LicenseGate
-      license={activeLicense}
-      busy={license.busy || firebaseBusy}
-      error={license.error || firebaseError}
-      signedIn={Boolean(isSignedIn || hasAccountSession)}
-      onActivate={license.activate}
-      onRenew={license.renew}
+    return <SignInGate
+      busy={firebaseBusy}
+      error={firebaseError}
       onGoogleLogin={signInWithGoogle}
       onMobileAccountLogin={accountSession.reload}
-      onGiftReady={setMobileGiftKey}
-      onOpenRoom={() => { setMobileGiftKey(""); setLocation("/dashboard"); }}
     />;
   }
   if (location === "/pricing") return isSignedIn || hasAccountSession ? <Redirect to="/dashboard" /> : <Redirect to="/sign-in" />;
   if (location === "/gateway") return <GatewayPage />;
   if (isSignedIn && accountSession.error && !accountSession.account) return <div className="workspace-loading workspace-loading-error"><span>{accountSession.error}</span></div>;
-  const openMobileRoom = () => { setMobileGiftKey(""); setLocation("/dashboard"); };
-  if (location === "/access") return <LicenseGate license={activeLicense} busy={license.busy} error={license.error || firebaseError} signedIn={Boolean(isSignedIn || hasAccountSession)} onActivate={license.activate} onRenew={license.renew} onGoogleLogin={() => setLocation("/sign-in")} onMobileAccountLogin={accountSession.reload} onGiftReady={setMobileGiftKey} onOpenRoom={openMobileRoom}/>;
-  if (!hasAccountSession && (!activeLicense || !isLicenseActive(activeLicense))) return <LicenseGate license={activeLicense} busy={license.busy} error={license.error || firebaseError} signedIn={Boolean(isSignedIn || hasAccountSession)} onActivate={license.activate} onRenew={license.renew} onGoogleLogin={() => setLocation("/sign-in")} onMobileAccountLogin={accountSession.reload} onGiftReady={setMobileGiftKey} onOpenRoom={openMobileRoom}/>;
+  if (location === "/access" || !hasAccountSession) return <SignInGate busy={firebaseBusy} error={firebaseError} onGoogleLogin={signInWithGoogle} onMobileAccountLogin={accountSession.reload}/>;
   if (!workspace.ready && !(accountSession.account && !accountSession.account.active && location === "/subscription")) return <WorkspaceLoading label="Loading your media library…" />;
   const handleLogout = async () => {
     if (user) {

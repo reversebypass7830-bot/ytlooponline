@@ -2053,3 +2053,229 @@ export const ReviewOwnerPaymentRequestResponse = zod.object({
 })
 
 
+/**
+ * @summary List account details for owner review
+ */
+export const ListOwnerUsersHeader = zod.object({
+  "X-Owner-Password": zod.string()
+})
+
+
+export const listOwnerUsersResponseUsersItemActivePlanOnePricePerStreamDayPaiseMin = 0;
+
+export const listOwnerUsersResponseUsersItemActivePlanOnePricePerDownloadPaiseMin = 0;
+
+
+
+export const listOwnerUsersResponseUsersItemLifetimeLiveStartsMin = 0;
+
+
+
+export const ListOwnerUsersResponse = zod.object({
+  "users": zod.array(zod.object({
+  "id": zod.string(),
+  "displayName": zod.string(),
+  "email": zod.string(),
+  "phone": zod.string().nullable(),
+  "role": zod.enum(['owner', 'user']),
+  "createdAt": zod.coerce.date(),
+  "trialStartedAt": zod.coerce.date().nullable(),
+  "trialEndsAt": zod.coerce.date().nullable(),
+  "activePlanId": zod.string(),
+  "activePlan": zod.union([zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "description": zod.string(),
+  "durationDays": zod.number().min(1),
+  "price": zod.string(),
+  "pricePerStreamDayPaise": zod.number().min(listOwnerUsersResponseUsersItemActivePlanOnePricePerStreamDayPaiseMin),
+  "pricePerDownloadPaise": zod.number().min(listOwnerUsersResponseUsersItemActivePlanOnePricePerDownloadPaiseMin),
+  "downloadRateConfigured": zod.boolean(),
+  "downloadsPerDay": zod.number().min(1),
+  "streamLimit": zod.number().min(1),
+  "features": zod.array(zod.string()),
+  "isTrial": zod.boolean().optional(),
+  "active": zod.boolean(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+}),zod.null()]),
+  "accessEndsAt": zod.coerce.date(),
+  "active": zod.boolean(),
+  "suspended": zod.boolean(),
+  "streamLimit": zod.number(),
+  "lifetimeLiveStarts": zod.number().min(listOwnerUsersResponseUsersItemLifetimeLiveStartsMin),
+  "history": zod.array(zod.object({
+  "id": zod.string(),
+  "type": zod.enum(['trial_started', 'purchase', 'grant', 'login']),
+  "message": zod.string(),
+  "at": zod.coerce.date(),
+  "planName": zod.string().optional(),
+  "planId": zod.string().optional(),
+  "days": zod.number().optional(),
+  "startsAt": zod.coerce.date().optional(),
+  "endsAt": zod.coerce.date().optional(),
+  "amountPaise": zod.number().optional()
+}))
+}))
+})
+
+
+/**
+ * @summary Suspend or restore a user account
+ */
+export const UpdateOwnerUserSuspensionParams = zod.object({
+  "userId": zod.coerce.string()
+})
+
+export const UpdateOwnerUserSuspensionHeader = zod.object({
+  "X-Owner-Password": zod.string()
+})
+
+export const UpdateOwnerUserSuspensionBody = zod.object({
+  "suspended": zod.boolean()
+})
+
+
+export const updateOwnerUserSuspensionResponseUserActivePlanOnePricePerStreamDayPaiseMin = 0;
+
+export const updateOwnerUserSuspensionResponseUserActivePlanOnePricePerDownloadPaiseMin = 0;
+
+
+
+export const updateOwnerUserSuspensionResponseUserLifetimeLiveStartsMin = 0;
+
+
+
+export const UpdateOwnerUserSuspensionResponse = zod.object({
+  "user": zod.object({
+  "id": zod.string(),
+  "displayName": zod.string(),
+  "email": zod.string(),
+  "phone": zod.string().nullable(),
+  "role": zod.enum(['owner', 'user']),
+  "createdAt": zod.coerce.date(),
+  "trialStartedAt": zod.coerce.date().nullable(),
+  "trialEndsAt": zod.coerce.date().nullable(),
+  "activePlanId": zod.string(),
+  "activePlan": zod.union([zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "description": zod.string(),
+  "durationDays": zod.number().min(1),
+  "price": zod.string(),
+  "pricePerStreamDayPaise": zod.number().min(updateOwnerUserSuspensionResponseUserActivePlanOnePricePerStreamDayPaiseMin),
+  "pricePerDownloadPaise": zod.number().min(updateOwnerUserSuspensionResponseUserActivePlanOnePricePerDownloadPaiseMin),
+  "downloadRateConfigured": zod.boolean(),
+  "downloadsPerDay": zod.number().min(1),
+  "streamLimit": zod.number().min(1),
+  "features": zod.array(zod.string()),
+  "isTrial": zod.boolean().optional(),
+  "active": zod.boolean(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+}),zod.null()]),
+  "accessEndsAt": zod.coerce.date(),
+  "active": zod.boolean(),
+  "suspended": zod.boolean(),
+  "streamLimit": zod.number(),
+  "lifetimeLiveStarts": zod.number().min(updateOwnerUserSuspensionResponseUserLifetimeLiveStartsMin),
+  "history": zod.array(zod.object({
+  "id": zod.string(),
+  "type": zod.enum(['trial_started', 'purchase', 'grant', 'login']),
+  "message": zod.string(),
+  "at": zod.coerce.date(),
+  "planName": zod.string().optional(),
+  "planId": zod.string().optional(),
+  "days": zod.number().optional(),
+  "startsAt": zod.coerce.date().optional(),
+  "endsAt": zod.coerce.date().optional(),
+  "amountPaise": zod.number().optional()
+}))
+})
+})
+
+
+/**
+ * @summary Delete a user account and its workspace data
+ */
+export const DeleteOwnerUserParams = zod.object({
+  "userId": zod.coerce.string()
+})
+
+export const DeleteOwnerUserHeader = zod.object({
+  "X-Owner-Password": zod.string()
+})
+
+export const deleteOwnerUserResponseDeletedMediaMin = 0;
+
+
+
+export const DeleteOwnerUserResponse = zod.object({
+  "userId": zod.string(),
+  "deleted": zod.boolean(),
+  "deletedMedia": zod.number().min(deleteOwnerUserResponseDeletedMediaMin)
+})
+
+
+/**
+ * @summary Delete multiple user accounts and their workspace data
+ */
+export const BulkDeleteOwnerUsersHeader = zod.object({
+  "X-Owner-Password": zod.string()
+})
+
+
+export const bulkDeleteOwnerUsersBodyUserIdsMax = 100;
+
+
+
+export const BulkDeleteOwnerUsersBody = zod.object({
+  "userIds": zod.array(zod.string().min(1)).min(1).max(bulkDeleteOwnerUsersBodyUserIdsMax)
+})
+
+export const BulkDeleteOwnerUsersResponse = zod.object({
+  "deletedUserIds": zod.array(zod.string()),
+  "failedUserIds": zod.array(zod.string())
+})
+
+
+/**
+ * @summary Get owner-configured support link
+ */
+export const GetOwnerSettingsHeader = zod.object({
+  "X-Owner-Password": zod.string()
+})
+
+export const getOwnerSettingsResponseSupportLinkMax = 2048;
+
+
+
+export const GetOwnerSettingsResponse = zod.object({
+  "supportLink": zod.string().max(getOwnerSettingsResponseSupportLinkMax)
+})
+
+
+/**
+ * @summary Save the support link shown to suspended accounts
+ */
+export const UpdateOwnerSettingsHeader = zod.object({
+  "X-Owner-Password": zod.string()
+})
+
+export const updateOwnerSettingsBodySupportLinkMax = 2048;
+
+
+
+export const UpdateOwnerSettingsBody = zod.object({
+  "supportLink": zod.string().max(updateOwnerSettingsBodySupportLinkMax)
+})
+
+export const updateOwnerSettingsResponseSupportLinkMax = 2048;
+
+
+
+export const UpdateOwnerSettingsResponse = zod.object({
+  "supportLink": zod.string().max(updateOwnerSettingsResponseSupportLinkMax)
+})
+
+
