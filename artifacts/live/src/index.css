@@ -11134,6 +11134,13 @@ select { height: 41px; }
   color: #047857;
 }
 
+.shell.profile-surface .profile-version-label {
+  margin: 18px 0 0;
+  color: #6b7280;
+  font: 11px/1.4 var(--app-font-mono, monospace);
+  text-align: center;
+}
+
 @media (max-width: 900px) {
   .shell.subscription-surface .subscription-current {
     grid-template-columns: 1fr 1fr;

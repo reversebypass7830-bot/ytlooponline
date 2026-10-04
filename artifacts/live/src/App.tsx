@@ -5186,6 +5186,7 @@ function ProfilePage({ workspace, account, firebaseUser, profilePhoto, onProfile
           </DialogContent>
         </Dialog>
       </section>
+      <p className="profile-version-label">v 1.0</p>
     </div>
   </AppShell>;
 }
