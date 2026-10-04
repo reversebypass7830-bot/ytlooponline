@@ -7,8 +7,10 @@ The Live Control Room is exposed at `https://ytloop.online` through a named Clou
 
 The tunnel token belongs in Replit Secrets only. Never print or copy its value into files, logs, or chat.
 
+If the Live workflow reports that the tunnel token is missing, check secret presence without exposing its value. When it is present, restart the Live workflow to reload its environment, then confirm `cloudflared` registers tunnel connections.
+
 This is a tunnel attached to a development workflow, not an always-on production deployment. If that workflow stops or is suspended, the hostname no longer reaches the app. A production hosting or DNS change requires confirming the hosting plan and any additional usage charges first. Continuous FFmpeg streaming also needs an always-on server, and in-memory stream state may not recover automatically after a process restart.
 
 **Why:** The selected hostname and DNS setup are intentional, while the current tunnel has a real availability limit that could be mistaken for a production hosting guarantee.
 
-**How to apply:** Before modifying hosting or DNS, check the current configuration because these notes may become stale. Preserve the user's hostname and routing choice unless they approve a change; distinguish development-tunnel availability from production uptime, and never expose the tunnel credential.
+**How to apply:** Before modifying hosting or DNS, check the current configuration because these notes may become stale. Preserve the user's hostname and routing choice unless they approve a change; distinguish development-tunnel availability from production uptime, and never expose the tunnel credential. If the workflow has a stale environment, reload it with a workflow restart and verify tunnel registration.

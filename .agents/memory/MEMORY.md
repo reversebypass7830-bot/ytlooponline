@@ -33,7 +33,7 @@
 - [Firebase Vite configuration](firebase-vite-config.md) — this workflow needs explicit Vite injection when browser config comes from existing non-VITE Firebase environment variables.
 - [Publish image size](publish-image-size.md) — large local runtime media can bypass gitignore during publishing; use root .replitignore for deployment-only exclusions.
 - [Cloudflare preview fallback](cloudflare-preview-fallback.md) — the public quick tunnel is optional; local live preview must survive transient tunnel failures.
-- [ytloop.online hosting](ytloop-hosting.md) — the chosen hostname routes through the Live workflow's named tunnel; this workflow tunnel is not always-on production hosting.
+- [ytloop.online hosting](ytloop-hosting.md) — the chosen hostname routes through the Live workflow's tunnel; restart it if a present secret is missing from its environment.
 - [Subscription access UX](subscription-access-ux.md) — keep subscription management dark and readable, while allowing inactive users to reach workspace routes.
 - [Static landing and SPA routes](static-landing-spa-routes.md) — the live artifact has a static root landing, so standalone React routes need explicit HTML entry points.
 - [Product boundaries and historical context](historical-project-context.md) — keep the Live Control Room and Arroxy distinct; the browser controls a server-side broadcast rather than rendering it.
