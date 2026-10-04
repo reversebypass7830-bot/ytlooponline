@@ -47,6 +47,13 @@ if (process.env.CLERK_SECRET_KEY?.trim()) {
 } else {
   logger.warn("Clerk is not configured; Firebase and mobile authentication remain enabled.");
 }
+app.use(
+  "/api/account/cashfree/webhook",
+  express.raw({
+    type: "application/json",
+    limit: "256kb",
+  }),
+);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(

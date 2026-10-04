@@ -1,9 +1,11 @@
-import { randomBytes, randomUUID } from "node:crypto";
+import { createHash, randomBytes, randomUUID } from "node:crypto";
 import { Router, type IRouter, type Request, type Response } from "express";
 import {
+  CreateCashfreeOrderBody,
   CreateAccountPaymentRequestBody,
   CreateAccountPaymentProofUploadUrlBody,
   CreateBillingPlanBody,
+  VerifyCashfreePaymentBody,
   QuoteAccountPaymentBody,
   ReviewOwnerPaymentRequestBody,
   UpdateBillingPlanBody,
@@ -13,6 +15,15 @@ import { firebaseGet, firebasePut } from "../lib/firebase-rest";
 import { ObjectStorageService } from "../lib/objectStorage";
 import { accountIdentity, accountUserId, clerkSessionClaims, requireAccountAuth, requireClerkAuth } from "../middlewares/requireClerkAuth";
 import { clerkOwnerAuthorized, ownerAuthorized } from "./licenses";
+import {
+  createCashfreeOrder,
+  fetchCashfreeOrder,
+  fetchCashfreePayments,
+  getCashfreeConfig,
+  isCashfreeConfigured,
+  verifyCashfreeWebhookSignature,
+  type CashfreeEnvironment,
+} from "../lib/cashfree";
 
 const router: IRouter = Router();
 const objectStorageService = new ObjectStorageService();
@@ -22,6 +33,7 @@ const licensePath = (id: string) => `licenses/${encodeURIComponent(id)}`;
 const planPath = (id: string) => `plans/${encodeURIComponent(id)}`;
 const paymentSettingsPath = "billing/paymentSettings";
 const paymentRequestsPath = "paymentRequests";
+const cashfreeOrdersPath = "cashfreeOrders";
 
 type PlanRecord = {
   id: string;
@@ -94,6 +106,8 @@ type PaymentStatus = "pending" | "approved" | "rejected";
 type PaymentSettingsRecord = {
   upiId: string;
   payeeName: string;
+  paymentMode: "manual" | "cashfree";
+  cashfreeEnvironment: CashfreeEnvironment;
   updatedAt: string | null;
 };
 type PaymentRequestRecord = {
@@ -114,6 +128,9 @@ type PaymentRequestRecord = {
   pricePerStreamDayPaise: number;
   pricePerDownloadPaise: number;
   features: string[];
+  paymentMethod: "upi" | "cashfree";
+  cashfreeOrderId: string | null;
+  cashfreePaymentId: string | null;
   utr: string;
   status: PaymentStatus;
   createdAt: string;
@@ -123,7 +140,18 @@ type PaymentRequestRecord = {
   screenshotPath: string | null;
   screenshotUrl: string | null;
 };
+type CashfreeOrderRecord = {
+  orderId: string;
+  idempotencyKey: string;
+  paymentRequestId: string;
+  accountId: string;
+  environment: CashfreeEnvironment;
+  amountPaise: number;
+  paymentSessionId: string | null;
+  createdAt: string;
+};
 type PaymentQuote = {
+  paymentMode: "manual" | "cashfree";
   planId: string;
   planName: string;
   packType: "Days" | "Monthly" | "Yearly";
@@ -703,16 +731,33 @@ async function withBillingLock<T>(key: string, action: () => Promise<T>): Promis
 
 async function loadPaymentSettings(): Promise<PaymentSettingsRecord> {
   const stored = await firebaseGet<Partial<PaymentSettingsRecord> | null>(paymentSettingsPath);
-  if (!stored) return { upiId: "", payeeName: "", updatedAt: null };
+  if (!stored) {
+    return {
+      upiId: "",
+      payeeName: "",
+      paymentMode: "manual",
+      cashfreeEnvironment: "sandbox",
+      updatedAt: null,
+    };
+  }
   return {
     upiId: typeof stored.upiId === "string" ? stored.upiId : "",
     payeeName: typeof stored.payeeName === "string" ? stored.payeeName : "",
+    paymentMode: stored.paymentMode === "cashfree" ? "cashfree" : "manual",
+    cashfreeEnvironment: stored.cashfreeEnvironment === "production" ? "production" : "sandbox",
     updatedAt: typeof stored.updatedAt === "string" ? stored.updatedAt : null,
   };
 }
 
-async function paymentSettingsResponse(settings: PaymentSettingsRecord): Promise<PaymentSettingsRecord> {
-  return settings;
+async function paymentSettingsResponse(settings: PaymentSettingsRecord): Promise<PaymentSettingsRecord & {
+  cashfreeSandboxConfigured: boolean;
+  cashfreeProductionConfigured: boolean;
+}> {
+  return {
+    ...settings,
+    cashfreeSandboxConfigured: isCashfreeConfigured("sandbox"),
+    cashfreeProductionConfigured: isCashfreeConfigured("production"),
+  };
 }
 
 async function loadPaymentRequests(): Promise<Record<string, PaymentRequestRecord>> {
@@ -742,6 +787,9 @@ async function loadPaymentRequests(): Promise<Record<string, PaymentRequestRecor
       pricePerStreamDayPaise: Number.isSafeInteger(raw.pricePerStreamDayPaise) && (raw.pricePerStreamDayPaise ?? 0) >= 0 ? raw.pricePerStreamDayPaise! : 0,
       pricePerDownloadPaise: Number.isSafeInteger(raw.pricePerDownloadPaise) && (raw.pricePerDownloadPaise ?? 0) >= 0 ? raw.pricePerDownloadPaise! : 0,
       features: Array.isArray(raw.features) ? raw.features.filter((feature): feature is string => typeof feature === "string") : [],
+       paymentMethod: raw.paymentMethod === "cashfree" ? "cashfree" : "upi",
+       cashfreeOrderId: typeof raw.cashfreeOrderId === "string" ? raw.cashfreeOrderId : null,
+       cashfreePaymentId: typeof raw.cashfreePaymentId === "string" ? raw.cashfreePaymentId : null,
       utr: typeof raw.utr === "string" ? raw.utr : "",
       status: raw.status === "approved" || raw.status === "rejected" ? raw.status : "pending",
       createdAt: typeof raw.createdAt === "string" ? raw.createdAt : new Date(0).toISOString(),
@@ -783,14 +831,13 @@ async function paymentQuote(
   if (!Number.isInteger(input.streamsPerDay) || input.streamsPerDay < 1 || input.streamsPerDay > 100) return null;
   if (!Number.isInteger(input.downloadsPerDay) || input.downloadsPerDay < 1 || input.downloadsPerDay > 1_000_000) return null;
   if (!Number.isInteger(currentStreamLimit) || currentStreamLimit < 1) return null;
-  if (!isValidUpiId(settings.upiId) || !settings.payeeName.trim()) return null;
-
   const perDayPaise = BigInt(pricePerStreamDayPaise) * BigInt(input.streamsPerDay)
     + BigInt(pricePerDownloadPaise) * BigInt(input.downloadsPerDay);
   const amountPaise = Number(perDayPaise * BigInt(input.durationDays));
   const totalDownloads = input.durationDays * input.downloadsPerDay;
   if (!Number.isSafeInteger(amountPaise) || amountPaise < 1 || amountPaise > 100_000_000_000 || !Number.isSafeInteger(totalDownloads)) return null;
   return {
+    paymentMode: settings.paymentMode,
     planId: plan.id,
     planName: plan.name,
     packType: input.packType,
@@ -807,6 +854,163 @@ async function paymentQuote(
     payeeName: settings.payeeName.trim(),
     features: plan.features || [],
   };
+}
+
+async function approvePaymentRequest(
+  requestId: string,
+  reviewedBy: string,
+  options: { reviewNote?: string | null; cashfreePaymentId?: string } = {},
+): Promise<
+  | { kind: "approved"; request: PaymentRequestRecord }
+  | { kind: "not-found" }
+  | { kind: "not-pending" }
+  | { kind: "account-missing" }
+> {
+  return withBillingLock(`payment-review:${requestId}`, async () => {
+    const request = (await loadPaymentRequests())[requestId];
+    if (!request) return { kind: "not-found" };
+    if (request.status === "rejected") return { kind: "not-pending" };
+
+    return withBillingLock(`billing-account:${request.accountId}`, async () => {
+      const latestRequest = (await loadPaymentRequests())[requestId];
+      if (!latestRequest || latestRequest.status === "rejected") return { kind: "not-pending" };
+      const account = await loadAccount(latestRequest.accountId);
+      if (!account) return { kind: "account-missing" };
+
+      const plans = await loadPlans();
+      const now = Date.now();
+      const alreadyApplied = (account.history || []).some((item) => item.paymentRequestId === requestId);
+      const previousEnd = Date.parse(account.accessEndsAt);
+      const startsAt = Math.max(now, Number.isFinite(previousEnd) ? previousEnd : now);
+      const accessEndsAt = alreadyApplied
+        ? account.accessEndsAt
+        : new Date(startsAt + latestRequest.durationDays * dayMs).toISOString();
+      const purchase: AccountHistoryItem = {
+        id: requestId,
+        type: "purchase",
+        message: `${latestRequest.planName} payment approved`,
+        at: new Date(now).toISOString(),
+        planName: latestRequest.planName,
+        planId: latestRequest.planId,
+        days: latestRequest.durationDays,
+        startsAt: new Date(startsAt).toISOString(),
+        endsAt: accessEndsAt,
+        streamLimit: latestRequest.streamLimit,
+        streamsPerDay: latestRequest.streamsPerDay,
+        downloadsPerDay: latestRequest.downloadsPerDay,
+        totalDownloads: latestRequest.totalDownloads,
+        amountPaise: latestRequest.amountPaise,
+        utr: latestRequest.utr || undefined,
+        features: latestRequest.features,
+        paymentRequestId: requestId,
+      };
+      const nextAccount: AccountRecord = alreadyApplied ? account : {
+        ...account,
+        activePlanId: latestRequest.planId,
+        accessEndsAt,
+        streamLimit: account.streamLimit || plans[account.activePlanId]?.streamLimit || 1,
+        streamsPerDay: latestRequest.streamsPerDay,
+        downloadsPerDay: latestRequest.downloadsPerDay,
+        activeFeatures: latestRequest.features,
+        history: [purchase, ...(account.history || [])].slice(0, 50),
+      };
+      const approved: PaymentRequestRecord = {
+        ...latestRequest,
+        status: "approved",
+        reviewedAt: latestRequest.reviewedAt || new Date(now).toISOString(),
+        reviewedBy: latestRequest.reviewedBy || reviewedBy,
+        reviewNote: options.reviewNote === undefined ? latestRequest.reviewNote : options.reviewNote,
+        cashfreePaymentId: options.cashfreePaymentId ?? latestRequest.cashfreePaymentId,
+      };
+      await Promise.all([
+        firebasePut(accountPath(account.id), nextAccount),
+        firebasePut(licensePath(account.licenseId), {
+          key: account.licenseKey,
+          name: nextAccount.displayName,
+          createdAt: nextAccount.createdAt,
+          expiresAt: accessEndsAt,
+          active: true,
+          accountId: account.id,
+        }),
+        firebasePut(`${paymentRequestsPath}/${encodeURIComponent(requestId)}`, approved),
+      ]);
+      return { kind: "approved", request: approved };
+    });
+  });
+}
+
+async function loadCashfreeOrder(orderId: string): Promise<CashfreeOrderRecord | null> {
+  const stored = await firebaseGet<Partial<CashfreeOrderRecord> | null>(
+    `${cashfreeOrdersPath}/${encodeURIComponent(orderId)}`,
+  );
+  if (!stored
+    || stored.orderId !== orderId
+    || typeof stored.idempotencyKey !== "string"
+    || typeof stored.paymentRequestId !== "string"
+    || typeof stored.accountId !== "string"
+    || (stored.environment !== "sandbox" && stored.environment !== "production")
+    || !Number.isSafeInteger(stored.amountPaise)
+    || typeof stored.createdAt !== "string") return null;
+  return {
+    orderId,
+    idempotencyKey: stored.idempotencyKey,
+    paymentRequestId: stored.paymentRequestId,
+    accountId: stored.accountId,
+    environment: stored.environment,
+    amountPaise: stored.amountPaise as number,
+    paymentSessionId: typeof stored.paymentSessionId === "string" ? stored.paymentSessionId : null,
+    createdAt: stored.createdAt,
+  };
+}
+
+async function verifyAndApplyCashfreeOrder(
+  orderId: string,
+  accountId?: string,
+): Promise<
+  | { kind: "verified"; status: "pending" | "paid" | "failed"; accessActivated: boolean }
+  | { kind: "not-found" }
+  | { kind: "integrity-error" }
+> {
+  const orderRecord = await loadCashfreeOrder(orderId);
+  if (!orderRecord || (accountId && orderRecord.accountId !== accountId)) return { kind: "not-found" };
+  const request = (await loadPaymentRequests())[orderRecord.paymentRequestId];
+  if (!request || request.paymentMethod !== "cashfree" || request.cashfreeOrderId !== orderId) {
+    return { kind: "integrity-error" };
+  }
+  if (request.status === "approved") {
+    const repaired = await approvePaymentRequest(orderRecord.paymentRequestId, "cashfree", {
+      cashfreePaymentId: request.cashfreePaymentId || undefined,
+    });
+    return repaired.kind === "approved"
+      ? { kind: "verified", status: "paid", accessActivated: true }
+      : { kind: "integrity-error" };
+  }
+
+  const config = getCashfreeConfig(orderRecord.environment);
+  if (!config) throw new Error(`Cashfree ${orderRecord.environment} credentials are not configured.`);
+  const remoteOrder = await fetchCashfreeOrder(config, orderId);
+  if (remoteOrder.orderId !== orderId
+    || remoteOrder.orderAmountPaise !== orderRecord.amountPaise
+    || remoteOrder.orderCurrency !== "INR") return { kind: "integrity-error" };
+  if (remoteOrder.orderStatus !== "PAID") {
+    const status = ["EXPIRED", "TERMINATED", "FAILED"].includes(remoteOrder.orderStatus) ? "failed" : "pending";
+    return { kind: "verified", status, accessActivated: false };
+  }
+
+  const successfulPayment = (await fetchCashfreePayments(config, orderId)).find((payment) =>
+    payment.paymentStatus === "SUCCESS"
+      && payment.amountPaise === orderRecord.amountPaise
+      && payment.currency === "INR");
+  if (!successfulPayment) return { kind: "integrity-error" };
+
+  const result = await approvePaymentRequest(orderRecord.paymentRequestId, "cashfree", {
+    cashfreePaymentId: successfulPayment.paymentId,
+  });
+  if (result.kind === "not-found" || result.kind === "account-missing" || result.kind === "not-pending") {
+    const latest = (await loadPaymentRequests())[orderRecord.paymentRequestId];
+    if (latest?.status !== "approved") return { kind: "integrity-error" };
+  }
+  return { kind: "verified", status: "paid", accessActivated: true };
 }
 
 function sendError(req: Request, res: Response, error: unknown, message: string): void {
@@ -873,8 +1077,12 @@ router.post("/account/payment-quote", requireAccountAuth, async (req, res): Prom
   try {
     const { account, plans } = await ensureAccount(req);
     const settings = await loadPaymentSettings();
-    if (!isValidUpiId(settings.upiId) || !settings.payeeName.trim()) {
+    if (settings.paymentMode === "manual" && (!isValidUpiId(settings.upiId) || !settings.payeeName.trim())) {
       res.status(409).json({ error: "UPI payment is not configured yet. Please try again later." });
+      return;
+    }
+    if (settings.paymentMode === "cashfree" && !isCashfreeConfigured(settings.cashfreeEnvironment)) {
+      res.status(409).json({ error: "Cashfree checkout is not configured for the selected environment yet." });
       return;
     }
     const quote = await paymentQuote(
@@ -919,6 +1127,10 @@ router.post("/account/payment-requests", requireAccountAuth, async (req, res): P
   try {
     const { account, plans } = await ensureAccount(req);
     const settings = await loadPaymentSettings();
+    if (settings.paymentMode !== "manual") {
+      res.status(409).json({ error: "Manual UPI checkout is currently disabled." });
+      return;
+    }
     if (!isValidUpiId(settings.upiId) || !settings.payeeName.trim()) {
       res.status(409).json({ error: "UPI payment is not configured yet. Refresh and try again later." });
       return;
@@ -971,6 +1183,9 @@ router.post("/account/payment-requests", requireAccountAuth, async (req, res): P
         pricePerStreamDayPaise: quote.pricePerStreamDayPaise,
         pricePerDownloadPaise: quote.pricePerDownloadPaise,
         features: quote.features,
+        paymentMethod: "upi",
+        cashfreeOrderId: null,
+        cashfreePaymentId: null,
         utr,
         status: "pending",
         createdAt: new Date().toISOString(),
@@ -987,8 +1202,241 @@ router.post("/account/payment-requests", requireAccountAuth, async (req, res): P
   }
 });
 
+router.post("/account/cashfree/orders", requireAccountAuth, async (req, res): Promise<void> => {
+  const parsed = CreateCashfreeOrderBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Choose a valid plan, term, stream quota, and payment attempt." });
+    return;
+  }
+  try {
+    const settings = await loadPaymentSettings();
+    if (settings.paymentMode !== "cashfree") {
+      res.status(409).json({ error: "Cashfree checkout is currently disabled." });
+      return;
+    }
+    const config = getCashfreeConfig(settings.cashfreeEnvironment);
+    if (!config) {
+      res.status(409).json({ error: `Cashfree ${settings.cashfreeEnvironment} credentials are not configured yet.` });
+      return;
+    }
+
+    const { account, plans } = await ensureAccount(req);
+    const phoneDigits = (account.phone || "").replace(/\D/g, "");
+    if (phoneDigits.length < 10 || phoneDigits.length > 15) {
+      res.status(409).json({ error: "Add a valid mobile number to your profile before using Cashfree checkout." });
+      return;
+    }
+    const customerPhone = phoneDigits.slice(-10);
+    const quote = await paymentQuote(
+      plans,
+      settings,
+      parsed.data,
+      account.streamLimit || plans[account.activePlanId]?.streamLimit || 1,
+    );
+    if (!quote) {
+      res.status(400).json({ error: "This plan or selection is unavailable. Refresh the price and try again." });
+      return;
+    }
+
+    const attemptId = parsed.data.attemptId;
+    const orderId = `dpl_${createHash("sha256").update(`${account.id}:${attemptId}`).digest("hex").slice(0, 32)}`;
+    await withBillingLock(`cashfree-order:${account.id}:${attemptId}`, async () => {
+      let orderRecord = await loadCashfreeOrder(orderId);
+      let paymentRequest: PaymentRequestRecord | undefined;
+      if (orderRecord) {
+        if (orderRecord.accountId !== account.id || orderRecord.environment !== settings.cashfreeEnvironment) {
+          res.status(409).json({ error: "This payment attempt is no longer available. Start a new checkout." });
+          return;
+        }
+        paymentRequest = (await loadPaymentRequests())[orderRecord.paymentRequestId];
+        if (!paymentRequest
+          || paymentRequest.accountId !== account.id
+          || paymentRequest.paymentMethod !== "cashfree"
+          || paymentRequest.amountPaise !== quote.amountPaise
+          || paymentRequest.planId !== quote.planId
+          || paymentRequest.durationDays !== quote.durationDays
+          || paymentRequest.streamsPerDay !== quote.streamsPerDay
+          || paymentRequest.downloadsPerDay !== quote.downloadsPerDay) {
+          res.status(409).json({ error: "The payment selection changed. Start a new checkout." });
+          return;
+        }
+        if (orderRecord.paymentSessionId) {
+          res.status(201).json({
+            orderId,
+            paymentSessionId: orderRecord.paymentSessionId,
+            environment: orderRecord.environment,
+          });
+          return;
+        }
+      } else {
+        const requestId = randomUUID();
+        const now = new Date().toISOString();
+        paymentRequest = {
+          id: requestId,
+          accountId: account.id,
+          accountName: account.displayName,
+          accountEmail: account.email,
+          planId: quote.planId,
+          planName: quote.planName,
+          packType: quote.packType,
+          durationDays: quote.durationDays,
+          streamLimit: quote.streamLimit,
+          streamsPerDay: quote.streamsPerDay,
+          downloadsPerDay: quote.downloadsPerDay,
+          totalDownloads: quote.totalDownloads,
+          amountPaise: quote.amountPaise,
+          amountRupees: quote.amountRupees,
+          pricePerStreamDayPaise: quote.pricePerStreamDayPaise,
+          pricePerDownloadPaise: quote.pricePerDownloadPaise,
+          features: quote.features,
+          paymentMethod: "cashfree",
+          cashfreeOrderId: orderId,
+          cashfreePaymentId: null,
+          utr: "",
+          status: "pending",
+          createdAt: now,
+          reviewedAt: null,
+          reviewNote: null,
+          screenshotPath: null,
+          screenshotUrl: null,
+        };
+        orderRecord = {
+          orderId,
+          idempotencyKey: attemptId,
+          paymentRequestId: requestId,
+          accountId: account.id,
+          environment: settings.cashfreeEnvironment,
+          amountPaise: quote.amountPaise,
+          paymentSessionId: null,
+          createdAt: now,
+        };
+        await Promise.all([
+          firebasePut(`${paymentRequestsPath}/${encodeURIComponent(requestId)}`, paymentRequest),
+          firebasePut(`${cashfreeOrdersPath}/${encodeURIComponent(orderId)}`, orderRecord),
+        ]);
+      }
+
+      if (!orderRecord) throw new Error("Cashfree order record could not be initialized.");
+      const publicUrl = new URL(process.env.CASHFREE_PUBLIC_URL?.trim() || "https://ytloop.online");
+      if (publicUrl.protocol !== "https:") throw new Error("CASHFREE_PUBLIC_URL must use HTTPS.");
+      const returnUrl = new URL("/subscription", publicUrl.origin);
+      returnUrl.searchParams.set("cashfree_order_id", orderId);
+      const notifyUrl = new URL("/api/account/cashfree/webhook", publicUrl.origin);
+      const customerId = account.id.replace(/[^A-Za-z0-9_-]/g, "").slice(0, 50) || randomUUID();
+      const created = await createCashfreeOrder(config, {
+        orderId,
+        amountPaise: quote.amountPaise,
+        customerId,
+        customerName: account.displayName,
+        customerEmail: account.email,
+        customerPhone,
+        returnUrl: returnUrl.toString(),
+        notifyUrl: notifyUrl.toString(),
+        note: `${quote.planName} · ${quote.durationDays} days`,
+        idempotencyKey: orderRecord.idempotencyKey,
+      });
+      if (created.orderId !== orderId
+        || created.orderAmountPaise !== quote.amountPaise
+        || created.orderCurrency !== "INR"
+        || !created.paymentSessionId) {
+        throw new Error("Cashfree order details did not match the server-calculated quote.");
+      }
+      const savedOrder: CashfreeOrderRecord = { ...orderRecord, paymentSessionId: created.paymentSessionId };
+      await firebasePut(`${cashfreeOrdersPath}/${encodeURIComponent(orderId)}`, savedOrder);
+      res.status(201).json({
+        orderId,
+        paymentSessionId: created.paymentSessionId,
+        environment: settings.cashfreeEnvironment,
+      });
+    });
+  } catch (error) {
+    sendError(req, res, error, "Could not start Cashfree checkout.");
+  }
+});
+
+router.post("/account/cashfree/verify", requireAccountAuth, async (req, res): Promise<void> => {
+  const parsed = VerifyCashfreePaymentBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "A valid Cashfree order ID is required." });
+    return;
+  }
+  try {
+    const { account } = await ensureAccount(req);
+    const result = await verifyAndApplyCashfreeOrder(parsed.data.orderId, account.id);
+    if (result.kind === "not-found") {
+      res.status(404).json({ error: "Cashfree order not found for this account." });
+      return;
+    }
+    if (result.kind === "integrity-error") {
+      res.status(502).json({ error: "Cashfree payment details could not be verified safely." });
+      return;
+    }
+    res.json({
+      orderId: parsed.data.orderId,
+      status: result.status,
+      accessActivated: result.accessActivated,
+    });
+  } catch (error) {
+    sendError(req, res, error, "Could not verify the Cashfree payment.");
+  }
+});
+
+router.post("/account/cashfree/webhook", async (req, res): Promise<void> => {
+  const rawBody = Buffer.isBuffer(req.body) ? req.body.toString("utf8") : "";
+  if (!rawBody) {
+    res.status(400).json({ error: "Cashfree webhook body is missing." });
+    return;
+  }
+  let payload: unknown;
+  try {
+    payload = JSON.parse(rawBody);
+  } catch {
+    res.status(400).json({ error: "Cashfree webhook body is invalid." });
+    return;
+  }
+  const data = typeof payload === "object" && payload !== null && "data" in payload
+    ? (payload as { data?: unknown }).data
+    : null;
+  const order = typeof data === "object" && data !== null && "order" in data
+    ? (data as { order?: unknown }).order
+    : null;
+  const orderId = typeof order === "object" && order !== null && "order_id" in order
+    && typeof (order as { order_id?: unknown }).order_id === "string"
+    ? (order as { order_id: string }).order_id
+    : "";
+  if (!orderId) {
+    res.status(400).json({ error: "Cashfree webhook does not contain an order ID." });
+    return;
+  }
+  try {
+    const orderRecord = await loadCashfreeOrder(orderId);
+    if (!orderRecord) {
+      req.log.warn({ orderId }, "Ignoring Cashfree webhook for an unknown order");
+      res.json({ received: true });
+      return;
+    }
+    const config = getCashfreeConfig(orderRecord.environment);
+    const signature = req.header("x-webhook-signature") || "";
+    const timestamp = req.header("x-webhook-timestamp") || "";
+    if (!config || !verifyCashfreeWebhookSignature(config, signature, timestamp, rawBody)) {
+      req.log.warn({ orderId }, "Rejected Cashfree webhook with an invalid signature");
+      res.status(401).json({ error: "Invalid Cashfree webhook signature." });
+      return;
+    }
+    const result = await verifyAndApplyCashfreeOrder(orderId);
+    if (result.kind === "integrity-error") {
+      req.log.error({ orderId }, "Cashfree webhook order failed payment integrity checks");
+      res.status(502).json({ error: "Cashfree order could not be verified." });
+      return;
+    }
+    res.json({ received: true });
+  } catch (error) {
+    sendError(req, res, error, "Could not process the Cashfree webhook.");
+  }
+});
+
 router.post("/account/subscription/select", requireAccountAuth, (_req, res): void => {
-  res.status(410).json({ error: "Paid plans activate only after you submit a UPI payment request and the owner approves it." });
+  res.status(410).json({ error: "Paid plans activate only after Cashfree verifies payment or an owner approves a manual UPI request." });
 });
 
 router.post("/account/claim-owner", requireClerkAuth, async (req, res): Promise<void> => {
@@ -1173,25 +1621,35 @@ router.put("/owner/payment-settings", async (req, res): Promise<void> => {
   if (!(await requireAccountOwner(req, res))) return;
   const parsed = UpdateOwnerPaymentSettingsBody.safeParse(req.body);
   if (!parsed.success) {
-    res.status(400).json({ error: "Enter a valid UPI ID and payee name." });
+    res.status(400).json({ error: "Enter valid payment settings." });
     return;
   }
-  const upiId = parsed.data.upiId.trim();
-  const payeeName = parsed.data.payeeName.trim();
-  if (!isValidUpiId(upiId) || !payeeName) {
-    res.status(400).json({ error: "Enter a valid UPI ID and payee name." });
+  if (
+    parsed.data.upiId === undefined
+    && parsed.data.payeeName === undefined
+    && parsed.data.paymentMode === undefined
+    && parsed.data.cashfreeEnvironment === undefined
+  ) {
+    res.status(400).json({ error: "Change at least one payment setting." });
     return;
   }
   try {
+    const current = await loadPaymentSettings();
     const settings: PaymentSettingsRecord = {
-      upiId,
-      payeeName,
+      upiId: parsed.data.upiId?.trim() ?? current.upiId,
+      payeeName: parsed.data.payeeName?.trim() ?? current.payeeName,
+      paymentMode: parsed.data.paymentMode ?? current.paymentMode,
+      cashfreeEnvironment: parsed.data.cashfreeEnvironment ?? current.cashfreeEnvironment,
       updatedAt: new Date().toISOString(),
     };
+    if (settings.paymentMode === "manual" && (!isValidUpiId(settings.upiId) || !settings.payeeName)) {
+      res.status(400).json({ error: "Manual UPI mode requires a valid UPI ID and payee name." });
+      return;
+    }
     await firebasePut(paymentSettingsPath, settings);
     res.json(await paymentSettingsResponse(settings));
   } catch (error) {
-    sendError(req, res, error, "Could not save UPI payment settings.");
+    sendError(req, res, error, "Could not save payment settings.");
   }
 });
 
@@ -1204,7 +1662,8 @@ router.get("/owner/payment-requests", async (req, res): Promise<void> => {
   }
   try {
     const requests = Object.values(await loadPaymentRequests())
-      .filter((request) => !status || request.status === status)
+      .filter((request) => (!status || request.status === status)
+        && (status !== "pending" || request.paymentMethod === "upi"))
       .sort((left, right) => right.createdAt.localeCompare(left.createdAt));
     const requestsWithImages = await Promise.all(requests.map(async (request) => {
       if (!request.screenshotPath) return { ...request, screenshotUrl: null };
@@ -1236,6 +1695,10 @@ router.post("/owner/payment-requests/:requestId/review", async (req, res): Promi
       const request = (await loadPaymentRequests())[requestId];
       if (!request) {
         res.status(404).json({ error: "Payment request not found." });
+        return;
+      }
+      if (request.paymentMethod !== "upi") {
+        res.status(409).json({ error: "Cashfree payments are verified automatically and cannot be reviewed manually." });
         return;
       }
       if (request.status !== "pending") {

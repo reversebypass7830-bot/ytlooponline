@@ -1429,6 +1429,7 @@ export const QuoteAccountPaymentBody = zod.object({
 })
 
 export const QuoteAccountPaymentResponse = zod.object({
+  "paymentMode": zod.enum(['manual', 'cashfree']),
   "planId": zod.string(),
   "planName": zod.string(),
   "packType": zod.enum(['Days', 'Monthly', 'Yearly']),
@@ -1455,6 +1456,9 @@ export const listAccountPaymentRequestsResponseRequestsItemScreenshotPathRegExp 
 
 export const ListAccountPaymentRequestsResponse = zod.object({
   "requests": zod.array(zod.object({
+  "paymentMethod": zod.enum(['upi', 'cashfree']),
+  "cashfreeOrderId": zod.string().nullable(),
+  "cashfreePaymentId": zod.string().nullable(),
   "id": zod.string(),
   "accountId": zod.string(),
   "accountName": zod.string(),
@@ -1513,6 +1517,9 @@ export const createAccountPaymentRequestResponseRequestScreenshotPathRegExp = ne
 
 export const CreateAccountPaymentRequestResponse = zod.object({
   "request": zod.object({
+  "paymentMethod": zod.enum(['upi', 'cashfree']),
+  "cashfreeOrderId": zod.string().nullable(),
+  "cashfreePaymentId": zod.string().nullable(),
   "id": zod.string(),
   "accountId": zod.string(),
   "accountName": zod.string(),
@@ -1538,6 +1545,68 @@ export const CreateAccountPaymentRequestResponse = zod.object({
   "screenshotPath": zod.string().regex(createAccountPaymentRequestResponseRequestScreenshotPathRegExp).nullable(),
   "screenshotUrl": zod.string().nullable()
 })
+})
+
+
+/**
+ * @summary Create a Cashfree hosted-checkout order for the signed-in account
+ */
+
+export const createCashfreeOrderBodyOneDurationDaysMax = 5475;
+
+export const createCashfreeOrderBodyOneStreamsPerDayMax = 100;
+
+export const createCashfreeOrderBodyOneDownloadsPerDayMax = 1000000;
+
+export const createCashfreeOrderBodyTwoAttemptIdMin = 36;
+export const createCashfreeOrderBodyTwoAttemptIdMax = 36;
+
+
+export const createCashfreeOrderBodyTwoAttemptIdRegExp = new RegExp('^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89aAbB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$');
+
+
+export const CreateCashfreeOrderBody = zod.object({
+  "planId": zod.string().min(1),
+  "packType": zod.enum(['Days', 'Monthly', 'Yearly']),
+  "durationDays": zod.number().min(1).max(createCashfreeOrderBodyOneDurationDaysMax),
+  "streamsPerDay": zod.number().min(1).max(createCashfreeOrderBodyOneStreamsPerDayMax),
+  "downloadsPerDay": zod.number().min(1).max(createCashfreeOrderBodyOneDownloadsPerDayMax)
+}).and(zod.object({
+  "attemptId": zod.string().min(createCashfreeOrderBodyTwoAttemptIdMin).max(createCashfreeOrderBodyTwoAttemptIdMax).regex(createCashfreeOrderBodyTwoAttemptIdRegExp)
+}))
+
+export const CreateCashfreeOrderResponse = zod.object({
+  "orderId": zod.string(),
+  "paymentSessionId": zod.string(),
+  "environment": zod.enum(['sandbox', 'production'])
+})
+
+
+/**
+ * @summary Verify a Cashfree payment for the signed-in account
+ */
+export const verifyCashfreePaymentBodyOrderIdMax = 45;
+
+
+
+export const VerifyCashfreePaymentBody = zod.object({
+  "orderId": zod.string().min(1).max(verifyCashfreePaymentBodyOrderIdMax)
+})
+
+export const VerifyCashfreePaymentResponse = zod.object({
+  "orderId": zod.string(),
+  "status": zod.enum(['pending', 'paid', 'failed']),
+  "accessActivated": zod.boolean()
+})
+
+
+/**
+ * @summary Receive and verify Cashfree payment webhooks
+ */
+export const ReceiveCashfreeWebhookBody = zod.record(zod.string(), zod.unknown())
+
+export const ReceiveCashfreeWebhookResponse = zod.object({
+  "received": zod.boolean()
 })
 
 
@@ -1760,6 +1829,10 @@ export const GetOwnerPaymentSettingsHeader = zod.object({
 export const GetOwnerPaymentSettingsResponse = zod.object({
   "upiId": zod.string(),
   "payeeName": zod.string(),
+  "paymentMode": zod.enum(['manual', 'cashfree']),
+  "cashfreeEnvironment": zod.enum(['sandbox', 'production']),
+  "cashfreeSandboxConfigured": zod.boolean(),
+  "cashfreeProductionConfigured": zod.boolean(),
   "updatedAt": zod.coerce.date().nullable()
 })
 
@@ -1779,13 +1852,19 @@ export const updateOwnerPaymentSettingsBodyPayeeNameMax = 100;
 
 
 export const UpdateOwnerPaymentSettingsBody = zod.object({
-  "upiId": zod.string().min(updateOwnerPaymentSettingsBodyUpiIdMin).max(updateOwnerPaymentSettingsBodyUpiIdMax),
-  "payeeName": zod.string().min(1).max(updateOwnerPaymentSettingsBodyPayeeNameMax)
+  "upiId": zod.string().min(updateOwnerPaymentSettingsBodyUpiIdMin).max(updateOwnerPaymentSettingsBodyUpiIdMax).optional(),
+  "payeeName": zod.string().min(1).max(updateOwnerPaymentSettingsBodyPayeeNameMax).optional(),
+  "paymentMode": zod.enum(['manual', 'cashfree']).optional(),
+  "cashfreeEnvironment": zod.enum(['sandbox', 'production']).optional()
 })
 
 export const UpdateOwnerPaymentSettingsResponse = zod.object({
   "upiId": zod.string(),
   "payeeName": zod.string(),
+  "paymentMode": zod.enum(['manual', 'cashfree']),
+  "cashfreeEnvironment": zod.enum(['sandbox', 'production']),
+  "cashfreeSandboxConfigured": zod.boolean(),
+  "cashfreeProductionConfigured": zod.boolean(),
   "updatedAt": zod.coerce.date().nullable()
 })
 
@@ -1806,6 +1885,9 @@ export const listOwnerPaymentRequestsResponseRequestsItemScreenshotPathRegExp = 
 
 export const ListOwnerPaymentRequestsResponse = zod.object({
   "requests": zod.array(zod.object({
+  "paymentMethod": zod.enum(['upi', 'cashfree']),
+  "cashfreeOrderId": zod.string().nullable(),
+  "cashfreePaymentId": zod.string().nullable(),
   "id": zod.string(),
   "accountId": zod.string(),
   "accountName": zod.string(),
@@ -1859,6 +1941,9 @@ export const reviewOwnerPaymentRequestResponseRequestScreenshotPathRegExp = new 
 
 export const ReviewOwnerPaymentRequestResponse = zod.object({
   "request": zod.object({
+  "paymentMethod": zod.enum(['upi', 'cashfree']),
+  "cashfreeOrderId": zod.string().nullable(),
+  "cashfreePaymentId": zod.string().nullable(),
   "id": zod.string(),
   "accountId": zod.string(),
   "accountName": zod.string(),

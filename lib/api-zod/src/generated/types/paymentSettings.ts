@@ -5,10 +5,16 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { PaymentSettingsCashfreeEnvironment } from './paymentSettingsCashfreeEnvironment';
+import type { PaymentSettingsPaymentMode } from './paymentSettingsPaymentMode';
 
 export interface PaymentSettings {
   upiId: string;
   payeeName: string;
+  paymentMode: PaymentSettingsPaymentMode;
+  cashfreeEnvironment: PaymentSettingsCashfreeEnvironment;
+  cashfreeSandboxConfigured: boolean;
+  cashfreeProductionConfigured: boolean;
   /** @nullable */
   updatedAt: Date | null;
 }

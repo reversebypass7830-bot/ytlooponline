@@ -5,16 +5,20 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { PaymentSettingsInputCashfreeEnvironment } from './paymentSettingsInputCashfreeEnvironment';
+import type { PaymentSettingsInputPaymentMode } from './paymentSettingsInputPaymentMode';
 
 export interface PaymentSettingsInput {
   /**
      * @minLength 3
      * @maxLength 100
      */
-  upiId: string;
+  upiId?: string;
   /**
      * @minLength 1
      * @maxLength 100
      */
-  payeeName: string;
+  payeeName?: string;
+  paymentMode?: PaymentSettingsInputPaymentMode;
+  cashfreeEnvironment?: PaymentSettingsInputCashfreeEnvironment;
 }

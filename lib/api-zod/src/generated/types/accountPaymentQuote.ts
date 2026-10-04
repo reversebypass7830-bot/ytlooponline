@@ -6,8 +6,10 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { AccountPaymentQuotePackType } from './accountPaymentQuotePackType';
+import type { AccountPaymentQuotePaymentMode } from './accountPaymentQuotePaymentMode';
 
 export interface AccountPaymentQuote {
+  paymentMode: AccountPaymentQuotePaymentMode;
   planId: string;
   planName: string;
   packType: AccountPaymentQuotePackType;

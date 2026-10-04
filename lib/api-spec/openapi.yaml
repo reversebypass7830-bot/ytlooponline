@@ -1025,6 +1025,68 @@ paths:
                 $ref: "#/components/schemas/PaymentRequestResponse"
         "400":
           description: Invalid transaction reference or payment details
+  /account/cashfree/orders:
+    post:
+      operationId: createCashfreeOrder
+      tags: [billing]
+      summary: Create a Cashfree hosted-checkout order for the signed-in account
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CashfreeOrderInput"
+      responses:
+        "201":
+          description: Cashfree order created; the payment session is returned to its owner
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CashfreeOrderResponse"
+        "400":
+          description: Invalid payment selection
+        "409":
+          description: Cashfree checkout is not enabled or account details are incomplete
+  /account/cashfree/verify:
+    post:
+      operationId: verifyCashfreePayment
+      tags: [billing]
+      summary: Verify a Cashfree payment for the signed-in account
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CashfreePaymentVerificationInput"
+      responses:
+        "200":
+          description: Server-verified Cashfree payment state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CashfreePaymentVerification"
+        "404":
+          description: Cashfree order not found for this account
+  /account/cashfree/webhook:
+    post:
+      operationId: receiveCashfreeWebhook
+      tags: [billing]
+      summary: Receive and verify Cashfree payment webhooks
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CashfreeWebhookPayload"
+      responses:
+        "200":
+          description: Webhook received
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CashfreeWebhookAck"
+        "401":
+          description: Invalid Cashfree webhook signature
   /account/payment-proof/upload-url:
     post:
       operationId: createAccountPaymentProofUploadUrl
@@ -2399,10 +2461,20 @@ components:
           type: string
         payeeName:
           type: string
+        paymentMode:
+          type: string
+          enum: [manual, cashfree]
+        cashfreeEnvironment:
+          type: string
+          enum: [sandbox, production]
+        cashfreeSandboxConfigured:
+          type: boolean
+        cashfreeProductionConfigured:
+          type: boolean
         updatedAt:
           type: ["string", "null"]
           format: date-time
-      required: [upiId, payeeName, updatedAt]
+      required: [upiId, payeeName, paymentMode, cashfreeEnvironment, cashfreeSandboxConfigured, cashfreeProductionConfigured, updatedAt]
     PaymentSettingsInput:
       type: object
       properties:
@@ -2414,7 +2486,12 @@ components:
           type: string
           minLength: 1
           maxLength: 100
-      required: [upiId, payeeName]
+        paymentMode:
+          type: string
+          enum: [manual, cashfree]
+        cashfreeEnvironment:
+          type: string
+          enum: [sandbox, production]
     PaymentAssetUploadUrlInput:
       type: object
       properties:
@@ -2463,6 +2540,9 @@ components:
     AccountPaymentQuote:
       type: object
       properties:
+        paymentMode:
+          type: string
+          enum: [manual, cashfree]
         planId:
           type: string
         planName:
@@ -2497,6 +2577,7 @@ components:
           items:
             type: string
       required:
+        - paymentMode
         - planId
         - planName
         - packType
@@ -2512,6 +2593,56 @@ components:
         - upiId
         - payeeName
         - features
+    CashfreeOrderInput:
+      allOf:
+        - $ref: "#/components/schemas/AccountPaymentQuoteInput"
+        - type: object
+          properties:
+            attemptId:
+              type: string
+              minLength: 36
+              maxLength: 36
+              pattern: "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89aAbB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$"
+          required: [attemptId]
+    CashfreeOrderResponse:
+      type: object
+      properties:
+        orderId:
+          type: string
+        paymentSessionId:
+          type: string
+        environment:
+          type: string
+          enum: [sandbox, production]
+      required: [orderId, paymentSessionId, environment]
+    CashfreePaymentVerificationInput:
+      type: object
+      properties:
+        orderId:
+          type: string
+          minLength: 1
+          maxLength: 45
+      required: [orderId]
+    CashfreePaymentVerification:
+      type: object
+      properties:
+        orderId:
+          type: string
+        status:
+          type: string
+          enum: [pending, paid, failed]
+        accessActivated:
+          type: boolean
+      required: [orderId, status, accessActivated]
+    CashfreeWebhookPayload:
+      type: object
+      additionalProperties: true
+    CashfreeWebhookAck:
+      type: object
+      properties:
+        received:
+          type: boolean
+      required: [received]
     AccountPaymentRequestInput:
       allOf:
         - $ref: "#/components/schemas/AccountPaymentQuoteInput"
@@ -2537,6 +2668,13 @@ components:
     PaymentRequest:
       type: object
       properties:
+        paymentMethod:
+          type: string
+          enum: [upi, cashfree]
+        cashfreeOrderId:
+          type: ["string", "null"]
+        cashfreePaymentId:
+          type: ["string", "null"]
         id:
           type: string
         accountId:
@@ -2593,6 +2731,9 @@ components:
         screenshotUrl:
           type: ["string", "null"]
       required:
+        - paymentMethod
+        - cashfreeOrderId
+        - cashfreePaymentId
         - id
         - accountId
         - accountName

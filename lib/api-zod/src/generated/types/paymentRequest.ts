@@ -6,9 +6,15 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { PaymentRequestPackType } from './paymentRequestPackType';
+import type { PaymentRequestPaymentMethod } from './paymentRequestPaymentMethod';
 import type { PaymentRequestStatus } from './paymentRequestStatus';
 
 export interface PaymentRequest {
+  paymentMethod: PaymentRequestPaymentMethod;
+  /** @nullable */
+  cashfreeOrderId: string | null;
+  /** @nullable */
+  cashfreePaymentId: string | null;
   id: string;
   accountId: string;
   accountName: string;

@@ -934,24 +934,62 @@ export interface BillingPlanResponse {
   plan: BillingPlan;
 }
 
+export type PaymentSettingsPaymentMode = typeof PaymentSettingsPaymentMode[keyof typeof PaymentSettingsPaymentMode];
+
+
+export const PaymentSettingsPaymentMode = {
+  manual: 'manual',
+  cashfree: 'cashfree',
+} as const;
+
+export type PaymentSettingsCashfreeEnvironment = typeof PaymentSettingsCashfreeEnvironment[keyof typeof PaymentSettingsCashfreeEnvironment];
+
+
+export const PaymentSettingsCashfreeEnvironment = {
+  sandbox: 'sandbox',
+  production: 'production',
+} as const;
+
 export interface PaymentSettings {
   upiId: string;
   payeeName: string;
+  paymentMode: PaymentSettingsPaymentMode;
+  cashfreeEnvironment: PaymentSettingsCashfreeEnvironment;
+  cashfreeSandboxConfigured: boolean;
+  cashfreeProductionConfigured: boolean;
   /** @nullable */
   updatedAt: string | null;
 }
+
+export type PaymentSettingsInputPaymentMode = typeof PaymentSettingsInputPaymentMode[keyof typeof PaymentSettingsInputPaymentMode];
+
+
+export const PaymentSettingsInputPaymentMode = {
+  manual: 'manual',
+  cashfree: 'cashfree',
+} as const;
+
+export type PaymentSettingsInputCashfreeEnvironment = typeof PaymentSettingsInputCashfreeEnvironment[keyof typeof PaymentSettingsInputCashfreeEnvironment];
+
+
+export const PaymentSettingsInputCashfreeEnvironment = {
+  sandbox: 'sandbox',
+  production: 'production',
+} as const;
 
 export interface PaymentSettingsInput {
   /**
      * @minLength 3
      * @maxLength 100
      */
-  upiId: string;
+  upiId?: string;
   /**
      * @minLength 1
      * @maxLength 100
      */
-  payeeName: string;
+  payeeName?: string;
+  paymentMode?: PaymentSettingsInputPaymentMode;
+  cashfreeEnvironment?: PaymentSettingsInputCashfreeEnvironment;
 }
 
 export type PaymentAssetUploadUrlInputContentType = typeof PaymentAssetUploadUrlInputContentType[keyof typeof PaymentAssetUploadUrlInputContentType];
@@ -1009,6 +1047,14 @@ export interface AccountPaymentQuoteInput {
   downloadsPerDay: number;
 }
 
+export type AccountPaymentQuotePaymentMode = typeof AccountPaymentQuotePaymentMode[keyof typeof AccountPaymentQuotePaymentMode];
+
+
+export const AccountPaymentQuotePaymentMode = {
+  manual: 'manual',
+  cashfree: 'cashfree',
+} as const;
+
 export type AccountPaymentQuotePackType = typeof AccountPaymentQuotePackType[keyof typeof AccountPaymentQuotePackType];
 
 
@@ -1019,6 +1065,7 @@ export const AccountPaymentQuotePackType = {
 } as const;
 
 export interface AccountPaymentQuote {
+  paymentMode: AccountPaymentQuotePaymentMode;
   planId: string;
   planName: string;
   packType: AccountPaymentQuotePackType;
@@ -1034,6 +1081,58 @@ export interface AccountPaymentQuote {
   upiId: string;
   payeeName: string;
   features: string[];
+}
+
+export type CashfreeOrderInput = AccountPaymentQuoteInput & {
+  /**
+     * @minLength 36
+     * @maxLength 36
+     * @pattern ^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89aAbB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$
+     */
+  attemptId: string;
+};
+
+export type CashfreeOrderResponseEnvironment = typeof CashfreeOrderResponseEnvironment[keyof typeof CashfreeOrderResponseEnvironment];
+
+
+export const CashfreeOrderResponseEnvironment = {
+  sandbox: 'sandbox',
+  production: 'production',
+} as const;
+
+export interface CashfreeOrderResponse {
+  orderId: string;
+  paymentSessionId: string;
+  environment: CashfreeOrderResponseEnvironment;
+}
+
+export interface CashfreePaymentVerificationInput {
+  /**
+     * @minLength 1
+     * @maxLength 45
+     */
+  orderId: string;
+}
+
+export type CashfreePaymentVerificationStatus = typeof CashfreePaymentVerificationStatus[keyof typeof CashfreePaymentVerificationStatus];
+
+
+export const CashfreePaymentVerificationStatus = {
+  pending: 'pending',
+  paid: 'paid',
+  failed: 'failed',
+} as const;
+
+export interface CashfreePaymentVerification {
+  orderId: string;
+  status: CashfreePaymentVerificationStatus;
+  accessActivated: boolean;
+}
+
+export interface CashfreeWebhookPayload { [key: string]: unknown }
+
+export interface CashfreeWebhookAck {
+  received: boolean;
 }
 
 export type AccountPaymentRequestInput = AccountPaymentQuoteInput & ({
@@ -1060,6 +1159,14 @@ export interface PaymentReviewInput {
   note?: string;
 }
 
+export type PaymentRequestPaymentMethod = typeof PaymentRequestPaymentMethod[keyof typeof PaymentRequestPaymentMethod];
+
+
+export const PaymentRequestPaymentMethod = {
+  upi: 'upi',
+  cashfree: 'cashfree',
+} as const;
+
 export type PaymentRequestPackType = typeof PaymentRequestPackType[keyof typeof PaymentRequestPackType];
 
 
@@ -1079,6 +1186,11 @@ export const PaymentRequestStatus = {
 } as const;
 
 export interface PaymentRequest {
+  paymentMethod: PaymentRequestPaymentMethod;
+  /** @nullable */
+  cashfreeOrderId: string | null;
+  /** @nullable */
+  cashfreePaymentId: string | null;
   id: string;
   accountId: string;
   accountName: string;

@@ -200,6 +200,7 @@
 .manual-payment-page .pay-section-title h2 { color:var(--bill-ink); }
 .manual-payment-page .pay-section-title p { font-size:12px; }
 .manual-payment-page .pay-alert.success { color:#047857; border-color:#a7f3d0; background:#ecfdf5; }
+.manual-payment-page .pay-alert.pending { color:#075985; border-color:#bae6fd; background:#f0f9ff; }
 .manual-payment-page .pay-alert.error { color:#991b1b; border-color:#fecaca; background:#fef2f2; }
 .manual-payment-page .pay-qr-side { min-width:0; }
 .manual-payment-page .pay-qr-frame { display:grid; place-items:center; max-width:100%; padding:11px; border-color:var(--bill-line); border-radius:16px; background:#fff; box-shadow:none; }
@@ -496,8 +497,10 @@
   box-shadow:0 0 0 3px rgba(17,24,39,.08);
 }
 .manual-payment-page .pay-alert.success,
+.manual-payment-page .pay-alert.pending,
 .manual-payment-page .pay-alert.error,
 .owner-payment-page .pay-alert.success,
+.owner-payment-page .pay-alert.pending,
 .owner-payment-page .pay-alert.error {
   color:#6b7280;
   border-color:#e5e7eb;
@@ -1047,4 +1050,66 @@ body:has(.pay-checkout-dialog) [data-radix-dialog-overlay] {
   .pay-checkout-dialog .pay-total-panel { padding:15px; }
   .pay-checkout-dialog .pay-qr-side { padding:13px; }
   .pay-checkout-dialog .payee-details { grid-template-columns:54px minmax(0,1fr); gap:8px; padding:11px; }
+}
+
+.owner-gateway-controls,
+.owner-upi-fields {
+  display:grid;
+  grid-template-columns:repeat(2, minmax(0, 1fr));
+  gap:12px;
+}
+.owner-payment-page .owner-gateway-controls select {
+  width:100%;
+  min-height:43px;
+  padding:0 12px;
+  border:1px solid var(--bill-line);
+  border-radius:11px;
+  background:#fff;
+  color:var(--bill-ink);
+  font:500 13px "Figtree",sans-serif;
+}
+.owner-payment-page .owner-gateway-controls select:focus-visible {
+  border-color:#10b981;
+  outline:3px solid rgba(16,185,129,.15);
+}
+.owner-payment-page .owner-gateway-controls select:disabled { opacity:.6; cursor:not-allowed; }
+.cashfree-config-status {
+  display:grid;
+  gap:6px;
+  padding:14px 15px;
+  border:1px solid #fecaca;
+  border-radius:13px;
+  background:#fff7f7;
+  color:#7f1d1d;
+  font-size:12px;
+  line-height:1.5;
+}
+.cashfree-config-status.configured {
+  border-color:#a7f3d0;
+  background:#f0fdf4;
+  color:#065f46;
+}
+.cashfree-config-status strong { font-size:13px; }
+.cashfree-config-status small { color:var(--bill-muted); }
+.cashfree-checkout-panel { gap:13px; }
+.cashfree-wordmark {
+  display:flex;
+  align-items:baseline;
+  gap:7px;
+  margin-bottom:4px;
+  color:#073b68;
+}
+.cashfree-wordmark span { font:800 22px "Plus Jakarta Sans",sans-serif; letter-spacing:-.04em; }
+.cashfree-wordmark small { color:#1489e8; font-size:9px; font-weight:800; letter-spacing:.12em; }
+.cashfree-verification-note {
+  display:flex;
+  align-items:center;
+  gap:6px;
+  color:var(--bill-muted);
+  font-size:11px;
+}
+.pay-alert .button { flex:0 0 auto; }
+@media (max-width: 600px) {
+  .owner-gateway-controls,
+  .owner-upi-fields { grid-template-columns:minmax(0,1fr); }
 }

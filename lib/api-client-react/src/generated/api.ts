@@ -28,6 +28,12 @@ import type {
   BillingPlanListResponse,
   BillingPlanResponse,
   BillingPlanUpdate,
+  CashfreeOrderInput,
+  CashfreeOrderResponse,
+  CashfreePaymentVerification,
+  CashfreePaymentVerificationInput,
+  CashfreeWebhookAck,
+  CashfreeWebhookPayload,
   ComposeMediaInput,
   CreateFeedbackInput,
   CreateLicenseInput,
@@ -3346,6 +3352,219 @@ export const useCreateAccountPaymentRequest = <TError = ErrorType<void>,
         TContext
       > => {
       return useMutation(getCreateAccountPaymentRequestMutationOptions(options));
+    }
+
+export const getCreateCashfreeOrderUrl = () => {
+
+
+
+
+  return `/api/account/cashfree/orders`
+}
+
+/**
+ * @summary Create a Cashfree hosted-checkout order for the signed-in account
+ */
+export const createCashfreeOrder = async (cashfreeOrderInput: CashfreeOrderInput, options?: Parameters<typeof customFetch>[1]): Promise<CashfreeOrderResponse> => {
+
+  return customFetch<CashfreeOrderResponse>(getCreateCashfreeOrderUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(cashfreeOrderInput)
+  }
+);}
+
+
+
+
+
+export const getCreateCashfreeOrderMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createCashfreeOrder>>, TError,{data: BodyType<CashfreeOrderInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createCashfreeOrder>>, TError,{data: BodyType<CashfreeOrderInput>}, TContext> => {
+
+const mutationKey = ['createCashfreeOrder'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createCashfreeOrder>>, {data: BodyType<CashfreeOrderInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createCashfreeOrder(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateCashfreeOrderMutationResult = NonNullable<Awaited<ReturnType<typeof createCashfreeOrder>>>
+    export type CreateCashfreeOrderMutationBody = BodyType<CashfreeOrderInput>
+    export type CreateCashfreeOrderMutationError = ErrorType<void>
+
+    /**
+ * @summary Create a Cashfree hosted-checkout order for the signed-in account
+ */
+export const useCreateCashfreeOrder = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createCashfreeOrder>>, TError,{data: BodyType<CashfreeOrderInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createCashfreeOrder>>,
+        TError,
+        {data: BodyType<CashfreeOrderInput>},
+        TContext
+      > => {
+      return useMutation(getCreateCashfreeOrderMutationOptions(options));
+    }
+
+export const getVerifyCashfreePaymentUrl = () => {
+
+
+
+
+  return `/api/account/cashfree/verify`
+}
+
+/**
+ * @summary Verify a Cashfree payment for the signed-in account
+ */
+export const verifyCashfreePayment = async (cashfreePaymentVerificationInput: CashfreePaymentVerificationInput, options?: Parameters<typeof customFetch>[1]): Promise<CashfreePaymentVerification> => {
+
+  return customFetch<CashfreePaymentVerification>(getVerifyCashfreePaymentUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(cashfreePaymentVerificationInput)
+  }
+);}
+
+
+
+
+
+export const getVerifyCashfreePaymentMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof verifyCashfreePayment>>, TError,{data: BodyType<CashfreePaymentVerificationInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof verifyCashfreePayment>>, TError,{data: BodyType<CashfreePaymentVerificationInput>}, TContext> => {
+
+const mutationKey = ['verifyCashfreePayment'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof verifyCashfreePayment>>, {data: BodyType<CashfreePaymentVerificationInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  verifyCashfreePayment(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type VerifyCashfreePaymentMutationResult = NonNullable<Awaited<ReturnType<typeof verifyCashfreePayment>>>
+    export type VerifyCashfreePaymentMutationBody = BodyType<CashfreePaymentVerificationInput>
+    export type VerifyCashfreePaymentMutationError = ErrorType<void>
+
+    /**
+ * @summary Verify a Cashfree payment for the signed-in account
+ */
+export const useVerifyCashfreePayment = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof verifyCashfreePayment>>, TError,{data: BodyType<CashfreePaymentVerificationInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof verifyCashfreePayment>>,
+        TError,
+        {data: BodyType<CashfreePaymentVerificationInput>},
+        TContext
+      > => {
+      return useMutation(getVerifyCashfreePaymentMutationOptions(options));
+    }
+
+export const getReceiveCashfreeWebhookUrl = () => {
+
+
+
+
+  return `/api/account/cashfree/webhook`
+}
+
+/**
+ * @summary Receive and verify Cashfree payment webhooks
+ */
+export const receiveCashfreeWebhook = async (cashfreeWebhookPayload: CashfreeWebhookPayload, options?: Parameters<typeof customFetch>[1]): Promise<CashfreeWebhookAck> => {
+
+  return customFetch<CashfreeWebhookAck>(getReceiveCashfreeWebhookUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(cashfreeWebhookPayload)
+  }
+);}
+
+
+
+
+
+export const getReceiveCashfreeWebhookMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof receiveCashfreeWebhook>>, TError,{data: BodyType<CashfreeWebhookPayload>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof receiveCashfreeWebhook>>, TError,{data: BodyType<CashfreeWebhookPayload>}, TContext> => {
+
+const mutationKey = ['receiveCashfreeWebhook'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof receiveCashfreeWebhook>>, {data: BodyType<CashfreeWebhookPayload>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  receiveCashfreeWebhook(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ReceiveCashfreeWebhookMutationResult = NonNullable<Awaited<ReturnType<typeof receiveCashfreeWebhook>>>
+    export type ReceiveCashfreeWebhookMutationBody = BodyType<CashfreeWebhookPayload>
+    export type ReceiveCashfreeWebhookMutationError = ErrorType<void>
+
+    /**
+ * @summary Receive and verify Cashfree payment webhooks
+ */
+export const useReceiveCashfreeWebhook = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof receiveCashfreeWebhook>>, TError,{data: BodyType<CashfreeWebhookPayload>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof receiveCashfreeWebhook>>,
+        TError,
+        {data: BodyType<CashfreeWebhookPayload>},
+        TContext
+      > => {
+      return useMutation(getReceiveCashfreeWebhookMutationOptions(options));
     }
 
 export const getCreateAccountPaymentProofUploadUrlUrl = () => {
