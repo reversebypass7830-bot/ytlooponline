@@ -218,13 +218,13 @@ export default function LoginPage({
             <img className="streamly-login-card-logo" src="/images/ytloop-logo.png" alt="YT Loop" />
             <span>24/7 broadcast control</span>
           </div>
-          <p className="streamly-login-copy text-center text-[25px]">{expired ? "Renew your current license to keep your channels, videos, and settings exactly as you left them." : "Continue with Google. No phone number is needed to sign in."}</p>
+          <p className="streamly-login-copy text-center">{expired ? "Renew your current license to keep your channels, videos, and settings exactly as you left them." : "Continue with Google. No phone number is needed to sign in."}</p>
           {shownError && <div className="streamly-login-error" role="alert"><MaterialIcon name="warning" /><span>{shownError}</span></div>}
           <div id="login-method-panel" className="streamly-login-method-panel" role="region" aria-label={method === "google" ? "Google sign-in" : method === "phone" ? "Phone sign-in" : "License key sign-in"}>
             {method === "google" && <div className="streamly-login-google-first">
               <button className="streamly-login-google-primary" type="button" onClick={() => { void onGoogleLogin(); }} disabled={busy}>
                 <img className="streamly-google-logo" src="/images/google-logo.png" alt="" aria-hidden="true" />
-                {busy ? "Connecting…" : "Continue with Google"}
+                <span>{busy ? "Connecting…" : "Continue with Google"}</span>
               </button>
               <p className="streamly-login-google-note">Add and verify a phone number in Profile later only if you want to claim the 24-hour offer.</p>
               <div className="streamly-login-alternatives" aria-label="Other sign-in options">

@@ -3458,7 +3458,8 @@ select { height: 41px; }
   position: relative;
   display: flex;
   min-height: 100dvh;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
   color: var(--sl-text);
   background:
     radial-gradient(circle at 50% -12%, rgba(255, 217, 231, .74), transparent 28rem),
@@ -5989,26 +5990,33 @@ select { height: 41px; }
 }
 
 .streamly-login-google-primary {
-  display: inline-flex;
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr);
   width: 100%;
-  min-height: 52px;
+  min-height: 54px;
   align-items: center;
-  justify-content: center;
   gap: 11px;
-  padding: 0 20px;
-  border: 1px solid #dadce0;
+  padding: 10px 16px;
+  border: 1px solid #aeb4bc;
   border-radius: 12px;
   color: #202124;
   background: #fff;
-  font: 600 15px 'Roboto', sans-serif;
+  box-shadow: 0 1px 3px rgba(32, 33, 36, .12);
+  font: 600 15px/1.25 'Roboto', sans-serif;
+  text-align: center;
   cursor: pointer;
-  transition: border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+  transition: border-color 160ms ease, background-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
 }
 
 .streamly-login-google-primary:hover:not(:disabled) {
   border-color: #c5c8cc;
+  background: #fff;
   box-shadow: 0 3px 10px rgba(32, 33, 36, .12);
   transform: translateY(-1px);
+}
+
+.streamly-login-google-primary:active:not(:disabled) {
+  transform: translateY(0);
 }
 
 .streamly-login-google-primary:focus-visible {
@@ -6024,11 +6032,20 @@ select { height: 41px; }
 .streamly-login-google-primary .streamly-google-logo {
   width: 20px;
   height: 20px;
+  flex: 0 0 20px;
+}
+
+.streamly-login-google-primary > span {
+  min-width: 0;
 }
 
 .streamly-login-google-note {
   margin: 12px 0 0;
+  padding: 10px 12px;
+  border: 1px solid #f0e6eb;
+  border-radius: 10px;
   color: var(--md-sys-color-on-surface-variant);
+  background: #fff9fb;
   font: 400 12px/1.5 'Roboto', sans-serif;
   text-align: center;
 }
