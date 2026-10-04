@@ -154,8 +154,8 @@ router.post("/account/phone/send-otp", requireAccountAuth, async (req: Request, 
       res.status(404).json({ error: "Your account could not be found." });
       return;
     }
-    if (account.phone) {
-      res.status(409).json({ error: "A mobile number is already linked to your account." });
+    if (account.phone && normalizePhone(account.phone) === phone) {
+      res.status(409).json({ error: "This mobile number is already linked to your account." });
       return;
     }
     if (phoneLinkedToAnotherAccount(accounts, phone, account.id)) {
@@ -224,8 +224,6 @@ router.post("/account/phone/verify-otp", requireAccountAuth, async (req: Request
         }));
         return;
       }
-      res.status(409).json({ error: "A different mobile number is already linked to your account." });
-      return;
     }
     if (phoneLinkedToAnotherAccount(accounts, phone, account.id)) {
       res.status(409).json({ error: "This mobile number is already linked to another account." });
@@ -291,8 +289,6 @@ router.post("/account/phone/verify-otp", requireAccountAuth, async (req: Request
         }));
         return;
       }
-      res.status(409).json({ error: "A different mobile number is already linked to your account." });
-      return;
     }
     if (phoneLinkedToAnotherAccount(latestAccounts, phone, latestAccount.id)) {
       res.status(409).json({ error: "This mobile number is already linked to another account." });

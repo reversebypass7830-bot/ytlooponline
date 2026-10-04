@@ -1688,9 +1688,11 @@ function FirebaseAuthPage({ mode, onGoogleLogin, busy, error }: {
   </div>;
 }
 
-function AccountPhoneLinker({ onVerified, className = "" }: {
+function AccountPhoneLinker({ onVerified, className = "", autoFocus = false, sendButtonLabel = "Send verification code" }: {
   onVerified: (phone: string) => void | Promise<void>;
   className?: string;
+  autoFocus?: boolean;
+  sendButtonLabel?: string;
 }) {
   const fieldId = useId();
   const phoneInputId = `${fieldId}-phone`;
@@ -1771,12 +1773,12 @@ function AccountPhoneLinker({ onVerified, className = "" }: {
           type="tel"
           placeholder="+91 98765 43210"
           data-testid="input-account-phone"
-          autoFocus={className.includes("completion")}
+          autoFocus={autoFocus}
         />
       </label>
       <p className="account-phone-hint">We will send a one-time code to verify this number.</p>
       <button className="button login-submit" type="submit" disabled={busy || phoneDigits.length !== 10} data-testid="button-send-account-phone-otp">
-        {busy ? "Sending code…" : "Send verification code"} <ArrowRight size={15}/>
+        {busy ? "Sending code…" : sendButtonLabel} <ArrowRight size={15}/>
       </button>
     </form> : <form onSubmit={verifyOtp}>
       <p className="account-phone-hint">Enter the 4-digit code sent to +91 {phoneDigits}.</p>
@@ -1842,11 +1844,13 @@ function AccountCompletionDialog({ account, onSave, onRefreshAccount, onClose }:
         <div className="profile-completion-icon"><Smartphone size={24}/></div>
         <p className="eyebrow">Complete your account</p>
         <DialogHeader>
-          <DialogTitle id="profile-completion-title">Please add your number</DialogTitle>
-          <DialogDescription className="profile-completion-copy">Verify a mobile number to finish setting up your account. You can add it later from Profile.</DialogDescription>
+          <DialogTitle id="profile-completion-title">Enter your mobile number</DialogTitle>
+          <DialogDescription className="profile-completion-copy">Verify your number with a one-time code to finish setting up your account.</DialogDescription>
         </DialogHeader>
         <AccountPhoneLinker
           className="account-phone-completion"
+          autoFocus
+          sendButtonLabel="Verify number"
           onVerified={async (phone) => {
             setVerifiedPhone(phone);
             await onRefreshAccount();
@@ -5172,7 +5176,7 @@ function ProfilePage({ workspace, account, firebaseUser, profilePhoto, onProfile
   const [passwordNotice, setPasswordNotice] = useState("");
   const [photoBusy, setPhotoBusy] = useState(false);
   const [photoAnimationKey, setPhotoAnimationKey] = useState(0);
-  const [profilePanel, setProfilePanel] = useState<"details" | "password" | null>(null);
+  const [profilePanel, setProfilePanel] = useState<"details" | "password" | "phone" | null>(null);
   const hasPasswordProvider = Boolean(firebaseUser?.providerData.some((provider) => provider.providerId === "password"));
   const displayPhoto = profilePhoto || defaultProfilePhoto(firebaseUser?.uid || workspace.licenseId || "profile");
 
@@ -5296,35 +5300,68 @@ function ProfilePage({ workspace, account, firebaseUser, profilePhoto, onProfile
         </div>
         <section className="profile-phone-panel" aria-labelledby="profile-phone-title">
           <div className="profile-action-panel-head">
-            <div><h2 id="profile-phone-title">Mobile number</h2><p className="subtle">A verified number is linked to your account.</p></div>
+            <div><h2 id="profile-phone-title">Mobile number</h2><p className="subtle">{account.phone ? "Your verified number is linked to this account." : "Add and verify a number for this account."}</p></div>
             <Smartphone size={18}/>
           </div>
           {account.phone ? <div className="profile-phone-verified">
             <strong>{account.phone}</strong>
             <span><Check size={14}/> Verified</span>
-          </div> : onSaveProfile ? <AccountPhoneLinker
-            onVerified={async () => { await onRefreshAccount(); }}
-          /> : <p className="account-phone-hint">Sign in to verify and add a mobile number to this account.</p>}
+          </div> : <p className="account-phone-hint">No mobile number is linked to this account yet.</p>}
+          {onSaveProfile && <button
+            type="button"
+            className="button profile-phone-update-button"
+            onClick={() => setProfilePanel("phone")}
+            data-testid="button-profile-update-mobile"
+          >
+            {account.phone ? "Update mobile number" : "Add mobile number"} <ArrowRight size={14}/>
+          </button>}
         </section>
-        {profilePanel === "details" && <div className="profile-action-panel">
-          <div className="profile-action-panel-head"><div><h2>Personal details</h2><p className="subtle">These details are used for your workspace account.</p></div><UserRound size={18}/></div>
-          <form className="profile-form" onSubmit={saveDetails}>
-            <div className="field"><label htmlFor="profile-name">Name</label><input id="profile-name" value={name} onChange={(event) => setName(event.target.value)} placeholder="Your name" data-testid="input-profile-name" /></div>
-            <div className="field"><label htmlFor="profile-email">Email</label><input id="profile-email" type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="you@example.com" data-testid="input-profile-email" /></div>
-            <button className="button" type="submit" disabled={saving || !name.trim() || Boolean(firebaseUser && !email.trim())}>{saving ? "Saving…" : "Save changes"} <Check size={14}/></button>
-            {notice && <p className="profile-message">{notice}</p>}
-          </form>
-        </div>}
-        {profilePanel === "password" && <div className="profile-action-panel">
-          <div className="profile-action-panel-head"><div><h2>Change password</h2><p className="subtle">Keep your account secure with a password only you know.</p></div><KeyRound size={18}/></div>
-          {hasPasswordProvider ? <form className="profile-form" onSubmit={savePassword}>
-            <div className="field"><label htmlFor="current-password">Current password <span className="field-hint">(optional)</span></label><input id="current-password" type="password" value={currentPassword} onChange={(event) => setCurrentPassword(event.target.value)} autoComplete="current-password" /></div>
-            <div className="field"><label htmlFor="new-password">New password</label><input id="new-password" type="password" value={newPassword} onChange={(event) => setNewPassword(event.target.value)} autoComplete="new-password" /></div>
-            <div className="field"><label htmlFor="confirm-password">Confirm new password</label><input id="confirm-password" type="password" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} autoComplete="new-password" /></div>
-            <button className="button" type="submit" disabled={passwordBusy}>{passwordBusy ? "Updating…" : "Change password"} <KeyRound size={14}/></button>
-          </form> : <div className="profile-provider-note"><p>You signed in with Google, so password access is managed by Google.</p><button className="button secondary" onClick={() => void sendResetEmail()} disabled={passwordBusy}>{passwordBusy ? "Sending…" : "Email password reset link"} <Mail size={14}/></button></div>}
-          {passwordNotice && <p className="profile-message">{passwordNotice}</p>}
-        </div>}
+        <Dialog open={profilePanel === "phone"} onOpenChange={(open) => setProfilePanel(open ? "phone" : null)}>
+          <DialogContent className="profile-settings-dialog">
+            <DialogHeader className="profile-settings-dialog-header">
+              <DialogTitle>{account.phone ? "Update mobile number" : "Add mobile number"}</DialogTitle>
+              <DialogDescription>{account.phone ? "Enter a new mobile number. It will replace the current one only after OTP verification." : "Enter your mobile number. It will be linked only after OTP verification."}</DialogDescription>
+            </DialogHeader>
+            <AccountPhoneLinker
+              className="account-phone-settings"
+              autoFocus
+              sendButtonLabel="Verify number"
+              onVerified={async () => {
+                await onRefreshAccount();
+                setProfilePanel(null);
+              }}
+            />
+          </DialogContent>
+        </Dialog>
+        <Dialog open={profilePanel === "details"} onOpenChange={(open) => setProfilePanel(open ? "details" : null)}>
+          <DialogContent className="profile-settings-dialog">
+            <DialogHeader className="profile-settings-dialog-header">
+              <DialogTitle>Personal details</DialogTitle>
+              <DialogDescription>These details are used for your workspace account.</DialogDescription>
+            </DialogHeader>
+            <form className="profile-form" onSubmit={saveDetails}>
+              <div className="field"><label htmlFor="profile-name">Name</label><input id="profile-name" value={name} onChange={(event) => setName(event.target.value)} placeholder="Your name" data-testid="input-profile-name" /></div>
+              <div className="field"><label htmlFor="profile-email">Email</label><input id="profile-email" type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="you@example.com" data-testid="input-profile-email" /></div>
+              <button className="button" type="submit" disabled={saving || !name.trim() || Boolean(firebaseUser && !email.trim())}>{saving ? "Saving…" : "Save changes"} <Check size={14}/></button>
+              {notice && <p className="profile-message">{notice}</p>}
+            </form>
+          </DialogContent>
+        </Dialog>
+        <Dialog open={profilePanel === "password"} onOpenChange={(open) => setProfilePanel(open ? "password" : null)}>
+          <DialogContent className="profile-settings-dialog">
+            <DialogHeader className="profile-settings-dialog-header">
+              <DialogTitle>Change password</DialogTitle>
+              <DialogDescription>Keep your account secure with a password only you know.</DialogDescription>
+            </DialogHeader>
+            {hasPasswordProvider ? <form className="profile-form" onSubmit={savePassword}>
+              <div className="field"><label htmlFor="current-password">Current password <span className="field-hint">(optional)</span></label><input id="current-password" type="password" value={currentPassword} onChange={(event) => setCurrentPassword(event.target.value)} autoComplete="current-password" /></div>
+              <div className="field"><label htmlFor="new-password">New password</label><input id="new-password" type="password" value={newPassword} onChange={(event) => setNewPassword(event.target.value)} autoComplete="new-password" /></div>
+              <div className="field"><label htmlFor="confirm-password">Confirm new password</label><input id="confirm-password" type="password" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} autoComplete="new-password" /></div>
+              <button className="button" type="submit" disabled={passwordBusy}>{passwordBusy ? "Updating…" : "Change password"} <KeyRound size={14}/></button>
+            </form> : <div className="profile-provider-note"><p>You signed in with Google, so password access is managed by Google.</p><button className="button secondary" onClick={() => void sendResetEmail()} disabled={passwordBusy}>{passwordBusy ? "Sending…" : "Email password reset link"} <Mail size={14}/></button></div>}
+            {passwordNotice && <p className="profile-message">{passwordNotice}</p>}
+          </DialogContent>
+        </Dialog>
       </section>
     </div>
   </AppShell>;

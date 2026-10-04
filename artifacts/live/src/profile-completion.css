@@ -146,8 +146,9 @@
 }
 
 .account-phone-linker .account-phone-back {
+  min-height: 44px;
   justify-self: start;
-  padding: 2px 0;
+  padding: 8px 0;
   border: 0;
   color: #597366;
   background: transparent;
@@ -224,6 +225,32 @@
   font-weight: 700;
 }
 
+.profile-phone-update-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: fit-content;
+  min-height: 44px;
+  padding: 0 14px;
+  border: 1px solid #d1d5db;
+  border-radius: 999px;
+  color: #111827;
+  background: #fff;
+  box-shadow: none;
+  font-size: 12px;
+}
+
+.profile-phone-update-button:hover {
+  border-color: #9ca3af;
+  color: #111827;
+  background: #f9fafb;
+}
+
+.profile-settings-dialog .account-phone-settings {
+  margin-top: 16px;
+}
+
 .profile-completion-gift {
   display: grid;
   justify-items: center;
@@ -278,11 +305,11 @@
 }
 
 .profile-settings-dialog > button.absolute {
-  top: 19px;
-  right: 19px;
+  top: 13px;
+  right: 13px;
   display: grid;
-  width: 32px;
-  height: 32px;
+  width: 44px;
+  height: 44px;
   place-items: center;
   border: 1px solid #e5e7eb;
   border-radius: 50%;
@@ -345,11 +372,17 @@
 
 .profile-settings-dialog .profile-form .button,
 .profile-settings-dialog .profile-provider-note .button {
-  min-height: 42px;
+  min-height: 44px;
   border: 1px solid #111827;
   border-radius: 999px;
   color: #fff;
   background: #111827;
+}
+
+.account-phone-linker :is(button, input):focus-visible,
+.profile-settings-dialog :is(button, input):focus-visible {
+  outline: 3px solid #8f245f;
+  outline-offset: 2px;
 }
 
 .profile-settings-dialog .profile-message {
