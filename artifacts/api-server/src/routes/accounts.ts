@@ -19,11 +19,13 @@ import {
   createCashfreeOrder,
   fetchCashfreeOrder,
   fetchCashfreePayments,
-  getCashfreeConfig,
-  isCashfreeConfigured,
   verifyCashfreeWebhookSignature,
   type CashfreeEnvironment,
 } from "../lib/cashfree";
+import {
+  getCashfreeConfigForEnvironment,
+  saveOwnerCashfreeCredentials,
+} from "../lib/cashfree-credentials";
 
 const router: IRouter = Router();
 const objectStorageService = new ObjectStorageService();
@@ -753,10 +755,14 @@ async function paymentSettingsResponse(settings: PaymentSettingsRecord): Promise
   cashfreeSandboxConfigured: boolean;
   cashfreeProductionConfigured: boolean;
 }> {
+  const [sandboxConfig, productionConfig] = await Promise.all([
+    getCashfreeConfigForEnvironment("sandbox"),
+    getCashfreeConfigForEnvironment("production"),
+  ]);
   return {
     ...settings,
-    cashfreeSandboxConfigured: isCashfreeConfigured("sandbox"),
-    cashfreeProductionConfigured: isCashfreeConfigured("production"),
+    cashfreeSandboxConfigured: sandboxConfig !== null,
+    cashfreeProductionConfigured: productionConfig !== null,
   };
 }
 
@@ -986,7 +992,7 @@ async function verifyAndApplyCashfreeOrder(
       : { kind: "integrity-error" };
   }
 
-  const config = getCashfreeConfig(orderRecord.environment);
+  const config = await getCashfreeConfigForEnvironment(orderRecord.environment);
   if (!config) throw new Error(`Cashfree ${orderRecord.environment} credentials are not configured.`);
   const remoteOrder = await fetchCashfreeOrder(config, orderId);
   if (remoteOrder.orderId !== orderId
@@ -1081,7 +1087,7 @@ router.post("/account/payment-quote", requireAccountAuth, async (req, res): Prom
       res.status(409).json({ error: "UPI payment is not configured yet. Please try again later." });
       return;
     }
-    if (settings.paymentMode === "cashfree" && !isCashfreeConfigured(settings.cashfreeEnvironment)) {
+    if (settings.paymentMode === "cashfree" && !(await getCashfreeConfigForEnvironment(settings.cashfreeEnvironment))) {
       res.status(409).json({ error: "Cashfree checkout is not configured for the selected environment yet." });
       return;
     }
@@ -1214,7 +1220,7 @@ router.post("/account/cashfree/orders", requireAccountAuth, async (req, res): Pr
       res.status(409).json({ error: "Cashfree checkout is currently disabled." });
       return;
     }
-    const config = getCashfreeConfig(settings.cashfreeEnvironment);
+    const config = await getCashfreeConfigForEnvironment(settings.cashfreeEnvironment);
     if (!config) {
       res.status(409).json({ error: `Cashfree ${settings.cashfreeEnvironment} credentials are not configured yet.` });
       return;
@@ -1415,7 +1421,7 @@ router.post("/account/cashfree/webhook", async (req, res): Promise<void> => {
       res.json({ received: true });
       return;
     }
-    const config = getCashfreeConfig(orderRecord.environment);
+    const config = await getCashfreeConfigForEnvironment(orderRecord.environment);
     const signature = req.header("x-webhook-signature") || "";
     const timestamp = req.header("x-webhook-timestamp") || "";
     if (!config || !verifyCashfreeWebhookSignature(config, signature, timestamp, rawBody)) {
@@ -1624,11 +1630,24 @@ router.put("/owner/payment-settings", async (req, res): Promise<void> => {
     res.status(400).json({ error: "Enter valid payment settings." });
     return;
   }
+  const sandboxClientId = parsed.data.cashfreeSandboxClientId?.trim() ?? "";
+  const sandboxClientSecret = parsed.data.cashfreeSandboxClientSecret?.trim() ?? "";
+  const productionClientId = parsed.data.cashfreeProductionClientId?.trim() ?? "";
+  const productionClientSecret = parsed.data.cashfreeProductionClientSecret?.trim() ?? "";
+  if (Boolean(sandboxClientId) !== Boolean(sandboxClientSecret)
+    || Boolean(productionClientId) !== Boolean(productionClientSecret)) {
+    res.status(400).json({ error: "Enter both the Cashfree App ID and Secret for each environment you want to configure." });
+    return;
+  }
+  const hasSandboxCredentials = Boolean(sandboxClientId && sandboxClientSecret);
+  const hasProductionCredentials = Boolean(productionClientId && productionClientSecret);
   if (
     parsed.data.upiId === undefined
     && parsed.data.payeeName === undefined
     && parsed.data.paymentMode === undefined
     && parsed.data.cashfreeEnvironment === undefined
+    && !hasSandboxCredentials
+    && !hasProductionCredentials
   ) {
     res.status(400).json({ error: "Change at least one payment setting." });
     return;
@@ -1645,6 +1664,26 @@ router.put("/owner/payment-settings", async (req, res): Promise<void> => {
     if (settings.paymentMode === "manual" && (!isValidUpiId(settings.upiId) || !settings.payeeName)) {
       res.status(400).json({ error: "Manual UPI mode requires a valid UPI ID and payee name." });
       return;
+    }
+    if (settings.paymentMode === "cashfree"
+      && !(settings.cashfreeEnvironment === "sandbox" ? hasSandboxCredentials : hasProductionCredentials)
+      && !(await getCashfreeConfigForEnvironment(settings.cashfreeEnvironment))) {
+      res.status(409).json({
+        error: `Add Cashfree ${settings.cashfreeEnvironment} credentials before enabling Cashfree checkout.`,
+      });
+      return;
+    }
+    if (hasSandboxCredentials) {
+      await saveOwnerCashfreeCredentials("sandbox", {
+        clientId: sandboxClientId,
+        clientSecret: sandboxClientSecret,
+      });
+    }
+    if (hasProductionCredentials) {
+      await saveOwnerCashfreeCredentials("production", {
+        clientId: productionClientId,
+        clientSecret: productionClientSecret,
+      });
     }
     await firebasePut(paymentSettingsPath, settings);
     res.json(await paymentSettingsResponse(settings));

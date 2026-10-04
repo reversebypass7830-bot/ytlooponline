@@ -21,4 +21,24 @@ export interface PaymentSettingsInput {
   payeeName?: string;
   paymentMode?: PaymentSettingsInputPaymentMode;
   cashfreeEnvironment?: PaymentSettingsInputCashfreeEnvironment;
+  /**
+     * @minLength 1
+     * @maxLength 256
+     */
+  cashfreeSandboxClientId?: string;
+  /**
+     * @minLength 1
+     * @maxLength 4096
+     */
+  cashfreeSandboxClientSecret?: string;
+  /**
+     * @minLength 1
+     * @maxLength 256
+     */
+  cashfreeProductionClientId?: string;
+  /**
+     * @minLength 1
+     * @maxLength 4096
+     */
+  cashfreeProductionClientSecret?: string;
 }

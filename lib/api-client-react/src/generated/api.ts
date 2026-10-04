@@ -3867,7 +3867,7 @@ export const getGetOwnerPaymentSettingsUrl = () => {
 }
 
 /**
- * @summary Get the UPI payee details used for checkout
+ * @summary Get payment method, gateway environment, and credential status
  */
 export const getOwnerPaymentSettings = async ( options?: Parameters<typeof customFetch>[1]): Promise<PaymentSettings> => {
 
@@ -3914,7 +3914,7 @@ export type GetOwnerPaymentSettingsQueryError = ErrorType<unknown>
 
 
 /**
- * @summary Get the UPI payee details used for checkout
+ * @summary Get payment method, gateway environment, and credential status
  */
 
 export function useGetOwnerPaymentSettings<TData = Awaited<ReturnType<typeof getOwnerPaymentSettings>>, TError = ErrorType<unknown>>(
@@ -3944,7 +3944,7 @@ export const getUpdateOwnerPaymentSettingsUrl = () => {
 }
 
 /**
- * @summary Set the UPI ID and payee name displayed to customers
+ * @summary Set checkout method, UPI details, and Cashfree credentials
  */
 export const updateOwnerPaymentSettings = async (paymentSettingsInput: PaymentSettingsInput, options?: Parameters<typeof customFetch>[1]): Promise<PaymentSettings> => {
 
@@ -3961,7 +3961,7 @@ export const updateOwnerPaymentSettings = async (paymentSettingsInput: PaymentSe
 
 
 
-export const getUpdateOwnerPaymentSettingsMutationOptions = <TError = ErrorType<unknown>,
+export const getUpdateOwnerPaymentSettingsMutationOptions = <TError = ErrorType<void>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateOwnerPaymentSettings>>, TError,{data: BodyType<PaymentSettingsInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
 ): UseMutationOptions<Awaited<ReturnType<typeof updateOwnerPaymentSettings>>, TError,{data: BodyType<PaymentSettingsInput>}, TContext> => {
 
@@ -3990,12 +3990,12 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
     export type UpdateOwnerPaymentSettingsMutationResult = NonNullable<Awaited<ReturnType<typeof updateOwnerPaymentSettings>>>
     export type UpdateOwnerPaymentSettingsMutationBody = BodyType<PaymentSettingsInput>
-    export type UpdateOwnerPaymentSettingsMutationError = ErrorType<unknown>
+    export type UpdateOwnerPaymentSettingsMutationError = ErrorType<void>
 
     /**
- * @summary Set the UPI ID and payee name displayed to customers
+ * @summary Set checkout method, UPI details, and Cashfree credentials
  */
-export const useUpdateOwnerPaymentSettings = <TError = ErrorType<unknown>,
+export const useUpdateOwnerPaymentSettings = <TError = ErrorType<void>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateOwnerPaymentSettings>>, TError,{data: BodyType<PaymentSettingsInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
  ): UseMutationResult<
         Awaited<ReturnType<typeof updateOwnerPaymentSettings>>,

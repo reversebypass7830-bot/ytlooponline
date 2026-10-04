@@ -1073,6 +1073,56 @@ body:has(.pay-checkout-dialog) [data-radix-dialog-overlay] {
   outline:3px solid rgba(16,185,129,.15);
 }
 .owner-payment-page .owner-gateway-controls select:disabled { opacity:.6; cursor:not-allowed; }
+.owner-cashfree-credentials {
+  display:grid;
+  gap:12px;
+}
+.owner-cashfree-environment {
+  display:grid;
+  gap:11px;
+  padding:14px;
+  border:1px solid var(--bill-line);
+  border-radius:13px;
+  background:rgba(255,255,255,.72);
+}
+.owner-cashfree-env-head {
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:10px;
+  color:var(--bill-ink);
+  font-size:13px;
+}
+.owner-cashfree-env-head .cashfree-config-status {
+  display:block;
+  width:max-content;
+  padding:4px 9px;
+  border-radius:999px;
+  font-size:10px;
+  font-weight:700;
+}
+.owner-cashfree-env-fields {
+  display:grid;
+  grid-template-columns:repeat(2, minmax(0, 1fr));
+  gap:12px;
+}
+.owner-cashfree-env-fields .field { display:flex; flex-direction:column; gap:6px; }
+.owner-cashfree-env-fields .field > span { color:var(--bill-muted); font-size:11px; font-weight:600; }
+.owner-cashfree-env-fields input {
+  width:100%;
+  min-width:0;
+  min-height:43px;
+  padding:0 12px;
+  border:1px solid var(--bill-line);
+  border-radius:11px;
+  background:#fff;
+  color:var(--bill-ink);
+  font:500 13px "Figtree",sans-serif;
+}
+.owner-cashfree-env-fields input:focus-visible {
+  border-color:#10b981;
+  outline:3px solid rgba(16,185,129,.15);
+}
 .cashfree-config-status {
   display:grid;
   gap:6px;
@@ -1111,5 +1161,6 @@ body:has(.pay-checkout-dialog) [data-radix-dialog-overlay] {
 .pay-alert .button { flex:0 0 auto; }
 @media (max-width: 600px) {
   .owner-gateway-controls,
-  .owner-upi-fields { grid-template-columns:minmax(0,1fr); }
+  .owner-upi-fields,
+  .owner-cashfree-env-fields { grid-template-columns:minmax(0,1fr); }
 }

@@ -1820,7 +1820,7 @@ export const UpdateBillingPlanResponse = zod.object({
 
 
 /**
- * @summary Get the UPI payee details used for checkout
+ * @summary Get payment method, gateway environment, and credential status
  */
 export const GetOwnerPaymentSettingsHeader = zod.object({
   "X-Owner-Password": zod.string()
@@ -1838,7 +1838,7 @@ export const GetOwnerPaymentSettingsResponse = zod.object({
 
 
 /**
- * @summary Set the UPI ID and payee name displayed to customers
+ * @summary Set checkout method, UPI details, and Cashfree credentials
  */
 export const UpdateOwnerPaymentSettingsHeader = zod.object({
   "X-Owner-Password": zod.string()
@@ -1849,13 +1849,25 @@ export const updateOwnerPaymentSettingsBodyUpiIdMax = 100;
 
 export const updateOwnerPaymentSettingsBodyPayeeNameMax = 100;
 
+export const updateOwnerPaymentSettingsBodyCashfreeSandboxClientIdMax = 256;
+
+export const updateOwnerPaymentSettingsBodyCashfreeSandboxClientSecretMax = 4096;
+
+export const updateOwnerPaymentSettingsBodyCashfreeProductionClientIdMax = 256;
+
+export const updateOwnerPaymentSettingsBodyCashfreeProductionClientSecretMax = 4096;
+
 
 
 export const UpdateOwnerPaymentSettingsBody = zod.object({
   "upiId": zod.string().min(updateOwnerPaymentSettingsBodyUpiIdMin).max(updateOwnerPaymentSettingsBodyUpiIdMax).optional(),
   "payeeName": zod.string().min(1).max(updateOwnerPaymentSettingsBodyPayeeNameMax).optional(),
   "paymentMode": zod.enum(['manual', 'cashfree']).optional(),
-  "cashfreeEnvironment": zod.enum(['sandbox', 'production']).optional()
+  "cashfreeEnvironment": zod.enum(['sandbox', 'production']).optional(),
+  "cashfreeSandboxClientId": zod.string().min(1).max(updateOwnerPaymentSettingsBodyCashfreeSandboxClientIdMax).optional(),
+  "cashfreeSandboxClientSecret": zod.string().min(1).max(updateOwnerPaymentSettingsBodyCashfreeSandboxClientSecretMax).optional(),
+  "cashfreeProductionClientId": zod.string().min(1).max(updateOwnerPaymentSettingsBodyCashfreeProductionClientIdMax).optional(),
+  "cashfreeProductionClientSecret": zod.string().min(1).max(updateOwnerPaymentSettingsBodyCashfreeProductionClientSecretMax).optional()
 })
 
 export const UpdateOwnerPaymentSettingsResponse = zod.object({

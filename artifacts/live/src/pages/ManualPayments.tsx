@@ -390,6 +390,10 @@ export function OwnerPaymentPanel({ ownerPassword }: { ownerPassword: string }) 
   const [payeeName, setPayeeName] = useState("");
   const [paymentMode, setPaymentMode] = useState<"manual" | "cashfree">("manual");
   const [cashfreeEnvironment, setCashfreeEnvironment] = useState<"sandbox" | "production">("sandbox");
+  const [cashfreeCredentials, setCashfreeCredentials] = useState({
+    sandbox: { clientId: "", clientSecret: "" },
+    production: { clientId: "", clientSecret: "" },
+  });
   const [reviewNotes, setReviewNotes] = useState<Record<string, string>>({});
   const [feedback, setFeedback] = useState("");
   const [error, setError] = useState("");
@@ -436,14 +440,49 @@ export function OwnerPaymentPanel({ ownerPassword }: { ownerPassword: string }) 
       setError("Manual UPI mode needs a UPI ID and payee name.");
       return;
     }
+    const sandboxClientId = cashfreeCredentials.sandbox.clientId.trim();
+    const sandboxClientSecret = cashfreeCredentials.sandbox.clientSecret.trim();
+    const productionClientId = cashfreeCredentials.production.clientId.trim();
+    const productionClientSecret = cashfreeCredentials.production.clientSecret.trim();
+    if (Boolean(sandboxClientId) !== Boolean(sandboxClientSecret)
+      || Boolean(productionClientId) !== Boolean(productionClientSecret)) {
+      setError("Enter both the App ID and Secret for each Cashfree environment you want to configure.");
+      return;
+    }
+    const selectedCredentialsConfigured = cashfreeEnvironment === "sandbox"
+      ? settingsQuery.data?.cashfreeSandboxConfigured
+      : settingsQuery.data?.cashfreeProductionConfigured;
+    const selectedCredentialsDrafted = cashfreeEnvironment === "sandbox"
+      ? Boolean(sandboxClientId && sandboxClientSecret)
+      : Boolean(productionClientId && productionClientSecret);
+    if (paymentMode === "cashfree" && !selectedCredentialsConfigured && !selectedCredentialsDrafted) {
+      setError(`Enter both Cashfree ${cashfreeEnvironment} credentials before enabling checkout.`);
+      return;
+    }
     try {
       await updateSettings.mutateAsync({ data: {
         paymentMode,
         cashfreeEnvironment,
         ...(upiId.trim() ? { upiId: upiId.trim() } : {}),
         ...(payeeName.trim() ? { payeeName: payeeName.trim() } : {}),
+        ...(sandboxClientId ? {
+          cashfreeSandboxClientId: sandboxClientId,
+          cashfreeSandboxClientSecret: sandboxClientSecret,
+        } : {}),
+        ...(productionClientId ? {
+          cashfreeProductionClientId: productionClientId,
+          cashfreeProductionClientSecret: productionClientSecret,
+        } : {}),
       } });
-      setFeedback(paymentMode === "cashfree" ? "Cashfree checkout settings saved." : "Manual UPI settings saved.");
+      setCashfreeCredentials({
+        sandbox: { clientId: "", clientSecret: "" },
+        production: { clientId: "", clientSecret: "" },
+      });
+      setFeedback(paymentMode === "cashfree"
+        ? "Cashfree checkout settings saved."
+        : sandboxClientId || productionClientId
+          ? "Cashfree credentials and Manual UPI settings saved."
+          : "Manual UPI settings saved.");
       await refreshOwnerLists();
     } catch (reason) { setError(errorText(reason, "Could not save payment details.")); }
   };
@@ -480,7 +519,7 @@ export function OwnerPaymentPanel({ ownerPassword }: { ownerPassword: string }) 
         </form>}
       </section>
        <section className="card owner-pay-card owner-upi-card">
-         <div className="pay-section-title"><div><span className="metric-kicker">Checkout settings</span><h2>Payment method</h2><p>Choose how customers pay. Cashfree credentials stay in Replit Secrets; they are never stored in this panel.</p></div><span className="pay-icon pay-icon-warm"><Smartphone size={19}/></span></div>
+          <div className="pay-section-title"><div><span className="metric-kicker">Checkout settings</span><h2>Payment method</h2><p>Choose Cashfree hosted checkout or Manual UPI. You can switch between them at any time.</p></div><span className="pay-icon pay-icon-warm"><Smartphone size={19}/></span></div>
         {settingsQuery.isLoading ? <div className="pay-loading-line"/> : settingsQuery.isError ? <div className="pay-empty"><XCircle size={20}/><strong>Payment details unavailable</strong><button className="button secondary small" onClick={() => void settingsQuery.refetch()}>Retry</button></div> : <form className="owner-upi-form" onSubmit={(event) => void saveSettings(event)}>
            <div className="owner-gateway-controls">
              <label className="field"><span>Payment gateway</span><select value={paymentMode} onChange={(event) => setPaymentMode(event.target.value as "manual" | "cashfree")} data-testid="select-payment-mode"><option value="manual">Manual UPI</option><option value="cashfree">Cashfree hosted checkout</option></select></label>
@@ -495,15 +534,33 @@ export function OwnerPaymentPanel({ ownerPassword }: { ownerPassword: string }) 
                <div className="owner-qr-preview">{ownerQrValue ? <QRCodeSVG value={ownerQrValue} size={164} level="M" includeMargin bgColor="#ffffff" fgColor="#17191d"/> : <span className="owner-qr-empty">Enter a UPI ID and payee name to preview the QR.</span>}</div>
                <p className="owner-qr-generated-note">This preview has no amount. Each customer checkout QR will include the server-calculated amount.</p>
              </div>
-           </> : <div className={`cashfree-config-status ${selectedCashfreeConfigured ? "configured" : "missing"}`} role="status">
-             <strong>{selectedCashfreeConfigured ? `Cashfree ${cashfreeEnvironment} credentials detected` : `Cashfree ${cashfreeEnvironment} credentials not configured`}</strong>
-             <span>{selectedCashfreeConfigured
-               ? "Checkout credentials are stored server-side in Replit Secrets."
-               : cashfreeEnvironment === "sandbox"
-                 ? "Add CASHFREE_SANDBOX_CLIENT_ID and CASHFREE_SANDBOX_CLIENT_SECRET in Replit Secrets."
-                 : "Add CASHFREE_PRODUCTION_CLIENT_ID and CASHFREE_PRODUCTION_CLIENT_SECRET in Replit Secrets."}</span>
-             <small>Cashfree must also whitelist ytloop.online for hosted checkout and webhook delivery.</small>
-           </div>}
+            </> : <>
+              <div className="owner-cashfree-credentials">
+                {(["sandbox", "production"] as const).map((environment) => {
+                  const configured = environment === "sandbox"
+                    ? settingsQuery.data?.cashfreeSandboxConfigured
+                    : settingsQuery.data?.cashfreeProductionConfigured;
+                  const credentialDraft = cashfreeCredentials[environment];
+                  return <div className="owner-cashfree-environment" key={environment}>
+                    <div className="owner-cashfree-env-head">
+                      <strong>{environment === "sandbox" ? "Sandbox" : "Production"} credentials</strong>
+                      <span className={`cashfree-config-status ${configured ? "configured" : "missing"}`} role="status">
+                        {configured ? "Configured" : "Not configured"}
+                      </span>
+                    </div>
+                    <div className="owner-cashfree-env-fields">
+                      <label className="field"><span>App ID</span><input type="text" autoComplete="off" maxLength={256} value={credentialDraft.clientId} onChange={(event) => setCashfreeCredentials((current) => ({ ...current, [environment]: { ...current[environment], clientId: event.target.value } }))} placeholder={configured ? "Saved · leave blank to keep" : "Cashfree App ID"} data-testid={`input-cashfree-${environment}-client-id`}/></label>
+                      <label className="field"><span>Secret Key</span><input type="password" autoComplete="new-password" maxLength={4096} value={credentialDraft.clientSecret} onChange={(event) => setCashfreeCredentials((current) => ({ ...current, [environment]: { ...current[environment], clientSecret: event.target.value } }))} placeholder={configured ? "Saved · leave blank to keep" : "Cashfree Secret Key"} data-testid={`input-cashfree-${environment}-client-secret`}/></label>
+                    </div>
+                  </div>;
+                })}
+              </div>
+              <div className={`cashfree-config-status ${selectedCashfreeConfigured ? "configured" : "missing"}`} role="status">
+                <strong>{selectedCashfreeConfigured ? `Cashfree ${cashfreeEnvironment} checkout is ready` : `Cashfree ${cashfreeEnvironment} credentials are required`}</strong>
+                <span>Enter both values for an environment to save or replace its credentials. Saved keys are encrypted on the server and are never sent back to this page. Owner-panel credentials take precedence over matching Replit Secrets.</span>
+                <small>Cashfree must whitelist ytloop.online for hosted checkout before you go live.</small>
+              </div>
+            </>}
            <button className="button" type="submit" disabled={updateSettings.isPending || (paymentMode === "manual" && (!upiId.trim() || !payeeName.trim()))} data-testid="button-save-payment-settings"><Save size={14}/>{updateSettings.isPending ? "Saving…" : "Save payment settings"}</button>
           {settingsQuery.data?.updatedAt && <small>Last updated {new Date(settingsQuery.data.updatedAt).toLocaleString()}</small>}
         </form>}

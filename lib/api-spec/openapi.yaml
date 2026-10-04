@@ -1171,12 +1171,12 @@ paths:
     get:
       operationId: getOwnerPaymentSettings
       tags: [billing]
-      summary: Get the UPI payee details used for checkout
+      summary: Get payment method, gateway environment, and credential status
       parameters:
         - $ref: "#/components/parameters/OwnerPassword"
       responses:
         "200":
-          description: UPI payment settings
+          description: Payment settings; secret values are never returned
           content:
             application/json:
               schema:
@@ -1184,7 +1184,7 @@ paths:
     put:
       operationId: updateOwnerPaymentSettings
       tags: [billing]
-      summary: Set the UPI ID and payee name displayed to customers
+      summary: Set checkout method, UPI details, and Cashfree credentials
       parameters:
         - $ref: "#/components/parameters/OwnerPassword"
       requestBody:
@@ -1195,11 +1195,15 @@ paths:
               $ref: "#/components/schemas/PaymentSettingsInput"
       responses:
         "200":
-          description: UPI payment settings saved
+          description: Payment settings saved; secret values are never returned
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/PaymentSettings"
+        "400":
+          description: Invalid payment settings or incomplete Cashfree credential pair
+        "409":
+          description: Cashfree cannot be enabled until the selected environment is configured
   /owner/payment-requests:
     get:
       operationId: listOwnerPaymentRequests
@@ -2492,6 +2496,22 @@ components:
         cashfreeEnvironment:
           type: string
           enum: [sandbox, production]
+        cashfreeSandboxClientId:
+          type: string
+          minLength: 1
+          maxLength: 256
+        cashfreeSandboxClientSecret:
+          type: string
+          minLength: 1
+          maxLength: 4096
+        cashfreeProductionClientId:
+          type: string
+          minLength: 1
+          maxLength: 256
+        cashfreeProductionClientSecret:
+          type: string
+          minLength: 1
+          maxLength: 4096
     PaymentAssetUploadUrlInput:
       type: object
       properties:
