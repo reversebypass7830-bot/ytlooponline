@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from "react";
 import "./ManualPayments.css";
+import { Link } from "wouter";
 import { useQueryClient } from "@tanstack/react-query";
 import { QRCodeSVG } from "qrcode.react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -253,7 +254,14 @@ export function ManualSubscriptionPage({ account, onRefresh }: { account: Accoun
 
   return <div className="page subscription-page manual-payment-page">
     <header className="page-head subscription-heading">
-          <div><p className="eyebrow">Duplo Access</p><h1>Duplo Access</h1><p className="subtle">Choose your access term and set your daily allowances.</p></div>
+          <div>
+            <Link href="/dashboard" className="subscription-back-link" data-testid="button-subscription-back">
+              <ArrowLeft size={16} aria-hidden="true"/>
+              <span>Back to Dashboard</span>
+            </Link>
+            <h1>Duplo Access</h1>
+            <p className="subtle">Choose your access term and set your daily allowances.</p>
+          </div>
     </header>
     {notice && <div className={`pay-alert ${cashfreeReturnOrderId ? "pending" : "success"}`} role="status" data-testid="status-payment-notice"><CheckCircle2 size={17}/><span>{notice}</span>{cashfreeReturnOrderId && <button className="button secondary small" type="button" onClick={() => void verifyCashfreeStatus(cashfreeReturnOrderId)} disabled={verifyCashfreePayment.isPending}>Check status</button>}<button className="pay-alert-close" onClick={() => setNotice("")} aria-label="Dismiss notification"><X size={15}/></button></div>}
     {error && <div className="pay-alert error" role="alert" data-testid="status-payment-error"><XCircle size={17}/><span>{error}</span><button className="pay-alert-close" onClick={() => setError("")} aria-label="Dismiss error"><X size={15}/></button></div>}

@@ -307,6 +307,7 @@
 @media (max-width: 600px) {
   .manual-payment-page { padding:22px 14px 90px; }
   .manual-payment-page .subscription-heading { flex-direction:column; align-items:flex-start; }
+  .subscription-page .subscription-back-link { min-height:46px; }
   .manual-payment-page .pay-pack-top { flex-direction:column; gap:15px; }
   .manual-payment-page .pay-pack-switch { width:100%; }
   .manual-payment-page .pay-pack-switch button { flex:1; padding:0 8px; }
