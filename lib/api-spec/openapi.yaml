@@ -1028,6 +1028,26 @@ paths:
           description: Too many incorrect verification attempts
         "502":
           description: The OTP provider could not verify the code
+  /account/trial-offer/claim:
+    post:
+      operationId: claimGoogleSignupTrialOffer
+      tags: [account]
+      summary: Claim the one-time 24-hour offer after phone verification
+      responses:
+        "200":
+          description: Offer claimed, or the existing claim returned without extending access
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TrialOfferClaimResponse"
+        "401":
+          description: Sign-in is required
+        "404":
+          description: The account could not be found
+        "409":
+          description: The account is not eligible, lacks a verified phone, or already has active access
+        "502":
+          description: The offer could not be activated
   /account/payment-quote:
     post:
       operationId: quoteAccountPayment
@@ -2640,6 +2660,30 @@ components:
         message:
           type: string
       required: [phone, message]
+    TrialOfferClaimResponse:
+      type: object
+      properties:
+        account:
+          type: object
+          properties:
+            trialOfferAvailable:
+              type: boolean
+            trialOfferClaimedAt:
+              type: string
+              format: date-time
+            trialStartedAt:
+              type: string
+              format: date-time
+            trialEndsAt:
+              type: string
+              format: date-time
+            accessEndsAt:
+              type: string
+              format: date-time
+            active:
+              type: boolean
+          required: [trialOfferAvailable, trialOfferClaimedAt, trialStartedAt, trialEndsAt, accessEndsAt, active]
+      required: [account]
     AccountPaymentQuoteInput:
       type: object
       properties:

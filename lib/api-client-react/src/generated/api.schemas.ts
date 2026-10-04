@@ -1079,6 +1079,19 @@ export interface AccountPhoneOtpVerification {
   message: string;
 }
 
+export type TrialOfferClaimResponseAccount = {
+  trialOfferAvailable: boolean;
+  trialOfferClaimedAt: string;
+  trialStartedAt: string;
+  trialEndsAt: string;
+  accessEndsAt: string;
+  active: boolean;
+};
+
+export interface TrialOfferClaimResponse {
+  account: TrialOfferClaimResponseAccount;
+}
+
 export type AccountPaymentQuoteInputPackType = typeof AccountPaymentQuoteInputPackType[keyof typeof AccountPaymentQuoteInputPackType];
 
 

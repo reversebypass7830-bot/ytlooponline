@@ -83,6 +83,8 @@ type AccountRecord = {
   phone?: string;
   profileImagePath?: string;
   profileCompleted?: boolean;
+  trialOfferAvailable?: boolean;
+  trialOfferClaimedAt?: string;
   role: "owner" | "user";
   licenseId: string;
   licenseKey: string;
@@ -414,6 +416,8 @@ function publicAccount(account: AccountRecord, plans: PlanMap) {
     phone: account.phone,
     profileImagePath: account.profileImagePath,
     profileCompleted: account.profileCompleted ?? true,
+    trialOfferAvailable: account.trialOfferAvailable === true,
+    trialOfferClaimedAt: account.trialOfferClaimedAt,
     role: account.role,
     licenseId: account.licenseId,
     licenseKey: account.licenseKey,
@@ -585,21 +589,21 @@ export async function ensureFirebaseAccount(identity: { userId: string; email: s
   }
 
   const trial = plans["trial-1-day"] || defaultPlans[0];
-  const trialEndsAt = new Date(now.getTime() + trial.durationDays * dayMs).toISOString();
   const licenseId = `acct-${randomUUID()}`;
   const licenseKey = `ACCT-${randomBytes(6).toString("hex").toUpperCase()}`;
   const account: AccountRecord = {
     id: firebaseUserId,
     displayName: identity.name || `Workspace ${identity.userId.slice(-6)}`,
     email: identity.email,
-    profileCompleted: false,
+    profileCompleted: true,
+    trialOfferAvailable: true,
     role: ownerIds().has(identity.userId) ? "owner" : "user",
     licenseId,
     licenseKey,
-    trialStartedAt: now.toISOString(),
-    trialEndsAt,
+    trialStartedAt: "",
+    trialEndsAt: "",
     activePlanId: trial.id,
-    accessEndsAt: trialEndsAt,
+    accessEndsAt: now.toISOString(),
     streamLimit: trial.streamLimit || 1,
     streamsPerDay: trial.isTrial ? 1 : 100,
     streamUsageDate: currentUsageDayKey(),
@@ -608,9 +612,7 @@ export async function ensureFirebaseAccount(identity: { userId: string; email: s
     activeFeatures: trial.features || [],
     createdAt: now.toISOString(),
     lastLoginAt: now.toISOString(),
-    history: [
-      { id: randomUUID(), type: "trial_started", message: `${trial.name} started`, at: now.toISOString(), planName: trial.name, planId: trial.id, days: trial.durationDays, startsAt: now.toISOString(), endsAt: trialEndsAt },
-    ],
+    history: [],
   };
   await Promise.all([
     firebasePut(accountPath(account.id), account),
@@ -619,7 +621,7 @@ export async function ensureFirebaseAccount(identity: { userId: string; email: s
       name: account.displayName,
       createdAt: account.createdAt,
       expiresAt: account.accessEndsAt,
-      active: true,
+      active: false,
       accountId: account.id,
     }),
   ]);
@@ -1035,6 +1037,93 @@ router.get("/account", requireAccountAuth, async (req, res): Promise<void> => {
     res.json({ account: publicAccount(account, plans), plans: Object.values(plans).filter((plan) => plan.active) });
   } catch (error) {
     sendError(req, res, error, "Could not load your account.");
+  }
+});
+
+router.post("/account/trial-offer/claim", requireAccountAuth, async (req, res): Promise<void> => {
+  try {
+    const { account, plans } = await ensureAccount(req);
+    await withBillingLock(`trial-offer-claim:${account.id}`, async () => {
+      const latest = await loadAccount(account.id);
+      if (!latest) {
+        res.status(404).json({ error: "Your account could not be found." });
+        return;
+      }
+      if (latest.trialOfferClaimedAt) {
+        if (plans[latest.activePlanId]?.isTrial) {
+          await firebasePut(licensePath(latest.licenseId), {
+            key: latest.licenseKey,
+            name: latest.displayName,
+            createdAt: latest.trialStartedAt || latest.createdAt,
+            expiresAt: latest.accessEndsAt,
+            active: isActive(latest),
+            accountId: latest.id,
+          });
+        }
+        res.json({ account: publicAccount(latest, plans) });
+        return;
+      }
+      if (latest.trialOfferAvailable !== true) {
+        res.status(409).json({ error: "This 24-hour offer is not available for this account." });
+        return;
+      }
+      if (!latest.phone) {
+        res.status(409).json({ error: "Verify a mobile number in your profile before claiming this offer." });
+        return;
+      }
+      if (isActive(latest)) {
+        res.status(409).json({ error: "This account already has active access, so the offer cannot be claimed." });
+        return;
+      }
+
+      const trial = plans["trial-1-day"] || defaultPlans[0];
+      const startedAt = new Date();
+      const startsAt = startedAt.toISOString();
+      const endsAt = new Date(startedAt.getTime() + dayMs).toISOString();
+      const next: AccountRecord = {
+        ...latest,
+        trialOfferAvailable: false,
+        trialOfferClaimedAt: startsAt,
+        trialStartedAt: startsAt,
+        trialEndsAt: endsAt,
+        activePlanId: trial.id,
+        accessEndsAt: endsAt,
+        streamLimit: trial.streamLimit || 1,
+        streamsPerDay: trial.isTrial ? 1 : 100,
+        streamUsageDate: currentUsageDayKey(),
+        streamsStartedToday: 0,
+        downloadsPerDay: trial.downloadsPerDay || 50,
+        downloadUsageDate: currentUsageDayKey(),
+        downloadsUsedToday: 0,
+        activeFeatures: trial.features || [],
+        history: [
+          {
+            id: randomUUID(),
+            type: "trial_started" as const,
+            message: `${trial.name} started`,
+            at: startsAt,
+            planName: trial.name,
+            planId: trial.id,
+            days: 1,
+            startsAt,
+            endsAt,
+          },
+          ...(latest.history || []),
+        ].slice(0, 50),
+      };
+      await firebasePut(accountPath(next.id), next);
+      await firebasePut(licensePath(next.licenseId), {
+        key: next.licenseKey,
+        name: next.displayName,
+        createdAt: startsAt,
+        expiresAt: endsAt,
+        active: true,
+        accountId: next.id,
+      });
+      res.json({ account: publicAccount(next, plans) });
+    });
+  } catch (error) {
+    sendError(req, res, error, "Could not claim the 24-hour offer.");
   }
 });
 

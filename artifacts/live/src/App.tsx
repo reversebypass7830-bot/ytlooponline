@@ -56,6 +56,7 @@ import { type AccessGateProfile } from "./components/AccessGate";
 import LoginPage from "./pages/login";
 import { firebaseAuth } from "./lib/firebase-auth";
 import "./profile-completion.css";
+import TrialOfferFloating from "./components/TrialOfferFloating";
 
 type LiveStatus = "live" | "scheduled" | "stopped";
 type VideoStatus = "published" | "draft" | "archived";
@@ -165,7 +166,8 @@ type LicenseSession = { licenseId: string; key: string; name: string; expiresAt:
 type AccountPlan = { id: string; name: string; description: string; durationDays: number; price: string; pricePerStreamDayPaise?: number; pricePerDownloadPaise?: number; streamLimit?: number; isTrial?: boolean; active: boolean; createdAt: string; updatedAt: string };
 type AccountHistoryItem = { id: string; type: "trial_started" | "purchase" | "grant" | "login"; message: string; at: string; planName?: string; planId?: string; days?: number; streamLimit?: number; streamsPerDay?: number; startsAt?: string; endsAt?: string; periodEstimated?: boolean };
 type AccountSummary = {
-  id: string; displayName: string; email: string; phone?: string; profileImagePath?: string; profileCompleted?: boolean; role: "owner" | "user";
+  id: string; displayName: string; email: string; phone?: string; profileImagePath?: string; profileCompleted?: boolean;
+  trialOfferAvailable?: boolean; trialOfferClaimedAt?: string; role: "owner" | "user";
   licenseId: string; licenseKey: string; trialStartedAt: string; trialEndsAt: string;
   activePlanId: string; activePlan: AccountPlan | null; accessEndsAt: string; active: boolean; streamLimit: number;
   streamsPerDay: number; streamsStartedToday: number; downloadsPerDay: number; downloadsUsedToday: number; downloadsRemainingToday: number;
@@ -1805,77 +1807,6 @@ function AccountPhoneLinker({ onVerified, className = "", autoFocus = false, sen
       </button>
     </form>}
   </div>;
-}
-
-function AccountCompletionDialog({ account, onSave, onRefreshAccount, onClose }: {
-  account: AccountSummary;
-  onSave: (profile: { displayName: string; email: string; phone?: string }) => Promise<void>;
-  onRefreshAccount: () => Promise<void>;
-  onClose: () => void;
-}) {
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState("");
-  const isNewAccount = account.profileCompleted === false;
-  const [saved, setSaved] = useState(isNewAccount && Boolean(account.phone));
-  const [revealed, setRevealed] = useState(false);
-  const [verifiedPhone, setVerifiedPhone] = useState(account.phone || "");
-
-  const finishAccount = async () => {
-    if (busy) return;
-    setBusy(true);
-    setError("");
-    try {
-      await onSave({ displayName: account.displayName, email: account.email, phone: verifiedPhone });
-      onClose();
-    } catch (reason) {
-      setError(reason instanceof Error ? reason.message : "Could not finish your account.");
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  return <Dialog open onOpenChange={() => undefined}>
-    <DialogContent
-      className="profile-completion-dialog"
-      onEscapeKeyDown={(event) => event.preventDefault()}
-      onPointerDownOutside={(event) => event.preventDefault()}
-    >
-      {!saved ? <>
-        <div className="profile-completion-icon"><Smartphone size={24}/></div>
-        <p className="eyebrow">Complete your account</p>
-        <DialogHeader>
-          <DialogTitle id="profile-completion-title">Enter your mobile number</DialogTitle>
-          <DialogDescription className="profile-completion-copy">Verify your number with a one-time code to finish setting up your account.</DialogDescription>
-        </DialogHeader>
-        <AccountPhoneLinker
-          className="account-phone-completion"
-          autoFocus
-          sendButtonLabel="Verify number"
-          onVerified={async (phone) => {
-            setVerifiedPhone(phone);
-            await onRefreshAccount();
-            if (isNewAccount) setSaved(true);
-            else onClose();
-          }}
-        />
-      </> : <>
-        <div className="profile-completion-icon"><Gift size={25}/></div>
-        <p className="eyebrow">Your room is ready</p>
-        <DialogHeader>
-          <DialogTitle id="profile-completion-title">A license, made for you.</DialogTitle>
-          <DialogDescription className="profile-completion-copy">Your trial workspace and its license have been created. Tap the gift to reveal the key, then open your room.</DialogDescription>
-        </DialogHeader>
-        <button className={`profile-completion-gift ${revealed ? "revealed" : ""}`} type="button" onClick={() => setRevealed(true)} aria-label={revealed ? "License revealed" : "Reveal license"}>
-          <Gift size={30}/>
-          <span>{revealed ? account.licenseKey : "Tap to reveal your license"}</span>
-          <Sparkles size={17}/>
-        </button>
-        {error && <div className="error-note" role="alert">{error}</div>}
-        {revealed && <button className="button login-submit" type="button" onClick={() => void finishAccount()} disabled={busy}>{busy ? "Opening your room…" : "Open my room"} <ArrowRight size={15}/></button>}
-        {!revealed && <p className="profile-completion-footnote"><ShieldCheck size={14}/> Generated securely for this account.</p>}
-      </>}
-    </DialogContent>
-  </Dialog>;
 }
 
 function OwnerAccountPage({ account, onSwitchToUser }: { account: AccountSummary; onSwitchToUser: () => void }) {
@@ -5155,7 +5086,7 @@ function EditorTransformControls({ selectedLayer, hasWebcam, hasAnimation, mainT
   </div>;
 }
 
-function ProfilePage({ workspace, account, firebaseUser, profilePhoto, onProfilePhotoChange, onSaveProfile, onRefreshAccount, onLogout }: {
+function ProfilePage({ workspace, account, firebaseUser, profilePhoto, onProfilePhotoChange, onSaveProfile, onRefreshAccount, onLogout, promptTrialPhone, onTrialPhonePromptHandled }: {
   workspace: ReturnType<typeof useWorkspace>;
   account: AccountSummary;
   firebaseUser: FirebaseUser | null;
@@ -5164,6 +5095,8 @@ function ProfilePage({ workspace, account, firebaseUser, profilePhoto, onProfile
   onSaveProfile?: (profile: { displayName: string; email: string; phone?: string; profileImagePath?: string }) => Promise<void>;
   onRefreshAccount: () => Promise<void>;
   onLogout: () => Promise<void>;
+  promptTrialPhone: boolean;
+  onTrialPhonePromptHandled: () => void;
 }) {
   const [name, setName] = useState(account.displayName || "");
   const [email, setEmail] = useState(account.email || firebaseUser?.email || "");
@@ -5177,13 +5110,37 @@ function ProfilePage({ workspace, account, firebaseUser, profilePhoto, onProfile
   const [photoBusy, setPhotoBusy] = useState(false);
   const [photoAnimationKey, setPhotoAnimationKey] = useState(0);
   const [profilePanel, setProfilePanel] = useState<"details" | "password" | "phone" | null>(null);
+  const [trialClaimBusy, setTrialClaimBusy] = useState(false);
+  const [trialClaimError, setTrialClaimError] = useState("");
   const hasPasswordProvider = Boolean(firebaseUser?.providerData.some((provider) => provider.providerId === "password"));
   const displayPhoto = profilePhoto || defaultProfilePhoto(firebaseUser?.uid || workspace.licenseId || "profile");
+  const trialOfferAvailable = account.trialOfferAvailable === true && !account.trialOfferClaimedAt;
 
   useEffect(() => {
     setName(account.displayName || "");
     setEmail(account.email || firebaseUser?.email || "");
   }, [account.displayName, account.email, firebaseUser?.email]);
+
+  useEffect(() => {
+    if (!promptTrialPhone) return;
+    if (trialOfferAvailable && !account.phone) setProfilePanel("phone");
+    onTrialPhonePromptHandled();
+  }, [promptTrialPhone, trialOfferAvailable, account.phone, onTrialPhonePromptHandled]);
+
+  const claimTrialOffer = async () => {
+    if (!trialOfferAvailable || !account.phone || trialClaimBusy) return;
+    setTrialClaimBusy(true);
+    setTrialClaimError("");
+    try {
+      await apiJson<{ account: AccountSummary }>("/api/account/trial-offer/claim", { method: "POST" });
+      await onRefreshAccount();
+    } catch (reason) {
+      await onRefreshAccount().catch(() => undefined);
+      setTrialClaimError(reason instanceof Error ? reason.message : "Could not claim the 24-hour offer.");
+    } finally {
+      setTrialClaimBusy(false);
+    }
+  };
 
   const saveDetails = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -5298,6 +5255,32 @@ function ProfilePage({ workspace, account, firebaseUser, profilePhoto, onProfile
           <button type="button" className={`profile-action-button ${profilePanel === "password" ? "active" : ""}`} onClick={() => setProfilePanel(profilePanel === "password" ? null : "password")}><img src={profileSettingsClay} alt="" /><span>Change password</span><ArrowRight size={14}/></button>
           <button type="button" className="profile-action-button danger-button" onClick={() => void onLogout()} data-testid="button-profile-logout"><img src={subscriptionShieldClay} alt="" /><span>Logout</span><ArrowRight size={14}/></button>
         </div>
+        {trialOfferAvailable && <section className="profile-trial-offer" aria-labelledby="profile-trial-offer-title">
+          <div className="profile-trial-offer-art" aria-hidden="true"><img src={liveYoutubeClay} alt="" /><span>24h</span></div>
+          <div className="profile-trial-offer-copy">
+            <p className="profile-trial-offer-kicker">A creator gift</p>
+            <h2 id="profile-trial-offer-title">Claim 24 hours</h2>
+            <p>Verify your mobile number first. The 24-hour timer starts only when you claim.</p>
+            {!account.phone
+              ? <button type="button" className="profile-trial-offer-claim" onClick={() => setProfilePanel("phone")} data-testid="button-verify-phone-for-trial">
+                  Verify mobile number <ArrowRight size={15}/>
+                </button>
+              : account.active
+                ? <p className="profile-trial-offer-note">You already have active access. You can claim this offer after it ends.</p>
+                : <button type="button" className="profile-trial-offer-claim" onClick={() => void claimTrialOffer()} disabled={trialClaimBusy} data-testid="button-claim-trial-offer">
+                  {trialClaimBusy ? "Activating…" : "Claim 24 hours"} <ArrowRight size={15}/>
+                </button>}
+            {trialClaimError && <p className="profile-trial-offer-error" role="alert">{trialClaimError}</p>}
+          </div>
+        </section>}
+        {account.trialOfferClaimedAt && <section className="profile-trial-offer profile-trial-offer-claimed" aria-live="polite">
+          <div className="profile-trial-offer-art" aria-hidden="true"><img src={liveYoutubeClay} alt="" /><span><Check size={15}/></span></div>
+          <div className="profile-trial-offer-copy">
+            <p className="profile-trial-offer-kicker">Offer claimed</p>
+            <h2>24-hour access is {account.active ? "active" : "used"}</h2>
+            <p>{account.active ? `Your access runs until ${new Date(account.accessEndsAt).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" })}.` : "This one-time offer has already been used."}</p>
+          </div>
+        </section>}
         <section className="profile-phone-panel" aria-labelledby="profile-phone-title">
           <div className="profile-action-panel-head">
             <div><h2 id="profile-phone-title">Mobile number</h2><p className="subtle">{account.phone ? "Your verified number is linked to this account." : "Add and verify a number for this account."}</p></div>
@@ -5381,7 +5364,7 @@ function SettingsPage({workspace}:{workspace:ReturnType<typeof useWorkspace>}) {
    </AppShell>;
 }
 
-function Routed({workspace, account, onRefreshAccount, firebaseUser, profilePhoto, onProfilePhotoChange, onSaveProfile, onLogout}:{workspace:ReturnType<typeof useWorkspace>; account:AccountSummary|null; onRefreshAccount:()=>Promise<void>; firebaseUser:FirebaseUser|null; profilePhoto:string; onProfilePhotoChange:(photo:string)=>void; onSaveProfile:(profile:{displayName:string; email:string; phone?:string; profileImagePath?:string})=>Promise<void>; onLogout:()=>Promise<void>}) {
+function Routed({workspace, account, onRefreshAccount, firebaseUser, profilePhoto, onProfilePhotoChange, onSaveProfile, onLogout, promptTrialPhone, onTrialPhonePromptHandled}:{workspace:ReturnType<typeof useWorkspace>; account:AccountSummary|null; onRefreshAccount:()=>Promise<void>; firebaseUser:FirebaseUser|null; profilePhoto:string; onProfilePhotoChange:(photo:string)=>void; onSaveProfile:(profile:{displayName:string; email:string; phone?:string; profileImagePath?:string})=>Promise<void>; onLogout:()=>Promise<void>; promptTrialPhone:boolean; onTrialPhonePromptHandled:()=>void}) {
   let localProfile: { displayName?: string; email?: string } = {};
   try {
     localProfile = JSON.parse(localStorage.getItem(`reverse-bypass-profile:${workspace.licenseId}`) || "{}") as { displayName?: string; email?: string };
@@ -5410,7 +5393,7 @@ function Routed({workspace, account, onRefreshAccount, firebaseUser, profilePhot
     createdAt: "",
     history: [],
   };
-  return <Switch><Route path="/dashboard"><Dashboard workspace={workspace} account={account}/></Route><Route path="/analytics"><AnalyticsPage workspace={workspace} account={account}/></Route><Route path="/aesthetics"><Redirect to="/analytics"/></Route><Route path="/live"><LivePage workspace={workspace} account={account} onRefreshAccount={onRefreshAccount}/></Route><Route path="/live-preview"><LivePreviewPage workspace={workspace}/></Route><Route path="/videos"><VideosPage workspace={workspace}/></Route><Route path="/editor"><VideoEditorPage workspace={workspace}/></Route><Route path="/subscription">{account ? <ManualSubscriptionPage account={account} onRefresh={() => void onRefreshAccount()}/> : <Redirect to="/sign-in"/>}</Route><Route path="/transactions">{account ? <TransactionsPage account={account} onRefreshAccount={onRefreshAccount}/> : <Redirect to="/sign-in"/>}</Route><Route path="/profile"><ProfilePage workspace={workspace} account={profileAccount} firebaseUser={firebaseUser} profilePhoto={profilePhoto} onProfilePhotoChange={onProfilePhotoChange} onSaveProfile={account ? onSaveProfile : undefined} onRefreshAccount={onRefreshAccount} onLogout={onLogout}/></Route><Route path="/settings"><Redirect to="/profile"/></Route><Route><NotFound/></Route></Switch>;
+  return <Switch><Route path="/dashboard"><Dashboard workspace={workspace} account={account}/></Route><Route path="/analytics"><AnalyticsPage workspace={workspace} account={account}/></Route><Route path="/aesthetics"><Redirect to="/analytics"/></Route><Route path="/live"><LivePage workspace={workspace} account={account} onRefreshAccount={onRefreshAccount}/></Route><Route path="/live-preview"><LivePreviewPage workspace={workspace}/></Route><Route path="/videos"><VideosPage workspace={workspace}/></Route><Route path="/editor"><VideoEditorPage workspace={workspace}/></Route><Route path="/subscription">{account ? <ManualSubscriptionPage account={account} onRefresh={() => void onRefreshAccount()}/> : <Redirect to="/sign-in"/>}</Route><Route path="/transactions">{account ? <TransactionsPage account={account} onRefreshAccount={onRefreshAccount}/> : <Redirect to="/sign-in"/>}</Route><Route path="/profile"><ProfilePage workspace={workspace} account={profileAccount} firebaseUser={firebaseUser} profilePhoto={profilePhoto} onProfilePhotoChange={onProfilePhotoChange} onSaveProfile={account ? onSaveProfile : undefined} onRefreshAccount={onRefreshAccount} onLogout={onLogout} promptTrialPhone={promptTrialPhone} onTrialPhonePromptHandled={onTrialPhonePromptHandled}/></Route><Route path="/settings"><Redirect to="/profile"/></Route><Route><NotFound/></Route></Switch>;
 }
 
 function useMinimumLoadingDuration(pending: boolean, durationMs = 2000) {
@@ -5466,7 +5449,8 @@ function App() {
     setProfilePhoto(photo);
   };
   const [mobileGiftKey, setMobileGiftKey] = useState("");
-  const [profileGateId, setProfileGateId] = useState<string | null>(null);
+  const [dismissedTrialOfferAccountId, setDismissedTrialOfferAccountId] = useState("");
+  const [promptTrialPhone, setPromptTrialPhone] = useState(false);
   const accountLicense = accountSession.account ? {
     licenseId: accountSession.account.licenseId,
     key: accountSession.account.licenseKey,
@@ -5477,6 +5461,10 @@ function App() {
   } satisfies LicenseSession : null;
   const activeLicense = hasAccountSession ? accountLicense : license.license;
   const [location, setLocation] = useLocation();
+  const openTrialOfferInProfile = () => {
+    setPromptTrialPhone(true);
+    setLocation("/profile");
+  };
   const authLoading = useMinimumLoadingDuration(firebaseLoading || accountSession.loading || firebaseBusy || license.busy);
   const browserPath = window.location.pathname.replace(/\/+$/, "") || "/";
   const isOwnerRoute = ["/owner", "/owner.html"].includes(location) || ["/owner", "/owner.html"].includes(browserPath);
@@ -5486,18 +5474,6 @@ function App() {
     void apiJson("/api/mobile-auth/logout", { method: "POST" }).catch(() => undefined);
     void signOut();
   }, Boolean(accountSession.account));
-  useEffect(() => {
-    const account = accountSession.account;
-    if (!account) {
-      setProfileGateId(null);
-      return;
-    }
-    if (account.profileCompleted === false || !account.phone) {
-      setProfileGateId(account.id);
-      return;
-    }
-    setProfileGateId((current) => current === account.id ? null : current);
-  }, [accountSession.account?.id, accountSession.account?.phone, accountSession.account?.profileCompleted]);
   useEffect(() => {
     if (firebaseLoading || (isSignedIn && accountSession.loading)) return;
     if (!mobileGiftKey && accountSession.account && (location === "/" || location === "/access" || location.startsWith("/sign-in") || location.startsWith("/sign-up"))) {
@@ -5550,7 +5526,29 @@ function App() {
     }
     workspace.logout();
   };
-  return <><Routed workspace={workspace} account={accountSession.account} onRefreshAccount={accountSession.reload} firebaseUser={user} profilePhoto={profilePhoto} onProfilePhotoChange={handleProfilePhotoChange} onSaveProfile={accountSession.saveProfile} onLogout={handleLogout}/>{accountSession.account && profileGateId === accountSession.account.id && <AccountCompletionDialog account={accountSession.account} onSave={accountSession.saveProfile} onRefreshAccount={accountSession.reload} onClose={() => setProfileGateId(null)} />}</>;
+  const eligibleTrialOffer = accountSession.account?.trialOfferAvailable === true && !accountSession.account.trialOfferClaimedAt;
+  const showTrialOffer = eligibleTrialOffer
+    && location !== "/profile"
+    && dismissedTrialOfferAccountId !== accountSession.account?.id;
+  return <>
+    <Routed
+      workspace={workspace}
+      account={accountSession.account}
+      onRefreshAccount={accountSession.reload}
+      firebaseUser={user}
+      profilePhoto={profilePhoto}
+      onProfilePhotoChange={handleProfilePhotoChange}
+      onSaveProfile={accountSession.saveProfile}
+      onLogout={handleLogout}
+      promptTrialPhone={promptTrialPhone}
+      onTrialPhonePromptHandled={() => setPromptTrialPhone(false)}
+    />
+    {showTrialOffer && <TrialOfferFloating
+      imageSrc={liveYoutubeClay}
+      onClaim={openTrialOfferInProfile}
+      onDismiss={() => setDismissedTrialOfferAccountId(accountSession.account?.id || "")}
+    />}
+  </>;
 }
 
 export default function RootApp() {

@@ -1459,6 +1459,21 @@ export const VerifyAccountPhoneOtpResponse = zod.object({
 
 
 /**
+ * @summary Claim the one-time 24-hour offer after phone verification
+ */
+export const ClaimGoogleSignupTrialOfferResponse = zod.object({
+  "account": zod.object({
+  "trialOfferAvailable": zod.boolean(),
+  "trialOfferClaimedAt": zod.coerce.date(),
+  "trialStartedAt": zod.coerce.date(),
+  "trialEndsAt": zod.coerce.date(),
+  "accessEndsAt": zod.coerce.date(),
+  "active": zod.boolean()
+})
+})
+
+
+/**
  * @summary Calculate a subscription price before payment
  */
 

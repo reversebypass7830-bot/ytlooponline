@@ -112,6 +112,8 @@ export * from './streamStartInputAspectRatio';
 export * from './streamStartInputFacePosition';
 export * from './streamStartInputQuality';
 export * from './streamStopInput';
+export * from './trialOfferClaimResponse';
+export * from './trialOfferClaimResponseAccount';
 export * from './trimMediaInput';
 export * from './vidKrakenTokenListResponse';
 export * from './vidKrakenTokenMutationResponse';

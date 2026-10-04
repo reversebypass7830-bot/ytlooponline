@@ -84,6 +84,7 @@ import type {
   StreamControlResponse,
   StreamStartInput,
   StreamStopInput,
+  TrialOfferClaimResponse,
   TrimMediaInput,
   VidKrakenTokenListResponse,
   VidKrakenTokenMutationResponse,
@@ -3279,6 +3280,77 @@ export const useVerifyAccountPhoneOtp = <TError = ErrorType<void>,
         TContext
       > => {
       return useMutation(getVerifyAccountPhoneOtpMutationOptions(options));
+    }
+
+export const getClaimGoogleSignupTrialOfferUrl = () => {
+
+
+
+
+  return `/api/account/trial-offer/claim`
+}
+
+/**
+ * @summary Claim the one-time 24-hour offer after phone verification
+ */
+export const claimGoogleSignupTrialOffer = async ( options?: Parameters<typeof customFetch>[1]): Promise<TrialOfferClaimResponse> => {
+
+  return customFetch<TrialOfferClaimResponse>(getClaimGoogleSignupTrialOfferUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getClaimGoogleSignupTrialOfferMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof claimGoogleSignupTrialOffer>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof claimGoogleSignupTrialOffer>>, TError,void, TContext> => {
+
+const mutationKey = ['claimGoogleSignupTrialOffer'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof claimGoogleSignupTrialOffer>>, void> = () => {
+
+
+          return  claimGoogleSignupTrialOffer(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ClaimGoogleSignupTrialOfferMutationResult = NonNullable<Awaited<ReturnType<typeof claimGoogleSignupTrialOffer>>>
+
+    export type ClaimGoogleSignupTrialOfferMutationError = ErrorType<void>
+
+    /**
+ * @summary Claim the one-time 24-hour offer after phone verification
+ */
+export const useClaimGoogleSignupTrialOffer = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof claimGoogleSignupTrialOffer>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof claimGoogleSignupTrialOffer>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getClaimGoogleSignupTrialOfferMutationOptions(options));
     }
 
 export const getQuoteAccountPaymentUrl = () => {
