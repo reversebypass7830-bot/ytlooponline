@@ -2531,7 +2531,18 @@ function SubscriptionPage({ workspace, account, plans }: { workspace: ReturnType
   ];
   return <AppShell title="Subscription" account={account} workspace={workspace}>
     <div className="page subscription-page">
-      <div className="page-head subscription-heading"><div><p className="eyebrow">Subscription / Profile</p><h1>Subscription</h1><p className="subtle">Manage access, billing, and your live-stream plan for <strong className="subscription-account-email">{account.email}</strong>.</p></div><div className={`subscription-status ${active ? "active" : "expired"}`}><span className="status-dot"/>{active ? `${account.activePlan?.name || "Plan"} · ${account.streamLimit} streams` : "Please upgrade your plan"}</div></div>
+      <div className="page-head subscription-heading">
+        <div>
+          <Link href="/dashboard" className="subscription-back-link" data-testid="button-subscription-back">
+            <ArrowLeft size={16} aria-hidden="true"/>
+            <span>Back to Dashboard</span>
+          </Link>
+          <p className="eyebrow">Subscription / Profile</p>
+          <h1>Subscription</h1>
+          <p className="subtle">Manage access, billing, and your live-stream plan for <strong className="subscription-account-email">{account.email}</strong>.</p>
+        </div>
+        <div className={`subscription-status ${active ? "active" : "expired"}`}><span className="status-dot"/>{active ? `${account.activePlan?.name || "Plan"} · ${account.streamLimit} streams` : "Please upgrade your plan"}</div>
+      </div>
       {message && <div className="subscription-message"><Check size={15}/>{message}</div>}
        <section className={`subscription-trial-banner ${trialActive ? "is-active" : active ? "is-covered" : "is-expired"}`}>
          <img src={subscriptionHourglassClay} alt="" />

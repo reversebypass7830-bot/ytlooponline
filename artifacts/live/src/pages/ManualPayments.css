@@ -28,6 +28,30 @@
 .manual-payment-page .subscription-heading { margin-bottom: 26px; }
 .manual-payment-page .subscription-heading h1 { font-size: clamp(28px, 4vw, 38px); margin: 4px 0 7px; }
 .manual-payment-page .subscription-heading .eyebrow { color: var(--bill-muted); }
+.manual-payment-page .subscription-back-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  margin-bottom: 14px;
+  padding: 0 14px;
+  border: 1px solid var(--bill-line);
+  border-radius: 999px;
+  color: var(--bill-ink);
+  background: #fff;
+  font: 700 12px/1 "Figtree", ui-sans-serif, sans-serif;
+  text-decoration: none;
+  transition: background-color 160ms ease, border-color 160ms ease;
+}
+.manual-payment-page .subscription-back-link:hover {
+  border-color: #cbd5e1;
+  background: #f9fafb;
+}
+.manual-payment-page .subscription-back-link:focus-visible {
+  outline: 3px solid rgba(17, 24, 39, .2);
+  outline-offset: 3px;
+}
 .manual-payment-page .subtle,
 .manual-payment-page .pay-section-title p { color: var(--bill-muted); }
 .manual-payment-page .subscription-status { border: 1px solid var(--bill-line); background: #fff; color: var(--bill-ink); }
@@ -283,6 +307,7 @@
 @media (max-width: 600px) {
   .manual-payment-page { padding:22px 14px 90px; }
   .manual-payment-page .subscription-heading { flex-direction:column; align-items:flex-start; }
+  .manual-payment-page .subscription-back-link { min-height:46px; }
   .manual-payment-page .pay-pack-top { flex-direction:column; gap:15px; }
   .manual-payment-page .pay-pack-switch { width:100%; }
   .manual-payment-page .pay-pack-switch button { flex:1; padding:0 8px; }
