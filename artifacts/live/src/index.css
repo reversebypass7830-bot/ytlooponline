@@ -6061,6 +6061,12 @@ select { height: 41px; }
   transition: color 160ms ease, background 160ms ease, border-color 160ms ease;
 }
 
+.streamly-login-alternatives .streamly-login-dark-alternative {
+  grid-column: 1 / -1;
+  justify-self: center;
+  width: min(100%, 320px);
+}
+
 .streamly-login-page .streamly-login-dark-alternative:hover:not(:disabled),
 .streamly-login-page .streamly-login-dark-alternative:focus-visible:not(:disabled) {
   border-color: #050505;

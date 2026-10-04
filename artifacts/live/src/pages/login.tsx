@@ -238,7 +238,7 @@ export default function LoginPage({
             <div className="streamly-login-alternatives" aria-label="Other sign-in options">
               <div className="streamly-login-alternatives-divider"><span>or continue with</span></div>
               <div className="streamly-login-alternative-grid">
-                <button className="streamly-login-alternative-button" type="button" onClick={() => { void onGoogleLogin(); }} disabled={busy}>
+                <button className="streamly-login-alternative-button streamly-login-dark-alternative" type="button" onClick={() => { void onGoogleLogin(); }} disabled={busy}>
                   <img className="streamly-google-logo" src="/images/google-logo.png" alt="" aria-hidden="true" /> Google
                 </button>
               </div>
