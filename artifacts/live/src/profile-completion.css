@@ -283,17 +283,20 @@
 .account-phone-otp-code {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 8px;
-  width: min(100%, 260px);
+  gap: 10px;
+  width: min(100%, 360px);
 }
 
 .account-phone-otp-code input {
   width: 100%;
   min-width: 0;
-  min-height: 54px;
+  min-height: 56px;
   padding: 0;
+  border: 1px solid #b9b3b3;
+  border-radius: 10px;
+  background: #fff;
   text-align: center;
-  font-size: 20px;
+  font-size: 22px;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
