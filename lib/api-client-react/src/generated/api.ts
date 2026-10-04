@@ -23,6 +23,10 @@ import type {
   AccountPaymentQuote,
   AccountPaymentQuoteInput,
   AccountPaymentRequestInput,
+  AccountPhoneOtpChallenge,
+  AccountPhoneOtpSendInput,
+  AccountPhoneOtpVerification,
+  AccountPhoneOtpVerifyInput,
   AddVidKrakenTokenInput,
   BillingPlanInput,
   BillingPlanListResponse,
@@ -3133,6 +3137,148 @@ export const useRenewLicenseForUser = <TError = ErrorType<void>,
         TContext
       > => {
       return useMutation(getRenewLicenseForUserMutationOptions(options));
+    }
+
+export const getSendAccountPhoneOtpUrl = () => {
+
+
+
+
+  return `/api/account/phone/send-otp`
+}
+
+/**
+ * @summary Send an OTP to verify a phone number for the signed-in account
+ */
+export const sendAccountPhoneOtp = async (accountPhoneOtpSendInput: AccountPhoneOtpSendInput, options?: Parameters<typeof customFetch>[1]): Promise<AccountPhoneOtpChallenge> => {
+
+  return customFetch<AccountPhoneOtpChallenge>(getSendAccountPhoneOtpUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(accountPhoneOtpSendInput)
+  }
+);}
+
+
+
+
+
+export const getSendAccountPhoneOtpMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof sendAccountPhoneOtp>>, TError,{data: BodyType<AccountPhoneOtpSendInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof sendAccountPhoneOtp>>, TError,{data: BodyType<AccountPhoneOtpSendInput>}, TContext> => {
+
+const mutationKey = ['sendAccountPhoneOtp'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof sendAccountPhoneOtp>>, {data: BodyType<AccountPhoneOtpSendInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  sendAccountPhoneOtp(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SendAccountPhoneOtpMutationResult = NonNullable<Awaited<ReturnType<typeof sendAccountPhoneOtp>>>
+    export type SendAccountPhoneOtpMutationBody = BodyType<AccountPhoneOtpSendInput>
+    export type SendAccountPhoneOtpMutationError = ErrorType<void>
+
+    /**
+ * @summary Send an OTP to verify a phone number for the signed-in account
+ */
+export const useSendAccountPhoneOtp = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof sendAccountPhoneOtp>>, TError,{data: BodyType<AccountPhoneOtpSendInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof sendAccountPhoneOtp>>,
+        TError,
+        {data: BodyType<AccountPhoneOtpSendInput>},
+        TContext
+      > => {
+      return useMutation(getSendAccountPhoneOtpMutationOptions(options));
+    }
+
+export const getVerifyAccountPhoneOtpUrl = () => {
+
+
+
+
+  return `/api/account/phone/verify-otp`
+}
+
+/**
+ * @summary Verify and link a phone number to the signed-in account
+ */
+export const verifyAccountPhoneOtp = async (accountPhoneOtpVerifyInput: AccountPhoneOtpVerifyInput, options?: Parameters<typeof customFetch>[1]): Promise<AccountPhoneOtpVerification> => {
+
+  return customFetch<AccountPhoneOtpVerification>(getVerifyAccountPhoneOtpUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(accountPhoneOtpVerifyInput)
+  }
+);}
+
+
+
+
+
+export const getVerifyAccountPhoneOtpMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof verifyAccountPhoneOtp>>, TError,{data: BodyType<AccountPhoneOtpVerifyInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof verifyAccountPhoneOtp>>, TError,{data: BodyType<AccountPhoneOtpVerifyInput>}, TContext> => {
+
+const mutationKey = ['verifyAccountPhoneOtp'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof verifyAccountPhoneOtp>>, {data: BodyType<AccountPhoneOtpVerifyInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  verifyAccountPhoneOtp(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type VerifyAccountPhoneOtpMutationResult = NonNullable<Awaited<ReturnType<typeof verifyAccountPhoneOtp>>>
+    export type VerifyAccountPhoneOtpMutationBody = BodyType<AccountPhoneOtpVerifyInput>
+    export type VerifyAccountPhoneOtpMutationError = ErrorType<void>
+
+    /**
+ * @summary Verify and link a phone number to the signed-in account
+ */
+export const useVerifyAccountPhoneOtp = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof verifyAccountPhoneOtp>>, TError,{data: BodyType<AccountPhoneOtpVerifyInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof verifyAccountPhoneOtp>>,
+        TError,
+        {data: BodyType<AccountPhoneOtpVerifyInput>},
+        TContext
+      > => {
+      return useMutation(getVerifyAccountPhoneOtpMutationOptions(options));
     }
 
 export const getQuoteAccountPaymentUrl = () => {

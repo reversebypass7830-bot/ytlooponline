@@ -1,7 +1,13 @@
 import { createHash, randomUUID } from "node:crypto";
 import { Router, type IRouter, type Request, type Response } from "express";
+import {
+  SendAccountPhoneOtpBody,
+  SendAccountPhoneOtpResponse,
+  VerifyAccountPhoneOtpBody,
+  VerifyAccountPhoneOtpResponse,
+} from "@workspace/api-zod";
 import { firebaseDelete, firebaseGet, firebasePut } from "../lib/firebase-rest";
-import { clearMobileSession, setMobileSession } from "../middlewares/requireClerkAuth";
+import { accountUserId, clearMobileSession, requireAccountAuth, setMobileSession } from "../middlewares/requireClerkAuth";
 import { createMobileAccount } from "./accounts";
 
 const router: IRouter = Router();
@@ -16,6 +22,7 @@ const maxAttempts = 5;
 type AccountRecord = { id: string; phone?: string; displayName: string; email: string; role: "owner" | "user"; licenseId: string; licenseKey: string; trialStartedAt: string; trialEndsAt: string; activePlanId: string; accessEndsAt: string; createdAt: string; lastLoginAt: string; history: Array<{ id: string; type: string; message: string; at: string; planId?: string; days?: number }> };
 type AccountMap = Record<string, AccountRecord>;
 type Challenge = { requestId: string; phone: string; deviceId: string; issuedAt: string; expiresAt: string; attempts: number };
+type AccountPhoneChallenge = Challenge & { accountId: string };
 type VerifiedMobileChallenge = { phone: string; expiresAt: number };
 type ProviderResponse = { status?: number; message?: string; user?: { phone?: string } };
 type AccountSummary = Pick<AccountRecord, "id" | "displayName" | "email" | "phone" | "role">;
@@ -34,6 +41,12 @@ function normalizePhone(value: string): string {
 function challengePath(phone: string): string {
   const phoneHash = createHash("sha256").update(normalizePhone(phone)).digest("hex");
   return `otpChallenges/${phoneHash}`;
+}
+
+function accountPhoneChallengePath(accountId: string, phone: string): string {
+  const accountHash = createHash("sha256").update(accountId).digest("hex");
+  const phoneHash = createHash("sha256").update(normalizePhone(phone)).digest("hex");
+  return `otpChallenges/account-phone/${accountHash}/${phoneHash}`;
 }
 
 function isChallengeExpired(challenge: Challenge, nowMs = Date.now()): boolean {
@@ -110,6 +123,197 @@ async function findAccountByPhone(phone: string): Promise<AccountRecord | null> 
   const normalized = normalizePhone(phone);
   return Object.values(accounts).find((account) => account.phone && normalizePhone(account.phone) === normalized) || null;
 }
+
+function findAccountInMap(accounts: AccountMap, accountId: string): AccountRecord | null {
+  return accounts[accountId] || Object.values(accounts).find((account) => account.id === accountId) || null;
+}
+
+function phoneLinkedToAnotherAccount(accounts: AccountMap, phone: string, accountId: string): boolean {
+  const normalized = normalizePhone(phone);
+  return Object.values(accounts).some((account) =>
+    account.id !== accountId && account.phone && normalizePhone(account.phone) === normalized);
+}
+
+router.post("/account/phone/send-otp", requireAccountAuth, async (req: Request, res: Response): Promise<void> => {
+  const parsed = SendAccountPhoneOtpBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Enter a valid 10-digit mobile number." });
+    return;
+  }
+  const accountId = accountUserId(req);
+  const phone = normalizePhone(parsed.data.phone);
+  if (!accountId || !validPhone(phone)) {
+    res.status(400).json({ error: "Enter a valid 10-digit mobile number." });
+    return;
+  }
+
+  try {
+    const accounts = (await firebaseGet<AccountMap | null>("accounts")) ?? {};
+    const account = findAccountInMap(accounts, accountId);
+    if (!account) {
+      res.status(404).json({ error: "Your account could not be found." });
+      return;
+    }
+    if (account.phone) {
+      res.status(409).json({ error: "A mobile number is already linked to your account." });
+      return;
+    }
+    if (phoneLinkedToAnotherAccount(accounts, phone, account.id)) {
+      res.status(409).json({ error: "This mobile number is already linked to another account." });
+      return;
+    }
+
+    const requestedDeviceId = parsed.data.deviceId?.trim() || "";
+    const deviceId = /^[A-Za-z0-9._:-]{8,80}$/.test(requestedDeviceId)
+      ? requestedDeviceId
+      : `WebBrowser-${createHash("sha256").update(`${account.id}:${phone}`).digest("hex").slice(0, 24)}`;
+    const payload = await callProvider("/get/sendotp", { phone });
+    if (!providerSucceeded(payload)) {
+      res.status(502).json({ error: providerMessage(payload), providerStatus: payload.status ?? 0 });
+      return;
+    }
+    const requestId = randomUUID();
+    const issuedAtMs = Date.now();
+    const challenge: AccountPhoneChallenge = {
+      requestId,
+      phone,
+      deviceId,
+      accountId: account.id,
+      issuedAt: new Date(issuedAtMs).toISOString(),
+      expiresAt: new Date(issuedAtMs + challengeTtlMs).toISOString(),
+      attempts: 0,
+    };
+    await firebasePut(accountPhoneChallengePath(account.id, phone), challenge);
+    res.json(SendAccountPhoneOtpResponse.parse({
+      requestId,
+      expiresAt: challenge.expiresAt,
+      expiresInSeconds: challengeTtlSeconds,
+    }));
+  } catch (error) {
+    req.log.error({ error: error instanceof Error ? error.message : "unknown" }, "Account phone OTP send failed");
+    res.status(502).json({ error: "Could not send the verification code. Please try again." });
+  }
+});
+
+router.post("/account/phone/verify-otp", requireAccountAuth, async (req: Request, res: Response): Promise<void> => {
+  const parsed = VerifyAccountPhoneOtpBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Enter the valid mobile number and 4-digit OTP." });
+    return;
+  }
+  const accountId = accountUserId(req);
+  const phone = normalizePhone(parsed.data.phone);
+  if (!accountId || !validPhone(phone)) {
+    res.status(400).json({ error: "Enter a valid 10-digit mobile number." });
+    return;
+  }
+
+  const path = accountPhoneChallengePath(accountId, phone);
+  try {
+    const accounts = (await firebaseGet<AccountMap | null>("accounts")) ?? {};
+    const account = findAccountInMap(accounts, accountId);
+    if (!account) {
+      res.status(404).json({ error: "Your account could not be found." });
+      return;
+    }
+    if (account.phone) {
+      if (normalizePhone(account.phone) === phone) {
+        res.json(VerifyAccountPhoneOtpResponse.parse({
+          phone: account.phone,
+          message: "This mobile number is already verified on your account.",
+        }));
+        return;
+      }
+      res.status(409).json({ error: "A different mobile number is already linked to your account." });
+      return;
+    }
+    if (phoneLinkedToAnotherAccount(accounts, phone, account.id)) {
+      res.status(409).json({ error: "This mobile number is already linked to another account." });
+      return;
+    }
+
+    const challenge = await firebaseGet<AccountPhoneChallenge | null>(path);
+    if (!challenge || challenge.requestId !== parsed.data.requestId || challenge.phone !== phone || challenge.accountId !== account.id) {
+      staleOtpError(res);
+      return;
+    }
+    if (isChallengeExpired(challenge)) {
+      await firebaseDelete(path);
+      res.status(400).json({ error: "This OTP has expired. Request a new one." });
+      return;
+    }
+    if (challenge.attempts >= maxAttempts) {
+      await firebaseDelete(path);
+      res.status(429).json({ error: "Too many incorrect attempts. Request a new OTP." });
+      return;
+    }
+
+    const attempt = { ...challenge, attempts: challenge.attempts + 1 };
+    await firebasePut(path, attempt);
+    const payload = await callProvider("/get/otpverify", {
+      useremail: phone,
+      otp: parsed.data.otp,
+      device_id: attempt.deviceId,
+      mydeviceid: "",
+      mydeviceid2: "",
+    });
+    if (!providerOtpSucceeded(payload)) {
+      res.status(401).json({
+        error: providerMessage(payload),
+        attemptsRemaining: maxAttempts - attempt.attempts,
+      });
+      return;
+    }
+
+    const latest = await firebaseGet<AccountPhoneChallenge | null>(path);
+    if (!latest || latest.requestId !== parsed.data.requestId || latest.phone !== phone || latest.accountId !== account.id) {
+      staleOtpError(res);
+      return;
+    }
+    if (isChallengeExpired(latest)) {
+      await firebaseDelete(path);
+      res.status(400).json({ error: "This OTP has expired. Request a new one." });
+      return;
+    }
+
+    const latestAccounts = (await firebaseGet<AccountMap | null>("accounts")) ?? {};
+    const latestAccount = findAccountInMap(latestAccounts, account.id);
+    if (!latestAccount) {
+      res.status(404).json({ error: "Your account could not be found." });
+      return;
+    }
+    if (latestAccount.phone) {
+      if (normalizePhone(latestAccount.phone) === phone) {
+        await firebaseDelete(path);
+        res.json(VerifyAccountPhoneOtpResponse.parse({
+          phone: latestAccount.phone,
+          message: "This mobile number is already verified on your account.",
+        }));
+        return;
+      }
+      res.status(409).json({ error: "A different mobile number is already linked to your account." });
+      return;
+    }
+    if (phoneLinkedToAnotherAccount(latestAccounts, phone, latestAccount.id)) {
+      res.status(409).json({ error: "This mobile number is already linked to another account." });
+      return;
+    }
+
+    const verifiedPhone = `+91${phone}`;
+    await firebasePut(`accounts/${encodeURIComponent(latestAccount.id)}`, {
+      ...latestAccount,
+      phone: verifiedPhone,
+    });
+    await firebaseDelete(path);
+    res.json(VerifyAccountPhoneOtpResponse.parse({
+      phone: verifiedPhone,
+      message: "Mobile number verified and saved.",
+    }));
+  } catch (error) {
+    req.log.error({ error: error instanceof Error ? error.message : "unknown" }, "Account phone OTP verification failed");
+    res.status(502).json({ error: "Could not verify the code. Please try again." });
+  }
+});
 
 router.post("/mobile-auth/send-otp", async (req: Request, res: Response): Promise<void> => {
   const phone = typeof req.body?.phone === "string" ? normalizePhone(req.body.phone) : "";

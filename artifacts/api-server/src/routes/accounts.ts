@@ -1039,6 +1039,8 @@ router.put("/account/profile", requireAccountAuth, async (req, res): Promise<voi
     const displayName = typeof req.body?.displayName === "string" ? req.body.displayName.trim() : account.displayName;
     const email = typeof req.body?.email === "string" ? req.body.email.trim() : account.email;
     const phone = typeof req.body?.phone === "string" ? req.body.phone.trim() : "";
+    const normalizedPhoneDigits = phone.replace(/\D/g, "");
+    const currentPhoneDigits = (account.phone || "").replace(/\D/g, "");
     const profileImagePath = typeof req.body?.profileImagePath === "string" ? req.body.profileImagePath.trim() : account.profileImagePath;
     if (!displayName || displayName.length < 2) {
       res.status(400).json({ error: "Enter your name to complete your profile." });
@@ -1048,25 +1050,19 @@ router.put("/account/profile", requireAccountAuth, async (req, res): Promise<voi
       res.status(400).json({ error: "Enter a valid email address." });
       return;
     }
-    const normalizedPhoneDigits = phone.replace(/\D/g, "");
     if (phone && (!/^\+?[0-9 ()-]{10,24}$/.test(phone) || normalizedPhoneDigits.length < 10)) {
       res.status(400).json({ error: "Enter a valid 10-digit mobile number." });
       return;
     }
-    if (phone) {
-      const accounts = (await firebaseGet<AccountMap | null>("accounts")) ?? {};
-      const normalizedPhone = normalizedPhoneDigits.slice(-10);
-      const alreadyLinked = Object.values(accounts).some((candidate) => candidate.id !== account.id && candidate.phone && candidate.phone.replace(/\D/g, "").slice(-10) === normalizedPhone);
-      if (alreadyLinked) {
-        res.status(409).json({ error: "This mobile number is already linked to another account." });
-        return;
-      }
+    if (phone && (!currentPhoneDigits || currentPhoneDigits.slice(-10) !== normalizedPhoneDigits.slice(-10))) {
+      res.status(400).json({ error: "Verify a new mobile number before adding it to your account." });
+      return;
     }
     if (profileImagePath && !profileImagePath.startsWith(`/objects/profile-images/${encodeURIComponent(account.id)}/`)) {
       res.status(400).json({ error: "That profile image reference is not valid for this account." });
       return;
     }
-    const next = { ...account, displayName, email, phone: phone || account.phone, profileImagePath, profileCompleted: true };
+    const next = { ...account, displayName, email, phone: account.phone, profileImagePath, profileCompleted: true };
     await firebasePut(accountPath(account.id), next);
     res.json({ account: publicAccount(next, plans), plans: Object.values(plans).filter((plan) => plan.active) });
   } catch (error) {

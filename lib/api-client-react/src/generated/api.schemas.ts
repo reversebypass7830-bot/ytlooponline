@@ -1037,6 +1037,46 @@ export interface PaymentAssetUploadUrl {
   maxBytes: number;
 }
 
+export interface AccountPhoneOtpSendInput {
+  /**
+     * @minLength 10
+     * @maxLength 24
+     */
+  phone: string;
+  /** @maxLength 80 */
+  deviceId?: string;
+}
+
+export interface AccountPhoneOtpVerifyInput {
+  /**
+     * @minLength 10
+     * @maxLength 24
+     */
+  phone: string;
+  /**
+     * @minLength 1
+     * @maxLength 80
+     */
+  requestId: string;
+  /** @pattern ^\d{4}$ */
+  otp: string;
+}
+
+export interface AccountPhoneOtpChallenge {
+  requestId: string;
+  expiresAt: string;
+  /**
+     * @minimum 0
+     * @maximum 300
+     */
+  expiresInSeconds: number;
+}
+
+export interface AccountPhoneOtpVerification {
+  phone: string;
+  message: string;
+}
+
 export type AccountPaymentQuoteInputPackType = typeof AccountPaymentQuoteInputPackType[keyof typeof AccountPaymentQuoteInputPackType];
 
 

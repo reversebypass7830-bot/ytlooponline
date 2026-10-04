@@ -1409,6 +1409,56 @@ export const RenewLicenseForUserResponse = zod.object({
 
 
 /**
+ * @summary Send an OTP to verify a phone number for the signed-in account
+ */
+export const sendAccountPhoneOtpBodyPhoneMin = 10;
+export const sendAccountPhoneOtpBodyPhoneMax = 24;
+
+export const sendAccountPhoneOtpBodyDeviceIdMax = 80;
+
+
+
+export const SendAccountPhoneOtpBody = zod.object({
+  "phone": zod.string().min(sendAccountPhoneOtpBodyPhoneMin).max(sendAccountPhoneOtpBodyPhoneMax),
+  "deviceId": zod.string().max(sendAccountPhoneOtpBodyDeviceIdMax).optional()
+})
+
+export const sendAccountPhoneOtpResponseExpiresInSecondsMin = 0;
+export const sendAccountPhoneOtpResponseExpiresInSecondsMax = 300;
+
+
+
+export const SendAccountPhoneOtpResponse = zod.object({
+  "requestId": zod.string(),
+  "expiresAt": zod.coerce.date(),
+  "expiresInSeconds": zod.number().min(sendAccountPhoneOtpResponseExpiresInSecondsMin).max(sendAccountPhoneOtpResponseExpiresInSecondsMax)
+})
+
+
+/**
+ * @summary Verify and link a phone number to the signed-in account
+ */
+export const verifyAccountPhoneOtpBodyPhoneMin = 10;
+export const verifyAccountPhoneOtpBodyPhoneMax = 24;
+
+export const verifyAccountPhoneOtpBodyRequestIdMax = 80;
+
+export const verifyAccountPhoneOtpBodyOtpRegExp = new RegExp('^\\d{4}$');
+
+
+export const VerifyAccountPhoneOtpBody = zod.object({
+  "phone": zod.string().min(verifyAccountPhoneOtpBodyPhoneMin).max(verifyAccountPhoneOtpBodyPhoneMax),
+  "requestId": zod.string().min(1).max(verifyAccountPhoneOtpBodyRequestIdMax),
+  "otp": zod.string().regex(verifyAccountPhoneOtpBodyOtpRegExp)
+})
+
+export const VerifyAccountPhoneOtpResponse = zod.object({
+  "phone": zod.string(),
+  "message": zod.string()
+})
+
+
+/**
  * @summary Calculate a subscription price before payment
  */
 

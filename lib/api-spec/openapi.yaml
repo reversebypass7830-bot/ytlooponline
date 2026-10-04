@@ -974,6 +974,60 @@ paths:
                 $ref: "#/components/schemas/LicenseAccess"
         "404":
           description: License key not found
+  /account/phone/send-otp:
+    post:
+      operationId: sendAccountPhoneOtp
+      tags: [account]
+      summary: Send an OTP to verify a phone number for the signed-in account
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AccountPhoneOtpSendInput"
+      responses:
+        "200":
+          description: Verification code sent
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccountPhoneOtpChallenge"
+        "400":
+          description: Invalid phone number
+        "401":
+          description: Sign-in is required
+        "409":
+          description: The phone number is already linked
+        "502":
+          description: The OTP provider could not send a code
+  /account/phone/verify-otp:
+    post:
+      operationId: verifyAccountPhoneOtp
+      tags: [account]
+      summary: Verify and link a phone number to the signed-in account
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AccountPhoneOtpVerifyInput"
+      responses:
+        "200":
+          description: Phone number verified and saved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccountPhoneOtpVerification"
+        "400":
+          description: Invalid, expired, or stale OTP
+        "401":
+          description: Sign-in is required or the OTP was rejected
+        "409":
+          description: A phone number is already linked to an account
+        "429":
+          description: Too many incorrect verification attempts
+        "502":
+          description: The OTP provider could not verify the code
   /account/payment-quote:
     post:
       operationId: quoteAccountPayment
@@ -2535,6 +2589,53 @@ components:
         maxBytes:
           type: number
       required: [uploadURL, objectPath, contentType, maxBytes]
+    AccountPhoneOtpSendInput:
+      type: object
+      properties:
+        phone:
+          type: string
+          minLength: 10
+          maxLength: 24
+        deviceId:
+          type: string
+          maxLength: 80
+      required: [phone]
+    AccountPhoneOtpVerifyInput:
+      type: object
+      properties:
+        phone:
+          type: string
+          minLength: 10
+          maxLength: 24
+        requestId:
+          type: string
+          minLength: 1
+          maxLength: 80
+        otp:
+          type: string
+          pattern: "^\\d{4}$"
+      required: [phone, requestId, otp]
+    AccountPhoneOtpChallenge:
+      type: object
+      properties:
+        requestId:
+          type: string
+        expiresAt:
+          type: string
+          format: date-time
+        expiresInSeconds:
+          type: number
+          minimum: 0
+          maximum: 300
+      required: [requestId, expiresAt, expiresInSeconds]
+    AccountPhoneOtpVerification:
+      type: object
+      properties:
+        phone:
+          type: string
+        message:
+          type: string
+      required: [phone, message]
     AccountPaymentQuoteInput:
       type: object
       properties:
