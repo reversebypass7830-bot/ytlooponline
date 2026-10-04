@@ -502,6 +502,9 @@ export function OwnerPaymentPanel({ ownerPassword }: { ownerPassword: string }) 
   const selectedCashfreeConfigured = cashfreeEnvironment === "sandbox"
     ? settingsQuery.data?.cashfreeSandboxConfigured
     : settingsQuery.data?.cashfreeProductionConfigured;
+  const selectedCashfreeReentryRequired = cashfreeEnvironment === "sandbox"
+    ? settingsQuery.data?.cashfreeSandboxReentryRequired
+    : settingsQuery.data?.cashfreeProductionReentryRequired;
   return <main className="owner-content owner-payment-content">
     <div className="page-head owner-page-heading"><div><p className="eyebrow">Commerce / Manual UPI</p><h1>Payments</h1><p className="subtle">Set your custom-subscription rates, add your UPI destination, and review customer payments.</p></div><div className="owner-page-badge"><ShieldCheck size={16}/> Owner review</div></div>
     {feedback && <div className="pay-alert success" role="status" data-testid="status-owner-feedback"><CheckCircle2 size={17}/><span>{feedback}</span><button className="pay-alert-close" onClick={() => setFeedback("")} aria-label="Dismiss notification"><X size={15}/></button></div>}
@@ -540,12 +543,15 @@ export function OwnerPaymentPanel({ ownerPassword }: { ownerPassword: string }) 
                   const configured = environment === "sandbox"
                     ? settingsQuery.data?.cashfreeSandboxConfigured
                     : settingsQuery.data?.cashfreeProductionConfigured;
+                  const reentryRequired = environment === "sandbox"
+                    ? settingsQuery.data?.cashfreeSandboxReentryRequired
+                    : settingsQuery.data?.cashfreeProductionReentryRequired;
                   const credentialDraft = cashfreeCredentials[environment];
                   return <div className="owner-cashfree-environment" key={environment}>
                     <div className="owner-cashfree-env-head">
                       <strong>{environment === "sandbox" ? "Sandbox" : "Production"} credentials</strong>
                       <span className={`cashfree-config-status ${configured ? "configured" : "missing"}`} role="status">
-                        {configured ? "Configured" : "Not configured"}
+                        {configured ? "Configured" : reentryRequired ? "Re-enter required" : "Not configured"}
                       </span>
                     </div>
                     <div className="owner-cashfree-env-fields">
@@ -556,8 +562,14 @@ export function OwnerPaymentPanel({ ownerPassword }: { ownerPassword: string }) 
                 })}
               </div>
               <div className={`cashfree-config-status ${selectedCashfreeConfigured ? "configured" : "missing"}`} role="status">
-                <strong>{selectedCashfreeConfigured ? `Cashfree ${cashfreeEnvironment} checkout is ready` : `Cashfree ${cashfreeEnvironment} credentials are required`}</strong>
-                <span>Enter both values for an environment to save or replace its credentials. Saved keys are encrypted on the server and are never sent back to this page. Owner-panel credentials take precedence over matching Replit Secrets.</span>
+                <strong>{selectedCashfreeConfigured
+                  ? `Cashfree ${cashfreeEnvironment} checkout is ready`
+                  : selectedCashfreeReentryRequired
+                    ? `Cashfree ${cashfreeEnvironment} credentials must be entered again`
+                    : `Cashfree ${cashfreeEnvironment} credentials are required`}</strong>
+                <span>{selectedCashfreeReentryRequired
+                  ? "These saved credentials can no longer be unlocked. Re-enter both values below to replace them. Secret values remain encrypted on the server and are never returned to this page."
+                  : "Enter both values for an environment to save or replace its credentials. Saved keys are encrypted on the server and are never sent back to this page. Owner-panel credentials take precedence over matching Replit Secrets."}</span>
                 <small>Cashfree must whitelist ytloop.online for hosted checkout before you go live.</small>
               </div>
             </>}

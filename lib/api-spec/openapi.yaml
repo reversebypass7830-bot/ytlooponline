@@ -2529,10 +2529,14 @@ components:
           type: boolean
         cashfreeProductionConfigured:
           type: boolean
+        cashfreeSandboxReentryRequired:
+          type: boolean
+        cashfreeProductionReentryRequired:
+          type: boolean
         updatedAt:
           type: ["string", "null"]
           format: date-time
-      required: [upiId, payeeName, paymentMode, cashfreeEnvironment, cashfreeSandboxConfigured, cashfreeProductionConfigured, updatedAt]
+      required: [upiId, payeeName, paymentMode, cashfreeEnvironment, cashfreeSandboxConfigured, cashfreeProductionConfigured, cashfreeSandboxReentryRequired, cashfreeProductionReentryRequired, updatedAt]
     PaymentSettingsInput:
       type: object
       properties:

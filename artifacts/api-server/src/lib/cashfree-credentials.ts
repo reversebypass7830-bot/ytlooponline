@@ -18,6 +18,18 @@ type EncryptedCredentials = {
   ciphertext: string;
 };
 
+type CashfreeCredentialsStatus = {
+  configured: boolean;
+  reentryRequired: boolean;
+};
+
+class CashfreeCredentialsReentryRequiredError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "CashfreeCredentialsReentryRequiredError";
+  }
+}
+
 const credentialPath = (environment: CashfreeEnvironment) =>
   `billing/cashfreeCredentials/${environment}`;
 
@@ -64,16 +76,17 @@ function decryptCredentials(value: unknown): CashfreeCredentials {
     || typeof value.iv !== "string"
     || typeof value.authTag !== "string"
     || typeof value.ciphertext !== "string") {
-    throw new Error("Stored Cashfree credentials are invalid.");
+    throw new CashfreeCredentialsReentryRequiredError("Stored Cashfree credentials are invalid.");
   }
   const iv = decodeBase64(value.iv, 12);
   const authTag = decodeBase64(value.authTag, 16);
   const ciphertext = decodeBase64(value.ciphertext);
   if (!iv || !authTag || !ciphertext || ciphertext.length === 0) {
-    throw new Error("Stored Cashfree credentials are invalid.");
+    throw new CashfreeCredentialsReentryRequiredError("Stored Cashfree credentials are invalid.");
   }
+  const key = encryptionKey();
   try {
-    const decipher = createDecipheriv("aes-256-gcm", encryptionKey(), iv);
+    const decipher = createDecipheriv("aes-256-gcm", key, iv);
     decipher.setAuthTag(authTag);
     const cleartext = Buffer.concat([
       decipher.update(ciphertext),
@@ -85,11 +98,13 @@ function decryptCredentials(value: unknown): CashfreeCredentials {
       || typeof parsed.clientSecret !== "string"
       || !parsed.clientId
       || !parsed.clientSecret) {
-      throw new Error("Stored Cashfree credentials are invalid.");
+      throw new CashfreeCredentialsReentryRequiredError("Stored Cashfree credentials are invalid.");
     }
     return { clientId: parsed.clientId, clientSecret: parsed.clientSecret };
   } catch {
-    throw new Error("Cashfree credentials could not be decrypted. Check that SESSION_SECRET has not changed.");
+    throw new CashfreeCredentialsReentryRequiredError(
+      "Cashfree credentials could not be decrypted. Check that SESSION_SECRET has not changed.",
+    );
   }
 }
 
@@ -109,6 +124,24 @@ async function loadOwnerCashfreeCredentials(
 ): Promise<CashfreeCredentials | null> {
   const encrypted = await firebaseGet<EncryptedCredentials | null>(credentialPath(environment));
   return encrypted ? decryptCredentials(encrypted) : null;
+}
+
+export async function getCashfreeCredentialsStatus(
+  environment: CashfreeEnvironment,
+): Promise<CashfreeCredentialsStatus> {
+  const encrypted = await firebaseGet<EncryptedCredentials | null>(credentialPath(environment));
+  if (!encrypted) {
+    return { configured: getCashfreeConfig(environment) !== null, reentryRequired: false };
+  }
+  try {
+    decryptCredentials(encrypted);
+    return { configured: true, reentryRequired: false };
+  } catch (error) {
+    if (error instanceof CashfreeCredentialsReentryRequiredError) {
+      return { configured: false, reentryRequired: true };
+    }
+    throw error;
+  }
 }
 
 export async function getCashfreeConfigForEnvironment(

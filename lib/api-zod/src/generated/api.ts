@@ -1883,6 +1883,8 @@ export const GetOwnerPaymentSettingsResponse = zod.object({
   "cashfreeEnvironment": zod.enum(['sandbox', 'production']),
   "cashfreeSandboxConfigured": zod.boolean(),
   "cashfreeProductionConfigured": zod.boolean(),
+  "cashfreeSandboxReentryRequired": zod.boolean(),
+  "cashfreeProductionReentryRequired": zod.boolean(),
   "updatedAt": zod.coerce.date().nullable()
 })
 
@@ -1927,6 +1929,8 @@ export const UpdateOwnerPaymentSettingsResponse = zod.object({
   "cashfreeEnvironment": zod.enum(['sandbox', 'production']),
   "cashfreeSandboxConfigured": zod.boolean(),
   "cashfreeProductionConfigured": zod.boolean(),
+  "cashfreeSandboxReentryRequired": zod.boolean(),
+  "cashfreeProductionReentryRequired": zod.boolean(),
   "updatedAt": zod.coerce.date().nullable()
 })
 

@@ -957,6 +957,8 @@ export interface PaymentSettings {
   cashfreeEnvironment: PaymentSettingsCashfreeEnvironment;
   cashfreeSandboxConfigured: boolean;
   cashfreeProductionConfigured: boolean;
+  cashfreeSandboxReentryRequired: boolean;
+  cashfreeProductionReentryRequired: boolean;
   /** @nullable */
   updatedAt: string | null;
 }

@@ -23,6 +23,7 @@ import {
   type CashfreeEnvironment,
 } from "../lib/cashfree";
 import {
+  getCashfreeCredentialsStatus,
   getCashfreeConfigForEnvironment,
   saveOwnerCashfreeCredentials,
 } from "../lib/cashfree-credentials";
@@ -754,15 +755,19 @@ async function loadPaymentSettings(): Promise<PaymentSettingsRecord> {
 async function paymentSettingsResponse(settings: PaymentSettingsRecord): Promise<PaymentSettingsRecord & {
   cashfreeSandboxConfigured: boolean;
   cashfreeProductionConfigured: boolean;
+  cashfreeSandboxReentryRequired: boolean;
+  cashfreeProductionReentryRequired: boolean;
 }> {
-  const [sandboxConfig, productionConfig] = await Promise.all([
-    getCashfreeConfigForEnvironment("sandbox"),
-    getCashfreeConfigForEnvironment("production"),
+  const [sandboxStatus, productionStatus] = await Promise.all([
+    getCashfreeCredentialsStatus("sandbox"),
+    getCashfreeCredentialsStatus("production"),
   ]);
   return {
     ...settings,
-    cashfreeSandboxConfigured: sandboxConfig !== null,
-    cashfreeProductionConfigured: productionConfig !== null,
+    cashfreeSandboxConfigured: sandboxStatus.configured,
+    cashfreeProductionConfigured: productionStatus.configured,
+    cashfreeSandboxReentryRequired: sandboxStatus.reentryRequired,
+    cashfreeProductionReentryRequired: productionStatus.reentryRequired,
   };
 }
 
