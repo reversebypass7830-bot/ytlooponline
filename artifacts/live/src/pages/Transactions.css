@@ -3,6 +3,33 @@
   overflow: hidden;
 }
 
+.transactions-page .transactions-back-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  margin-bottom: 15px;
+  padding: 0 14px;
+  border: 1px solid var(--bill-line);
+  border-radius: 999px;
+  color: var(--bill-ink);
+  background: #fff;
+  font: 700 12px/1 "Figtree", ui-sans-serif, sans-serif;
+  text-decoration: none;
+  transition: background-color 160ms ease, border-color 160ms ease, transform 160ms ease;
+}
+
+.transactions-page .transactions-back-link:hover {
+  border-color: #cbd5e1;
+  background: #f9fafb;
+}
+
+.transactions-page .transactions-back-link:focus-visible {
+  outline: 3px solid rgba(17, 24, 39, .2);
+  outline-offset: 3px;
+}
+
 .transactions-page .transaction-card-header {
   display: flex;
   align-items: flex-start;
@@ -472,6 +499,12 @@
 }
 
 @media (max-width: 640px) {
+  .transactions-page .transactions-back-link {
+    min-height: 46px;
+    margin-bottom: 14px;
+    padding-inline: 15px;
+  }
+
   .transactions-page .transaction-history-card {
     padding: 18px;
   }

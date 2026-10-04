@@ -5132,6 +5132,7 @@ function ProfilePage({ workspace, account, firebaseUser, profilePhoto, onProfile
         }}>
           <DialogContent className="profile-settings-dialog">
             <DialogHeader className="profile-settings-dialog-header">
+              <button className="profile-settings-back" type="button" onClick={() => setProfilePanel(null)} aria-label="Back to profile" data-testid="button-personal-details-back"><ArrowLeft size={16} aria-hidden="true"/><span>Back to profile</span></button>
               <DialogTitle>Personal details</DialogTitle>
               <DialogDescription>Your sign-in email cannot be changed here. A verified mobile number is permanently linked to this account.</DialogDescription>
             </DialogHeader>

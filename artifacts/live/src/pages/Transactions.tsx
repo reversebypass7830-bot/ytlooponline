@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import {
+  ArrowLeft,
   CalendarDays,
   CheckCircle2,
   Clock3,
@@ -12,6 +13,7 @@ import {
   Search,
   XCircle,
 } from "lucide-react";
+import { Link } from "wouter";
 import {
   getListAccountPaymentRequestsQueryKey,
   useListAccountPaymentRequests,
@@ -193,7 +195,13 @@ export function TransactionsPage({
 
   return <div className="page subscription-page manual-payment-page transactions-page">
     <header className="page-head subscription-heading">
-      <div><p className="eyebrow">Account / Billing</p><h1>Transactions</h1><p className="subtle">Filter UPI requests, approved purchases, and owner-granted access.</p></div>
+      <div>
+        <Link href="/subscription" className="transactions-back-link" data-testid="button-transactions-back">
+          <ArrowLeft size={16} aria-hidden="true"/>
+          <span>Back to Duplo Access</span>
+        </Link>
+        <p className="eyebrow">Account / Billing</p><h1>Transactions</h1><p className="subtle">Filter UPI requests, approved purchases, and owner-granted access.</p>
+      </div>
     </header>
     <section className="card pay-request-history transaction-history-card">
       <div className="transaction-card-header">

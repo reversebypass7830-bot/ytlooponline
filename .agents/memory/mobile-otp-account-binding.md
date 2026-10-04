@@ -27,8 +27,8 @@ Mobile session cookies must be sent explicitly by the browser API client and use
 
 **How to apply:** Keep `credentials: "include"` on authenticated fetches and derive cookie attributes from forwarded HTTPS/origin headers, while retaining `SameSite=Lax` for local HTTP.
 
-The OTP provider device identifier must remain stable per browser across resend and verification attempts.
+The OTP provider device identifier must remain stable per browser across resend and verification attempts, and the same `device_id` must be sent to the provider when sending and verifying each OTP.
 
 **Why:** Generating a fresh provider device ID for every OTP send makes legitimate retries look like logins from many devices and can trigger a temporary provider lock.
 
-**How to apply:** Persist a browser device ID in local storage, send it with OTP requests, validate it server-side, and use a deterministic phone-based fallback when older clients omit it.
+**How to apply:** Persist a browser device ID in local storage, pass it to the provider on both OTP-send and OTP-verify calls, validate it server-side, and use a deterministic phone-based fallback when older clients omit it.

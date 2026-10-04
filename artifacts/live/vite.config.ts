@@ -38,6 +38,7 @@ const controlRoomEntries = new Map([
   ['/videos', '/sign-in.html'],
   ['/editor', '/sign-in.html'],
   ['/subscription', '/sign-in.html'],
+  ['/transactions', '/sign-in.html'],
   ['/profile', '/sign-in.html'],
   ['/settings', '/sign-in.html'],
   ['/sign-in', '/sign-in.html'],

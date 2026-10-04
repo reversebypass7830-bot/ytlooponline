@@ -170,7 +170,7 @@ router.post("/account/phone/send-otp", requireAccountAuth, async (req: Request, 
     const deviceId = /^[A-Za-z0-9._:-]{8,80}$/.test(requestedDeviceId)
       ? requestedDeviceId
       : `WebBrowser-${createHash("sha256").update(`${account.id}:${phone}`).digest("hex").slice(0, 24)}`;
-    const payload = await callProvider("/get/sendotp", { phone });
+    const payload = await callProvider("/get/sendotp", { phone, device_id: deviceId });
     if (!providerSucceeded(payload)) {
       res.status(502).json({ error: providerMessage(payload), providerStatus: payload.status ?? 0 });
       return;
@@ -358,7 +358,7 @@ router.post("/mobile-auth/send-otp", async (req: Request, res: Response): Promis
     ? requestedDeviceId
     : `WebBrowser-${createHash("sha256").update(phone).digest("hex").slice(0, 24)}`;
   try {
-    const payload = await callProvider("/get/sendotp", { phone });
+    const payload = await callProvider("/get/sendotp", { phone, device_id: deviceId });
     if (!providerSucceeded(payload)) {
       res.status(502).json({ error: providerMessage(payload), providerStatus: payload.status ?? 0 });
       return;

@@ -386,6 +386,30 @@
   text-align: left;
 }
 
+.profile-settings-back {
+  display: inline-flex;
+  align-self: flex-start;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  margin: 0 0 2px;
+  padding: 0 13px;
+  border: 1px solid #e5e7eb;
+  border-radius: 999px;
+  color: #374151;
+  background: #fff;
+  font: 600 12px/1 var(--app-font-sans, sans-serif);
+  cursor: pointer;
+  transition: background-color 160ms ease, border-color 160ms ease, color 160ms ease;
+}
+
+.profile-settings-back:hover {
+  border-color: #d1d5db;
+  color: #111827;
+  background: #f9fafb;
+}
+
 .profile-settings-dialog-header h2 {
   color: #111827;
   font: 700 22px/1.2 var(--app-font-sans, sans-serif);
@@ -474,5 +498,9 @@
     max-height: calc(100dvh - 24px);
     padding: 23px 19px;
     border-radius: 18px;
+  }
+
+  .profile-settings-back {
+    min-height: 46px;
   }
 }

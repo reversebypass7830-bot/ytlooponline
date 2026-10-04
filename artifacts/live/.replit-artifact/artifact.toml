@@ -52,6 +52,10 @@ from = "/subscription"
 to = "/sign-in.html"
 
 [[services.production.rewrites]]
+from = "/transactions"
+to = "/sign-in.html"
+
+[[services.production.rewrites]]
 from = "/profile"
 to = "/sign-in.html"
 
