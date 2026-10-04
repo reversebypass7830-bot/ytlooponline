@@ -166,7 +166,7 @@ export default function LoginPage({
         <div className="streamly-login-orb streamly-login-orb-two" />
         <main className="streamly-login-main">
           <section className="streamly-login-card" aria-labelledby="profile-title">
-            <img className="streamly-login-card-logo" src="/images/logo/loop-logo.webp" alt="Loop Stream" />
+            <img className="streamly-login-card-logo" src="/images/ytloop-logo.png" alt="YT Loop" />
             <div className="streamly-login-icon"><MaterialIcon name="check_circle" /></div>
             <span className="streamly-login-eyebrow">Phone verified</span>
             <h1 id="profile-title">Finish your<br /><em>workspace.</em></h1>
