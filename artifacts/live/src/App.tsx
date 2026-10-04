@@ -1699,16 +1699,17 @@ function AccountPhoneLinker({ onVerified, className = "", autoFocus = false, sen
   const fieldId = useId();
   const countryInputId = `${fieldId}-country`;
   const phoneInputId = `${fieldId}-phone`;
-  const otpInputId = `${fieldId}-otp`;
+  const otpLabelId = `${fieldId}-otp-label`;
   const [phone, setPhone] = useState("");
-  const [otp, setOtp] = useState("");
+  const [otp, setOtp] = useState<[string, string, string, string]>(["", "", "", ""]);
+  const otpInputRefs = useRef<Array<HTMLInputElement | null>>([]);
   const [requestId, setRequestId] = useState("");
   const [step, setStep] = useState<"phone" | "otp" | "verified">("phone");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const verifyInFlight = useRef(false);
   const phoneDigits = phone.replace(/\D/g, "").slice(0, 10);
-  const otpDigits = otp.replace(/\D/g, "").slice(0, 4);
+  const otpDigits = otp.join("");
 
   const sendOtp = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -1721,13 +1722,29 @@ function AccountPhoneLinker({ onVerified, className = "", autoFocus = false, sen
         body: JSON.stringify({ phone: phoneDigits, deviceId: getMobileDeviceId() }),
       });
       setRequestId(result.requestId);
-      setOtp("");
+      setOtp(["", "", "", ""]);
       setStep("otp");
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Could not send the verification code.");
     } finally {
       setBusy(false);
     }
+  };
+
+  const fillOtpDigits = (index: number, value: string) => {
+    const digits = value.replace(/\D/g, "").slice(0, 4 - index);
+    const next = [...otp] as [string, string, string, string];
+    if (!digits && value !== "") return;
+    if (!digits) {
+      next[index] = "";
+      setOtp(next);
+      return;
+    }
+    digits.split("").forEach((digit, offset) => {
+      next[index + offset] = digit;
+    });
+    setOtp(next);
+    otpInputRefs.current[Math.min(index + digits.length, 3)]?.focus();
   };
 
   const verifyOtp = async (event: FormEvent<HTMLFormElement>) => {
@@ -1799,25 +1816,49 @@ function AccountPhoneLinker({ onVerified, className = "", autoFocus = false, sen
       </button>
     </form> : <form onSubmit={verifyOtp}>
       <p className="account-phone-hint">Enter the 4-digit code sent to +91 {phoneDigits}.</p>
-      <label className="field" htmlFor={otpInputId}>
-        <span>Verification code</span>
-        <input
-          id={otpInputId}
-          value={otp}
-          onChange={(event) => setOtp(event.target.value.replace(/\D/g, "").slice(0, 4))}
-          autoComplete="one-time-code"
-          inputMode="numeric"
-          type="text"
-          maxLength={4}
-          placeholder="0000"
-          data-testid="input-account-phone-otp"
-          autoFocus
-        />
-      </label>
+      <div className="field">
+        <span id={otpLabelId}>Verification code</span>
+        <div className="account-phone-otp-code" role="group" aria-labelledby={otpLabelId}>
+          {otp.map((digit, index) => <input
+            key={index}
+            ref={(element) => { otpInputRefs.current[index] = element; }}
+            type="text"
+            value={digit}
+            onChange={(event) => fillOtpDigits(index, event.target.value)}
+            onPaste={(event) => {
+              const pastedDigits = event.clipboardData.getData("text").replace(/\D/g, "");
+              if (!pastedDigits) return;
+              event.preventDefault();
+              fillOtpDigits(index, pastedDigits);
+            }}
+            onKeyDown={(event) => {
+              if (event.key === "Backspace" && !otp[index] && index > 0) {
+                event.preventDefault();
+                const next = [...otp] as [string, string, string, string];
+                next[index - 1] = "";
+                setOtp(next);
+                otpInputRefs.current[index - 1]?.focus();
+              } else if (event.key === "ArrowLeft" && index > 0) {
+                event.preventDefault();
+                otpInputRefs.current[index - 1]?.focus();
+              } else if (event.key === "ArrowRight" && index < 3) {
+                event.preventDefault();
+                otpInputRefs.current[index + 1]?.focus();
+              }
+            }}
+            aria-label={`Verification code digit ${index + 1} of 4`}
+            autoComplete={index === 0 ? "one-time-code" : "off"}
+            inputMode="numeric"
+            maxLength={index === 0 ? 4 : 1}
+            autoFocus={index === 0}
+            data-testid={index === 0 ? "input-account-phone-otp" : `input-account-phone-otp-${index + 1}`}
+          />)}
+        </div>
+      </div>
       <button className="button login-submit" type="submit" disabled={busy || otpDigits.length !== 4} data-testid="button-verify-account-phone-otp">
         {busy ? "Verifying…" : "Verify and save number"} <ShieldCheck size={15}/>
       </button>
-      <button className="account-phone-back" type="button" onClick={() => { setStep("phone"); setRequestId(""); setOtp(""); setError(""); }} disabled={busy}>
+      <button className="account-phone-back" type="button" onClick={() => { setStep("phone"); setRequestId(""); setOtp(["", "", "", ""]); setError(""); }} disabled={busy}>
         Use a different number
       </button>
     </form>}
