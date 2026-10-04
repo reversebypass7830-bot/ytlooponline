@@ -6037,24 +6037,24 @@ select { height: 41px; }
   margin-top: 18px;
 }
 
-.streamly-login-page .streamly-login-mobile-action {
+.streamly-login-page .streamly-login-dark-alternative {
   border-color: #050505;
   color: #fff;
   background: #050505;
   transition: color 160ms ease, background 160ms ease, border-color 160ms ease;
 }
 
-.streamly-login-page .streamly-login-mobile-action:hover:not(:disabled),
-.streamly-login-page .streamly-login-mobile-action:focus-visible:not(:disabled) {
+.streamly-login-page .streamly-login-dark-alternative:hover:not(:disabled),
+.streamly-login-page .streamly-login-dark-alternative:focus-visible:not(:disabled) {
   border-color: #050505;
   color: #050505;
   background: #fff;
 }
 
 @media (hover: none) {
-  .streamly-login-page .streamly-login-mobile-action:hover:not(:disabled),
-  .streamly-login-page .streamly-login-mobile-action:focus-visible:not(:disabled),
-  .streamly-login-page .streamly-login-mobile-action:active:not(:disabled) {
+  .streamly-login-page .streamly-login-dark-alternative:hover:not(:disabled),
+  .streamly-login-page .streamly-login-dark-alternative:focus-visible:not(:disabled),
+  .streamly-login-page .streamly-login-dark-alternative:active:not(:disabled) {
     border-color: #050505;
     color: #fff;
     background: #050505;

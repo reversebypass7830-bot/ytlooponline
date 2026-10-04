@@ -230,8 +230,8 @@ export default function LoginPage({
               <div className="streamly-login-alternatives" aria-label="Other sign-in options">
                 <div className="streamly-login-alternatives-divider"><span>or sign in another way</span></div>
                 <div className="streamly-login-alternative-grid">
-                  <button className="streamly-login-alternative-button streamly-login-mobile-action" type="button" onClick={() => { setMethod("phone"); setLocalError(""); }} disabled={busy}>Use mobile OTP</button>
-                  <button className="streamly-login-alternative-button" type="button" onClick={() => { setMethod("license"); setLocalError(""); setLicenseError(""); }} disabled={busy}><MaterialIcon name="key" /> License key</button>
+                  <button className="streamly-login-alternative-button streamly-login-dark-alternative" type="button" onClick={() => { setMethod("phone"); setLocalError(""); }} disabled={busy}>Use mobile OTP</button>
+                  <button className="streamly-login-alternative-button streamly-login-dark-alternative" type="button" onClick={() => { setMethod("license"); setLocalError(""); setLicenseError(""); }} disabled={busy}><MaterialIcon name="key" /> License key</button>
                 </div>
               </div>
             </div>}
