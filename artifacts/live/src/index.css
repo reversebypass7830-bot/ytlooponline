@@ -5983,6 +5983,60 @@ select { height: 41px; }
   background: var(--md-sys-color-error-container);
 }
 
+.streamly-login-google-first {
+  display: grid;
+  gap: 0;
+}
+
+.streamly-login-google-primary {
+  display: inline-flex;
+  width: 100%;
+  min-height: 52px;
+  align-items: center;
+  justify-content: center;
+  gap: 11px;
+  padding: 0 20px;
+  border: 1px solid #dadce0;
+  border-radius: 12px;
+  color: #202124;
+  background: #fff;
+  font: 600 15px 'Roboto', sans-serif;
+  cursor: pointer;
+  transition: border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+}
+
+.streamly-login-google-primary:hover:not(:disabled) {
+  border-color: #c5c8cc;
+  box-shadow: 0 3px 10px rgba(32, 33, 36, .12);
+  transform: translateY(-1px);
+}
+
+.streamly-login-google-primary:focus-visible {
+  outline: 3px solid var(--md-sys-color-primary-container);
+  outline-offset: 2px;
+}
+
+.streamly-login-google-primary:disabled {
+  cursor: wait;
+  opacity: .65;
+}
+
+.streamly-login-google-primary .streamly-google-logo {
+  width: 20px;
+  height: 20px;
+}
+
+.streamly-login-google-note {
+  margin: 12px 0 0;
+  color: var(--md-sys-color-on-surface-variant);
+  font: 400 12px/1.5 'Roboto', sans-serif;
+  text-align: center;
+}
+
+.streamly-login-google-first .streamly-login-alternatives {
+  margin-top: 18px;
+}
+
 .streamly-login-page .streamly-login-trust .streamly-material-icon {
   color: var(--sl-green);
 }

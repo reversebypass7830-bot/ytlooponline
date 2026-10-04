@@ -20,3 +20,9 @@ Authentication and entitlement are separate states: an OTP-authenticated account
 **Why:** Routing inactive accounts through the login gate makes a valid OTP session look like a failed login and causes a repeat-login loop.
 
 **How to apply:** Let the server session authorize `/api/account` and pricing; enforce active access only when entering workspace routes.
+
+Google sign-in must not require a mobile number. Phone OTP is required only to claim the one-time 24-hour offer; after verification, claiming starts the 24-hour access period on the account's existing license.
+
+**Why:** The user explicitly wants Google onboarding to stay friction-free and phone verification to prove eligibility for the offer, not to gate account creation or sign-in.
+
+**How to apply:** Keep Google sign-in as the primary login path, make mobile OTP optional for account access, and enforce verified phone ownership server-side when activating the offer.

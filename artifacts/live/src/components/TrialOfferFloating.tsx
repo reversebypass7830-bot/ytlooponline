@@ -21,14 +21,17 @@ export default function TrialOfferFloating({ imageSrc, onClaim, onDismiss }: Tri
       <div className="trial-offer-art" aria-hidden="true">
         <span className="trial-offer-art-halo" />
         <img src={imageSrc} alt="" />
+        <span className="trial-offer-platform trial-offer-platform-youtube"><img src="/images/loopstream/platforms/youtube.webp" alt="" /></span>
+        <span className="trial-offer-platform trial-offer-platform-facebook"><img src="/images/loopstream/platforms/facebook.webp" alt="" /></span>
+        <span className="trial-offer-platform trial-offer-platform-twitch"><img src="/images/loopstream/platforms/twitch.webp" alt="" /></span>
         <span className="trial-offer-art-badge"><Gift size={13} /> 24h</span>
       </div>
       <div className="trial-offer-copy">
         <p className="trial-offer-kicker"><Sparkles size={13} /> A creator gift</p>
         <h2 id="trial-offer-title">24 hours on us.</h2>
-        <p>Verify your mobile number in Profile. Your time starts when you claim.</p>
+        <p>Verify your number in Profile, then claim your 24 hours. Your time starts when you activate it.</p>
         <button className="trial-offer-claim" type="button" onClick={onClaim}>
-          Open Profile <ArrowRight size={15} />
+          Claim 24 hours <ArrowRight size={15} />
         </button>
       </div>
     </aside>
