@@ -235,7 +235,7 @@ export function LandingFeedbackSection() {
         <div className="feedback-landing-empty">Channel feedback added by the owner will appear here.</div>
       ) : (
         <div className="feedback-landing-grid" aria-label="Featured creator channels">
-          {entries.map((entry) => <FeedbackCard key={entry.id} entry={entry} onOpen={openEntry} autoRotate />)}
+          {entries.map((entry) => <FeedbackCard key={entry.id} entry={entry} onOpen={openEntry} />)}
         </div>
       )}
       {selected && <FeedbackModal entry={selected} onClose={closeModal} />}
@@ -279,106 +279,12 @@ function FeedbackEmpty() {
   );
 }
 
-function FeedbackCard({ entry, onOpen, autoRotate = false }: {
-  entry: FeedbackEntry;
-  onOpen: (entry: FeedbackEntry) => void;
-  autoRotate?: boolean;
-}) {
+function FeedbackCard({ entry, onOpen }: { entry: FeedbackEntry; onOpen: (entry: FeedbackEntry) => void }) {
   const images = getEntryImages(entry);
-  const imageSetKey = images.join("\u0000");
   const imageCount = images.length;
-  const [activeImageIndex, setActiveImageIndex] = useState(0);
-  const [rotationPaused, setRotationPaused] = useState(false);
-  const [motionAllowed, setMotionAllowed] = useState(true);
-  const resumeTimerRef = useRef<number | null>(null);
-  const interactionRef = useRef({ pointerInside: false, focusInside: false });
-  const activeImage = images[activeImageIndex] ?? images[0] ?? entry.imageUrl;
-
-  useEffect(() => {
-    if (!autoRotate) return;
-    const mediaQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
-    const updateMotionPreference = () => setMotionAllowed(!mediaQuery.matches);
-    updateMotionPreference();
-    mediaQuery.addEventListener("change", updateMotionPreference);
-    return () => mediaQuery.removeEventListener("change", updateMotionPreference);
-  }, [autoRotate]);
-
-  useEffect(() => {
-    setActiveImageIndex(0);
-    setRotationPaused(false);
-    interactionRef.current = { pointerInside: false, focusInside: false };
-    if (resumeTimerRef.current !== null) {
-      window.clearTimeout(resumeTimerRef.current);
-      resumeTimerRef.current = null;
-    }
-  }, [entry.id, imageSetKey]);
-
-  useEffect(() => {
-    if (!autoRotate || images.length < 2 || rotationPaused || !motionAllowed) return;
-    const intervalId = window.setInterval(() => {
-      setActiveImageIndex((index) => (index + 1) % images.length);
-    }, 2000);
-    return () => window.clearInterval(intervalId);
-  }, [autoRotate, imageSetKey, images.length, motionAllowed, rotationPaused]);
-
-  useEffect(() => {
-    if (!autoRotate || images.length < 2 || !motionAllowed) return;
-    preloadFeedbackImages([images[(activeImageIndex + 1) % images.length]]);
-  }, [activeImageIndex, autoRotate, imageSetKey, images.length, motionAllowed]);
-
-  useEffect(() => {
-    if (!autoRotate) return;
-    return () => {
-      if (resumeTimerRef.current !== null) window.clearTimeout(resumeTimerRef.current);
-    };
-  }, [autoRotate]);
-
-  const clearResumeTimer = () => {
-    if (resumeTimerRef.current !== null) {
-      window.clearTimeout(resumeTimerRef.current);
-      resumeTimerRef.current = null;
-    }
-  };
-  const pauseRotation = () => {
-    if (!autoRotate || images.length < 2) return;
-    clearResumeTimer();
-    setRotationPaused(true);
-  };
-  const resumeRotationAfterDelay = () => {
-    if (!autoRotate || images.length < 2 || interactionRef.current.pointerInside || interactionRef.current.focusInside) return;
-    clearResumeTimer();
-    resumeTimerRef.current = window.setTimeout(() => {
-      resumeTimerRef.current = null;
-      if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-        setActiveImageIndex((index) => (index + 1) % images.length);
-      }
-      setRotationPaused(false);
-    }, 3000);
-  };
 
   return (
-    <article
-      className="feedback-card"
-      data-testid={`card-feedback-${entry.id}`}
-      onPointerEnter={() => {
-        interactionRef.current.pointerInside = true;
-        pauseRotation();
-      }}
-      onPointerLeave={() => {
-        interactionRef.current.pointerInside = false;
-        resumeRotationAfterDelay();
-      }}
-      onFocusCapture={() => {
-        if (interactionRef.current.pointerInside) return;
-        interactionRef.current.focusInside = true;
-        pauseRotation();
-      }}
-      onBlurCapture={(event) => {
-        if (event.currentTarget.contains(event.relatedTarget as Node | null)) return;
-        interactionRef.current.focusInside = false;
-        resumeRotationAfterDelay();
-      }}
-    >
+    <article className="feedback-card" data-testid={`card-feedback-${entry.id}`}>
       <a className="feedback-card-channel-link" href={entry.channelUrl} target="_blank" rel="noreferrer" aria-label={`Open ${entry.channelName} on YouTube`}>
         {entry.avatarUrl ? (
           <img className="feedback-card-avatar" src={entry.avatarUrl} alt="" loading="lazy" />
@@ -395,13 +301,13 @@ function FeedbackCard({ entry, onOpen, autoRotate = false }: {
         className="feedback-card-preview"
         type="button"
         onClick={() => onOpen(entry)}
-        onPointerEnter={() => preloadFeedbackImages(autoRotate ? images.slice(1) : images.slice(1, 2))}
+        onPointerEnter={() => preloadFeedbackImages(images.slice(1, 2))}
         onPointerDown={() => preloadFeedbackImages(images.slice(1))}
         onFocus={() => preloadFeedbackImages(images)}
         aria-label={`View ${imageCount} feedback ${imageCount === 1 ? "image" : "images"} from ${entry.channelName}`}
       >
-        <span className="feedback-card-image" data-image-index={activeImageIndex}>
-          <img src={activeImage} alt={`Channel preview for ${entry.channelName}, image ${activeImageIndex + 1} of ${imageCount}`} loading="lazy" />
+        <span className="feedback-card-image">
+          <img src={entry.imageUrl} alt={`Channel preview for ${entry.channelName}`} loading="lazy" />
           <span className="feedback-card-open" aria-hidden="true">{imageCount} {imageCount === 1 ? "image" : "images"} ↗</span>
         </span>
         <span className="feedback-card-copy">
