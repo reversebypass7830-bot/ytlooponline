@@ -196,9 +196,9 @@ export function TransactionsPage({
   return <div className="page subscription-page manual-payment-page transactions-page">
     <header className="page-head subscription-heading">
       <div>
-        <Link href="/subscription" className="transactions-back-link" data-testid="button-transactions-back">
+        <Link href="/dashboard" className="transactions-back-link" data-testid="button-transactions-back">
           <ArrowLeft size={16} aria-hidden="true"/>
-          <span>Back to Duplo Access</span>
+          <span>Back to Dashboard</span>
         </Link>
         <p className="eyebrow">Account / Billing</p><h1>Transactions</h1><p className="subtle">Filter UPI requests, approved purchases, and owner-granted access.</p>
       </div>

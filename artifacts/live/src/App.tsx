@@ -1430,7 +1430,7 @@ function Sidebar({ path, open, onClose, user, photo, data }: { path:string; open
 }
 
 function Header({ title, account, onMenu, onBack }: { title:string; account?: AccountSummary | null; onMenu:()=>void; onBack:()=>void }) {
-  const showMobileBack = title === "Video library" || title === "Video editor";
+  const showMobileBack = title === "Video library" || title === "Video editor" || title === "Subscription";
   return <header className={`topbar ${title === "Subscription" ? "subscription-topbar" : ""}`}>
     <div className="crumb"><button className={`icon-button mobile-menu ${showMobileBack ? "mobile-back" : ""}`} onClick={showMobileBack ? onBack : onMenu} aria-label={showMobileBack ? "Back to dashboard" : "Open navigation"} data-testid={showMobileBack ? "button-mobile-back" : "button-open-menu"}>{showMobileBack ? <ArrowLeft size={18}/> : <Menu size={18}/>}</button>{title === "Subscription" && <img className="subscription-mobile-logo" src="/images/ytloop-logo.png" alt="YT Loop" />}<span className="crumb-label">{title === "Subscription" ? "" : "Reverse Bypass /"}</span><span className="crumb-title">{title === "Subscription" ? "Duplo Access" : title}</span></div>
      <div className="top-actions">{title !== "Subscription" && <AccountAccessTimer account={account}/>}</div>
