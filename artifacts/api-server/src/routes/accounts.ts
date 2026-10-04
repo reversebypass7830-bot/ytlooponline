@@ -1131,7 +1131,7 @@ router.put("/account/profile", requireAccountAuth, async (req, res): Promise<voi
   try {
     const { account, plans } = await ensureAccount(req);
     const displayName = typeof req.body?.displayName === "string" ? req.body.displayName.trim() : account.displayName;
-    const email = typeof req.body?.email === "string" ? req.body.email.trim() : account.email;
+    const email = account.email;
     const phone = typeof req.body?.phone === "string" ? req.body.phone.trim() : "";
     const normalizedPhoneDigits = phone.replace(/\D/g, "");
     const currentPhoneDigits = (account.phone || "").replace(/\D/g, "");

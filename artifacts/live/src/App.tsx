@@ -5,10 +5,10 @@ import {
   CalendarDays, Download, FileVideo, Filter, FolderOpen, Gauge, Gift, Instagram, LayoutDashboard,
   Image, Layers, Link2, Menu, MessageCircle, MonitorPlay, Pencil, Play, Plus, Radio, Scissors, Search, Send, Settings,
   UserRound, CreditCard, KeyRound, Mail, Receipt, Users,
-  Mic, ShieldCheck, Smartphone, Sparkles, Square, Trash2, Type, Upload, Video, Wand2, X, Youtube,
+  Mic, ShieldCheck, Sparkles, Square, Trash2, Type, Upload, Video, Wand2, X, Youtube,
 } from "lucide-react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { EmailAuthProvider, GoogleAuthProvider, onAuthStateChanged, reauthenticateWithCredential, sendPasswordResetEmail, signInWithPopup, signInWithRedirect, signOut as firebaseSignOut, updateEmail, updatePassword, updateProfile, type User as FirebaseUser } from "firebase/auth";
+import { EmailAuthProvider, GoogleAuthProvider, onAuthStateChanged, reauthenticateWithCredential, sendPasswordResetEmail, signInWithPopup, signInWithRedirect, signOut as firebaseSignOut, updatePassword, updateProfile, type User as FirebaseUser } from "firebase/auth";
 import Hls from "hls.js";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/toaster";
@@ -1697,6 +1697,7 @@ function AccountPhoneLinker({ onVerified, className = "", autoFocus = false, sen
   sendButtonLabel?: string;
 }) {
   const fieldId = useId();
+  const countryInputId = `${fieldId}-country`;
   const phoneInputId = `${fieldId}-phone`;
   const otpInputId = `${fieldId}-otp`;
   const [phone, setPhone] = useState("");
@@ -1706,7 +1707,7 @@ function AccountPhoneLinker({ onVerified, className = "", autoFocus = false, sen
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const verifyInFlight = useRef(false);
-  const phoneDigits = phone.replace(/\D/g, "").slice(-10);
+  const phoneDigits = phone.replace(/\D/g, "").slice(0, 10);
   const otpDigits = otp.replace(/\D/g, "").slice(0, 4);
 
   const sendOtp = async (event: FormEvent<HTMLFormElement>) => {
@@ -1764,21 +1765,35 @@ function AccountPhoneLinker({ onVerified, className = "", autoFocus = false, sen
   return <div className={`account-phone-linker ${className}`}>
     {error && <div className="error-note" role="alert">{error}</div>}
     {step === "phone" ? <form onSubmit={sendOtp}>
-      <label className="field" htmlFor={phoneInputId}>
-        <span>Mobile number</span>
-        <input
-          id={phoneInputId}
-          value={phone}
-          onChange={(event) => setPhone(event.target.value)}
-          autoComplete="tel"
-          inputMode="tel"
-          type="tel"
-          placeholder="+91 98765 43210"
-          data-testid="input-account-phone"
-          autoFocus={autoFocus}
-        />
-      </label>
-      <p className="account-phone-hint">We will send a one-time code to verify this number.</p>
+      <div className="account-phone-number-grid">
+        <label className="field account-phone-country-field" htmlFor={countryInputId}>
+          <span>Country</span>
+          <select id={countryInputId} defaultValue="IN" disabled data-testid="select-account-phone-country">
+            <option value="IN">India (+91)</option>
+          </select>
+        </label>
+        <label className="field" htmlFor={phoneInputId}>
+          <span>Mobile number</span>
+          <input
+            id={phoneInputId}
+            value={phone}
+            onChange={(event) => {
+              const enteredDigits = event.target.value.replace(/\D/g, "");
+              const nationalDigits = enteredDigits.length === 12 && enteredDigits.startsWith("91")
+                ? enteredDigits.slice(2)
+                : enteredDigits;
+              setPhone(nationalDigits.slice(0, 10));
+            }}
+            autoComplete="tel-national"
+            inputMode="numeric"
+            type="tel"
+            placeholder="98765 43210"
+            data-testid="input-account-phone"
+            autoFocus={autoFocus}
+          />
+        </label>
+      </div>
+      <p className="account-phone-hint">Enter a 10-digit Indian number. We will send a one-time code to verify it.</p>
       <button className="button login-submit" type="submit" disabled={busy || phoneDigits.length !== 10} data-testid="button-send-account-phone-otp">
         {busy ? "Sending code…" : sendButtonLabel} <ArrowRight size={15}/>
       </button>
@@ -1789,7 +1804,7 @@ function AccountPhoneLinker({ onVerified, className = "", autoFocus = false, sen
         <input
           id={otpInputId}
           value={otp}
-          onChange={(event) => setOtp(event.target.value)}
+          onChange={(event) => setOtp(event.target.value.replace(/\D/g, "").slice(0, 4))}
           autoComplete="one-time-code"
           inputMode="numeric"
           type="text"
@@ -5099,7 +5114,7 @@ function ProfilePage({ workspace, account, firebaseUser, profilePhoto, onProfile
   onTrialPhonePromptHandled: () => void;
 }) {
   const [name, setName] = useState(account.displayName || "");
-  const [email, setEmail] = useState(account.email || firebaseUser?.email || "");
+  const email = account.email || firebaseUser?.email || "";
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [currentPassword, setCurrentPassword] = useState("");
@@ -5109,7 +5124,8 @@ function ProfilePage({ workspace, account, firebaseUser, profilePhoto, onProfile
   const [passwordNotice, setPasswordNotice] = useState("");
   const [photoBusy, setPhotoBusy] = useState(false);
   const [photoAnimationKey, setPhotoAnimationKey] = useState(0);
-  const [profilePanel, setProfilePanel] = useState<"details" | "password" | "phone" | null>(null);
+  const [profilePanel, setProfilePanel] = useState<"details" | "password" | null>(null);
+  const [focusPhoneOnDetails, setFocusPhoneOnDetails] = useState(false);
   const [trialClaimBusy, setTrialClaimBusy] = useState(false);
   const [trialClaimError, setTrialClaimError] = useState("");
   const hasPasswordProvider = Boolean(firebaseUser?.providerData.some((provider) => provider.providerId === "password"));
@@ -5118,12 +5134,14 @@ function ProfilePage({ workspace, account, firebaseUser, profilePhoto, onProfile
 
   useEffect(() => {
     setName(account.displayName || "");
-    setEmail(account.email || firebaseUser?.email || "");
-  }, [account.displayName, account.email, firebaseUser?.email]);
+  }, [account.displayName]);
 
   useEffect(() => {
     if (!promptTrialPhone) return;
-    if (trialOfferAvailable && !account.phone) setProfilePanel("phone");
+    if (trialOfferAvailable && !account.phone) {
+      setFocusPhoneOnDetails(true);
+      setProfilePanel("details");
+    }
     onTrialPhonePromptHandled();
   }, [promptTrialPhone, trialOfferAvailable, account.phone, onTrialPhonePromptHandled]);
 
@@ -5149,7 +5167,6 @@ function ProfilePage({ workspace, account, firebaseUser, profilePhoto, onProfile
     setNotice("");
     try {
       if (firebaseUser) {
-        if (email.trim() !== (firebaseUser.email || "")) await updateEmail(firebaseUser, email.trim());
         await updateProfile(firebaseUser, { displayName: name.trim() });
       }
       if (onSaveProfile) {
@@ -5262,7 +5279,7 @@ function ProfilePage({ workspace, account, firebaseUser, profilePhoto, onProfile
             <h2 id="profile-trial-offer-title">Claim 24 hours</h2>
             <p>Verify your mobile number first. The 24-hour timer starts only when you claim.</p>
             {!account.phone
-              ? <button type="button" className="profile-trial-offer-claim" onClick={() => setProfilePanel("phone")} data-testid="button-verify-phone-for-trial">
+              ? <button type="button" className="profile-trial-offer-claim" onClick={() => { setFocusPhoneOnDetails(true); setProfilePanel("details"); }} data-testid="button-verify-phone-for-trial">
                   Verify mobile number <ArrowRight size={15}/>
                 </button>
               : account.active
@@ -5281,53 +5298,36 @@ function ProfilePage({ workspace, account, firebaseUser, profilePhoto, onProfile
             <p>{account.active ? `Your access runs until ${new Date(account.accessEndsAt).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" })}.` : "This one-time offer has already been used."}</p>
           </div>
         </section>}
-        <section className="profile-phone-panel" aria-labelledby="profile-phone-title">
-          <div className="profile-action-panel-head">
-            <div><h2 id="profile-phone-title">Mobile number</h2><p className="subtle">{account.phone ? "Your verified number is linked to this account." : "Add and verify a number for this account."}</p></div>
-            <Smartphone size={18}/>
-          </div>
-          {account.phone ? <div className="profile-phone-verified">
-            <strong>{account.phone}</strong>
-            <span><Check size={14}/> Verified</span>
-          </div> : <p className="account-phone-hint">No mobile number is linked to this account yet.</p>}
-          {onSaveProfile && <button
-            type="button"
-            className="button profile-phone-update-button"
-            onClick={() => setProfilePanel("phone")}
-            data-testid="button-profile-update-mobile"
-          >
-            {account.phone ? "Update mobile number" : "Add mobile number"} <ArrowRight size={14}/>
-          </button>}
-        </section>
-        <Dialog open={profilePanel === "phone"} onOpenChange={(open) => setProfilePanel(open ? "phone" : null)}>
-          <DialogContent className="profile-settings-dialog">
-            <DialogHeader className="profile-settings-dialog-header">
-              <DialogTitle>{account.phone ? "Update mobile number" : "Add mobile number"}</DialogTitle>
-              <DialogDescription>{account.phone ? "Enter a new mobile number. It will replace the current one only after OTP verification." : "Enter your mobile number. It will be linked only after OTP verification."}</DialogDescription>
-            </DialogHeader>
-            <AccountPhoneLinker
-              className="account-phone-settings"
-              autoFocus
-              sendButtonLabel="Verify number"
-              onVerified={async () => {
-                await onRefreshAccount();
-                setProfilePanel(null);
-              }}
-            />
-          </DialogContent>
-        </Dialog>
-        <Dialog open={profilePanel === "details"} onOpenChange={(open) => setProfilePanel(open ? "details" : null)}>
+        <Dialog open={profilePanel === "details"} onOpenChange={(open) => {
+          setProfilePanel(open ? "details" : null);
+          if (!open) setFocusPhoneOnDetails(false);
+        }}>
           <DialogContent className="profile-settings-dialog">
             <DialogHeader className="profile-settings-dialog-header">
               <DialogTitle>Personal details</DialogTitle>
-              <DialogDescription>These details are used for your workspace account.</DialogDescription>
+              <DialogDescription>Your sign-in email cannot be changed here. A verified mobile number is permanently linked to this account.</DialogDescription>
             </DialogHeader>
             <form className="profile-form" onSubmit={saveDetails}>
               <div className="field"><label htmlFor="profile-name">Name</label><input id="profile-name" value={name} onChange={(event) => setName(event.target.value)} placeholder="Your name" data-testid="input-profile-name" /></div>
-              <div className="field"><label htmlFor="profile-email">Email</label><input id="profile-email" type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="you@example.com" data-testid="input-profile-email" /></div>
+              <div className="field"><label htmlFor="profile-email">Google email</label><input id="profile-email" type="email" value={email} readOnly aria-describedby="profile-email-readonly-note" data-testid="input-profile-email" /><p id="profile-email-readonly-note" className="profile-email-readonly-note">This email is read-only and stays linked to your Google sign-in.</p></div>
               <button className="button" type="submit" disabled={saving || !name.trim() || Boolean(firebaseUser && !email.trim())}>{saving ? "Saving…" : "Save changes"} <Check size={14}/></button>
               {notice && <p className="profile-message">{notice}</p>}
             </form>
+            <section className="profile-details-phone" aria-labelledby="profile-details-phone-title">
+              <div className="profile-details-phone-heading">
+                <h3 id="profile-details-phone-title">Mobile number</h3>
+                <p>India (+91) only. Once verified, this number cannot be changed.</p>
+              </div>
+              {account.phone ? <div className="profile-phone-verified">
+                <strong>{account.phone}</strong>
+                <span><Check size={14}/> Verified · locked</span>
+              </div> : onSaveProfile ? <AccountPhoneLinker
+                className="account-phone-settings"
+                autoFocus={focusPhoneOnDetails}
+                sendButtonLabel="Send OTP"
+                onVerified={onRefreshAccount}
+              /> : <p className="account-phone-hint">Sign in to link and verify an Indian mobile number.</p>}
+            </section>
           </DialogContent>
         </Dialog>
         <Dialog open={profilePanel === "password"} onOpenChange={(open) => setProfilePanel(open ? "password" : null)}>

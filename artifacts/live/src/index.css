@@ -10974,7 +10974,7 @@ select { height: 41px; }
   grid-template-areas:
     "avatar identity"
     "avatar actions"
-    "avatar panel";
+    "offer offer";
   align-items: start;
   width: min(100%, 980px);
   margin: 0 auto;
@@ -10984,6 +10984,12 @@ select { height: 41px; }
   background: #ffffff;
   box-shadow: 0 8px 32px rgba(0, 0, 0, .06);
   text-align: left;
+}
+
+.shell.profile-surface .profile-trial-offer {
+  grid-area: offer;
+  min-width: 0;
+  margin: 22px 0 0;
 }
 
 .shell.profile-surface .profile-avatar-wrap {

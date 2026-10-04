@@ -6,7 +6,7 @@ import {
   VerifyAccountPhoneOtpBody,
   VerifyAccountPhoneOtpResponse,
 } from "@workspace/api-zod";
-import { firebaseDelete, firebaseGet, firebasePut } from "../lib/firebase-rest";
+import { firebaseDelete, firebaseGet, firebaseGetWithEtag, firebasePut, firebasePutIfMatch } from "../lib/firebase-rest";
 import { accountUserId, clearMobileSession, requireAccountAuth, setMobileSession } from "../middlewares/requireClerkAuth";
 import { createMobileAccount } from "./accounts";
 
@@ -154,8 +154,11 @@ router.post("/account/phone/send-otp", requireAccountAuth, async (req: Request, 
       res.status(404).json({ error: "Your account could not be found." });
       return;
     }
-    if (account.phone && normalizePhone(account.phone) === phone) {
-      res.status(409).json({ error: "This mobile number is already linked to your account." });
+    if (account.phone) {
+      const message = normalizePhone(account.phone) === phone
+        ? "This mobile number is already linked to your account."
+        : "Your verified mobile number is locked and cannot be changed.";
+      res.status(409).json({ error: message });
       return;
     }
     if (phoneLinkedToAnotherAccount(accounts, phone, account.id)) {
@@ -224,6 +227,8 @@ router.post("/account/phone/verify-otp", requireAccountAuth, async (req: Request
         }));
         return;
       }
+      res.status(409).json({ error: "Your verified mobile number is locked and cannot be changed." });
+      return;
     }
     if (phoneLinkedToAnotherAccount(accounts, phone, account.id)) {
       res.status(409).json({ error: "This mobile number is already linked to another account." });
@@ -289,6 +294,9 @@ router.post("/account/phone/verify-otp", requireAccountAuth, async (req: Request
         }));
         return;
       }
+      await firebaseDelete(path);
+      res.status(409).json({ error: "Your verified mobile number is locked and cannot be changed." });
+      return;
     }
     if (phoneLinkedToAnotherAccount(latestAccounts, phone, latestAccount.id)) {
       res.status(409).json({ error: "This mobile number is already linked to another account." });
@@ -296,10 +304,38 @@ router.post("/account/phone/verify-otp", requireAccountAuth, async (req: Request
     }
 
     const verifiedPhone = `+91${phone}`;
-    await firebasePut(`accounts/${encodeURIComponent(latestAccount.id)}`, {
-      ...latestAccount,
-      phone: verifiedPhone,
-    });
+    const accountPath = `accounts/${encodeURIComponent(latestAccount.id)}`;
+    let phoneSaved = false;
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      const snapshot = await firebaseGetWithEtag<AccountRecord | null>(accountPath);
+      const currentAccount = snapshot.value;
+      if (!currentAccount) {
+        await firebaseDelete(path);
+        res.status(404).json({ error: "Your account could not be found." });
+        return;
+      }
+      if (currentAccount.phone) {
+        await firebaseDelete(path);
+        if (normalizePhone(currentAccount.phone) === phone) {
+          res.json(VerifyAccountPhoneOtpResponse.parse({
+            phone: currentAccount.phone,
+            message: "This mobile number is already verified on your account.",
+          }));
+        } else {
+          res.status(409).json({ error: "Your verified mobile number is locked and cannot be changed." });
+        }
+        return;
+      }
+      if (await firebasePutIfMatch(accountPath, { ...currentAccount, phone: verifiedPhone }, snapshot.etag)) {
+        phoneSaved = true;
+        break;
+      }
+    }
+    if (!phoneSaved) {
+      await firebaseDelete(path);
+      res.status(409).json({ error: "Your account changed during verification. Request a new code and try again." });
+      return;
+    }
     await firebaseDelete(path);
     res.json(VerifyAccountPhoneOtpResponse.parse({
       phone: verifiedPhone,

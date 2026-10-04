@@ -28,6 +28,7 @@
 - [FFmpeg live input indices](ffmpeg-live-input-indices.md) — dynamic silence, webcam, and microphone inputs must be mapped from the complete FFmpeg input order.
 - [Live preview handoff](live-preview-handoff.md) — preserve the HLS preview path during renderer handoffs so a healthy publisher does not look stopped.
 - [Mobile OTP account binding](mobile-otp-account-binding.md) — verify OTP through the provider, then create a local session only for a Firebase account already linked to that normalized phone.
+- [Phone verification for the one-time offer](phone-verification-offer.md) — offer verification is India-only (+91) and the first verified number stays locked to the account.
 - [Access onboarding architecture](access-onboarding.md) — Google sign-in stays phone-free; OTP verifies the one-time 24-hour offer claim.
 - [Firebase Google auth bridge](firebase-google-auth-bridge.md) — exchange Firebase Google ID tokens for a server-signed session so Firebase auth can preserve existing account and workspace semantics.
 - [Firebase Vite configuration](firebase-vite-config.md) — this workflow needs explicit Vite injection when browser config comes from existing non-VITE Firebase environment variables.
