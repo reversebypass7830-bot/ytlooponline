@@ -442,6 +442,12 @@
   white-space: nowrap;
 }
 
+.transactions-page .transaction-row-actions .transaction-record-button,
+.transactions-page .transaction-row-actions .transaction-record-button:hover:not(:disabled) {
+  color: #374151;
+  background-color: #fff;
+}
+
 .transactions-page .transaction-record-button:hover:not(:disabled) {
   border-color: #d1d5db;
   background: #f9fafb;
@@ -475,8 +481,63 @@
   margin-top: 6px;
 }
 
-.transactions-page .transaction-loading-line {
+.transactions-page .transaction-loading-list {
+  display: grid;
+  gap: 10px;
   margin: 12px 0 4px;
+}
+
+.transactions-page .transaction-skeleton-row {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr) 112px;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 2px;
+  border-bottom: 1px solid #f1f2f4;
+}
+
+.transactions-page .transaction-skeleton-icon,
+.transactions-page .transaction-skeleton-copy i,
+.transactions-page .transaction-skeleton-amount i {
+  display: block;
+  background: linear-gradient(100deg, #eef0f2 15%, #f8f9fa 38%, #eef0f2 62%);
+  background-size: 220% 100%;
+  animation: transaction-skeleton-shimmer 1.45s ease-in-out infinite;
+}
+
+.transactions-page .transaction-skeleton-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+}
+
+.transactions-page .transaction-skeleton-copy {
+  display: grid;
+  justify-items: start;
+  gap: 8px;
+}
+
+.transactions-page .transaction-skeleton-copy i,
+.transactions-page .transaction-skeleton-amount i {
+  width: min(100%, 210px);
+  height: 10px;
+  border-radius: 999px;
+}
+
+.transactions-page .transaction-skeleton-copy i:nth-child(2) { width: min(78%, 165px); }
+.transactions-page .transaction-skeleton-copy i:nth-child(3) { width: min(55%, 118px); }
+
+.transactions-page .transaction-skeleton-amount {
+  display: grid;
+  justify-items: end;
+  gap: 8px;
+}
+
+.transactions-page .transaction-skeleton-amount i:first-child { width: 72px; height: 14px; }
+.transactions-page .transaction-skeleton-amount i:last-child { width: 50px; height: 9px; }
+
+@keyframes transaction-skeleton-shimmer {
+  to { background-position-x: -220%; }
 }
 
 @media (max-width: 940px) {
@@ -495,6 +556,21 @@
   .transactions-page .transaction-clear-filters {
     grid-column: 1 / -1;
     justify-self: start;
+  }
+}
+
+@media (max-width: 600px) {
+  .transactions-page .transaction-skeleton-row {
+    grid-template-columns: 36px minmax(0, 1fr);
+  }
+  .transactions-page .transaction-skeleton-amount { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .transactions-page .transaction-skeleton-icon,
+  .transactions-page .transaction-skeleton-copy i,
+  .transactions-page .transaction-skeleton-amount i {
+    animation: none;
   }
 }
 

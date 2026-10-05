@@ -274,7 +274,13 @@ export function TransactionsPage({
         {hasActiveFilters && <button className="button ghost small transaction-clear-filters" type="button" onClick={clearFilters}>Clear filters</button>}
       </div>
       {requestsQuery.isLoading && transactions.length === 0
-        ? <div className="pay-loading-line transaction-loading-line" aria-label="Loading transactions"/>
+        ? <div className="transaction-loading-list" role="status" aria-label="Loading transactions">
+            {[0, 1, 2].map((row) => <div className="transaction-skeleton-row" key={row} aria-hidden="true">
+              <span className="transaction-skeleton-icon"/>
+              <span className="transaction-skeleton-copy"><i/><i/><i/></span>
+              <span className="transaction-skeleton-amount"><i/><i/></span>
+            </div>)}
+          </div>
         : requestsQuery.isError && transactions.length === 0
           ? <div className="pay-empty transaction-empty"><XCircle size={22}/><strong>Transactions unavailable</strong><span>We couldn't load your payment requests.</span><button className="button secondary small" type="button" onClick={() => void handleRefresh()} disabled={isRefreshing}>Try again</button></div>
           : transactions.length === 0

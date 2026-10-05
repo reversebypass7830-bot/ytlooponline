@@ -1190,9 +1190,66 @@ body:has(.pay-checkout-dialog) [data-radix-dialog-overlay] {
   color:var(--bill-muted);
   font-size:11px;
 }
+.cashfree-success-dialog {
+  width:min(520px, calc(100vw - 28px));
+  max-width:520px;
+  max-height:calc(100dvh - 28px);
+  overflow-y:auto;
+  padding:25px;
+  border:1px solid #e5e7eb;
+  border-radius:20px;
+  color:var(--bill-ink);
+  background:#fff;
+  box-shadow:0 24px 80px rgba(17,24,39,.24);
+}
+.cashfree-success-dialog [data-slot="dialog-title"] { color:var(--bill-ink); font-size:21px; letter-spacing:-.035em; }
+.cashfree-success-dialog [data-slot="dialog-description"] { color:var(--bill-muted); line-height:1.5; }
+.cashfree-success-icon {
+  display:grid;
+  width:54px;
+  height:54px;
+  place-items:center;
+  margin-bottom:14px;
+  border-radius:16px;
+  color:#047857;
+  background:#ecfdf5;
+}
+.cashfree-receipt-details {
+  display:grid;
+  margin:18px 0;
+  overflow:hidden;
+  border:1px solid var(--bill-line);
+  border-radius:13px;
+  background:#fcfcfd;
+}
+.cashfree-receipt-details > div {
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:14px;
+  padding:11px 13px;
+  border-bottom:1px solid #eef0f2;
+}
+.cashfree-receipt-details > div:last-child { border-bottom:0; }
+.cashfree-receipt-details dt { color:var(--bill-muted); font-size:11px; }
+.cashfree-receipt-details dd {
+  max-width:65%;
+  margin:0;
+  color:var(--bill-ink);
+  font-size:12px;
+  font-weight:700;
+  text-align:right;
+  overflow-wrap:anywhere;
+}
+.cashfree-receipt-details dd.mono { font:600 10px var(--app-font-mono); }
+.cashfree-receipt-paid { color:#047857; }
+.cashfree-success-dialog > .button { width:100%; min-height:44px; justify-content:center; }
 .pay-alert .button { flex:0 0 auto; }
 @media (max-width: 600px) {
   .owner-gateway-controls,
   .owner-upi-fields,
   .owner-cashfree-env-fields { grid-template-columns:minmax(0,1fr); }
+  .cashfree-success-dialog { padding:19px; }
+  .cashfree-receipt-details > div { align-items:flex-start; flex-direction:column; gap:4px; }
+  .cashfree-receipt-details dd { max-width:100%; text-align:left; }
 }

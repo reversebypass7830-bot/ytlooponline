@@ -33,7 +33,7 @@ type Account = {
   id: string; email: string; displayName: string; streamLimit: number;
   activePlan: { name: string } | null; activePlanId: string; active: boolean; accessEndsAt: string;
   streamsPerDay: number; streamsStartedToday: number; downloadsUsedToday?: number; downloadsPerDay?: number;
-  history: Array<{ id: string; type: "purchase" | "grant" | string; message: string; at: string; planId?: string; days?: number; streamLimit?: number; streamsPerDay?: number; downloadsPerDay?: number; amountPaise?: number; utr?: string }>;
+  history: Array<{ id: string; type: "purchase" | "grant" | string; message: string; at: string; planId?: string; paymentRequestId?: string; days?: number; streamLimit?: number; streamsPerDay?: number; downloadsPerDay?: number; amountPaise?: number; utr?: string }>;
 };
 
 const money = (paise: number) => `₹${(paise / 100).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -44,6 +44,7 @@ const ownerCustomPricingPlan = (plans: BillingPlan[]) =>
   plans.find((plan) => plan.id === "custom-subscription" && !plan.isTrial);
 const allowedImageTypes = ["image/jpeg", "image/png", "image/webp"] as const;
 type ImageMime = typeof allowedImageTypes[number];
+const refreshedPaymentApprovalIds = new Set<string>();
 type CashfreeCheckoutResult = { error?: { message?: string } } | void;
 type CashfreeClient = {
   checkout(options: { paymentSessionId: string; redirectTarget: "_self" }): Promise<CashfreeCheckoutResult>;
@@ -101,21 +102,31 @@ export function ManualSubscriptionPage({ account, onRefresh }: { account: Accoun
   const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
   const [cashfreeReturnOrderId, setCashfreeReturnOrderId] = useState("");
+  const [purchaseReceipt, setPurchaseReceipt] = useState<{ orderId: string; request?: PaymentRequest } | null>(null);
   const refreshRef = useRef(onRefresh);
   refreshRef.current = onRefresh;
-  const refreshedApproval = useRef("");
   const cashfreeAttemptId = useRef("");
   const checkedReturnOrderId = useRef("");
   const plan = customSubscriptionPlan(plansQuery.data?.plans ?? []);
   const requests = requestsQuery.data?.requests ?? [];
 
   useEffect(() => {
-    const approval = requests.find((request) => request.status === "approved" && refreshedApproval.current !== request.id);
+    const approval = requests.find((request) => {
+      if (request.status !== "approved" || refreshedPaymentApprovalIds.has(request.id)) return false;
+      const recordedInAccountHistory = account.history.some((item) =>
+        item.id === request.id
+        || item.paymentRequestId === request.id
+        || (item.type === "purchase"
+          && item.planId === request.planId
+          && Math.abs(Date.parse(item.at) - Date.parse(request.createdAt)) < 3 * 86_400_000),
+      );
+      return !recordedInAccountHistory;
+    });
     if (approval) {
-      refreshedApproval.current = approval.id;
+      refreshedPaymentApprovalIds.add(approval.id);
       void refreshRef.current?.();
     }
-  }, [requests]);
+  }, [account.history, requests]);
   const reset = () => { setQuote(null); setStep("select"); setUtr(""); setProofFile(null); setPaymentConfirmed(false); setError(""); };
   const changePack = (next: AccountPaymentQuoteInputPackType) => {
     setPackType(next);
@@ -167,17 +178,21 @@ export function ManualSubscriptionPage({ account, onRefresh }: { account: Accoun
         if (result.status !== "pending" || attempt === 4) break;
         await new Promise((resolve) => window.setTimeout(resolve, 2000));
       }
-      if (result?.status === "paid" && result.accessActivated) {
-        setNotice(result.accessActivated
-          ? "Payment verified. Your subscription access has been activated."
-          : "Payment verified, but access is awaiting owner approval.");
+      if (result?.status === "paid") {
         setCashfreeReturnOrderId("");
         setStep("select");
-        await queryClient.invalidateQueries({ queryKey: getListAccountPaymentRequestsQueryKey() });
-        void refreshRef.current?.();
+        const refreshedRequests = await requestsQuery.refetch();
+        const request = refreshedRequests.data?.requests.find((item) => item.cashfreeOrderId === orderId);
         const url = new URL(window.location.href);
         url.searchParams.delete("cashfree_order_id");
         window.history.replaceState(null, "", `${url.pathname}${url.search}${url.hash}`);
+        if (result.accessActivated) {
+          setNotice("");
+          setPurchaseReceipt({ orderId, request });
+          void refreshRef.current?.();
+        } else {
+          setNotice("Payment verified, but access is awaiting owner approval.");
+        }
       } else if (result?.status === "failed") {
         setError(result.accessActivated
           ? "Your service is active by owner approval, but Cashfree did not confirm payment."
@@ -272,6 +287,29 @@ export function ManualSubscriptionPage({ account, onRefresh }: { account: Accoun
     </header>
     {notice && <div className={`pay-alert ${cashfreeReturnOrderId ? "pending" : "success"}`} role="status" data-testid="status-payment-notice"><CheckCircle2 size={17}/><span>{notice}</span>{cashfreeReturnOrderId && <button className="button secondary small" type="button" onClick={() => void verifyCashfreeStatus(cashfreeReturnOrderId)} disabled={verifyCashfreePayment.isPending}>Check status</button>}<button className="pay-alert-close" onClick={() => setNotice("")} aria-label="Dismiss notification"><X size={15}/></button></div>}
     {error && <div className="pay-alert error" role="alert" data-testid="status-payment-error"><XCircle size={17}/><span>{error}</span><button className="pay-alert-close" onClick={() => setError("")} aria-label="Dismiss error"><X size={15}/></button></div>}
+     <Dialog open={Boolean(purchaseReceipt)} onOpenChange={(open) => { if (!open) setPurchaseReceipt(null); }}>
+       <DialogContent className="cashfree-success-dialog" data-testid="dialog-purchase-success">
+         <div className="cashfree-success-icon" aria-hidden="true"><CheckCircle2 size={27}/></div>
+         <DialogHeader>
+           <DialogTitle>Congratulations, your plan is now active</DialogTitle>
+           <DialogDescription>Your Cashfree payment was verified and access is active.</DialogDescription>
+         </DialogHeader>
+         {purchaseReceipt && <dl className="cashfree-receipt-details">
+           {purchaseReceipt.request && <>
+             <div><dt>Plan</dt><dd>{purchaseReceipt.request.planName}</dd></div>
+             <div><dt>Access term</dt><dd>{purchaseReceipt.request.packType} · {purchaseReceipt.request.durationDays} days</dd></div>
+             <div><dt>Amount paid</dt><dd>{money(purchaseReceipt.request.amountPaise)}</dd></div>
+             {purchaseReceipt.request.cashfreePaymentId && <div><dt>Cashfree payment ID</dt><dd className="mono">{purchaseReceipt.request.cashfreePaymentId}</dd></div>}
+             <div><dt>Broadcast starts / day</dt><dd>{purchaseReceipt.request.streamsPerDay}</dd></div>
+             <div><dt>Downloads / day</dt><dd>{purchaseReceipt.request.downloadsPerDay.toLocaleString("en-IN")}</dd></div>
+             <div><dt>Verified</dt><dd>{new Date(purchaseReceipt.request.reviewedAt || purchaseReceipt.request.createdAt).toLocaleString("en-IN")}</dd></div>
+           </>}
+           <div><dt>Cashfree order ID</dt><dd className="mono">{purchaseReceipt.orderId}</dd></div>
+           <div><dt>Payment status</dt><dd><span className="cashfree-receipt-paid">Paid · verified</span></dd></div>
+         </dl>}
+         <button type="button" className="button pay-quote-button" onClick={() => setPurchaseReceipt(null)} data-testid="button-close-purchase-success">Continue</button>
+       </DialogContent>
+     </Dialog>
     {step === "select" ? <section className="pay-selection">
       <div className="pay-top-tabs" role="tablist" aria-label="Choose access term">
         {(["Days", "Monthly", "Yearly"] as const).map((kind) => <button type="button" role="tab" aria-selected={packType === kind} className={packType === kind ? "selected" : ""} key={kind} onClick={() => changePack(kind)} data-testid={`tab-select-pack-${kind.toLowerCase()}`}>{kind}</button>)}
