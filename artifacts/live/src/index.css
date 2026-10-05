@@ -6147,6 +6147,15 @@ select { height: 41px; }
 .owner-login-panel h1 { margin:0 0 10px; color:#191b20; font-family:var(--app-font-display); font-size:30px; letter-spacing:-.05em; }
 .owner-login-panel > .subtle { margin-bottom:25px; color:#6e7380; line-height:1.6; }
 .owner-login-panel .login-submit { min-height:44px; border-radius:10px; background:#8f245f; }
+.owner-login-panel .owner-remember-row { display:flex; align-items:flex-start; gap:10px; padding:13px; border:1px solid #ebe2e8; border-radius:11px; background:#fcf8fa; cursor:pointer; }
+.owner-login-panel .owner-remember-row input { width:18px; height:18px; flex:0 0 auto; margin:1px 0 0; accent-color:#8f245f; cursor:pointer; }
+.owner-login-panel .owner-remember-row > span { display:grid; gap:4px; }
+.owner-login-panel .owner-remember-row strong { color:#34313a; font-size:12px; }
+.owner-login-panel .owner-remember-row small { color:#76717a; font-size:10px; line-height:1.45; }
+.owner-topbar-actions { display:flex; align-items:center; gap:12px; }
+.owner-sign-out { display:inline-flex; align-items:center; justify-content:center; gap:7px; min-height:38px; border-color:#e0e2e9; color:#626775; background:#fff; }
+.owner-sign-out:hover:not(:disabled) { border-color:#c58bad; color:#7c1750; background:#fcf4f8; }
+.owner-sign-out:focus-visible,.owner-remember-row:has(input:focus-visible) { outline:3px solid #e6a8ca; outline-offset:2px; }
 .owner-folders-page .owner-content { padding-bottom:100px; }
 .owner-folders-page .owner-topbar .button.secondary { border-color:#e0e2e9; color:#555b68; background:#fff; }
 .owner-folders-page .owner-topbar .button.secondary:hover { color:#7c1750; border-color:#c58bad; background:#fcf4f8; }
@@ -6161,6 +6170,8 @@ select { height: 41px; }
 @media (max-width: 700px) {
   .owner-topbar { height:64px; padding:0 17px; }
   .owner-topbar-title strong { font-size:16px; }
+  .owner-topbar-actions { gap:7px; }
+  .owner-sign-out { min-height:36px; padding:0 10px; font-size:10px; }
   .owner-desktop-back { display:none; }
   .owner-secure-label { font-size:0; }
   .owner-secure-label svg { width:19px; height:19px; }

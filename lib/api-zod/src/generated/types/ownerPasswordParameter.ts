@@ -6,4 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 
+/**
+ * Legacy owner password header; optional when a valid owner session cookie is present.
+ */
 export type OwnerPasswordParameter = string;

@@ -4,7 +4,7 @@ import {
   Activity as ActivityIcon, ArrowLeft, ArrowRight, BookOpen, Camera, Check, CircleHelp, Clipboard, ClipboardList,
   CalendarDays, Download, FileVideo, Filter, FolderOpen, Gauge, Gift, Instagram, LayoutDashboard,
   Image, Layers, Link2, Menu, MessageCircle, MonitorPlay, Pencil, Play, Plus, Radio, Scissors, Search, Send, Settings,
-  UserRound, CreditCard, KeyRound, Mail, Receipt, Users,
+  UserRound, CreditCard, KeyRound, LogOut, Mail, Receipt, Users,
   Mic, ShieldCheck, Sparkles, Square, Trash2, Type, Upload, Video, Wand2, X, Youtube,
 } from "lucide-react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -2263,12 +2263,14 @@ function OwnerKeysPanel({ tokens, tokenDraft, keyBusy, error, onDraftChange, onA
   </div>;
 }
 
-function OwnerDashboardPage({ ownerPassword, error, message, keyBusy, showIncludedAnimations, onFolder, onAnimations, onKeys, onUsers, onPayments, onPaymentRequests, onFeedback, onSettings, onNavigate, onCloseAnimations }: {
+function OwnerDashboardPage({ ownerPassword, error, message, keyBusy, showIncludedAnimations, onFolder, onAnimations, onKeys, onUsers, onPayments, onPaymentRequests, onFeedback, onSettings, onNavigate, onCloseAnimations, onSignOut, signOutBusy }: {
   ownerPassword: string;
   error: string;
   message: string;
   keyBusy: boolean;
   showIncludedAnimations: boolean;
+  signOutBusy: boolean;
+  onSignOut: () => void;
   onFolder: () => void;
   onAnimations: () => void;
   onKeys: () => void;
@@ -2281,7 +2283,7 @@ function OwnerDashboardPage({ ownerPassword, error, message, keyBusy, showInclud
   onNavigate?: (section: OwnerSection) => void;
 }) {
   return <div className="owner-page owner-dashboard-page">{onNavigate && <OwnerDesktopSidebar active="dashboard" onNavigate={onNavigate} />}
-    <header className="owner-topbar"><div className="owner-topbar-title"><span className="owner-topbar-kicker">Slash Owner</span><strong>Dashboard</strong></div><span className="owner-secure-label"><ShieldCheck size={15}/> Secure owner workspace</span></header>
+    <header className="owner-topbar"><div className="owner-topbar-title"><span className="owner-topbar-kicker">Slash Owner</span><strong>Dashboard</strong></div><div className="owner-topbar-actions"><span className="owner-secure-label"><ShieldCheck size={15}/> Secure owner workspace</span><button className="button secondary small owner-sign-out" type="button" onClick={onSignOut} disabled={signOutBusy} data-testid="owner-sign-out"><LogOut size={14}/>{signOutBusy ? "Signing out…" : "Sign out"}</button></div></header>
     <main className="owner-content">
       <div className="page-head owner-page-heading"><div><p className="eyebrow">Owner workspace</p><h1>Dashboard</h1><p className="subtle">Manage shared media, user access, payments, and support settings.</p></div><div className="owner-page-badge"><ShieldCheck size={16}/> Connected</div></div>
       {error && <div className="error-note">{error}</div>}{message && <div className="owner-success">{message}</div>}
@@ -2303,7 +2305,10 @@ function OwnerDashboardPage({ ownerPassword, error, message, keyBusy, showInclud
 
 function OwnerConsolePage() {
   const [password, setPassword] = useState("");
-  const [authorizedPassword, setAuthorizedPassword] = useState("");
+  const authorizedPassword = "";
+  const [isAuthorized, setIsAuthorized] = useState(false);
+  const [checkingSession, setCheckingSession] = useState(true);
+  const [rememberLogin, setRememberLogin] = useState(false);
   const [vidKrakenTokens, setVidKrakenTokens] = useState<VidKrakenTokenStatus[]>([]);
   const [tokenDraft, setTokenDraft] = useState("");
   const [keyBusy, setKeyBusy] = useState(false);
@@ -2318,15 +2323,57 @@ function OwnerConsolePage() {
     if (!Array.isArray(result?.tokens)) throw new Error("Key list could not be loaded.");
     setVidKrakenTokens(result.tokens);
   };
+  useEffect(() => {
+    let active = true;
+    void (async () => {
+      try {
+        const session = await apiJson<{ authenticated: boolean }>("/api/owner/session");
+        if (session.authenticated) {
+          await loadVidKrakenTokens("");
+          if (active) setIsAuthorized(true);
+        }
+      } catch {
+        if (active) setError("Could not restore the saved owner session. Please sign in again.");
+      } finally {
+        if (active) setCheckingSession(false);
+      }
+    })();
+    return () => { active = false; };
+  }, []);
   const signIn = async (event: FormEvent) => {
     event.preventDefault(); setBusy(true); setError("");
-    try { await loadVidKrakenTokens(password); setAuthorizedPassword(password); }
+    try {
+      const session = await apiJson<{ authenticated: boolean }>("/api/owner/session", {
+        method: "POST",
+        body: JSON.stringify({ password, rememberMe: rememberLogin }),
+      });
+      if (!session.authenticated) throw new Error("Owner access was denied.");
+      await loadVidKrakenTokens("");
+      setPassword("");
+      setIsAuthorized(true);
+    }
     catch (reason) { setError(reason instanceof Error ? reason.message : "Owner access was denied."); }
     finally { setBusy(false); }
   };
+  const signOut = async () => {
+    setBusy(true); setError("");
+    try {
+      await apiJson<{ authenticated: boolean }>("/api/owner/session", { method: "DELETE" });
+      setIsAuthorized(false);
+      setPassword("");
+      setRememberLogin(false);
+      setVidKrakenTokens([]);
+      setTokenDraft("");
+      setOwnerView("dashboard");
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "Could not sign out.");
+    } finally {
+      setBusy(false);
+    }
+  };
   const openKeys = async () => {
     setKeyBusy(true); setError("");
-    try { await loadVidKrakenTokens(authorizedPassword); setOwnerView("keys"); }
+    try { await loadVidKrakenTokens(""); setOwnerView("keys"); }
     catch (reason) { setError(reason instanceof Error ? reason.message : "Could not load keys."); }
     finally { setKeyBusy(false); }
   };
@@ -2357,7 +2404,8 @@ function OwnerConsolePage() {
   };
   const goDashboard = () => setOwnerView("dashboard");
 
-  if (!authorizedPassword) return <div className="owner-login-page"><section className="owner-login-panel"><div className="owner-login-mark"><ShieldCheck size={22}/></div><p className="eyebrow">Slash Owner</p><h1>Owner console</h1><p className="subtle">Manage users, shared media, payments, and support settings.</p>{error && <div className="error-note">{error}</div>}<form className="login-form" onSubmit={signIn}><div className="field"><label htmlFor="slash-owner-password">Owner password</label><input id="slash-owner-password" type="password" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="current-password" autoFocus data-testid="input-owner-password"/></div><button className="button login-submit" type="submit" disabled={busy || !password} data-testid="button-owner-login">{busy ? "Checking…" : "Open dashboard"} <ArrowRight size={16}/></button></form></section></div>;
+  if (checkingSession) return <div className="owner-login-page"><section className="owner-login-panel" role="status" aria-live="polite"><div className="owner-login-mark"><ShieldCheck size={22}/></div><p className="eyebrow">Slash Owner</p><h1>Owner console</h1><p className="subtle">Checking for a saved owner session…</p></section></div>;
+  if (!isAuthorized) return <div className="owner-login-page"><section className="owner-login-panel"><div className="owner-login-mark"><ShieldCheck size={22}/></div><p className="eyebrow">Slash Owner</p><h1>Owner console</h1><p className="subtle">Manage users, shared media, payments, and support settings.</p>{error && <div className="error-note" role="alert">{error}</div>}<form className="login-form" onSubmit={signIn}><div className="field"><label htmlFor="slash-owner-password">Owner password</label><input id="slash-owner-password" type="password" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="current-password" autoFocus data-testid="input-owner-password"/></div><label className="owner-remember-row" htmlFor="owner-remember-login"><input id="owner-remember-login" type="checkbox" checked={rememberLogin} onChange={(event) => setRememberLogin(event.target.checked)} data-testid="owner-remember-login"/><span><strong>Remember me on this device</strong><small>Stay signed in for 30 days. Your password is never saved in the browser.</small></span></label><button className="button login-submit" type="submit" disabled={busy || !password} data-testid="button-owner-login">{busy ? "Signing in…" : "Open dashboard"} <ArrowRight size={16}/></button></form></section></div>;
   if (ownerView === "folders") return <OwnerFoldersPage ownerPassword={authorizedPassword} onBack={goDashboard} onKeys={openKeys} onNavigate={navigateOwner} />;
   if (ownerView === "keys") return <OwnerKeysPanel tokens={vidKrakenTokens} tokenDraft={tokenDraft} keyBusy={keyBusy} error={error} onDraftChange={setTokenDraft} onAdd={(event) => void addToken(event)} onRemove={(token) => void removeToken(token)} onDashboard={goDashboard} onNavigate={navigateOwner} />;
   if (ownerView === "users") return <div className="owner-page owner-payment-page owner-users-view"><OwnerDesktopSidebar active="users" onNavigate={navigateOwner}/><header className="owner-topbar"><div className="owner-topbar-title"><span className="owner-topbar-kicker">Slash Owner</span><strong>Users</strong></div><button className="button secondary small owner-payment-mobile-back" onClick={goDashboard} type="button"><ArrowLeft size={14}/> Dashboard</button></header><main className="owner-content"><OwnerUsersPanel ownerPassword={authorizedPassword}/></main></div>;
@@ -2365,7 +2413,7 @@ function OwnerConsolePage() {
   if (ownerView === "paymentRequests") return <div className="owner-page owner-payment-page owner-payment-request-page"><OwnerDesktopSidebar active="paymentRequests" onNavigate={navigateOwner}/><header className="owner-topbar"><div className="owner-topbar-title"><span className="owner-topbar-kicker">Slash Owner</span><strong>Payment Request</strong></div><button className="button secondary small owner-payment-mobile-back" onClick={goDashboard} type="button"><ArrowLeft size={14}/> Dashboard</button></header><OwnerPaymentRequestsPanel ownerPassword={authorizedPassword}/></div>;
   if (ownerView === "feedback") return <div className="owner-page owner-payment-page owner-feedback-page"><OwnerDesktopSidebar active="feedback" onNavigate={navigateOwner}/><header className="owner-topbar"><div className="owner-topbar-title"><span className="owner-topbar-kicker">Slash Owner</span><strong>Feedback</strong></div><button className="button secondary small owner-payment-mobile-back" onClick={goDashboard} type="button"><ArrowLeft size={14}/> Dashboard</button></header><OwnerFeedbackPanel ownerPassword={authorizedPassword}/></div>;
   if (ownerView === "settings") return <div className="owner-page owner-payment-page owner-settings-view"><OwnerDesktopSidebar active="settings" onNavigate={navigateOwner}/><header className="owner-topbar"><div className="owner-topbar-title"><span className="owner-topbar-kicker">Slash Owner</span><strong>Settings</strong></div><button className="button secondary small owner-payment-mobile-back" onClick={goDashboard} type="button"><ArrowLeft size={14}/> Dashboard</button></header><main className="owner-content"><OwnerSettingsPanel ownerPassword={authorizedPassword}/></main></div>;
-  return <OwnerDashboardPage ownerPassword={authorizedPassword} error={error} message={message} keyBusy={keyBusy} showIncludedAnimations={showIncludedAnimations} onFolder={() => setOwnerView("folders")} onAnimations={() => setShowIncludedAnimations(true)} onKeys={openKeys} onUsers={() => setOwnerView("users")} onPayments={() => setOwnerView("payments")} onPaymentRequests={() => setOwnerView("paymentRequests")} onFeedback={() => setOwnerView("feedback")} onSettings={() => setOwnerView("settings")} onNavigate={navigateOwner} onCloseAnimations={() => setShowIncludedAnimations(false)} />;
+  return <OwnerDashboardPage ownerPassword={authorizedPassword} error={error} message={message} keyBusy={keyBusy} showIncludedAnimations={showIncludedAnimations} onFolder={() => setOwnerView("folders")} onAnimations={() => setShowIncludedAnimations(true)} onKeys={openKeys} onUsers={() => setOwnerView("users")} onPayments={() => setOwnerView("payments")} onPaymentRequests={() => setOwnerView("paymentRequests")} onFeedback={() => setOwnerView("feedback")} onSettings={() => setOwnerView("settings")} onNavigate={navigateOwner} onCloseAnimations={() => setShowIncludedAnimations(false)} onSignOut={() => void signOut()} signOutBusy={busy} />;
 }
 
 function Metric({ label, value, detail, image, dim }: { label:string; value:string|number; detail:string; image?:string; dim?:boolean }) {

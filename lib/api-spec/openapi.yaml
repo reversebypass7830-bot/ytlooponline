@@ -1374,6 +1374,52 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/PublicMaintenance"
+  /owner/session:
+    get:
+      operationId: getOwnerSession
+      tags: [accounts]
+      summary: Check whether the browser has an active owner session
+      responses:
+        "200":
+          description: Current owner session status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OwnerSessionStatus"
+    post:
+      operationId: createOwnerSession
+      tags: [accounts]
+      summary: Sign in to the owner console and issue an HTTP-only session cookie
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OwnerSessionInput"
+      responses:
+        "200":
+          description: Owner session created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OwnerSessionStatus"
+        "400":
+          description: Invalid sign-in request
+        "401":
+          description: Owner password is incorrect
+        "503":
+          description: Owner sessions are not configured
+    delete:
+      operationId: deleteOwnerSession
+      tags: [accounts]
+      summary: Sign out and clear the owner session cookie
+      responses:
+        "200":
+          description: Owner session cleared
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OwnerSessionStatus"
   /owner/settings:
     get:
       operationId: getOwnerSettings
@@ -1416,7 +1462,8 @@ components:
     OwnerPassword:
       name: X-Owner-Password
       in: header
-      required: true
+      description: Legacy owner password header; optional when a valid owner session cookie is present.
+      required: false
       schema:
         type: string
   schemas:
@@ -2562,6 +2609,22 @@ components:
           type: string
           maxLength: 60
       required: [supportLink, maintenanceEnabled, maintenanceMessage, maintenanceLinkUrl, maintenanceLinkLabel]
+    OwnerSessionInput:
+      type: object
+      properties:
+        password:
+          type: string
+          minLength: 1
+          maxLength: 512
+        rememberMe:
+          type: boolean
+      required: [password, rememberMe]
+    OwnerSessionStatus:
+      type: object
+      properties:
+        authenticated:
+          type: boolean
+      required: [authenticated]
     OwnerSettingsInput:
       type: object
       properties:

@@ -53,7 +53,7 @@ export const GetPublicFeedbackImageResponse = zod.unknown()
  * @summary List feedback entries in the owner console
  */
 export const ListOwnerFeedbackHeader = zod.object({
-  "X-Owner-Password": zod.string()
+  "X-Owner-Password": zod.string().optional().describe('Legacy owner password header; optional when a valid owner session cookie is present.')
 })
 
 export const ListOwnerFeedbackResponse = zod.object({
@@ -77,7 +77,7 @@ export const ListOwnerFeedbackResponse = zod.object({
  * @summary Add a channel feedback entry
  */
 export const CreateOwnerFeedbackHeader = zod.object({
-  "X-Owner-Password": zod.string()
+  "X-Owner-Password": zod.string().optional().describe('Legacy owner password header; optional when a valid owner session cookie is present.')
 })
 
 export const createOwnerFeedbackBodyTitleMin = 2;
@@ -126,7 +126,7 @@ export const uploadOwnerFeedbackImageHeaderXFeedbackFilenameMax = 560;
 
 
 export const UploadOwnerFeedbackImageHeader = zod.object({
-  "X-Owner-Password": zod.string(),
+  "X-Owner-Password": zod.string().optional().describe('Legacy owner password header; optional when a valid owner session cookie is present.'),
   "X-Feedback-Filename": zod.string().max(uploadOwnerFeedbackImageHeaderXFeedbackFilenameMax).optional()
 })
 
@@ -145,7 +145,7 @@ export const UpdateOwnerFeedbackParams = zod.object({
 })
 
 export const UpdateOwnerFeedbackHeader = zod.object({
-  "X-Owner-Password": zod.string()
+  "X-Owner-Password": zod.string().optional().describe('Legacy owner password header; optional when a valid owner session cookie is present.')
 })
 
 export const updateOwnerFeedbackBodyTitleMin = 2;
@@ -194,7 +194,7 @@ export const DeleteOwnerFeedbackParams = zod.object({
 })
 
 export const DeleteOwnerFeedbackHeader = zod.object({
-  "X-Owner-Password": zod.string()
+  "X-Owner-Password": zod.string().optional().describe('Legacy owner password header; optional when a valid owner session cookie is present.')
 })
 
 export const DeleteOwnerFeedbackResponse = zod.object({
@@ -1158,7 +1158,7 @@ export const ExtractYoutubeChannelLinksResponse = zod.object({
  * @summary List the owner's VidKraken token pool without exposing token values
  */
 export const ListVidKrakenTokensHeader = zod.object({
-  "X-Owner-Password": zod.string()
+  "X-Owner-Password": zod.string().optional().describe('Legacy owner password header; optional when a valid owner session cookie is present.')
 })
 
 export const ListVidKrakenTokensResponse = zod.object({
@@ -1175,7 +1175,7 @@ export const ListVidKrakenTokensResponse = zod.object({
  * @summary Add a VidKraken token to the owner's rotation pool
  */
 export const AddVidKrakenTokenHeader = zod.object({
-  "X-Owner-Password": zod.string()
+  "X-Owner-Password": zod.string().optional().describe('Legacy owner password header; optional when a valid owner session cookie is present.')
 })
 
 
@@ -1203,7 +1203,7 @@ export const DeleteVidKrakenTokenParams = zod.object({
 })
 
 export const DeleteVidKrakenTokenHeader = zod.object({
-  "X-Owner-Password": zod.string()
+  "X-Owner-Password": zod.string().optional().describe('Legacy owner password header; optional when a valid owner session cookie is present.')
 })
 
 export const DeleteVidKrakenTokenResponse = zod.object({
@@ -1549,7 +1549,7 @@ export const CreateAccountPaymentProofUploadUrlResponse = zod.object({
  * @summary List subscription pricing templates
  */
 export const ListBillingPlansHeader = zod.object({
-  "X-Owner-Password": zod.string()
+  "X-Owner-Password": zod.string().optional().describe('Legacy owner password header; optional when a valid owner session cookie is present.')
 })
 
 
@@ -1589,7 +1589,7 @@ export const ListBillingPlansResponse = zod.object({
  * @summary Create a subscription pricing template
  */
 export const CreateBillingPlanHeader = zod.object({
-  "X-Owner-Password": zod.string()
+  "X-Owner-Password": zod.string().optional().describe('Legacy owner password header; optional when a valid owner session cookie is present.')
 })
 
 export const createBillingPlanBodyNameMax = 80;
@@ -1674,7 +1674,7 @@ export const UpdateBillingPlanParams = zod.object({
 })
 
 export const UpdateBillingPlanHeader = zod.object({
-  "X-Owner-Password": zod.string()
+  "X-Owner-Password": zod.string().optional().describe('Legacy owner password header; optional when a valid owner session cookie is present.')
 })
 
 export const updateBillingPlanBodyNameMax = 80;
@@ -1755,7 +1755,7 @@ export const UpdateBillingPlanResponse = zod.object({
  * @summary Get payment method, gateway environment, and credential status
  */
 export const GetOwnerPaymentSettingsHeader = zod.object({
-  "X-Owner-Password": zod.string()
+  "X-Owner-Password": zod.string().optional().describe('Legacy owner password header; optional when a valid owner session cookie is present.')
 })
 
 export const GetOwnerPaymentSettingsResponse = zod.object({
@@ -1775,7 +1775,7 @@ export const GetOwnerPaymentSettingsResponse = zod.object({
  * @summary Set checkout method, UPI details, and Cashfree credentials
  */
 export const UpdateOwnerPaymentSettingsHeader = zod.object({
-  "X-Owner-Password": zod.string()
+  "X-Owner-Password": zod.string().optional().describe('Legacy owner password header; optional when a valid owner session cookie is present.')
 })
 
 export const updateOwnerPaymentSettingsBodyUpiIdMin = 3;
@@ -1821,7 +1821,7 @@ export const UpdateOwnerPaymentSettingsResponse = zod.object({
  * @summary Get the owner-configured trial duration and daily quotas
  */
 export const GetOwnerTrialSettingsHeader = zod.object({
-  "X-Owner-Password": zod.string()
+  "X-Owner-Password": zod.string().optional().describe('Legacy owner password header; optional when a valid owner session cookie is present.')
 })
 
 export const getOwnerTrialSettingsResponseStreamsPerDayMin = 0;
@@ -1844,7 +1844,7 @@ export const GetOwnerTrialSettingsResponse = zod.object({
  * @summary Set the duration and daily quotas used by both trial paths
  */
 export const UpdateOwnerTrialSettingsHeader = zod.object({
-  "X-Owner-Password": zod.string()
+  "X-Owner-Password": zod.string().optional().describe('Legacy owner password header; optional when a valid owner session cookie is present.')
 })
 
 export const updateOwnerTrialSettingsBodyStreamsPerDayMin = 0;
@@ -1885,7 +1885,7 @@ export const ListOwnerPaymentRequestsQueryParams = zod.object({
 })
 
 export const ListOwnerPaymentRequestsHeader = zod.object({
-  "X-Owner-Password": zod.string()
+  "X-Owner-Password": zod.string().optional().describe('Legacy owner password header; optional when a valid owner session cookie is present.')
 })
 
 export const listOwnerPaymentRequestsResponseRequestsItemScreenshotPathRegExp = new RegExp('^/objects/payment-proof');
@@ -1933,7 +1933,7 @@ export const ReviewOwnerPaymentRequestParams = zod.object({
 })
 
 export const ReviewOwnerPaymentRequestHeader = zod.object({
-  "X-Owner-Password": zod.string()
+  "X-Owner-Password": zod.string().optional().describe('Legacy owner password header; optional when a valid owner session cookie is present.')
 })
 
 export const reviewOwnerPaymentRequestBodyNoteMax = 500;
@@ -1986,7 +1986,7 @@ export const ReviewOwnerPaymentRequestResponse = zod.object({
  * @summary List account details for owner review
  */
 export const ListOwnerUsersHeader = zod.object({
-  "X-Owner-Password": zod.string()
+  "X-Owner-Password": zod.string().optional().describe('Legacy owner password header; optional when a valid owner session cookie is present.')
 })
 
 
@@ -2065,7 +2065,7 @@ export const UpdateOwnerUserSuspensionParams = zod.object({
 })
 
 export const UpdateOwnerUserSuspensionHeader = zod.object({
-  "X-Owner-Password": zod.string()
+  "X-Owner-Password": zod.string().optional().describe('Legacy owner password header; optional when a valid owner session cookie is present.')
 })
 
 export const UpdateOwnerUserSuspensionBody = zod.object({
@@ -2148,7 +2148,7 @@ export const UpdateOwnerUserServicePauseParams = zod.object({
 })
 
 export const UpdateOwnerUserServicePauseHeader = zod.object({
-  "X-Owner-Password": zod.string()
+  "X-Owner-Password": zod.string().optional().describe('Legacy owner password header; optional when a valid owner session cookie is present.')
 })
 
 export const UpdateOwnerUserServicePauseBody = zod.object({
@@ -2231,7 +2231,7 @@ export const DeleteOwnerUserParams = zod.object({
 })
 
 export const DeleteOwnerUserHeader = zod.object({
-  "X-Owner-Password": zod.string()
+  "X-Owner-Password": zod.string().optional().describe('Legacy owner password header; optional when a valid owner session cookie is present.')
 })
 
 export const deleteOwnerUserResponseDeletedMediaMin = 0;
@@ -2249,7 +2249,7 @@ export const DeleteOwnerUserResponse = zod.object({
  * @summary Delete multiple user accounts and their workspace data
  */
 export const BulkDeleteOwnerUsersHeader = zod.object({
-  "X-Owner-Password": zod.string()
+  "X-Owner-Password": zod.string().optional().describe('Legacy owner password header; optional when a valid owner session cookie is present.')
 })
 
 
@@ -2287,10 +2287,43 @@ export const GetPublicMaintenanceResponse = zod.object({
 
 
 /**
+ * @summary Check whether the browser has an active owner session
+ */
+export const GetOwnerSessionResponse = zod.object({
+  "authenticated": zod.boolean()
+})
+
+
+/**
+ * @summary Sign in to the owner console and issue an HTTP-only session cookie
+ */
+export const createOwnerSessionBodyPasswordMax = 512;
+
+
+
+export const CreateOwnerSessionBody = zod.object({
+  "password": zod.string().min(1).max(createOwnerSessionBodyPasswordMax),
+  "rememberMe": zod.boolean()
+})
+
+export const CreateOwnerSessionResponse = zod.object({
+  "authenticated": zod.boolean()
+})
+
+
+/**
+ * @summary Sign out and clear the owner session cookie
+ */
+export const DeleteOwnerSessionResponse = zod.object({
+  "authenticated": zod.boolean()
+})
+
+
+/**
  * @summary Get owner-configured support and maintenance settings
  */
 export const GetOwnerSettingsHeader = zod.object({
-  "X-Owner-Password": zod.string()
+  "X-Owner-Password": zod.string().optional().describe('Legacy owner password header; optional when a valid owner session cookie is present.')
 })
 
 export const getOwnerSettingsResponseSupportLinkMax = 2048;
@@ -2316,7 +2349,7 @@ export const GetOwnerSettingsResponse = zod.object({
  * @summary Save owner support and maintenance settings
  */
 export const UpdateOwnerSettingsHeader = zod.object({
-  "X-Owner-Password": zod.string()
+  "X-Owner-Password": zod.string().optional().describe('Legacy owner password header; optional when a valid owner session cookie is present.')
 })
 
 export const updateOwnerSettingsBodySupportLinkMax = 2048;

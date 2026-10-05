@@ -74,6 +74,8 @@ export * from './ownerFeedback';
 export * from './ownerFeedbackListResponse';
 export * from './ownerFeedbackResponse';
 export * from './ownerPasswordParameter';
+export * from './ownerSessionInput';
+export * from './ownerSessionStatus';
 export * from './ownerSettings';
 export * from './ownerSettingsInput';
 export * from './ownerUser';

@@ -68,6 +68,8 @@ import type {
   MediaUploadResponse,
   OwnerFeedbackListResponse,
   OwnerFeedbackResponse,
+  OwnerSessionInput,
+  OwnerSessionStatus,
   OwnerSettings,
   OwnerSettingsInput,
   OwnerUserDeleteResponse,
@@ -4540,6 +4542,225 @@ export function useGetPublicMaintenance<TData = Awaited<ReturnType<typeof getPub
 
 
 
+
+export const getGetOwnerSessionUrl = () => {
+
+
+
+
+  return `/api/owner/session`
+}
+
+/**
+ * @summary Check whether the browser has an active owner session
+ */
+export const getOwnerSession = async ( options?: Parameters<typeof customFetch>[1]): Promise<OwnerSessionStatus> => {
+
+  return customFetch<OwnerSessionStatus>(getGetOwnerSessionUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetOwnerSessionQueryKey = () => {
+    return [
+    `/api/owner/session`
+    ] as const;
+    }
+
+
+export const getGetOwnerSessionQueryOptions = <TData = Awaited<ReturnType<typeof getOwnerSession>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getOwnerSession>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetOwnerSessionQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getOwnerSession>>> = ({ signal }) => getOwnerSession({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getOwnerSession>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetOwnerSessionQueryResult = NonNullable<Awaited<ReturnType<typeof getOwnerSession>>>
+export type GetOwnerSessionQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Check whether the browser has an active owner session
+ */
+
+export function useGetOwnerSession<TData = Awaited<ReturnType<typeof getOwnerSession>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getOwnerSession>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetOwnerSessionQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCreateOwnerSessionUrl = () => {
+
+
+
+
+  return `/api/owner/session`
+}
+
+/**
+ * @summary Sign in to the owner console and issue an HTTP-only session cookie
+ */
+export const createOwnerSession = async (ownerSessionInput: OwnerSessionInput, options?: Parameters<typeof customFetch>[1]): Promise<OwnerSessionStatus> => {
+
+  return customFetch<OwnerSessionStatus>(getCreateOwnerSessionUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(ownerSessionInput)
+  }
+);}
+
+
+
+
+
+export const getCreateOwnerSessionMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createOwnerSession>>, TError,{data: BodyType<OwnerSessionInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createOwnerSession>>, TError,{data: BodyType<OwnerSessionInput>}, TContext> => {
+
+const mutationKey = ['createOwnerSession'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createOwnerSession>>, {data: BodyType<OwnerSessionInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createOwnerSession(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateOwnerSessionMutationResult = NonNullable<Awaited<ReturnType<typeof createOwnerSession>>>
+    export type CreateOwnerSessionMutationBody = BodyType<OwnerSessionInput>
+    export type CreateOwnerSessionMutationError = ErrorType<void>
+
+    /**
+ * @summary Sign in to the owner console and issue an HTTP-only session cookie
+ */
+export const useCreateOwnerSession = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createOwnerSession>>, TError,{data: BodyType<OwnerSessionInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createOwnerSession>>,
+        TError,
+        {data: BodyType<OwnerSessionInput>},
+        TContext
+      > => {
+      return useMutation(getCreateOwnerSessionMutationOptions(options));
+    }
+
+export const getDeleteOwnerSessionUrl = () => {
+
+
+
+
+  return `/api/owner/session`
+}
+
+/**
+ * @summary Sign out and clear the owner session cookie
+ */
+export const deleteOwnerSession = async ( options?: Parameters<typeof customFetch>[1]): Promise<OwnerSessionStatus> => {
+
+  return customFetch<OwnerSessionStatus>(getDeleteOwnerSessionUrl(),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getDeleteOwnerSessionMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteOwnerSession>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteOwnerSession>>, TError,void, TContext> => {
+
+const mutationKey = ['deleteOwnerSession'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteOwnerSession>>, void> = () => {
+
+
+          return  deleteOwnerSession(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteOwnerSessionMutationResult = NonNullable<Awaited<ReturnType<typeof deleteOwnerSession>>>
+
+    export type DeleteOwnerSessionMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Sign out and clear the owner session cookie
+ */
+export const useDeleteOwnerSession = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteOwnerSession>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof deleteOwnerSession>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getDeleteOwnerSessionMutationOptions(options));
+    }
 
 export const getGetOwnerSettingsUrl = () => {
 

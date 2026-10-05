@@ -19,6 +19,7 @@ import {
   TrimMediaFileResponse,
 } from "@workspace/api-zod";
 import { cleanupVidKrakenDownload, downloadVidKraken, getVidKrakenInfo } from "../lib/vidkraken";
+import { ownerAuthorized } from "../lib/owner-auth";
 import { accountWorkspaceExists, releaseAccountDownload, reserveAccountDownload } from "./accounts";
 
 const router: IRouter = Router();
@@ -28,8 +29,6 @@ const mediaIndexPath = path.join(mediaDir, "media-index.json");
 const includedFoldersPath = path.join(mediaDir, "included-folders.json");
 const includedMediaLicenseId = "__included__";
 const includedFolderRoot = "My YouTube Animation/Included Animations";
-const defaultOwnerPassword = "traderp1wer";
-
 type MediaRecord = {
   fileId: string;
   filename: string;
@@ -49,11 +48,6 @@ type IncludedFolderRecord = {
   path: string;
   createdAt: string;
 };
-
-function ownerAuthorized(req: Request): boolean {
-  const expected = process.env.OWNER_PASSWORD?.trim() || defaultOwnerPassword;
-  return Boolean(expected && req.header("x-owner-password") === expected);
-}
 
 function requestedWorkspaceId(req: Request): string {
   const raw = req.query.workspaceId ?? req.query.licenseId;

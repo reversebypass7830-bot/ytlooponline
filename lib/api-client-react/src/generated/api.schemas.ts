@@ -916,6 +916,19 @@ export interface OwnerSettings {
   maintenanceLinkLabel: string;
 }
 
+export interface OwnerSessionInput {
+  /**
+     * @minLength 1
+     * @maxLength 512
+     */
+  password: string;
+  rememberMe: boolean;
+}
+
+export interface OwnerSessionStatus {
+  authenticated: boolean;
+}
+
 export interface OwnerSettingsInput {
   /** @maxLength 2048 */
   supportLink: string;
@@ -1468,6 +1481,9 @@ export interface PaymentRequestResponse {
   request: PaymentRequest;
 }
 
+/**
+ * Legacy owner password header; optional when a valid owner session cookie is present.
+ */
 export type OwnerPasswordParameter = string;
 
 export type DeleteOwnerFeedback200 = {

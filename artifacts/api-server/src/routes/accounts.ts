@@ -5,11 +5,15 @@ import {
   CreateAccountPaymentRequestBody,
   CreateAccountPaymentProofUploadUrlBody,
   CreateBillingPlanBody,
+  CreateOwnerSessionBody,
+  CreateOwnerSessionResponse,
+  DeleteOwnerSessionResponse,
   VerifyCashfreePaymentBody,
   QuoteAccountPaymentBody,
   ReviewOwnerPaymentRequestBody,
   UpdateBillingPlanBody,
   GetOwnerSettingsResponse,
+  GetOwnerSessionResponse,
   GetPublicMaintenanceResponse,
   UpdateOwnerPaymentSettingsBody,
   UpdateOwnerSettingsBody,
@@ -27,7 +31,15 @@ import {
 } from "../lib/account-access";
 import { ObjectStorageService } from "../lib/objectStorage";
 import { accountIdentity, accountUserId, clerkSessionClaims, requireAccountAuth, requireClerkAuth } from "../middlewares/requireClerkAuth";
-import { clerkOwnerAuthorized, ownerAuthorized } from "../lib/owner-auth";
+import {
+  clearOwnerSessionCookie,
+  clerkOwnerAuthorized,
+  ownerAuthorized,
+  ownerPasswordMatches,
+  ownerSessionIsConfigured,
+  ownerSessionAuthorized,
+  setOwnerSessionCookie,
+} from "../lib/owner-auth";
 import { deleteMediaFilesForLicense } from "./media";
 import {
   createCashfreeOrder,
@@ -1829,6 +1841,33 @@ router.get("/public/maintenance", async (req, res): Promise<void> => {
   } catch (error) {
     sendError(req, res, error, "Could not load maintenance status.");
   }
+});
+
+router.get("/owner/session", (req, res): void => {
+  res.json(GetOwnerSessionResponse.parse({ authenticated: ownerSessionAuthorized(req) }));
+});
+
+router.post("/owner/session", (req, res): void => {
+  const parsed = CreateOwnerSessionBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.message });
+    return;
+  }
+  if (!ownerPasswordMatches(parsed.data.password)) {
+    res.status(401).json({ error: "Owner password is incorrect." });
+    return;
+  }
+  if (!ownerSessionIsConfigured()) {
+    res.status(503).json({ error: "Owner sessions are unavailable because SESSION_SECRET is not configured." });
+    return;
+  }
+  setOwnerSessionCookie(req, res, parsed.data.rememberMe);
+  res.json(CreateOwnerSessionResponse.parse({ authenticated: true }));
+});
+
+router.delete("/owner/session", (req, res): void => {
+  clearOwnerSessionCookie(req, res);
+  res.json(DeleteOwnerSessionResponse.parse({ authenticated: false }));
 });
 
 router.get("/owner/settings", async (req, res): Promise<void> => {
