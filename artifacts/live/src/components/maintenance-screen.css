@@ -23,15 +23,15 @@
 }
 
 .maintenance-screen-mark {
-  display: grid;
-  width: 58px;
-  height: 58px;
-  place-items: center;
+  width: min(210px, 80%);
   margin: 0 auto 22px;
-  border: 1px solid #d3e7d9;
-  border-radius: 18px;
-  background: #e9f4e9;
-  color: #32766c;
+}
+
+.maintenance-screen-mark img {
+  display: block;
+  width: 100%;
+  height: auto;
+  object-fit: contain;
 }
 
 .maintenance-screen-status {

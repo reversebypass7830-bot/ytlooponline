@@ -1,4 +1,4 @@
-import { ArrowUpRight, Wrench } from "lucide-react";
+import { ArrowUpRight } from "lucide-react";
 import "./maintenance-screen.css";
 
 export interface MaintenanceScreenProps {
@@ -10,7 +10,7 @@ export interface MaintenanceScreenProps {
 export function MaintenanceScreen({ message, linkUrl, linkLabel }: MaintenanceScreenProps) {
   return <main className="maintenance-screen" data-testid="maintenance-screen">
     <section className="maintenance-screen-card" aria-labelledby="maintenance-screen-title">
-      <div className="maintenance-screen-mark" aria-hidden="true"><Wrench size={21}/></div>
+      <div className="maintenance-screen-mark"><img src="/images/ytloop-logo.png" alt="YT Loop"/></div>
       <p className="maintenance-screen-status"><span aria-hidden="true"/> Maintenance in progress</p>
       <h1 id="maintenance-screen-title">We’ll be back soon</h1>
       <p className="maintenance-screen-message">{message}</p>

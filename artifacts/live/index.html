@@ -24,10 +24,12 @@
         const style = document.createElement("style");
         style.textContent = `
           html,body{min-height:100%;margin:0}
-          .site-maintenance{box-sizing:border-box;display:grid;min-height:100vh;place-items:center;padding:24px;background:radial-gradient(ellipse at 14% 12%,rgba(192,226,211,.75),transparent 35%),radial-gradient(ellipse at 87% 88%,rgba(221,235,211,.72),transparent 34%),#f3f7f1;color:#173c3b;font-family:Inter,system-ui,sans-serif}
+          body.site-maintenance-active{overflow:hidden}
+          body.site-maintenance-active>:not(.site-maintenance){visibility:hidden!important;pointer-events:none!important}
+          .site-maintenance{position:fixed;z-index:2147483647;inset:0;box-sizing:border-box;display:grid;min-height:100vh;place-items:center;overflow:auto;padding:24px;background:radial-gradient(ellipse at 14% 12%,rgba(192,226,211,.75),transparent 35%),radial-gradient(ellipse at 87% 88%,rgba(221,235,211,.72),transparent 34%),#f3f7f1;color:#173c3b;font-family:Inter,system-ui,sans-serif}
           .site-maintenance *{box-sizing:border-box}
           .site-maintenance-card{width:min(100%,620px);padding:clamp(28px,7vw,64px);border:1px solid rgba(54,111,99,.15);border-radius:24px;background:rgba(255,255,250,.96);box-shadow:0 28px 90px rgba(32,77,66,.12);text-align:center}
-          .site-maintenance-mark{display:grid;width:58px;height:58px;place-items:center;margin:0 auto 22px;border:1px solid #d3e7d9;border-radius:18px;background:#e9f4e9;color:#32766c;font-size:24px}
+          .site-maintenance-mark{display:block;width:min(210px,80%);height:auto;margin:0 auto 22px;object-fit:contain}
           .site-maintenance-status{display:inline-flex;align-items:center;gap:9px;margin:0 0 16px;color:#398277;font-size:11px;font-weight:700;letter-spacing:.11em;text-transform:uppercase}
           .site-maintenance-status:before{width:8px;height:8px;border-radius:50%;background:#e1a654;box-shadow:0 0 0 4px #f7eddc;content:""}
           .site-maintenance h1{margin:0;color:#173c3b;font-size:clamp(32px,7vw,52px);font-weight:750;letter-spacing:-.055em;line-height:1.06}
@@ -42,10 +44,10 @@
         main.setAttribute("data-testid", "maintenance-screen");
         const card = document.createElement("section");
         card.className = "site-maintenance-card";
-        const mark = document.createElement("div");
+        const mark = document.createElement("img");
         mark.className = "site-maintenance-mark";
-        mark.setAttribute("aria-hidden", "true");
-        mark.textContent = "YT";
+        mark.src = "/images/ytloop-logo.png";
+        mark.alt = "YT Loop";
         const status = document.createElement("p");
         status.className = "site-maintenance-status";
         status.textContent = "Maintenance in progress";
@@ -74,7 +76,14 @@
         foot.textContent = "Thanks for your patience while we make improvements.";
         card.append(foot);
         main.append(card);
-        document.body.replaceChildren(main);
+        document.body.classList.add("site-maintenance-active");
+        for (const child of document.body.children) {
+          if (child !== main && child.tagName !== "SCRIPT") {
+            child.setAttribute("aria-hidden", "true");
+            child.inert = true;
+          }
+        }
+        document.body.append(main);
         document.title = "Maintenance | YT Loop";
       };
       if (document.body) showNotice();
