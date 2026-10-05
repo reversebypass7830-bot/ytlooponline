@@ -1155,11 +1155,46 @@ paths:
           description: Invalid payment settings or incomplete Cashfree credential pair
         "409":
           description: Cashfree cannot be enabled until the selected environment is configured
+  /owner/trial-settings:
+    get:
+      operationId: getOwnerTrialSettings
+      tags: [billing]
+      summary: Get the owner-configured trial duration and daily quotas
+      parameters:
+        - $ref: "#/components/parameters/OwnerPassword"
+      responses:
+        "200":
+          description: Trial configuration
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TrialSettings"
+    put:
+      operationId: updateOwnerTrialSettings
+      tags: [billing]
+      summary: Set the duration and daily quotas used by both trial paths
+      parameters:
+        - $ref: "#/components/parameters/OwnerPassword"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TrialSettingsInput"
+      responses:
+        "200":
+          description: Trial configuration saved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TrialSettings"
+        "400":
+          description: Invalid trial configuration
   /owner/payment-requests:
     get:
       operationId: listOwnerPaymentRequests
       tags: [billing]
-      summary: List manual UPI requests awaiting or completed review
+      summary: List manual UPI requests and Cashfree orders
       parameters:
         - $ref: "#/components/parameters/OwnerPassword"
         - name: status
@@ -1167,7 +1202,7 @@ paths:
           required: false
           schema:
             type: string
-            enum: [pending, approved, rejected]
+            enum: [pending, approved, rejected, failed]
       responses:
         "200":
           description: Payment requests for owner review
@@ -1249,6 +1284,39 @@ paths:
           description: Owner accounts cannot be suspended
         "404":
           description: User account not found
+  /owner/users/{userId}/service-pause:
+    patch:
+      operationId: updateOwnerUserServicePause
+      tags: [accounts]
+      summary: Pause or resume a user's service without suspending sign-in
+      parameters:
+        - $ref: "#/components/parameters/OwnerPassword"
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OwnerUserServicePauseInput"
+      responses:
+        "200":
+          description: Updated user service state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OwnerUserResponse"
+        "400":
+          description: Invalid pause state
+        "403":
+          description: Owner accounts cannot be paused
+        "404":
+          description: User account not found
+        "409":
+          description: No unexpired service access is available to pause
   /owner/users/{userId}:
     delete:
       operationId: deleteOwnerUser
@@ -2305,7 +2373,7 @@ components:
           type: string
         type:
           type: string
-          enum: [trial_started, purchase, grant, login]
+          enum: [trial_started, purchase, grant, login, service_paused, service_resumed]
         message:
           type: string
         at:
@@ -2316,6 +2384,8 @@ components:
         planId:
           type: string
         days:
+          type: number
+        durationHours:
           type: number
         startsAt:
           type: string
@@ -2358,11 +2428,20 @@ components:
         accessEndsAt:
           type: string
           format: date-time
+        servicePausedAt:
+          type: ["string", "null"]
+          format: date-time
+        trialDurationHours:
+          type: number
         active:
           type: boolean
         suspended:
           type: boolean
         streamLimit:
+          type: number
+        streamsPerDay:
+          type: number
+        downloadsPerDay:
           type: number
         lifetimeLiveStarts:
           type: number
@@ -2383,9 +2462,13 @@ components:
         - activePlanId
         - activePlan
         - accessEndsAt
+        - servicePausedAt
+        - trialDurationHours
         - active
         - suspended
         - streamLimit
+        - streamsPerDay
+        - downloadsPerDay
         - lifetimeLiveStarts
         - history
     OwnerUsersResponse:
@@ -2408,6 +2491,12 @@ components:
         suspended:
           type: boolean
       required: [suspended]
+    OwnerUserServicePauseInput:
+      type: object
+      properties:
+        paused:
+          type: boolean
+      required: [paused]
     OwnerUserDeleteResponse:
       type: object
       properties:
@@ -2457,6 +2546,39 @@ components:
           type: string
           maxLength: 2048
       required: [supportLink]
+    TrialSettings:
+      type: object
+      properties:
+        durationHours:
+          type: number
+          enum: [1, 2, 6, 24]
+        streamsPerDay:
+          type: number
+          minimum: 0
+          maximum: 100
+        downloadsPerDay:
+          type: number
+          minimum: 1
+          maximum: 1000000
+        updatedAt:
+          type: ["string", "null"]
+          format: date-time
+      required: [durationHours, streamsPerDay, downloadsPerDay, updatedAt]
+    TrialSettingsInput:
+      type: object
+      properties:
+        durationHours:
+          type: number
+          enum: [1, 2, 6, 24]
+        streamsPerDay:
+          type: number
+          minimum: 0
+          maximum: 100
+        downloadsPerDay:
+          type: number
+          minimum: 1
+          maximum: 1000000
+      required: [durationHours, streamsPerDay, downloadsPerDay]
     BillingPlan:
       type: object
       properties:
@@ -2475,6 +2597,9 @@ components:
           type: number
           minimum: 0
         pricePerDownloadPaise:
+          type: number
+          minimum: 0
+        dailyRentPaise:
           type: number
           minimum: 0
         downloadRateConfigured:
@@ -2507,6 +2632,7 @@ components:
         - price
         - pricePerStreamDayPaise
         - pricePerDownloadPaise
+        - dailyRentPaise
         - downloadRateConfigured
         - downloadsPerDay
         - streamLimit
@@ -2536,6 +2662,10 @@ components:
           minimum: 0
           maximum: 100000000
         pricePerDownloadPaise:
+          type: number
+          minimum: 0
+          maximum: 100000000
+        dailyRentPaise:
           type: number
           minimum: 0
           maximum: 100000000
@@ -2586,6 +2716,10 @@ components:
           minimum: 0
           maximum: 100000000
         pricePerDownloadPaise:
+          type: number
+          minimum: 0
+          maximum: 100000000
+        dailyRentPaise:
           type: number
           minimum: 0
           maximum: 100000000
@@ -2786,7 +2920,7 @@ components:
           maximum: 5475
         streamsPerDay:
           type: number
-          minimum: 1
+          minimum: 0
           maximum: 100
         downloadsPerDay:
           type: number
@@ -2824,6 +2958,8 @@ components:
           type: number
         pricePerDownloadPaise:
           type: number
+        dailyRentPaise:
+          type: number
         upiId:
           type: string
         payeeName:
@@ -2846,6 +2982,7 @@ components:
         - amountRupees
         - pricePerStreamDayPaise
         - pricePerDownloadPaise
+        - dailyRentPaise
         - upiId
         - payeeName
         - features
@@ -2964,6 +3101,8 @@ components:
           type: number
         pricePerDownloadPaise:
           type: number
+        dailyRentPaise:
+          type: number
         features:
           type: array
           items:
@@ -2972,7 +3111,7 @@ components:
           type: string
         status:
           type: string
-          enum: [pending, approved, rejected]
+          enum: [pending, approved, rejected, failed]
         createdAt:
           type: string
           format: date-time
@@ -3006,6 +3145,7 @@ components:
         - amountRupees
         - pricePerStreamDayPaise
         - pricePerDownloadPaise
+        - dailyRentPaise
         - features
         - utr
         - status

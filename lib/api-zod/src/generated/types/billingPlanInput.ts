@@ -32,6 +32,11 @@ export interface BillingPlanInput {
      */
   pricePerDownloadPaise?: number;
   /**
+     * @minimum 0
+     * @maximum 100000000
+     */
+  dailyRentPaise?: number;
+  /**
      * @minimum 1
      * @maximum 1000000
      */

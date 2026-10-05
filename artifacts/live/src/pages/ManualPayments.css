@@ -272,14 +272,16 @@
 .owner-payment-page .owner-plan-fields .field > span,
 .owner-payment-page .owner-upi-form .field > span,
 .owner-payment-page .owner-review-actions > .field > span { color:var(--bill-muted); }
-.owner-payment-page .owner-plan-fields input,
-.owner-payment-page .owner-plan-fields textarea,
+.owner-payment-content .owner-plan-fields input,
+.owner-payment-content .owner-plan-fields select,
+.owner-payment-content .owner-plan-fields textarea,
 .owner-payment-page .owner-upi-form input,
 .owner-payment-page .owner-review-actions input {
   border:1px solid var(--bill-line); border-radius:9px; background:#fff; color:var(--bill-ink);
 }
-.owner-payment-page .owner-plan-fields input:focus,
-.owner-payment-page .owner-plan-fields textarea:focus,
+.owner-payment-content .owner-plan-fields input:focus,
+.owner-payment-content .owner-plan-fields select:focus,
+.owner-payment-content .owner-plan-fields textarea:focus,
 .owner-payment-page .owner-upi-form input:focus { border-color:#10b981; box-shadow:0 0 0 3px rgba(16,185,129,.12); }
 .owner-payment-page .owner-review-tabs { border-color:var(--bill-line); }
 .owner-payment-page .owner-review-tabs button { border-color:var(--bill-line); background:#fff; color:var(--bill-muted); }
@@ -702,6 +704,11 @@ body:has(.manual-payment-page) ::selection { background:rgba(17,24,39,.18); }
 
 .owner-payment-content .owner-plan-editor-head { align-items:flex-start; }
 .owner-payment-content .owner-plan-fields { grid-template-columns:repeat(2, minmax(0, 1fr)); }
+.owner-payment-content .owner-trial-settings { margin-top:18px; }
+.owner-payment-content .owner-trial-form { display:grid; gap:14px; padding:18px 20px 20px; }
+.owner-payment-content .owner-trial-fields select { min-height:43px; padding:0 12px; }
+.owner-payment-content .owner-trial-updated { display:block; padding:0 20px 16px; color:var(--bill-muted); }
+.manual-payment-page .pay-zero-stream-note { display:block; margin-top:8px; color:var(--bill-muted); font-size:12px; }
 .owner-payment-content .owner-qr-preview-wrap { display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
 .owner-payment-content .owner-qr-preview-wrap .owner-qr-preview { flex:0 0 auto; }
 .pay-checkout-dialog {

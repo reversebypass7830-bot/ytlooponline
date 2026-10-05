@@ -163,11 +163,11 @@ type EditorAsset = { id: string; fileId: string; title: string; playbackUrl: str
 type Activity = { id: string; type: string; message: string; time: string };
 type DataState = { channels: LiveChannel[]; videos: VideoItem[]; groups: VideoGroup[]; editorAssets: EditorAsset[]; activities: Activity[]; editorDraft?: EditorDraft };
 type WorkspaceSession = { workspaceId: string; name: string; expiresAt: string; active: boolean; clientId?: string };
-type AccountPlan = { id: string; name: string; description: string; durationDays: number; price: string; pricePerStreamDayPaise?: number; pricePerDownloadPaise?: number; streamLimit?: number; isTrial?: boolean; active: boolean; createdAt: string; updatedAt: string };
-type AccountHistoryItem = { id: string; type: "trial_started" | "purchase" | "grant" | "login"; message: string; at: string; planName?: string; planId?: string; days?: number; streamLimit?: number; streamsPerDay?: number; startsAt?: string; endsAt?: string; periodEstimated?: boolean };
+type AccountPlan = { id: string; name: string; description: string; durationDays: number; price: string; pricePerStreamDayPaise?: number; pricePerDownloadPaise?: number; dailyRentPaise?: number; streamLimit?: number; isTrial?: boolean; active: boolean; createdAt: string; updatedAt: string };
+type AccountHistoryItem = { id: string; type: "trial_started" | "purchase" | "grant" | "login" | "service_paused" | "service_resumed"; message: string; at: string; planName?: string; planId?: string; days?: number; durationHours?: number; streamLimit?: number; streamsPerDay?: number; startsAt?: string; endsAt?: string; periodEstimated?: boolean };
 type AccountSummary = {
   id: string; displayName: string; email: string; phone?: string | null; profileImagePath?: string; profileCompleted?: boolean;
-  trialOfferAvailable?: boolean; trialOfferClaimedAt?: string; role: "owner" | "user";
+  trialOfferAvailable?: boolean; trialOfferClaimedAt?: string; trialDurationHours?: number; servicePausedAt?: string | null; role: "owner" | "user";
   workspaceId: string; trialStartedAt: string; trialEndsAt: string;
   activePlanId: string; activePlan: AccountPlan | null; accessEndsAt: string; active: boolean; streamLimit: number;
   streamsPerDay: number; streamsStartedToday: number; downloadsPerDay: number; downloadsUsedToday: number; downloadsRemainingToday: number;
@@ -1630,6 +1630,31 @@ function SuspendedAccountNotice({ supportLink, onSignOut }: { supportLink: strin
   </div>;
 }
 
+function ServicePausedNotice({ accessEndsAt, onProfile, onSubscription, onSignOut }: {
+  accessEndsAt: string;
+  onProfile: () => void;
+  onSubscription: () => void;
+  onSignOut: () => void;
+}) {
+  return <div className="streamly-login-page">
+    <div className="streamly-login-orb streamly-login-orb-one" />
+    <div className="streamly-login-orb streamly-login-orb-two" />
+    <main className="streamly-login-main">
+      <section className="streamly-login-card" aria-labelledby="service-paused-title">
+        <img className="streamly-login-card-logo" src="/images/ytloop-logo.png" alt="YT Loop" />
+        <div className="streamly-login-icon"><ShieldCheck size={20} /></div>
+        <span className="streamly-login-eyebrow">Service access</span>
+        <h1 id="service-paused-title">Service paused</h1>
+        <p className="streamly-login-copy">Streaming and downloads are paused by the owner. You can still sign in and manage your profile or billing. Your remaining access time is frozen.</p>
+        <p className="streamly-login-copy">Access was scheduled to end {new Date(accessEndsAt).toLocaleString()} before the pause.</p>
+        <button className="streamly-login-primary" type="button" onClick={onProfile}>Open profile <ArrowRight size={16} /></button>
+        <button className="streamly-login-primary" type="button" onClick={onSubscription}>View billing <ArrowRight size={16} /></button>
+        <button className="streamly-login-primary" type="button" onClick={onSignOut}>Sign out <ArrowRight size={16} /></button>
+      </section>
+    </main>
+  </div>;
+}
+
 function FirebaseAuthPage({ mode, onGoogleLogin, busy, error }: {
   mode: "sign-in" | "sign-up";
   onGoogleLogin: () => void | Promise<void>;
@@ -2398,8 +2423,8 @@ function AccountPlanHistoryDialog({ account, open, onOpenChange }: {
         <section className="profile-plan-current">
           <span className="metric-kicker">Current access</span>
           <strong>{currentPlanName}</strong>
-          <span className={`profile-plan-state ${account.active ? "active" : "expired"}`}>{account.active ? "Active" : "Expired"}</span>
-          <small>{account.active ? `Current period ends ${formatPeriodDate(currentPeriod?.endsAt ?? Date.parse(account.accessEndsAt))}` : "No access is active right now."}</small>
+          <span className={`profile-plan-state ${account.servicePausedAt ? "paused" : account.active ? "active" : "expired"}`}>{account.servicePausedAt ? "Service paused" : account.active ? "Active" : "Expired"}</span>
+          <small>{account.servicePausedAt ? `Remaining access time is frozen. Scheduled end: ${formatPeriodDate(Date.parse(account.accessEndsAt))}` : account.active ? `Current period ends ${formatPeriodDate(currentPeriod?.endsAt ?? Date.parse(account.accessEndsAt))}` : "No access is active right now."}</small>
           {currentPeriod && <small>Current period: {periodRange(currentPeriod)}</small>}
         </section>
         <section className="profile-plan-previous">
@@ -2499,16 +2524,22 @@ function SubscriptionPage({ workspace, account, plans }: { workspace: ReturnType
   const active = account.active && new Date(account.accessEndsAt).getTime() > Date.now();
   const trial = findPlan("trial-1-day");
   const trialActive = account.activePlanId === trial?.id && active;
-  const trialBannerTitle = trialActive
-    ? "Your free trial is active"
-    : active
-      ? "Your free trial has ended"
-      : "Free trial — Expired";
-  const trialBannerCopy = trialActive
-    ? `Your 24-hour trial is active until ${new Date(account.accessEndsAt).toLocaleString()}.`
-    : active
-      ? `${account.activePlan?.name || "Your plan"} is keeping this workspace active. Upgrade or renew any time.`
-      : "Your 24-hour trial has ended. Choose a plan to keep your workspace, library, and live channels ready.";
+  const trialDuration = account.trialDurationHours || 24;
+  const trialDurationLabel = `${trialDuration} hour${trialDuration === 1 ? "" : "s"}`;
+  const trialBannerTitle = account.servicePausedAt
+    ? "Service paused"
+    : trialActive
+      ? "Your free trial is active"
+      : active
+        ? "Your free trial has ended"
+        : "Free trial — Expired";
+  const trialBannerCopy = account.servicePausedAt
+    ? "Your service is paused by the owner. Remaining access time is frozen until service resumes."
+    : trialActive
+      ? `Your ${trialDurationLabel} trial is active until ${new Date(account.accessEndsAt).toLocaleString()}.`
+      : active
+        ? `${account.activePlan?.name || "Your plan"} is keeping this workspace active. Upgrade or renew any time.`
+        : "Your free trial has ended. Choose a plan to keep your workspace, library, and live channels ready.";
   const dayMs = 24 * 60 * 60 * 1000;
   const billingHistory = account.history.filter((item) => item.type === "purchase" || item.type === "grant");
   const filteredHistory = billingHistory.filter((item) => {
@@ -2541,15 +2572,15 @@ function SubscriptionPage({ workspace, account, plans }: { workspace: ReturnType
           <h1>Subscription</h1>
           <p className="subtle">Manage access, billing, and your live-stream plan for <strong className="subscription-account-email">{account.email}</strong>.</p>
         </div>
-        <div className={`subscription-status ${active ? "active" : "expired"}`}><span className="status-dot"/>{active ? `${account.activePlan?.name || "Plan"} · ${account.streamLimit} streams` : "Please upgrade your plan"}</div>
+        <div className={`subscription-status ${account.servicePausedAt ? "paused" : active ? "active" : "expired"}`}><span className="status-dot"/>{account.servicePausedAt ? "Service paused · access time frozen" : active ? `${account.activePlan?.name || "Plan"} · ${account.streamLimit} streams` : "Please upgrade your plan"}</div>
       </div>
       {message && <div className="subscription-message"><Check size={15}/>{message}</div>}
        <section className={`subscription-trial-banner ${trialActive ? "is-active" : active ? "is-covered" : "is-expired"}`}>
          <img src={subscriptionHourglassClay} alt="" />
-         <div><span className="subscription-banner-label">{trialActive ? "TRIAL IN PROGRESS" : active ? "TRIAL COMPLETE · PLAN ACTIVE" : "FREE TRIAL · EXPIRED"}</span><h2>{trialBannerTitle}</h2><p>{trialBannerCopy}</p></div>
+         <div><span className="subscription-banner-label">{account.servicePausedAt ? "SERVICE PAUSED · TIME FROZEN" : trialActive ? "TRIAL IN PROGRESS" : active ? "TRIAL COMPLETE · PLAN ACTIVE" : "FREE TRIAL · EXPIRED"}</span><h2>{trialBannerTitle}</h2><p>{trialBannerCopy}</p></div>
          <button type="button" className="button subscription-banner-button" onClick={() => document.getElementById("subscription-plans")?.scrollIntoView({ behavior: "smooth", block: "start" })}>{active ? "Compare plans" : "Choose a plan"} <ArrowRight size={14}/></button>
        </section>
-       <section className="subscription-current card"><div><span className="metric-kicker">Current access</span><strong>{account.activePlan?.name || "No active plan"}</strong><span>{active ? `Until ${new Date(account.accessEndsAt).toLocaleString()}` : "Your trial has ended. Choose a plan to continue."}</span></div><div><span className="metric-kicker">Stream limit</span><strong>{account.streamLimit}</strong><span>simultaneous live streams</span></div><div><span className="metric-kicker">Live starts</span><strong>{fmtNumber(account.lifetimeLiveStarts || 0)}</strong><span>lifetime total</span></div></section>
+       <section className="subscription-current card"><div><span className="metric-kicker">Current access</span><strong>{account.activePlan?.name || "No active plan"}</strong><span>{account.servicePausedAt ? `Paused · remaining access frozen until service resumes. Scheduled end ${new Date(account.accessEndsAt).toLocaleString()}` : active ? `Until ${new Date(account.accessEndsAt).toLocaleString()}` : "Your trial has ended. Choose a plan to continue."}</span></div><div><span className="metric-kicker">Stream limit</span><strong>{account.streamLimit}</strong><span>simultaneous live streams</span></div><div><span className="metric-kicker">Live starts</span><strong>{fmtNumber(account.lifetimeLiveStarts || 0)}</strong><span>lifetime total</span></div></section>
        <section className="subscription-pricing" id="subscription-plans">
         <div className="subscription-controls"><div className="billing-switch">{(["Day", "Month", "Year"] as const).map((item) => <button key={item} type="button" className={billing === item ? "active" : ""} onClick={() => { setBilling(item); setDuration(1); }}>{item}</button>)}</div><div className="duration-control"><button type="button" onClick={() => setDuration((value) => Math.max(1, value - 1))} disabled={duration === 1} aria-label="Decrease duration">−</button><strong>{duration} {selected.unit}{duration === 1 ? "" : "s"}</strong><button type="button" onClick={() => setDuration((value) => Math.min(selected.limit, value + 1))} disabled={duration === selected.limit} aria-label="Increase duration">+</button></div></div>
         <div className="subscription-plan-grid">
@@ -2558,7 +2589,7 @@ function SubscriptionPage({ workspace, account, plans }: { workspace: ReturnType
              <div className="subscription-plan-art"><img src={subscriptionCrownClay} alt="" /></div>
              <h2>Free</h2>
             <p>Explore Loop Stream risk-free before choosing a longer plan.</p>
-            <div className="subscription-price"><strong>FREE</strong><span>/ 24 hours</span></div>
+            <div className="subscription-price"><strong>FREE</strong><span>/ {trialDurationLabel}</span></div>
              <div className="subscription-feature-tiles"><span><img src={subscriptionWifiClay} alt="" /><b>Stream your<br/>videos as live</b></span><span><img src={subscriptionHdClay} alt="" /><b>Premium<br/>broadcast quality</b></span><span><img src={subscriptionStorageClay} alt="" /><b>20 GB video<br/>storage/stream</b></span></div>
              <ul className="subscription-features"><li><img src={subscriptionShieldClay} alt="" />Create and loop playlists</li><li><img src={subscriptionShieldClay} alt="" />Premium audio clarity</li><li><img src={subscriptionShieldClay} alt="" />Schedule in advance</li><li><img src={subscriptionShieldClay} alt="" />Upload from cloud</li></ul>
             <div className="subscription-best"><span>BEST FOR</span><p>Creators who want to try Loop Stream before choosing a plan</p></div>
@@ -3367,7 +3398,7 @@ function LivePage({workspace, account, onRefreshAccount}:{workspace:ReturnType<t
    }, [data.channels, data.groups, data.videos, workspace.clientId, workspace.setToast, update]);
    const groupsById=useMemo(()=>Object.fromEntries(data.groups.map(g=>[g.id,g.name])),[data.groups]);
        return <AppShell title="Live channels" account={account} workspace={workspace}><div className="page live-page"><div className="page-head"><div><p className="eyebrow">Live Channels</p><h1>Manage your 24/7 loop streams</h1><p className="subtle">Keep every YouTube destination ready, monitored, and looping from one calm control room.</p></div><div className="page-head-actions"><span className="page-live-indicator"><span className="status-dot"/>{data.channels.filter(c=>c.status==="live").length ? `${data.channels.filter(c=>c.status==="live").length} live now` : "No live streams"}</span><button className="button live-create-button" onClick={()=>{setEditing(undefined);setShowForm(true)}} data-testid="button-add-channel"><Plus size={16}/> Create New Live</button></div></div>
-          {account && <section className="card section-card" data-testid="daily-stream-start-usage" style={{marginBottom:18,padding:"16px 20px",background:"#fff",color:"#1f2937",border:"1px solid #e5e7eb"}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:16,flexWrap:"wrap"}}><div><p className="eyebrow" style={{margin:"0 0 5px"}}>DAILY BROADCAST STARTS</p><p style={{margin:0,color:"#64748b",fontSize:13}}>Starts used today. This is separate from your simultaneous-stream limit ({account.streamLimit}).</p></div><strong style={{fontSize:20,color:"#111827"}}>{Math.min(account.streamsStartedToday,account.streamsPerDay)} / {account.streamsPerDay}</strong></div><div role="progressbar" aria-label="Daily broadcast starts used" aria-valuemin={0} aria-valuemax={account.streamsPerDay} aria-valuenow={Math.min(account.streamsStartedToday,account.streamsPerDay)} style={{height:7,marginTop:13,borderRadius:999,background:"#e5e7eb",overflow:"hidden"}}><div style={{height:"100%",width:`${Math.min(100,(account.streamsStartedToday/account.streamsPerDay)*100)}%`,background:"#7fb89b",transition:"width 180ms ease"}}/></div></section>}
+          {account && <section className="card section-card" data-testid="daily-stream-start-usage" style={{marginBottom:18,padding:"16px 20px",background:"#fff",color:"#1f2937",border:"1px solid #e5e7eb"}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:16,flexWrap:"wrap"}}><div><p className="eyebrow" style={{margin:"0 0 5px"}}>DAILY BROADCAST STARTS</p><p style={{margin:0,color:"#64748b",fontSize:13}}>Starts used today. This is separate from your simultaneous-stream limit ({account.streamLimit}).</p></div><strong style={{fontSize:20,color:"#111827"}}>{Math.min(account.streamsStartedToday,account.streamsPerDay)} / {account.streamsPerDay}</strong></div><div role="progressbar" aria-label="Daily broadcast starts used" aria-valuemin={0} aria-valuemax={account.streamsPerDay} aria-valuenow={Math.min(account.streamsStartedToday,account.streamsPerDay)} style={{height:7,marginTop:13,borderRadius:999,background:"#e5e7eb",overflow:"hidden"}}><div style={{height:"100%",width:`${account.streamsPerDay > 0 ? Math.min(100,(account.streamsStartedToday/account.streamsPerDay)*100) : 0}%`,background:"#7fb89b",transition:"width 180ms ease"}}/></div></section>}
          {data.channels.length===0 ? <section className="live-empty-card" data-testid="empty-live-channels"><div className="live-empty-art"><img src={liveYoutubeClay} alt="" /></div><div className="live-empty-copy"><p className="eyebrow">Your control room is ready</p><h2>No live channels yet, create your first 24/7 loop</h2><p>Set up a YouTube destination once and keep your best videos running around the clock.</p><button className="button live-create-button" onClick={()=>{setEditing(undefined);setShowForm(true)}} data-testid="button-empty-add-channel"><Plus size={16}/> Create New Live</button></div><div className="live-empty-orbit live-empty-orbit-one"><img src={livePowerClay} alt="" /></div><div className="live-empty-orbit live-empty-orbit-two"><img src={liveBroadcastClay} alt="" /></div></section> : <div className="live-channel-grid">{data.channels.map(c=>{const isLive=c.status==="live";const playlistCount=c.playlistVideoIds?.length || videosForGroup(c.groupId,data.groups,data.videos).length;const statusLabel=isLive ? "Live" : c.status==="scheduled" ? "Scheduled" : "Offline";return <article className={`live-channel-card ${isLive ? "is-live" : ""}`} key={c.id} data-testid={`row-channel-${c.id}`}><div className="live-card-visual" style={{"--channel-accent":c.thumbnailColor} as CSSProperties}><img src={liveYoutubeClay} alt="" /><span className={`live-status-badge ${isLive ? "active" : "offline"}`}><span className="live-status-dot"/>{statusLabel}</span><span className="live-card-platform">{c.platform}</span></div><div className="live-card-content"><div className="live-card-heading"><div><h2>{c.title}</h2><p>{isLive ? `Live for ${fmtTime(c.startedAt)}` : "Ready to broadcast"}</p></div><span className="live-card-signal"><img src={isLive ? liveBroadcastClay : livePowerClay} alt="" /></span></div><div className="live-card-facts"><div className="live-card-fact"><img src={liveKeyClay} alt="" /><div><span>Stream key</span><strong>{maskStreamKey(c.streamKey)}</strong></div></div><div className="live-card-fact"><Radio size={16}/><div><span>Views</span><strong>{fmtNumber(c.viewers)} {c.viewers === 1 ? "viewer" : "viewers"}</strong></div></div></div><div className="live-card-meta"><span><FileVideo size={14}/>{playlistCount} playlist video{playlistCount === 1 ? "" : "s"}</span><span title={groupsById[c.groupId] || "Unassigned"}>{groupsById[c.groupId] || "Unassigned"}</span></div><div className="live-card-actions">{isLive?<button className="button live-stop-button" onClick={()=>stop(c)} disabled={busy.includes(c.id)} data-testid={`button-stop-${c.id}`}><img src={livePowerClay} alt="" />{busy.includes(c.id) ? "Stopping…" : "Stop Loop"}</button>:<button className="button live-start-button" onClick={()=>start(c)} disabled={busy.includes(c.id)} data-testid={`button-start-${c.id}`}><img src={livePowerClay} alt="" />{busy.includes(c.id) ? "Starting…" : "Start Loop"}</button>}<button className="button live-secondary-button" onClick={()=>{setEditing(c);setShowForm(true)}} data-testid={`button-edit-channel-${c.id}`}><Pencil size={14}/> Edit</button><button className="button live-delete-button" onClick={()=>setDeleting(c)} disabled={busy.includes(c.id)} data-testid={`button-delete-channel-${c.id}`}><Trash2 size={14}/> Delete</button></div></div></article>;})}</div>}
         <div className="live-surface-note"><img src={liveKeyClay} alt="" /><span>Stream keys stay masked in your workspace. Start a loop only after its playlist and destination are ready.</span></div>
       </div>{showForm&&<ChannelModal channel={editing} groups={data.groups} videos={data.videos} onSave={save} onClose={()=>{setShowForm(false);setEditing(undefined)}}/>}{deleting&&<ConfirmModal title="Delete this channel?" copy={`“${deleting.title}” and its stream settings will be removed from this workspace. Any live signal must be stopped first.`} onClose={()=>setDeleting(undefined)} onConfirm={()=>{update({channels:data.channels.filter(c=>c.id!==deleting.id)},{message:`${deleting.title} was deleted`,type:"edit"});setDeleting(undefined)}}/>}{streamKeyChannel&&<StreamKeyModal channel={streamKeyChannel} value={streamKeyDraft} onChange={setStreamKeyDraft} onClose={()=>setStreamKeyChannel(undefined)} onContinue={()=>{const destination=normalizeStreamDestination(streamKeyChannel.streamUrl,streamKeyDraft);const channel={...streamKeyChannel,...destination};update({channels:data.channels.map((item)=>item.id===channel.id?channel:item)},{message:`Stream key saved for ${channel.title}`,type:"edit"});setStreamKeyChannel(undefined);void start(channel);}}/>}</AppShell>;
@@ -4970,6 +5001,8 @@ function ProfilePage({ workspace, account, firebaseUser, profilePhoto, onProfile
   const hasPasswordProvider = Boolean(firebaseUser?.providerData.some((provider) => provider.providerId === "password"));
   const displayPhoto = profilePhoto || defaultProfilePhoto(firebaseUser?.uid || workspace.licenseId || "profile");
   const trialOfferAvailable = account.trialOfferAvailable === true && !account.trialOfferClaimedAt;
+  const trialDuration = account.trialDurationHours || 24;
+  const trialDurationLabel = `${trialDuration} hour${trialDuration === 1 ? "" : "s"}`;
 
   useEffect(() => {
     setName(account.displayName || "");
@@ -4993,7 +5026,7 @@ function ProfilePage({ workspace, account, firebaseUser, profilePhoto, onProfile
       await onRefreshAccount();
     } catch (reason) {
       await onRefreshAccount().catch(() => undefined);
-      setTrialClaimError(reason instanceof Error ? reason.message : "Could not claim the 24-hour offer.");
+      setTrialClaimError(reason instanceof Error ? reason.message : "Could not claim the free trial.");
     } finally {
       setTrialClaimBusy(false);
     }
@@ -5112,19 +5145,19 @@ function ProfilePage({ workspace, account, firebaseUser, profilePhoto, onProfile
           <button type="button" className="profile-action-button danger-button" onClick={() => void onLogout()} data-testid="button-profile-logout"><img src={subscriptionShieldClay} alt="" /><span>Logout</span><ArrowRight size={14}/></button>
         </div>
         {trialOfferAvailable && <section className="profile-trial-offer" aria-labelledby="profile-trial-offer-title">
-          <div className="profile-trial-offer-art" aria-hidden="true"><img src={liveYoutubeClay} alt="" /><span>24h</span></div>
+          <div className="profile-trial-offer-art" aria-hidden="true"><img src={liveYoutubeClay} alt="" /><span>{trialDuration}h</span></div>
           <div className="profile-trial-offer-copy">
             <p className="profile-trial-offer-kicker">A creator gift</p>
-            <h2 id="profile-trial-offer-title">Claim 24 hours</h2>
-            <p>Verify your mobile number first. The 24-hour timer starts only when you claim.</p>
+            <h2 id="profile-trial-offer-title">Claim {trialDurationLabel}</h2>
+            <p>Verify your mobile number first. The timer starts only when you claim.</p>
             {!account.phone
               ? <button type="button" className="profile-trial-offer-claim" onClick={() => { setFocusPhoneOnDetails(true); setProfilePanel("details"); }} data-testid="button-verify-phone-for-trial">
                   Verify mobile number <ArrowRight size={15}/>
                 </button>
-              : account.active
-                ? <p className="profile-trial-offer-note">You already have active access. You can claim this offer after it ends.</p>
+              : account.active || account.servicePausedAt
+                ? <p className="profile-trial-offer-note">{account.servicePausedAt ? "Your current service is paused, but its remaining access is still reserved. Claim this offer after it ends." : "You already have active access. You can claim this offer after it ends."}</p>
                 : <button type="button" className="profile-trial-offer-claim" onClick={() => void claimTrialOffer()} disabled={trialClaimBusy} data-testid="button-claim-trial-offer">
-                  {trialClaimBusy ? "Activating…" : "Claim 24 hours"} <ArrowRight size={15}/>
+                  {trialClaimBusy ? "Activating…" : `Claim ${trialDurationLabel}`} <ArrowRight size={15}/>
                 </button>}
             {trialClaimError && <p className="profile-trial-offer-error" role="alert">{trialClaimError}</p>}
           </div>
@@ -5133,8 +5166,8 @@ function ProfilePage({ workspace, account, firebaseUser, profilePhoto, onProfile
           <div className="profile-trial-offer-art" aria-hidden="true"><img src={liveYoutubeClay} alt="" /><span><Check size={15}/></span></div>
           <div className="profile-trial-offer-copy">
             <p className="profile-trial-offer-kicker">Offer claimed</p>
-            <h2>24-hour access is {account.active ? "active" : "used"}</h2>
-            <p>{account.active ? `Your access runs until ${new Date(account.accessEndsAt).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" })}.` : "This one-time offer has already been used."}</p>
+            <h2>{account.servicePausedAt ? `${trialDurationLabel} access is paused` : `${trialDurationLabel} access is ${account.active ? "active" : "used"}`}</h2>
+            <p>{account.servicePausedAt ? "The owner paused your service. Your remaining time will continue when it resumes." : account.active ? `Your access runs until ${new Date(account.accessEndsAt).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" })}.` : "This one-time offer has already been used."}</p>
           </div>
         </section>}
         <Dialog open={profilePanel === "details"} onOpenChange={(open) => {
@@ -5339,6 +5372,20 @@ function App() {
       setLocation("/sign-in");
     }} />;
   }
+  const accountOnlyRoutes = ["/profile", "/settings", "/subscription", "/transactions", "/gateway"];
+  if (accountSession.account?.servicePausedAt && !accountOnlyRoutes.includes(location)) {
+    return <ServicePausedNotice
+      accessEndsAt={accountSession.account.accessEndsAt}
+      onProfile={() => setLocation("/profile")}
+      onSubscription={() => setLocation("/subscription")}
+      onSignOut={async () => {
+        await apiJson("/api/mobile-auth/logout", { method: "POST" }).catch(() => undefined);
+        await signOut();
+        accountSession.clear();
+        setLocation("/sign-in");
+      }}
+    />;
+  }
   if (location.startsWith("/sign-in") || location.startsWith("/sign-up")) {
     return <SignInGate
       busy={firebaseBusy}
@@ -5364,6 +5411,12 @@ function App() {
     && location !== "/profile"
     && dismissedTrialOfferAccountId !== accountSession.account?.id;
   return <>
+    {accountSession.account?.servicePausedAt && <div className="service-paused-banner" role="status" data-testid="service-paused-banner">
+      <ShieldCheck size={16} />
+      <span>Service is paused. Streaming and downloads are unavailable; your remaining access time is frozen.</span>
+      <button type="button" onClick={() => setLocation("/profile")}>Profile</button>
+      <button type="button" onClick={() => setLocation("/subscription")}>Billing</button>
+    </div>}
     <Routed
       workspace={workspace}
       account={accountSession.account}
@@ -5378,6 +5431,7 @@ function App() {
     />
     {showTrialOffer && <TrialOfferFloating
       imageSrc={liveYoutubeClay}
+      durationHours={accountSession.account?.trialDurationHours || 24}
       onClaim={openTrialOfferInProfile}
       onDismiss={() => setDismissedTrialOfferAccountId(accountSession.account?.id || "")}
     />}

@@ -22,6 +22,7 @@ export interface AccountPaymentQuote {
   amountRupees: number;
   pricePerStreamDayPaise: number;
   pricePerDownloadPaise: number;
+  dailyRentPaise: number;
   upiId: string;
   payeeName: string;
   features: string[];

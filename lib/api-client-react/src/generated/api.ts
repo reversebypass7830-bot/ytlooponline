@@ -72,6 +72,7 @@ import type {
   OwnerSettingsInput,
   OwnerUserDeleteResponse,
   OwnerUserResponse,
+  OwnerUserServicePauseInput,
   OwnerUserSuspensionInput,
   OwnerUsersBulkDeleteInput,
   OwnerUsersBulkDeleteResponse,
@@ -88,6 +89,8 @@ import type {
   StreamStartInput,
   StreamStopInput,
   TrialOfferClaimResponse,
+  TrialSettings,
+  TrialSettingsInput,
   TrimMediaInput,
   VidKrakenTokenListResponse,
   VidKrakenTokenMutationResponse,
@@ -3793,6 +3796,154 @@ export const useUpdateOwnerPaymentSettings = <TError = ErrorType<void>,
       return useMutation(getUpdateOwnerPaymentSettingsMutationOptions(options));
     }
 
+export const getGetOwnerTrialSettingsUrl = () => {
+
+
+
+
+  return `/api/owner/trial-settings`
+}
+
+/**
+ * @summary Get the owner-configured trial duration and daily quotas
+ */
+export const getOwnerTrialSettings = async ( options?: Parameters<typeof customFetch>[1]): Promise<TrialSettings> => {
+
+  return customFetch<TrialSettings>(getGetOwnerTrialSettingsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetOwnerTrialSettingsQueryKey = () => {
+    return [
+    `/api/owner/trial-settings`
+    ] as const;
+    }
+
+
+export const getGetOwnerTrialSettingsQueryOptions = <TData = Awaited<ReturnType<typeof getOwnerTrialSettings>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getOwnerTrialSettings>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetOwnerTrialSettingsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getOwnerTrialSettings>>> = ({ signal }) => getOwnerTrialSettings({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getOwnerTrialSettings>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetOwnerTrialSettingsQueryResult = NonNullable<Awaited<ReturnType<typeof getOwnerTrialSettings>>>
+export type GetOwnerTrialSettingsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Get the owner-configured trial duration and daily quotas
+ */
+
+export function useGetOwnerTrialSettings<TData = Awaited<ReturnType<typeof getOwnerTrialSettings>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getOwnerTrialSettings>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetOwnerTrialSettingsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getUpdateOwnerTrialSettingsUrl = () => {
+
+
+
+
+  return `/api/owner/trial-settings`
+}
+
+/**
+ * @summary Set the duration and daily quotas used by both trial paths
+ */
+export const updateOwnerTrialSettings = async (trialSettingsInput: TrialSettingsInput, options?: Parameters<typeof customFetch>[1]): Promise<TrialSettings> => {
+
+  return customFetch<TrialSettings>(getUpdateOwnerTrialSettingsUrl(),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(trialSettingsInput)
+  }
+);}
+
+
+
+
+
+export const getUpdateOwnerTrialSettingsMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateOwnerTrialSettings>>, TError,{data: BodyType<TrialSettingsInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateOwnerTrialSettings>>, TError,{data: BodyType<TrialSettingsInput>}, TContext> => {
+
+const mutationKey = ['updateOwnerTrialSettings'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateOwnerTrialSettings>>, {data: BodyType<TrialSettingsInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  updateOwnerTrialSettings(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateOwnerTrialSettingsMutationResult = NonNullable<Awaited<ReturnType<typeof updateOwnerTrialSettings>>>
+    export type UpdateOwnerTrialSettingsMutationBody = BodyType<TrialSettingsInput>
+    export type UpdateOwnerTrialSettingsMutationError = ErrorType<void>
+
+    /**
+ * @summary Set the duration and daily quotas used by both trial paths
+ */
+export const useUpdateOwnerTrialSettings = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateOwnerTrialSettings>>, TError,{data: BodyType<TrialSettingsInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateOwnerTrialSettings>>,
+        TError,
+        {data: BodyType<TrialSettingsInput>},
+        TContext
+      > => {
+      return useMutation(getUpdateOwnerTrialSettingsMutationOptions(options));
+    }
+
 export const getListOwnerPaymentRequestsUrl = (params?: ListOwnerPaymentRequestsParams,) => {
   const normalizedParams = new URLSearchParams();
 
@@ -3809,7 +3960,7 @@ export const getListOwnerPaymentRequestsUrl = (params?: ListOwnerPaymentRequests
 }
 
 /**
- * @summary List manual UPI requests awaiting or completed review
+ * @summary List manual UPI requests and Cashfree orders
  */
 export const listOwnerPaymentRequests = async (params?: ListOwnerPaymentRequestsParams, options?: Parameters<typeof customFetch>[1]): Promise<PaymentRequestListResponse> => {
 
@@ -3856,7 +4007,7 @@ export type ListOwnerPaymentRequestsQueryError = ErrorType<unknown>
 
 
 /**
- * @summary List manual UPI requests awaiting or completed review
+ * @summary List manual UPI requests and Cashfree orders
  */
 
 export function useListOwnerPaymentRequests<TData = Awaited<ReturnType<typeof listOwnerPaymentRequests>>, TError = ErrorType<unknown>>(
@@ -4096,6 +4247,78 @@ export const useUpdateOwnerUserSuspension = <TError = ErrorType<void>,
         TContext
       > => {
       return useMutation(getUpdateOwnerUserSuspensionMutationOptions(options));
+    }
+
+export const getUpdateOwnerUserServicePauseUrl = (userId: string,) => {
+
+
+
+
+  return `/api/owner/users/${userId}/service-pause`
+}
+
+/**
+ * @summary Pause or resume a user's service without suspending sign-in
+ */
+export const updateOwnerUserServicePause = async (userId: string,
+    ownerUserServicePauseInput: OwnerUserServicePauseInput, options?: Parameters<typeof customFetch>[1]): Promise<OwnerUserResponse> => {
+
+  return customFetch<OwnerUserResponse>(getUpdateOwnerUserServicePauseUrl(userId),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(ownerUserServicePauseInput)
+  }
+);}
+
+
+
+
+
+export const getUpdateOwnerUserServicePauseMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateOwnerUserServicePause>>, TError,{userId: string;data: BodyType<OwnerUserServicePauseInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateOwnerUserServicePause>>, TError,{userId: string;data: BodyType<OwnerUserServicePauseInput>}, TContext> => {
+
+const mutationKey = ['updateOwnerUserServicePause'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateOwnerUserServicePause>>, {userId: string;data: BodyType<OwnerUserServicePauseInput>}> = (props) => {
+          const {userId,data} = props ?? {};
+
+          return  updateOwnerUserServicePause(userId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateOwnerUserServicePauseMutationResult = NonNullable<Awaited<ReturnType<typeof updateOwnerUserServicePause>>>
+    export type UpdateOwnerUserServicePauseMutationBody = BodyType<OwnerUserServicePauseInput>
+    export type UpdateOwnerUserServicePauseMutationError = ErrorType<void>
+
+    /**
+ * @summary Pause or resume a user's service without suspending sign-in
+ */
+export const useUpdateOwnerUserServicePause = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateOwnerUserServicePause>>, TError,{userId: string;data: BodyType<OwnerUserServicePauseInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateOwnerUserServicePause>>,
+        TError,
+        {userId: string;data: BodyType<OwnerUserServicePauseInput>},
+        TContext
+      > => {
+      return useMutation(getUpdateOwnerUserServicePauseMutationOptions(options));
     }
 
 export const getDeleteOwnerUserUrl = (userId: string,) => {

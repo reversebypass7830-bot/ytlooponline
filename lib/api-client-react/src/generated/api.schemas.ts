@@ -788,6 +788,8 @@ export const OwnerAccountHistoryItemType = {
   purchase: 'purchase',
   grant: 'grant',
   login: 'login',
+  service_paused: 'service_paused',
+  service_resumed: 'service_resumed',
 } as const;
 
 export interface OwnerAccountHistoryItem {
@@ -798,6 +800,7 @@ export interface OwnerAccountHistoryItem {
   planName?: string;
   planId?: string;
   days?: number;
+  durationHours?: number;
   startsAt?: string;
   endsAt?: string;
   amountPaise?: number;
@@ -822,6 +825,8 @@ export interface BillingPlan {
   pricePerStreamDayPaise: number;
   /** @minimum 0 */
   pricePerDownloadPaise: number;
+  /** @minimum 0 */
+  dailyRentPaise: number;
   downloadRateConfigured: boolean;
   /** @minimum 1 */
   downloadsPerDay: number;
@@ -849,9 +854,14 @@ export interface OwnerUser {
   activePlanId: string;
   activePlan: BillingPlan | null;
   accessEndsAt: string;
+  /** @nullable */
+  servicePausedAt: string | null;
+  trialDurationHours: number;
   active: boolean;
   suspended: boolean;
   streamLimit: number;
+  streamsPerDay: number;
+  downloadsPerDay: number;
   /** @minimum 0 */
   lifetimeLiveStarts: number;
   history: OwnerAccountHistoryItem[];
@@ -867,6 +877,10 @@ export interface OwnerUserResponse {
 
 export interface OwnerUserSuspensionInput {
   suspended: boolean;
+}
+
+export interface OwnerUserServicePauseInput {
+  paused: boolean;
 }
 
 export interface OwnerUserDeleteResponse {
@@ -900,6 +914,56 @@ export interface OwnerSettingsInput {
   supportLink: string;
 }
 
+export type TrialSettingsDurationHours = typeof TrialSettingsDurationHours[keyof typeof TrialSettingsDurationHours];
+
+
+export const TrialSettingsDurationHours = {
+  NUMBER_1: 1,
+  NUMBER_2: 2,
+  NUMBER_6: 6,
+  NUMBER_24: 24,
+} as const;
+
+export interface TrialSettings {
+  durationHours: TrialSettingsDurationHours;
+  /**
+     * @minimum 0
+     * @maximum 100
+     */
+  streamsPerDay: number;
+  /**
+     * @minimum 1
+     * @maximum 1000000
+     */
+  downloadsPerDay: number;
+  /** @nullable */
+  updatedAt: string | null;
+}
+
+export type TrialSettingsInputDurationHours = typeof TrialSettingsInputDurationHours[keyof typeof TrialSettingsInputDurationHours];
+
+
+export const TrialSettingsInputDurationHours = {
+  NUMBER_1: 1,
+  NUMBER_2: 2,
+  NUMBER_6: 6,
+  NUMBER_24: 24,
+} as const;
+
+export interface TrialSettingsInput {
+  durationHours: TrialSettingsInputDurationHours;
+  /**
+     * @minimum 0
+     * @maximum 100
+     */
+  streamsPerDay: number;
+  /**
+     * @minimum 1
+     * @maximum 1000000
+     */
+  downloadsPerDay: number;
+}
+
 export interface BillingPlanInput {
   /**
      * @minLength 1
@@ -925,6 +989,11 @@ export interface BillingPlanInput {
      * @maximum 100000000
      */
   pricePerDownloadPaise?: number;
+  /**
+     * @minimum 0
+     * @maximum 100000000
+     */
+  dailyRentPaise?: number;
   /**
      * @minimum 1
      * @maximum 1000000
@@ -968,6 +1037,11 @@ export interface BillingPlanUpdate {
      * @maximum 100000000
      */
   pricePerDownloadPaise?: number;
+  /**
+     * @minimum 0
+     * @maximum 100000000
+     */
+  dailyRentPaise?: number;
   /**
      * @minimum 1
      * @maximum 1000000
@@ -1171,7 +1245,7 @@ export interface AccountPaymentQuoteInput {
      */
   durationDays: number;
   /**
-     * @minimum 1
+     * @minimum 0
      * @maximum 100
      */
   streamsPerDay: number;
@@ -1213,6 +1287,7 @@ export interface AccountPaymentQuote {
   amountRupees: number;
   pricePerStreamDayPaise: number;
   pricePerDownloadPaise: number;
+  dailyRentPaise: number;
   upiId: string;
   payeeName: string;
   features: string[];
@@ -1318,6 +1393,7 @@ export const PaymentRequestStatus = {
   pending: 'pending',
   approved: 'approved',
   rejected: 'rejected',
+  failed: 'failed',
 } as const;
 
 export interface PaymentRequest {
@@ -1342,6 +1418,7 @@ export interface PaymentRequest {
   amountRupees: number;
   pricePerStreamDayPaise: number;
   pricePerDownloadPaise: number;
+  dailyRentPaise: number;
   features: string[];
   utr: string;
   status: PaymentRequestStatus;
@@ -1399,5 +1476,6 @@ export const ListOwnerPaymentRequestsStatus = {
   pending: 'pending',
   approved: 'approved',
   rejected: 'rejected',
+  failed: 'failed',
 } as const;
 

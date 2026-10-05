@@ -201,7 +201,7 @@ export default function LoginPage({
                 <img className="streamly-google-logo" src="/images/google-logo.png" alt="" aria-hidden="true" />
                 <span>{busy ? "Connecting…" : "Continue with Google"}</span>
               </button>
-              <p className="streamly-login-google-note">Add and verify a phone number in Profile later only if you want to claim the 24-hour offer.</p>
+              <p className="streamly-login-google-note">Add and verify a phone number in Profile later if you want to claim the free trial.</p>
               <div className="streamly-login-alternatives" aria-label="Other sign-in options">
                 <div className="streamly-login-alternatives-divider"><span>or sign in another way</span></div>
                 <div className="streamly-login-alternative-grid">

@@ -64,7 +64,7 @@
 .ou-trial-cell > span { color:#687c73; font-size:9px; }
 .ou-status { display:inline-flex; align-items:center; gap:5px; width:max-content; font:9px var(--app-font-mono, monospace); text-transform:uppercase; letter-spacing:.03em; }
 .ou-status i { width:5px; height:5px; border-radius:50%; background:currentColor; }
-.ou-status.active { color:#328272; }.ou-status.suspended { color:#ad6548; }.ou-status.expired { color:#87958d; }
+.ou-status.active { color:#328272; }.ou-status.paused { color:#8b6b2d; }.ou-status.suspended { color:#ad6548; }.ou-status.expired { color:#87958d; }
 .ou-live-count { display:block; color:#315f58; font:700 13px var(--app-font-mono, monospace); }
 .ou-live-caption { display:block; margin-top:3px; color:#91a097; font:8px var(--app-font-mono, monospace); text-transform:uppercase; letter-spacing:.08em; }
 .ou-row-actions { display:flex; align-items:center; justify-content:flex-end; gap:5px; }

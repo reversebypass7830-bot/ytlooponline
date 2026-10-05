@@ -13,4 +13,5 @@ export const ListOwnerPaymentRequestsStatus = {
   pending: 'pending',
   approved: 'approved',
   rejected: 'rejected',
+  failed: 'failed',
 } as const;

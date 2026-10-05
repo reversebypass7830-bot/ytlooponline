@@ -17,7 +17,7 @@ export interface AccountPaymentQuoteInput {
      */
   durationDays: number;
   /**
-     * @minimum 1
+     * @minimum 0
      * @maximum 100
      */
   streamsPerDay: number;

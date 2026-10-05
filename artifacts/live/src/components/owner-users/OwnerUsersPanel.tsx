@@ -5,13 +5,14 @@ import {
   useBulkDeleteOwnerUsers,
   useDeleteOwnerUser,
   useListOwnerUsers,
+  useUpdateOwnerUserServicePause,
   useUpdateOwnerUserSuspension,
   type OwnerUser,
 } from "@workspace/api-client-react";
 import { AlertTriangle, ChevronDown, ChevronUp, Search, Shield, Users, X } from "lucide-react";
 import "./owner-users.css";
 
-type UserFilter = "all" | "active" | "suspended" | "trial" | "expired";
+type UserFilter = "all" | "active" | "paused" | "suspended" | "trial" | "expired";
 
 const date = (value?: string | null) => {
   if (!value) return "—";
@@ -25,7 +26,7 @@ const dateTime = (value?: string | null) => {
   return Number.isNaN(parsed.getTime()) ? "—" : parsed.toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
 };
 
-const accessIsActive = (user: OwnerUser) => user.active && (!user.accessEndsAt || new Date(user.accessEndsAt).getTime() > Date.now());
+const accessIsActive = (user: OwnerUser) => user.active && !user.servicePausedAt && (!user.accessEndsAt || new Date(user.accessEndsAt).getTime() > Date.now());
 const displayName = (user: OwnerUser) => user.displayName?.trim() || user.email || "Unnamed account";
 const errorText = (error: unknown, fallback: string) => error instanceof Error ? error.message : fallback;
 
@@ -52,6 +53,21 @@ export function OwnerUsersPanel({ ownerPassword }: OwnerUsersPanelProps) {
         setFeedback({ kind: "success", text: variables.data.suspended ? "Account suspended." : "Account access restored." });
       },
       onError: (error) => setFeedback({ kind: "error", text: errorText(error, "Could not update account access.") }),
+    },
+  });
+  const servicePause = useUpdateOwnerUserServicePause({
+    request,
+    mutation: {
+      onSuccess: async (_result, variables) => {
+        await refreshUsers();
+        setFeedback({
+          kind: "success",
+          text: variables.data.paused
+            ? "Service paused. Sign-in remains available and the remaining access time is frozen."
+            : "Service resumed. The paused time has been added to the access end date.",
+        });
+      },
+      onError: (error) => setFeedback({ kind: "error", text: errorText(error, "Could not update the service pause.") }),
     },
   });
   const deleteUser = useDeleteOwnerUser({
@@ -86,20 +102,22 @@ export function OwnerUsersPanel({ ownerPassword }: OwnerUsersPanelProps) {
         .some((value) => value?.toLocaleLowerCase().includes(needle));
       const active = accessIsActive(user);
       const matchesFilter = filter === "all"
-        || (filter === "active" && active && !user.suspended)
+        || (filter === "active" && active && !user.suspended && !user.servicePausedAt)
+        || (filter === "paused" && !!user.servicePausedAt)
         || (filter === "suspended" && user.suspended)
         || (filter === "trial" && !!user.trialStartedAt && !!user.trialEndsAt)
-        || (filter === "expired" && !active && !user.suspended);
+        || (filter === "expired" && !active && !user.suspended && !user.servicePausedAt);
       return matchesSearch && matchesFilter;
     });
   }, [users, search, filter]);
   const deletableVisible = visibleUsers.filter((user) => user.role !== "owner");
   const selectedVisible = deletableVisible.filter((user) => selected.includes(user.id));
   const selectedAllVisible = deletableVisible.length > 0 && selectedVisible.length === deletableVisible.length;
-  const busy = suspension.isPending || deleteUser.isPending || bulkDelete.isPending;
+  const busy = suspension.isPending || servicePause.isPending || deleteUser.isPending || bulkDelete.isPending;
   const counts = {
     all: users.length,
     active: users.filter((user) => accessIsActive(user) && !user.suspended).length,
+    paused: users.filter((user) => !!user.servicePausedAt).length,
     suspended: users.filter((user) => user.suspended).length,
   };
 
@@ -149,10 +167,10 @@ export function OwnerUsersPanel({ ownerPassword }: OwnerUsersPanelProps) {
         {search && <button type="button" aria-label="Clear search" onClick={() => setSearch("")}><X size={14}/></button>}
       </label>
       <div className="ou-filters" role="group" aria-label="Filter users">
-        {(["all", "active", "suspended", "trial", "expired"] as UserFilter[]).map((key) =>
+        {(["all", "active", "paused", "suspended", "trial", "expired"] as UserFilter[]).map((key) =>
           <button type="button" className={filter === key ? "selected" : ""} aria-pressed={filter === key} key={key} onClick={() => setFilter(key)} data-testid={`owner-users-filter-${key}`}>
-            {key === "all" ? "All" : key === "active" ? "Active" : key === "trial" ? "Trial" : key === "expired" ? "Expired" : "Suspended"}
-            {key === "all" && <span>{counts.all}</span>}{key === "active" && <span>{counts.active}</span>}{key === "suspended" && <span>{counts.suspended}</span>}
+            {key === "all" ? "All" : key === "active" ? "Active" : key === "paused" ? "Paused" : key === "trial" ? "Trial" : key === "expired" ? "Expired" : "Suspended"}
+            {key === "all" && <span>{counts.all}</span>}{key === "active" && <span>{counts.active}</span>}{key === "paused" && <span>{counts.paused}</span>}{key === "suspended" && <span>{counts.suspended}</span>}
           </button>)}
       </div>
     </div>
@@ -188,6 +206,7 @@ export function OwnerUsersPanel({ ownerPassword }: OwnerUsersPanelProps) {
               onSelect={() => toggleSelected(user.id)}
               onExpand={() => setExpanded(isExpanded ? null : user.id)}
               onSuspension={() => { setFeedback(null); suspension.mutate({ userId: user.id, data: { suspended: !user.suspended } }); }}
+               onServicePause={() => { setFeedback(null); servicePause.mutate({ userId: user.id, data: { paused: !user.servicePausedAt } }); }}
               onDelete={() => confirmDelete(user)}/>;
           })}</tbody>
         </table>
@@ -197,14 +216,14 @@ export function OwnerUsersPanel({ ownerPassword }: OwnerUsersPanelProps) {
   </section>;
 }
 
-function UserRows({ user, isExpanded, isActive, planName, selected, busy, onSelect, onExpand, onSuspension, onDelete }: {
+function UserRows({ user, isExpanded, isActive, planName, selected, busy, onSelect, onExpand, onSuspension, onServicePause, onDelete }: {
   user: OwnerUser; isExpanded: boolean; isActive: boolean; planName: string; selected: boolean; busy: boolean;
-  onSelect: () => void; onExpand: () => void; onSuspension: () => void; onDelete: () => void;
+  onSelect: () => void; onExpand: () => void; onSuspension: () => void; onServicePause: () => void; onDelete: () => void;
 }) {
   const protectedOwner = user.role === "owner";
   const detailId = `owner-user-history-${user.id.replace(/[^a-zA-Z0-9_-]/g, "")}`;
   return <>
-    <tr className={user.suspended ? "ou-user-suspended" : ""} data-testid={`owner-user-row-${user.id}`}>
+    <tr className={user.suspended ? "ou-user-suspended" : user.servicePausedAt ? "ou-user-paused" : ""} data-testid={`owner-user-row-${user.id}`}>
       <td className="ou-check-col">{!protectedOwner && <input type="checkbox" checked={selected} onChange={onSelect} aria-label={`Select ${displayName(user)}`} data-testid={`owner-user-select-${user.id}`}/>}</td>
       <td><div className="ou-account-cell">
         <div className={`ou-avatar ${user.suspended ? "suspended" : ""}`}>{(displayName(user)[0] || "U").toLocaleUpperCase()}</div>
@@ -213,13 +232,14 @@ function UserRows({ user, isExpanded, isActive, planName, selected, busy, onSele
         </div>
       </div></td>
       <td><span className="ou-date">{date(user.createdAt)}</span></td>
-      <td><div className="ou-plan-cell"><strong>{planName}</strong><span className={`ou-status ${user.suspended ? "suspended" : isActive ? "active" : "expired"}`}><i/>{user.suspended ? "Suspended" : isActive ? "Active" : "Expired"}</span>
-        <small>Access to {date(user.accessEndsAt)}</small></div></td>
+      <td><div className="ou-plan-cell"><strong>{planName}</strong><span className={`ou-status ${user.suspended ? "suspended" : user.servicePausedAt ? "paused" : isActive ? "active" : "expired"}`}><i/>{user.suspended ? "Suspended" : user.servicePausedAt ? "Paused" : isActive ? "Active" : "Expired"}</span>
+        <small>{user.servicePausedAt ? `Frozen · resumes with ${date(user.accessEndsAt)}` : `Access to ${date(user.accessEndsAt)}`}</small></div></td>
       <td><div className="ou-trial-cell"><strong>{user.trialStartedAt || user.trialEndsAt ? "Trial" : "—"}</strong><span>{user.trialStartedAt ? date(user.trialStartedAt) : "Not started"}</span><small>{user.trialEndsAt ? `Ends ${date(user.trialEndsAt)}` : "No trial end"}</small></div></td>
       <td><span className="ou-live-count">{user.lifetimeLiveStarts.toLocaleString()}</span><small className="ou-live-caption">lifetime</small></td>
       <td><div className="ou-row-actions">
         <button className="ou-icon-button details-button" type="button" aria-expanded={isExpanded} aria-controls={detailId} aria-label={`${isExpanded ? "Hide" : "View"} history for ${displayName(user)}`} onClick={onExpand} data-testid={`owner-user-history-toggle-${user.id}`}>{isExpanded ? <ChevronUp size={15}/> : <ChevronDown size={15}/>}</button>
         <button type="button" className={`ou-button ${user.suspended ? "restore" : "quiet"}`} disabled={busy || protectedOwner} onClick={onSuspension} title={protectedOwner ? "Owner access cannot be changed here" : undefined} data-testid={`owner-user-suspension-${user.id}`}>{user.suspended ? "Restore" : "Suspend"}</button>
+         <button type="button" className={`ou-button ${user.servicePausedAt ? "restore" : "quiet"}`} disabled={busy || protectedOwner || (!user.servicePausedAt && !user.active)} onClick={onServicePause} title={protectedOwner ? "Owner service cannot be paused here" : user.servicePausedAt ? "Resume service and restore the frozen access time" : "Pause service without blocking sign-in"} data-testid={`owner-user-service-pause-${user.id}`}>{user.servicePausedAt ? "Resume service" : "Pause service"}</button>
         <button type="button" className="ou-icon-button delete-button" disabled={busy || protectedOwner} aria-label={`Delete ${displayName(user)}`} title={protectedOwner ? "Owner accounts are protected" : "Delete account"} onClick={onDelete} data-testid={`owner-user-delete-${user.id}`}><X size={15}/></button>
       </div></td>
     </tr>
@@ -231,13 +251,14 @@ function UserRows({ user, isExpanded, isActive, planName, selected, busy, onSele
         <div><small>Trial started</small><strong>{date(user.trialStartedAt)}</strong></div>
         <div><small>Trial ends</small><strong>{date(user.trialEndsAt)}</strong></div>
         <div><small>Access ends</small><strong>{date(user.accessEndsAt)}</strong></div>
+        <div><small>Service pause</small><strong>{user.servicePausedAt ? `Paused ${dateTime(user.servicePausedAt)}` : "Not paused"}</strong></div>
         <div><small>Registration date</small><strong>{dateTime(user.createdAt)}</strong></div>
       </div>
       <div className="ou-history-heading"><div><span className="ou-detail-label">SUBSCRIPTION HISTORY</span><strong>{user.history?.length ?? 0} events</strong></div><span>Newest activity first</span></div>
       {!user.history?.length ? <p className="ou-no-history">No subscription activity recorded.</p> : <ol className="ou-history-list">
         {[...user.history].sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime()).map((item) => <li key={item.id}>
           <span className={`ou-history-dot ${item.type === "purchase" ? "purchase" : ""}`}/>
-          <div className="ou-history-copy"><strong>{item.message}</strong><span>{item.planName || item.planId || item.type}{item.days ? ` · ${item.days} days` : ""}{item.amountPaise != null ? ` · ${(item.amountPaise / 100).toLocaleString(undefined, { style: "currency", currency: "INR" })}` : ""}</span></div>
+           <div className="ou-history-copy"><strong>{item.message}</strong><span>{item.planName || item.planId || item.type}{item.days ? ` · ${item.days} days` : item.durationHours ? ` · ${item.durationHours} hours` : ""}{item.amountPaise != null ? ` · ${(item.amountPaise / 100).toLocaleString(undefined, { style: "currency", currency: "INR" })}` : ""}</span></div>
           <time dateTime={item.at}>{dateTime(item.at)}</time>
         </li>)}
       </ol>}

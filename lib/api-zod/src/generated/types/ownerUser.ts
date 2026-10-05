@@ -24,9 +24,14 @@ export interface OwnerUser {
   activePlanId: string;
   activePlan: BillingPlan | null;
   accessEndsAt: Date;
+  /** @nullable */
+  servicePausedAt: Date | null;
+  trialDurationHours: number;
   active: boolean;
   suspended: boolean;
   streamLimit: number;
+  streamsPerDay: number;
+  downloadsPerDay: number;
   /** @minimum 0 */
   lifetimeLiveStarts: number;
   history: OwnerAccountHistoryItem[];

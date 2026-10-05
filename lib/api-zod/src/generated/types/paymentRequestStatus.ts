@@ -13,4 +13,5 @@ export const PaymentRequestStatus = {
   pending: 'pending',
   approved: 'approved',
   rejected: 'rejected',
+  failed: 'failed',
 } as const;

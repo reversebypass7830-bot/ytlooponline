@@ -14,4 +14,6 @@ export const OwnerAccountHistoryItemType = {
   purchase: 'purchase',
   grant: 'grant',
   login: 'login',
+  service_paused: 'service_paused',
+  service_resumed: 'service_resumed',
 } as const;

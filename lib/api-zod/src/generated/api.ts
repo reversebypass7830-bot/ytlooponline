@@ -1323,6 +1323,7 @@ export const ClaimGoogleSignupTrialOfferResponse = zod.object({
 
 export const quoteAccountPaymentBodyDurationDaysMax = 5475;
 
+export const quoteAccountPaymentBodyStreamsPerDayMin = 0;
 export const quoteAccountPaymentBodyStreamsPerDayMax = 100;
 
 export const quoteAccountPaymentBodyDownloadsPerDayMax = 1000000;
@@ -1333,7 +1334,7 @@ export const QuoteAccountPaymentBody = zod.object({
   "planId": zod.string().min(1),
   "packType": zod.enum(['Days', 'Monthly', 'Yearly']),
   "durationDays": zod.number().min(1).max(quoteAccountPaymentBodyDurationDaysMax),
-  "streamsPerDay": zod.number().min(1).max(quoteAccountPaymentBodyStreamsPerDayMax),
+  "streamsPerDay": zod.number().min(quoteAccountPaymentBodyStreamsPerDayMin).max(quoteAccountPaymentBodyStreamsPerDayMax),
   "downloadsPerDay": zod.number().min(1).max(quoteAccountPaymentBodyDownloadsPerDayMax)
 })
 
@@ -1351,6 +1352,7 @@ export const QuoteAccountPaymentResponse = zod.object({
   "amountRupees": zod.number(),
   "pricePerStreamDayPaise": zod.number(),
   "pricePerDownloadPaise": zod.number(),
+  "dailyRentPaise": zod.number(),
   "upiId": zod.string(),
   "payeeName": zod.string(),
   "features": zod.array(zod.string())
@@ -1384,9 +1386,10 @@ export const ListAccountPaymentRequestsResponse = zod.object({
   "amountRupees": zod.number(),
   "pricePerStreamDayPaise": zod.number(),
   "pricePerDownloadPaise": zod.number(),
+  "dailyRentPaise": zod.number(),
   "features": zod.array(zod.string()),
   "utr": zod.string(),
-  "status": zod.enum(['pending', 'approved', 'rejected']),
+  "status": zod.enum(['pending', 'approved', 'rejected', 'failed']),
   "createdAt": zod.coerce.date(),
   "reviewedAt": zod.coerce.date().nullable(),
   "reviewNote": zod.string().nullable(),
@@ -1402,6 +1405,7 @@ export const ListAccountPaymentRequestsResponse = zod.object({
 
 export const createAccountPaymentRequestBodyOneDurationDaysMax = 5475;
 
+export const createAccountPaymentRequestBodyOneStreamsPerDayMin = 0;
 export const createAccountPaymentRequestBodyOneStreamsPerDayMax = 100;
 
 export const createAccountPaymentRequestBodyOneDownloadsPerDayMax = 1000000;
@@ -1414,7 +1418,7 @@ export const CreateAccountPaymentRequestBody = zod.object({
   "planId": zod.string().min(1),
   "packType": zod.enum(['Days', 'Monthly', 'Yearly']),
   "durationDays": zod.number().min(1).max(createAccountPaymentRequestBodyOneDurationDaysMax),
-  "streamsPerDay": zod.number().min(1).max(createAccountPaymentRequestBodyOneStreamsPerDayMax),
+  "streamsPerDay": zod.number().min(createAccountPaymentRequestBodyOneStreamsPerDayMin).max(createAccountPaymentRequestBodyOneStreamsPerDayMax),
   "downloadsPerDay": zod.number().min(1).max(createAccountPaymentRequestBodyOneDownloadsPerDayMax)
 }).and(zod.object({
   "utr": zod.string().regex(createAccountPaymentRequestBodyTwoUtrRegExp),
@@ -1445,9 +1449,10 @@ export const CreateAccountPaymentRequestResponse = zod.object({
   "amountRupees": zod.number(),
   "pricePerStreamDayPaise": zod.number(),
   "pricePerDownloadPaise": zod.number(),
+  "dailyRentPaise": zod.number(),
   "features": zod.array(zod.string()),
   "utr": zod.string(),
-  "status": zod.enum(['pending', 'approved', 'rejected']),
+  "status": zod.enum(['pending', 'approved', 'rejected', 'failed']),
   "createdAt": zod.coerce.date(),
   "reviewedAt": zod.coerce.date().nullable(),
   "reviewNote": zod.string().nullable(),
@@ -1463,6 +1468,7 @@ export const CreateAccountPaymentRequestResponse = zod.object({
 
 export const createCashfreeOrderBodyOneDurationDaysMax = 5475;
 
+export const createCashfreeOrderBodyOneStreamsPerDayMin = 0;
 export const createCashfreeOrderBodyOneStreamsPerDayMax = 100;
 
 export const createCashfreeOrderBodyOneDownloadsPerDayMax = 1000000;
@@ -1478,7 +1484,7 @@ export const CreateCashfreeOrderBody = zod.object({
   "planId": zod.string().min(1),
   "packType": zod.enum(['Days', 'Monthly', 'Yearly']),
   "durationDays": zod.number().min(1).max(createCashfreeOrderBodyOneDurationDaysMax),
-  "streamsPerDay": zod.number().min(1).max(createCashfreeOrderBodyOneStreamsPerDayMax),
+  "streamsPerDay": zod.number().min(createCashfreeOrderBodyOneStreamsPerDayMin).max(createCashfreeOrderBodyOneStreamsPerDayMax),
   "downloadsPerDay": zod.number().min(1).max(createCashfreeOrderBodyOneDownloadsPerDayMax)
 }).and(zod.object({
   "attemptId": zod.string().min(createCashfreeOrderBodyTwoAttemptIdMin).max(createCashfreeOrderBodyTwoAttemptIdMax).regex(createCashfreeOrderBodyTwoAttemptIdRegExp)
@@ -1551,6 +1557,8 @@ export const listBillingPlansResponsePlansItemPricePerStreamDayPaiseMin = 0;
 
 export const listBillingPlansResponsePlansItemPricePerDownloadPaiseMin = 0;
 
+export const listBillingPlansResponsePlansItemDailyRentPaiseMin = 0;
+
 
 
 
@@ -1564,6 +1572,7 @@ export const ListBillingPlansResponse = zod.object({
   "price": zod.string(),
   "pricePerStreamDayPaise": zod.number().min(listBillingPlansResponsePlansItemPricePerStreamDayPaiseMin),
   "pricePerDownloadPaise": zod.number().min(listBillingPlansResponsePlansItemPricePerDownloadPaiseMin),
+  "dailyRentPaise": zod.number().min(listBillingPlansResponsePlansItemDailyRentPaiseMin),
   "downloadRateConfigured": zod.boolean(),
   "downloadsPerDay": zod.number().min(1),
   "streamLimit": zod.number().min(1),
@@ -1597,6 +1606,9 @@ export const createBillingPlanBodyPricePerStreamDayPaiseMax = 100000000;
 export const createBillingPlanBodyPricePerDownloadPaiseMin = 0;
 export const createBillingPlanBodyPricePerDownloadPaiseMax = 100000000;
 
+export const createBillingPlanBodyDailyRentPaiseMin = 0;
+export const createBillingPlanBodyDailyRentPaiseMax = 100000000;
+
 export const createBillingPlanBodyDownloadsPerDayMax = 1000000;
 
 export const createBillingPlanBodyStreamLimitMax = 100;
@@ -1614,6 +1626,7 @@ export const CreateBillingPlanBody = zod.object({
   "price": zod.string().max(createBillingPlanBodyPriceMax),
   "pricePerStreamDayPaise": zod.number().min(createBillingPlanBodyPricePerStreamDayPaiseMin).max(createBillingPlanBodyPricePerStreamDayPaiseMax),
   "pricePerDownloadPaise": zod.number().min(createBillingPlanBodyPricePerDownloadPaiseMin).max(createBillingPlanBodyPricePerDownloadPaiseMax).optional(),
+  "dailyRentPaise": zod.number().min(createBillingPlanBodyDailyRentPaiseMin).max(createBillingPlanBodyDailyRentPaiseMax).optional(),
   "downloadsPerDay": zod.number().min(1).max(createBillingPlanBodyDownloadsPerDayMax),
   "streamLimit": zod.number().min(1).max(createBillingPlanBodyStreamLimitMax),
   "features": zod.array(zod.string().max(createBillingPlanBodyFeaturesItemMax)).max(createBillingPlanBodyFeaturesMax),
@@ -1624,6 +1637,8 @@ export const CreateBillingPlanBody = zod.object({
 export const createBillingPlanResponsePlanPricePerStreamDayPaiseMin = 0;
 
 export const createBillingPlanResponsePlanPricePerDownloadPaiseMin = 0;
+
+export const createBillingPlanResponsePlanDailyRentPaiseMin = 0;
 
 
 
@@ -1638,6 +1653,7 @@ export const CreateBillingPlanResponse = zod.object({
   "price": zod.string(),
   "pricePerStreamDayPaise": zod.number().min(createBillingPlanResponsePlanPricePerStreamDayPaiseMin),
   "pricePerDownloadPaise": zod.number().min(createBillingPlanResponsePlanPricePerDownloadPaiseMin),
+  "dailyRentPaise": zod.number().min(createBillingPlanResponsePlanDailyRentPaiseMin),
   "downloadRateConfigured": zod.boolean(),
   "downloadsPerDay": zod.number().min(1),
   "streamLimit": zod.number().min(1),
@@ -1675,6 +1691,9 @@ export const updateBillingPlanBodyPricePerStreamDayPaiseMax = 100000000;
 export const updateBillingPlanBodyPricePerDownloadPaiseMin = 0;
 export const updateBillingPlanBodyPricePerDownloadPaiseMax = 100000000;
 
+export const updateBillingPlanBodyDailyRentPaiseMin = 0;
+export const updateBillingPlanBodyDailyRentPaiseMax = 100000000;
+
 export const updateBillingPlanBodyDownloadsPerDayMax = 1000000;
 
 export const updateBillingPlanBodyStreamLimitMax = 100;
@@ -1692,6 +1711,7 @@ export const UpdateBillingPlanBody = zod.object({
   "price": zod.string().max(updateBillingPlanBodyPriceMax).optional(),
   "pricePerStreamDayPaise": zod.number().min(updateBillingPlanBodyPricePerStreamDayPaiseMin).max(updateBillingPlanBodyPricePerStreamDayPaiseMax).optional(),
   "pricePerDownloadPaise": zod.number().min(updateBillingPlanBodyPricePerDownloadPaiseMin).max(updateBillingPlanBodyPricePerDownloadPaiseMax).optional(),
+  "dailyRentPaise": zod.number().min(updateBillingPlanBodyDailyRentPaiseMin).max(updateBillingPlanBodyDailyRentPaiseMax).optional(),
   "downloadsPerDay": zod.number().min(1).max(updateBillingPlanBodyDownloadsPerDayMax).optional(),
   "streamLimit": zod.number().min(1).max(updateBillingPlanBodyStreamLimitMax).optional(),
   "features": zod.array(zod.string().max(updateBillingPlanBodyFeaturesItemMax)).max(updateBillingPlanBodyFeaturesMax).optional(),
@@ -1702,6 +1722,8 @@ export const UpdateBillingPlanBody = zod.object({
 export const updateBillingPlanResponsePlanPricePerStreamDayPaiseMin = 0;
 
 export const updateBillingPlanResponsePlanPricePerDownloadPaiseMin = 0;
+
+export const updateBillingPlanResponsePlanDailyRentPaiseMin = 0;
 
 
 
@@ -1716,6 +1738,7 @@ export const UpdateBillingPlanResponse = zod.object({
   "price": zod.string(),
   "pricePerStreamDayPaise": zod.number().min(updateBillingPlanResponsePlanPricePerStreamDayPaiseMin),
   "pricePerDownloadPaise": zod.number().min(updateBillingPlanResponsePlanPricePerDownloadPaiseMin),
+  "dailyRentPaise": zod.number().min(updateBillingPlanResponsePlanDailyRentPaiseMin),
   "downloadRateConfigured": zod.boolean(),
   "downloadsPerDay": zod.number().min(1),
   "streamLimit": zod.number().min(1),
@@ -1795,10 +1818,67 @@ export const UpdateOwnerPaymentSettingsResponse = zod.object({
 
 
 /**
- * @summary List manual UPI requests awaiting or completed review
+ * @summary Get the owner-configured trial duration and daily quotas
+ */
+export const GetOwnerTrialSettingsHeader = zod.object({
+  "X-Owner-Password": zod.string()
+})
+
+export const getOwnerTrialSettingsResponseStreamsPerDayMin = 0;
+export const getOwnerTrialSettingsResponseStreamsPerDayMax = 100;
+
+export const getOwnerTrialSettingsResponseDownloadsPerDayMax = 1000000;
+
+
+
+export const GetOwnerTrialSettingsResponse = zod.object({
+  "durationHours": zod.union([zod.literal(1),zod.literal(2),zod.literal(6),zod.literal(24)]),
+  "streamsPerDay": zod.number().min(getOwnerTrialSettingsResponseStreamsPerDayMin).max(getOwnerTrialSettingsResponseStreamsPerDayMax),
+  "downloadsPerDay": zod.number().min(1).max(getOwnerTrialSettingsResponseDownloadsPerDayMax),
+  "updatedAt": zod.coerce.date().nullable()
+})
+
+
+/**
+ * @summary Set the duration and daily quotas used by both trial paths
+ */
+export const UpdateOwnerTrialSettingsHeader = zod.object({
+  "X-Owner-Password": zod.string()
+})
+
+export const updateOwnerTrialSettingsBodyStreamsPerDayMin = 0;
+export const updateOwnerTrialSettingsBodyStreamsPerDayMax = 100;
+
+export const updateOwnerTrialSettingsBodyDownloadsPerDayMax = 1000000;
+
+
+
+export const UpdateOwnerTrialSettingsBody = zod.object({
+  "durationHours": zod.union([zod.literal(1),zod.literal(2),zod.literal(6),zod.literal(24)]),
+  "streamsPerDay": zod.number().min(updateOwnerTrialSettingsBodyStreamsPerDayMin).max(updateOwnerTrialSettingsBodyStreamsPerDayMax),
+  "downloadsPerDay": zod.number().min(1).max(updateOwnerTrialSettingsBodyDownloadsPerDayMax)
+})
+
+export const updateOwnerTrialSettingsResponseStreamsPerDayMin = 0;
+export const updateOwnerTrialSettingsResponseStreamsPerDayMax = 100;
+
+export const updateOwnerTrialSettingsResponseDownloadsPerDayMax = 1000000;
+
+
+
+export const UpdateOwnerTrialSettingsResponse = zod.object({
+  "durationHours": zod.union([zod.literal(1),zod.literal(2),zod.literal(6),zod.literal(24)]),
+  "streamsPerDay": zod.number().min(updateOwnerTrialSettingsResponseStreamsPerDayMin).max(updateOwnerTrialSettingsResponseStreamsPerDayMax),
+  "downloadsPerDay": zod.number().min(1).max(updateOwnerTrialSettingsResponseDownloadsPerDayMax),
+  "updatedAt": zod.coerce.date().nullable()
+})
+
+
+/**
+ * @summary List manual UPI requests and Cashfree orders
  */
 export const ListOwnerPaymentRequestsQueryParams = zod.object({
-  "status": zod.enum(['pending', 'approved', 'rejected']).optional()
+  "status": zod.enum(['pending', 'approved', 'rejected', 'failed']).optional()
 })
 
 export const ListOwnerPaymentRequestsHeader = zod.object({
@@ -1829,9 +1909,10 @@ export const ListOwnerPaymentRequestsResponse = zod.object({
   "amountRupees": zod.number(),
   "pricePerStreamDayPaise": zod.number(),
   "pricePerDownloadPaise": zod.number(),
+  "dailyRentPaise": zod.number(),
   "features": zod.array(zod.string()),
   "utr": zod.string(),
-  "status": zod.enum(['pending', 'approved', 'rejected']),
+  "status": zod.enum(['pending', 'approved', 'rejected', 'failed']),
   "createdAt": zod.coerce.date(),
   "reviewedAt": zod.coerce.date().nullable(),
   "reviewNote": zod.string().nullable(),
@@ -1885,9 +1966,10 @@ export const ReviewOwnerPaymentRequestResponse = zod.object({
   "amountRupees": zod.number(),
   "pricePerStreamDayPaise": zod.number(),
   "pricePerDownloadPaise": zod.number(),
+  "dailyRentPaise": zod.number(),
   "features": zod.array(zod.string()),
   "utr": zod.string(),
-  "status": zod.enum(['pending', 'approved', 'rejected']),
+  "status": zod.enum(['pending', 'approved', 'rejected', 'failed']),
   "createdAt": zod.coerce.date(),
   "reviewedAt": zod.coerce.date().nullable(),
   "reviewNote": zod.string().nullable(),
@@ -1908,6 +1990,8 @@ export const ListOwnerUsersHeader = zod.object({
 export const listOwnerUsersResponseUsersItemActivePlanOnePricePerStreamDayPaiseMin = 0;
 
 export const listOwnerUsersResponseUsersItemActivePlanOnePricePerDownloadPaiseMin = 0;
+
+export const listOwnerUsersResponseUsersItemActivePlanOneDailyRentPaiseMin = 0;
 
 
 
@@ -1934,6 +2018,7 @@ export const ListOwnerUsersResponse = zod.object({
   "price": zod.string(),
   "pricePerStreamDayPaise": zod.number().min(listOwnerUsersResponseUsersItemActivePlanOnePricePerStreamDayPaiseMin),
   "pricePerDownloadPaise": zod.number().min(listOwnerUsersResponseUsersItemActivePlanOnePricePerDownloadPaiseMin),
+  "dailyRentPaise": zod.number().min(listOwnerUsersResponseUsersItemActivePlanOneDailyRentPaiseMin),
   "downloadRateConfigured": zod.boolean(),
   "downloadsPerDay": zod.number().min(1),
   "streamLimit": zod.number().min(1),
@@ -1944,18 +2029,23 @@ export const ListOwnerUsersResponse = zod.object({
   "updatedAt": zod.coerce.date()
 }),zod.null()]),
   "accessEndsAt": zod.coerce.date(),
+  "servicePausedAt": zod.coerce.date().nullable(),
+  "trialDurationHours": zod.number(),
   "active": zod.boolean(),
   "suspended": zod.boolean(),
   "streamLimit": zod.number(),
+  "streamsPerDay": zod.number(),
+  "downloadsPerDay": zod.number(),
   "lifetimeLiveStarts": zod.number().min(listOwnerUsersResponseUsersItemLifetimeLiveStartsMin),
   "history": zod.array(zod.object({
   "id": zod.string(),
-  "type": zod.enum(['trial_started', 'purchase', 'grant', 'login']),
+  "type": zod.enum(['trial_started', 'purchase', 'grant', 'login', 'service_paused', 'service_resumed']),
   "message": zod.string(),
   "at": zod.coerce.date(),
   "planName": zod.string().optional(),
   "planId": zod.string().optional(),
   "days": zod.number().optional(),
+  "durationHours": zod.number().optional(),
   "startsAt": zod.coerce.date().optional(),
   "endsAt": zod.coerce.date().optional(),
   "amountPaise": zod.number().optional()
@@ -1984,6 +2074,8 @@ export const updateOwnerUserSuspensionResponseUserActivePlanOnePricePerStreamDay
 
 export const updateOwnerUserSuspensionResponseUserActivePlanOnePricePerDownloadPaiseMin = 0;
 
+export const updateOwnerUserSuspensionResponseUserActivePlanOneDailyRentPaiseMin = 0;
+
 
 
 export const updateOwnerUserSuspensionResponseUserLifetimeLiveStartsMin = 0;
@@ -2009,6 +2101,7 @@ export const UpdateOwnerUserSuspensionResponse = zod.object({
   "price": zod.string(),
   "pricePerStreamDayPaise": zod.number().min(updateOwnerUserSuspensionResponseUserActivePlanOnePricePerStreamDayPaiseMin),
   "pricePerDownloadPaise": zod.number().min(updateOwnerUserSuspensionResponseUserActivePlanOnePricePerDownloadPaiseMin),
+  "dailyRentPaise": zod.number().min(updateOwnerUserSuspensionResponseUserActivePlanOneDailyRentPaiseMin),
   "downloadRateConfigured": zod.boolean(),
   "downloadsPerDay": zod.number().min(1),
   "streamLimit": zod.number().min(1),
@@ -2019,18 +2112,106 @@ export const UpdateOwnerUserSuspensionResponse = zod.object({
   "updatedAt": zod.coerce.date()
 }),zod.null()]),
   "accessEndsAt": zod.coerce.date(),
+  "servicePausedAt": zod.coerce.date().nullable(),
+  "trialDurationHours": zod.number(),
   "active": zod.boolean(),
   "suspended": zod.boolean(),
   "streamLimit": zod.number(),
+  "streamsPerDay": zod.number(),
+  "downloadsPerDay": zod.number(),
   "lifetimeLiveStarts": zod.number().min(updateOwnerUserSuspensionResponseUserLifetimeLiveStartsMin),
   "history": zod.array(zod.object({
   "id": zod.string(),
-  "type": zod.enum(['trial_started', 'purchase', 'grant', 'login']),
+  "type": zod.enum(['trial_started', 'purchase', 'grant', 'login', 'service_paused', 'service_resumed']),
   "message": zod.string(),
   "at": zod.coerce.date(),
   "planName": zod.string().optional(),
   "planId": zod.string().optional(),
   "days": zod.number().optional(),
+  "durationHours": zod.number().optional(),
+  "startsAt": zod.coerce.date().optional(),
+  "endsAt": zod.coerce.date().optional(),
+  "amountPaise": zod.number().optional()
+}))
+})
+})
+
+
+/**
+ * @summary Pause or resume a user's service without suspending sign-in
+ */
+export const UpdateOwnerUserServicePauseParams = zod.object({
+  "userId": zod.coerce.string()
+})
+
+export const UpdateOwnerUserServicePauseHeader = zod.object({
+  "X-Owner-Password": zod.string()
+})
+
+export const UpdateOwnerUserServicePauseBody = zod.object({
+  "paused": zod.boolean()
+})
+
+
+export const updateOwnerUserServicePauseResponseUserActivePlanOnePricePerStreamDayPaiseMin = 0;
+
+export const updateOwnerUserServicePauseResponseUserActivePlanOnePricePerDownloadPaiseMin = 0;
+
+export const updateOwnerUserServicePauseResponseUserActivePlanOneDailyRentPaiseMin = 0;
+
+
+
+export const updateOwnerUserServicePauseResponseUserLifetimeLiveStartsMin = 0;
+
+
+
+export const UpdateOwnerUserServicePauseResponse = zod.object({
+  "user": zod.object({
+  "id": zod.string(),
+  "displayName": zod.string(),
+  "email": zod.string(),
+  "phone": zod.string().nullable(),
+  "role": zod.enum(['owner', 'user']),
+  "createdAt": zod.coerce.date(),
+  "trialStartedAt": zod.coerce.date().nullable(),
+  "trialEndsAt": zod.coerce.date().nullable(),
+  "activePlanId": zod.string(),
+  "activePlan": zod.union([zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "description": zod.string(),
+  "durationDays": zod.number().min(1),
+  "price": zod.string(),
+  "pricePerStreamDayPaise": zod.number().min(updateOwnerUserServicePauseResponseUserActivePlanOnePricePerStreamDayPaiseMin),
+  "pricePerDownloadPaise": zod.number().min(updateOwnerUserServicePauseResponseUserActivePlanOnePricePerDownloadPaiseMin),
+  "dailyRentPaise": zod.number().min(updateOwnerUserServicePauseResponseUserActivePlanOneDailyRentPaiseMin),
+  "downloadRateConfigured": zod.boolean(),
+  "downloadsPerDay": zod.number().min(1),
+  "streamLimit": zod.number().min(1),
+  "features": zod.array(zod.string()),
+  "isTrial": zod.boolean().optional(),
+  "active": zod.boolean(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+}),zod.null()]),
+  "accessEndsAt": zod.coerce.date(),
+  "servicePausedAt": zod.coerce.date().nullable(),
+  "trialDurationHours": zod.number(),
+  "active": zod.boolean(),
+  "suspended": zod.boolean(),
+  "streamLimit": zod.number(),
+  "streamsPerDay": zod.number(),
+  "downloadsPerDay": zod.number(),
+  "lifetimeLiveStarts": zod.number().min(updateOwnerUserServicePauseResponseUserLifetimeLiveStartsMin),
+  "history": zod.array(zod.object({
+  "id": zod.string(),
+  "type": zod.enum(['trial_started', 'purchase', 'grant', 'login', 'service_paused', 'service_resumed']),
+  "message": zod.string(),
+  "at": zod.coerce.date(),
+  "planName": zod.string().optional(),
+  "planId": zod.string().optional(),
+  "days": zod.number().optional(),
+  "durationHours": zod.number().optional(),
   "startsAt": zod.coerce.date().optional(),
   "endsAt": zod.coerce.date().optional(),
   "amountPaise": zod.number().optional()

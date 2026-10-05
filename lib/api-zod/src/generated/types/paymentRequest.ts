@@ -31,6 +31,7 @@ export interface PaymentRequest {
   amountRupees: number;
   pricePerStreamDayPaise: number;
   pricePerDownloadPaise: number;
+  dailyRentPaise: number;
   features: string[];
   utr: string;
   status: PaymentRequestStatus;

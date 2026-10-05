@@ -15,6 +15,7 @@ export interface OwnerAccountHistoryItem {
   planName?: string;
   planId?: string;
   days?: number;
+  durationHours?: number;
   startsAt?: Date;
   endsAt?: Date;
   amountPaise?: number;

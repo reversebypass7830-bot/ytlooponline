@@ -10,6 +10,8 @@ import {
   ReviewOwnerPaymentRequestBody,
   UpdateBillingPlanBody,
   UpdateOwnerPaymentSettingsBody,
+  UpdateOwnerTrialSettingsBody,
+  UpdateOwnerUserServicePauseBody,
 } from "@workspace/api-zod";
 import { firebaseDelete, firebaseGet, firebasePut } from "../lib/firebase-rest";
 import { getOwnerSupportLink, ownerSettingsPath, safeSupportLink } from "../lib/account-access";
@@ -32,10 +34,12 @@ import {
 
 const router: IRouter = Router();
 const objectStorageService = new ObjectStorageService();
+const hourMs = 60 * 60 * 1000;
 const dayMs = 24 * 60 * 60 * 1000;
 const accountPath = (id: string) => `accounts/${encodeURIComponent(id)}`;
 const planPath = (id: string) => `plans/${encodeURIComponent(id)}`;
 const paymentSettingsPath = "billing/paymentSettings";
+const trialSettingsPath = "billing/trialSettings";
 const paymentRequestsPath = "paymentRequests";
 const cashfreeOrdersPath = "cashfreeOrders";
 
@@ -47,6 +51,7 @@ type PlanRecord = {
   price: string;
   pricePerStreamDayPaise?: number;
   pricePerDownloadPaise?: number;
+  dailyRentPaise?: number;
   downloadsPerDay?: number;
   streamLimit?: number;
   features?: string[];
@@ -58,12 +63,13 @@ type PlanRecord = {
 
 type AccountHistoryItem = {
   id: string;
-  type: "trial_started" | "purchase" | "grant" | "login";
+  type: "trial_started" | "purchase" | "grant" | "login" | "service_paused" | "service_resumed";
   message: string;
   at: string;
   planName?: string;
   planId?: string;
   days?: number;
+  durationHours?: number;
   streamLimit?: number;
   streamsPerDay?: number;
   downloadsPerDay?: number;
@@ -86,12 +92,14 @@ type AccountRecord = {
   profileCompleted?: boolean;
   trialOfferAvailable?: boolean;
   trialOfferClaimedAt?: string;
+  trialDurationHours?: 1 | 2 | 6 | 24;
   role: "owner" | "user";
   workspaceId: string;
   trialStartedAt: string;
   trialEndsAt: string;
   activePlanId: string;
   accessEndsAt: string;
+  servicePausedAt?: string;
   streamLimit?: number;
   streamsPerDay?: number;
   downloadsPerDay?: number;
@@ -114,12 +122,19 @@ type StoredAccountRecord = Omit<AccountRecord, "workspaceId"> & {
 };
 type AccountMap = Record<string, StoredAccountRecord>;
 type PlanMap = Record<string, PlanRecord>;
-type PaymentStatus = "pending" | "approved" | "rejected";
+type PaymentStatus = "pending" | "approved" | "rejected" | "failed";
 type PaymentSettingsRecord = {
   upiId: string;
   payeeName: string;
   paymentMode: "manual" | "cashfree";
   cashfreeEnvironment: CashfreeEnvironment;
+  updatedAt: string | null;
+};
+type TrialDurationHours = 1 | 2 | 6 | 24;
+type TrialSettingsRecord = {
+  durationHours: TrialDurationHours;
+  streamsPerDay: number;
+  downloadsPerDay: number;
   updatedAt: string | null;
 };
 type PaymentRequestRecord = {
@@ -139,6 +154,7 @@ type PaymentRequestRecord = {
   amountRupees: number;
   pricePerStreamDayPaise: number;
   pricePerDownloadPaise: number;
+  dailyRentPaise: number;
   features: string[];
   paymentMethod: "upi" | "cashfree";
   cashfreeOrderId: string | null;
@@ -176,6 +192,7 @@ type PaymentQuote = {
   amountRupees: number;
   pricePerStreamDayPaise: number;
   pricePerDownloadPaise: number;
+  dailyRentPaise: number;
   upiId: string;
   payeeName: string;
   features: string[];
@@ -185,7 +202,7 @@ const defaultPlans: PlanRecord[] = [
   {
     id: "trial-1-day",
     name: "Free trial",
-    description: "Full workspace access for one day.",
+    description: "Full workspace access for the owner-configured trial duration.",
     durationDays: 1,
     price: "FREE",
     pricePerStreamDayPaise: 0,
@@ -345,6 +362,7 @@ const defaultPlans: PlanRecord[] = [
     price: "₹10 / stream start / day",
     pricePerStreamDayPaise: 1000,
     pricePerDownloadPaise: 200,
+    dailyRentPaise: 0,
     downloadsPerDay: 50,
     streamLimit: 1,
     features: ["Daily broadcast-start allowance", "Daily download allowance", "Flexible access term"],
@@ -355,6 +373,10 @@ const defaultPlans: PlanRecord[] = [
 ];
 
 function isActive(account: AccountRecord): boolean {
+  return !account.servicePausedAt && hasUnexpiredAccess(account);
+}
+
+function hasUnexpiredAccess(account: AccountRecord): boolean {
   return new Date(account.accessEndsAt).getTime() > Date.now();
 }
 
@@ -383,6 +405,9 @@ async function loadPlans(): Promise<PlanMap> {
       pricePerDownloadPaise: Number.isSafeInteger(rawPlan.pricePerDownloadPaise) && (rawPlan.pricePerDownloadPaise ?? -1) >= 0
         ? rawPlan.pricePerDownloadPaise
         : fallback?.pricePerDownloadPaise ?? 0,
+      dailyRentPaise: Number.isSafeInteger(rawPlan.dailyRentPaise) && (rawPlan.dailyRentPaise ?? -1) >= 0
+        ? rawPlan.dailyRentPaise
+        : fallback?.dailyRentPaise ?? 0,
       downloadsPerDay: Number.isSafeInteger(rawPlan.downloadsPerDay) && (rawPlan.downloadsPerDay ?? 0) > 0
         ? rawPlan.downloadsPerDay
         : fallback?.downloadsPerDay ?? 50,
@@ -414,10 +439,14 @@ async function loadAccount(userId: string): Promise<AccountRecord | null> {
   return account;
 }
 
-function publicAccount(account: AccountRecord, plans: PlanMap) {
+function publicAccount(
+  account: AccountRecord,
+  plans: PlanMap,
+  trialDurationHours: TrialDurationHours = account.trialDurationHours || 24,
+) {
   const plan = plans[account.activePlanId] || null;
   const streamLimit = account.streamLimit || plan?.streamLimit || 1;
-  const streamsPerDay = Number.isSafeInteger(account.streamsPerDay) && (account.streamsPerDay ?? 0) > 0
+  const streamsPerDay = Number.isSafeInteger(account.streamsPerDay) && (account.streamsPerDay ?? -1) >= 0
     ? account.streamsPerDay
     : plan?.isTrial ? 1 : 100;
   const streamsStartedToday = account.streamUsageDate === currentUsageDayKey()
@@ -436,6 +465,7 @@ function publicAccount(account: AccountRecord, plans: PlanMap) {
     profileCompleted: account.profileCompleted ?? true,
     trialOfferAvailable: account.trialOfferAvailable === true,
     trialOfferClaimedAt: account.trialOfferClaimedAt,
+    trialDurationHours,
     role: account.role,
     workspaceId: account.workspaceId,
     trialStartedAt: account.trialStartedAt,
@@ -443,6 +473,7 @@ function publicAccount(account: AccountRecord, plans: PlanMap) {
     activePlanId: account.activePlanId,
     activePlan: plan,
     accessEndsAt: account.accessEndsAt,
+    servicePausedAt: account.servicePausedAt ?? null,
     streamLimit,
     streamsPerDay,
     streamsStartedToday,
@@ -538,7 +569,7 @@ async function ensureAccount(req: Request): Promise<{ account: AccountRecord; pl
         ...(existing.history || []),
       ].slice(0, 50),
       streamLimit: existing.streamLimit || plans[existing.activePlanId]?.streamLimit || 1,
-      streamsPerDay: Number.isSafeInteger(existing.streamsPerDay) && (existing.streamsPerDay ?? 0) > 0
+      streamsPerDay: Number.isSafeInteger(existing.streamsPerDay) && (existing.streamsPerDay ?? -1) >= 0
         ? existing.streamsPerDay
         : plans[existing.activePlanId]?.isTrial ? 1 : 100,
       streamUsageDate: existing.streamUsageDate || currentUsageDayKey(),
@@ -553,7 +584,8 @@ async function ensureAccount(req: Request): Promise<{ account: AccountRecord; pl
   }
 
   const trial = plans["trial-1-day"] || defaultPlans[0];
-  const trialEndsAt = new Date(now.getTime() + trial.durationDays * dayMs).toISOString();
+  const trialSettings = await loadTrialSettings();
+  const trialEndsAt = new Date(now.getTime() + trialSettings.durationHours * hourMs).toISOString();
   const workspaceId = `workspace-${randomUUID()}`;
   const account: AccountRecord = {
     id: userId,
@@ -564,18 +596,19 @@ async function ensureAccount(req: Request): Promise<{ account: AccountRecord; pl
     workspaceId,
     trialStartedAt: now.toISOString(),
     trialEndsAt,
+    trialDurationHours: trialSettings.durationHours,
     activePlanId: trial.id,
     accessEndsAt: trialEndsAt,
     streamLimit: trial.streamLimit || 1,
-    streamsPerDay: trial.isTrial ? 1 : 100,
+    streamsPerDay: trialSettings.streamsPerDay,
     streamUsageDate: currentUsageDayKey(),
     streamsStartedToday: 0,
-    downloadsPerDay: trial.downloadsPerDay || 50,
+    downloadsPerDay: trialSettings.downloadsPerDay,
     activeFeatures: trial.features || [],
     createdAt: now.toISOString(),
     lastLoginAt: now.toISOString(),
     history: [
-      { id: randomUUID(), type: "trial_started", message: `${trial.name} started`, at: now.toISOString(), planName: trial.name, planId: trial.id, days: trial.durationDays, startsAt: now.toISOString(), endsAt: trialEndsAt },
+      { id: randomUUID(), type: "trial_started", message: `${trial.name} started`, at: now.toISOString(), planName: trial.name, planId: trial.id, durationHours: trialSettings.durationHours, startsAt: now.toISOString(), endsAt: trialEndsAt },
     ],
   };
   await firebasePut(accountPath(userId), account);
@@ -584,6 +617,7 @@ async function ensureAccount(req: Request): Promise<{ account: AccountRecord; pl
 
 export async function ensureFirebaseAccount(identity: { userId: string; email: string; name: string }): Promise<{ account: AccountRecord; plans: PlanMap }> {
   const plans = await loadPlans();
+  const trialSettings = await loadTrialSettings();
   const accounts = (await firebaseGet<AccountMap | null>("accounts")) ?? {};
   const firebaseUserId = `firebase-${identity.userId}`;
   const storedExisting = accounts[firebaseUserId]
@@ -605,7 +639,7 @@ export async function ensureFirebaseAccount(identity: { userId: string; email: s
         ...(existing.history || []),
       ].slice(0, 50),
       streamLimit: existing.streamLimit || plans[existing.activePlanId]?.streamLimit || 1,
-      streamsPerDay: Number.isSafeInteger(existing.streamsPerDay) && (existing.streamsPerDay ?? 0) > 0
+      streamsPerDay: Number.isSafeInteger(existing.streamsPerDay) && (existing.streamsPerDay ?? -1) >= 0
         ? existing.streamsPerDay
         : plans[existing.activePlanId]?.isTrial ? 1 : 100,
       streamUsageDate: existing.streamUsageDate || currentUsageDayKey(),
@@ -631,13 +665,14 @@ export async function ensureFirebaseAccount(identity: { userId: string; email: s
     workspaceId,
     trialStartedAt: "",
     trialEndsAt: "",
+    trialDurationHours: trialSettings.durationHours,
     activePlanId: trial.id,
     accessEndsAt: now.toISOString(),
     streamLimit: trial.streamLimit || 1,
-    streamsPerDay: trial.isTrial ? 1 : 100,
+    streamsPerDay: trialSettings.streamsPerDay,
     streamUsageDate: currentUsageDayKey(),
     streamsStartedToday: 0,
-    downloadsPerDay: trial.downloadsPerDay || 50,
+    downloadsPerDay: trialSettings.downloadsPerDay,
     activeFeatures: trial.features || [],
     createdAt: now.toISOString(),
     lastLoginAt: now.toISOString(),
@@ -655,7 +690,8 @@ export async function createMobileAccount(input: {
   const plans = await loadPlans();
   const trial = plans["trial-1-day"] || defaultPlans[0];
   const now = new Date();
-  const trialEndsAt = new Date(now.getTime() + trial.durationDays * dayMs).toISOString();
+  const trialSettings = await loadTrialSettings();
+  const trialEndsAt = new Date(now.getTime() + trialSettings.durationHours * hourMs).toISOString();
   const userId = `mobile-${randomUUID()}`;
   const workspaceId = `workspace-${randomUUID()}`;
   const account: AccountRecord = {
@@ -668,18 +704,19 @@ export async function createMobileAccount(input: {
     workspaceId,
     trialStartedAt: now.toISOString(),
     trialEndsAt,
+    trialDurationHours: trialSettings.durationHours,
     activePlanId: trial.id,
     accessEndsAt: trialEndsAt,
     streamLimit: trial.streamLimit || 1,
-    streamsPerDay: trial.isTrial ? 1 : 100,
+    streamsPerDay: trialSettings.streamsPerDay,
     streamUsageDate: currentUsageDayKey(),
     streamsStartedToday: 0,
-    downloadsPerDay: trial.downloadsPerDay || 50,
+    downloadsPerDay: trialSettings.downloadsPerDay,
     activeFeatures: trial.features || [],
     createdAt: now.toISOString(),
     lastLoginAt: now.toISOString(),
     history: [
-      { id: randomUUID(), type: "trial_started", message: `${trial.name} started`, at: now.toISOString(), planName: trial.name, planId: trial.id, days: trial.durationDays, startsAt: now.toISOString(), endsAt: trialEndsAt },
+      { id: randomUUID(), type: "trial_started", message: `${trial.name} started`, at: now.toISOString(), planName: trial.name, planId: trial.id, durationHours: trialSettings.durationHours, startsAt: now.toISOString(), endsAt: trialEndsAt },
     ],
   };
   await firebasePut(accountPath(userId), account);
@@ -717,7 +754,12 @@ function currentUsageDayKey(): string {
 }
 
 function formatDailyPrice(pricePaise: number): string {
-  return `₹${(pricePaise / 100).toLocaleString("en-IN", { maximumFractionDigits: 2 })} / stream start / day`;
+  return `₹${(pricePaise / 100).toLocaleString("en-IN", { maximumFractionDigits: 2 })} / stream start`;
+}
+
+function formatCustomPlanPrice(streamPaise: number, downloadPaise: number, rentPaise: number): string {
+  const formatRupees = (paise: number) => `₹${(paise / 100).toLocaleString("en-IN", { maximumFractionDigits: 2 })}`;
+  return `${formatRupees(streamPaise)} / stream + ${formatRupees(downloadPaise)} / download + ${formatRupees(rentPaise)} / day rent`;
 }
 
 function isValidUpiId(value: string): boolean {
@@ -761,6 +803,29 @@ async function loadPaymentSettings(): Promise<PaymentSettingsRecord> {
   };
 }
 
+async function loadTrialSettings(): Promise<TrialSettingsRecord> {
+  const stored = await firebaseGet<Partial<TrialSettingsRecord> | null>(trialSettingsPath);
+  const durationHours = [1, 2, 6, 24].includes(stored?.durationHours || 0)
+    ? stored!.durationHours as TrialDurationHours
+    : 24;
+  const streamsPerDay = Number.isSafeInteger(stored?.streamsPerDay)
+    && (stored?.streamsPerDay ?? -1) >= 0
+    && (stored?.streamsPerDay ?? 101) <= 100
+    ? stored!.streamsPerDay!
+    : 1;
+  const downloadsPerDay = Number.isSafeInteger(stored?.downloadsPerDay)
+    && (stored?.downloadsPerDay ?? 0) >= 1
+    && (stored?.downloadsPerDay ?? 1_000_001) <= 1_000_000
+    ? stored!.downloadsPerDay!
+    : 50;
+  return {
+    durationHours,
+    streamsPerDay,
+    downloadsPerDay,
+    updatedAt: typeof stored?.updatedAt === "string" ? stored.updatedAt : null,
+  };
+}
+
 async function paymentSettingsResponse(settings: PaymentSettingsRecord): Promise<PaymentSettingsRecord & {
   cashfreeSandboxConfigured: boolean;
   cashfreeProductionConfigured: boolean;
@@ -799,19 +864,20 @@ async function loadPaymentRequests(): Promise<Record<string, PaymentRequestRecor
       packType,
       durationDays,
       streamLimit: Number.isSafeInteger(raw.streamLimit) && (raw.streamLimit ?? 0) > 0 ? raw.streamLimit! : 1,
-      streamsPerDay: Number.isSafeInteger(raw.streamsPerDay) && (raw.streamsPerDay ?? 0) > 0 ? raw.streamsPerDay! : 1,
+      streamsPerDay: Number.isSafeInteger(raw.streamsPerDay) && (raw.streamsPerDay ?? -1) >= 0 ? raw.streamsPerDay! : 1,
       downloadsPerDay: Number.isSafeInteger(raw.downloadsPerDay) && (raw.downloadsPerDay ?? 0) > 0 ? raw.downloadsPerDay! : 1,
       totalDownloads: Number.isSafeInteger(raw.totalDownloads) && (raw.totalDownloads ?? 0) >= 0 ? raw.totalDownloads! : 0,
       amountPaise,
       amountRupees: Number.isFinite(raw.amountRupees) ? raw.amountRupees! : amountPaise / 100,
       pricePerStreamDayPaise: Number.isSafeInteger(raw.pricePerStreamDayPaise) && (raw.pricePerStreamDayPaise ?? 0) >= 0 ? raw.pricePerStreamDayPaise! : 0,
       pricePerDownloadPaise: Number.isSafeInteger(raw.pricePerDownloadPaise) && (raw.pricePerDownloadPaise ?? 0) >= 0 ? raw.pricePerDownloadPaise! : 0,
+      dailyRentPaise: Number.isSafeInteger(raw.dailyRentPaise) && (raw.dailyRentPaise ?? 0) >= 0 ? raw.dailyRentPaise! : 0,
       features: Array.isArray(raw.features) ? raw.features.filter((feature): feature is string => typeof feature === "string") : [],
        paymentMethod: raw.paymentMethod === "cashfree" ? "cashfree" : "upi",
        cashfreeOrderId: typeof raw.cashfreeOrderId === "string" ? raw.cashfreeOrderId : null,
        cashfreePaymentId: typeof raw.cashfreePaymentId === "string" ? raw.cashfreePaymentId : null,
       utr: typeof raw.utr === "string" ? raw.utr : "",
-      status: raw.status === "approved" || raw.status === "rejected" ? raw.status : "pending",
+      status: raw.status === "approved" || raw.status === "rejected" || raw.status === "failed" ? raw.status : "pending",
       createdAt: typeof raw.createdAt === "string" ? raw.createdAt : new Date(0).toISOString(),
       reviewedAt: typeof raw.reviewedAt === "string" ? raw.reviewedAt : null,
       reviewNote: typeof raw.reviewNote === "string" ? raw.reviewNote : null,
@@ -844,16 +910,18 @@ async function paymentQuote(
   if (!plan || plan.id !== "custom-subscription" || !plan.active || plan.isTrial) return null;
   const pricePerStreamDayPaise = plan.pricePerStreamDayPaise ?? 0;
   const pricePerDownloadPaise = plan.pricePerDownloadPaise ?? 0;
+  const dailyRentPaise = plan.dailyRentPaise ?? 0;
   if (!Number.isSafeInteger(pricePerStreamDayPaise) || pricePerStreamDayPaise < 0
     || !Number.isSafeInteger(pricePerDownloadPaise) || pricePerDownloadPaise < 0
-    || (pricePerStreamDayPaise === 0 && pricePerDownloadPaise === 0)) return null;
+    || !Number.isSafeInteger(dailyRentPaise) || dailyRentPaise < 0
+    || (pricePerStreamDayPaise === 0 && pricePerDownloadPaise === 0 && dailyRentPaise === 0)) return null;
   if (!validPackDuration(input.packType, input.durationDays)) return null;
-  if (!Number.isInteger(input.streamsPerDay) || input.streamsPerDay < 1 || input.streamsPerDay > 100) return null;
+  if (!Number.isInteger(input.streamsPerDay) || input.streamsPerDay < 0 || input.streamsPerDay > 100) return null;
   if (!Number.isInteger(input.downloadsPerDay) || input.downloadsPerDay < 1 || input.downloadsPerDay > 1_000_000) return null;
   if (!Number.isInteger(currentStreamLimit) || currentStreamLimit < 1) return null;
-  const perDayPaise = BigInt(pricePerStreamDayPaise) * BigInt(input.streamsPerDay)
+  const unitChargesPaise = BigInt(pricePerStreamDayPaise) * BigInt(input.streamsPerDay)
     + BigInt(pricePerDownloadPaise) * BigInt(input.downloadsPerDay);
-  const amountPaise = Number(perDayPaise * BigInt(input.durationDays));
+  const amountPaise = Number(unitChargesPaise + BigInt(dailyRentPaise) * BigInt(input.durationDays));
   const totalDownloads = input.durationDays * input.downloadsPerDay;
   if (!Number.isSafeInteger(amountPaise) || amountPaise < 1 || amountPaise > 100_000_000_000 || !Number.isSafeInteger(totalDownloads)) return null;
   return {
@@ -870,6 +938,7 @@ async function paymentQuote(
     amountRupees: amountPaise / 100,
     pricePerStreamDayPaise,
     pricePerDownloadPaise,
+    dailyRentPaise,
     upiId: settings.upiId.trim(),
     payeeName: settings.payeeName.trim(),
     features: plan.features || [],
@@ -889,11 +958,11 @@ async function approvePaymentRequest(
   return withBillingLock(`payment-review:${requestId}`, async () => {
     const request = (await loadPaymentRequests())[requestId];
     if (!request) return { kind: "not-found" };
-    if (request.status === "rejected") return { kind: "not-pending" };
+    if (request.status === "rejected" || request.status === "failed") return { kind: "not-pending" };
 
     return withBillingLock(`billing-account:${request.accountId}`, async () => {
       const latestRequest = (await loadPaymentRequests())[requestId];
-      if (!latestRequest || latestRequest.status === "rejected") return { kind: "not-pending" };
+      if (!latestRequest || latestRequest.status === "rejected" || latestRequest.status === "failed") return { kind: "not-pending" };
       const account = await loadAccount(latestRequest.accountId);
       if (!account) return { kind: "account-missing" };
 
@@ -989,6 +1058,9 @@ async function verifyAndApplyCashfreeOrder(
   if (!request || request.paymentMethod !== "cashfree" || request.cashfreeOrderId !== orderId) {
     return { kind: "integrity-error" };
   }
+  if (request.status === "failed") {
+    return { kind: "verified", status: "failed", accessActivated: false };
+  }
   if (request.status === "approved") {
     const repaired = await approvePaymentRequest(orderRecord.paymentRequestId, "cashfree", {
       cashfreePaymentId: request.cashfreePaymentId || undefined,
@@ -1006,6 +1078,16 @@ async function verifyAndApplyCashfreeOrder(
     || remoteOrder.orderCurrency !== "INR") return { kind: "integrity-error" };
   if (remoteOrder.orderStatus !== "PAID") {
     const status = ["EXPIRED", "TERMINATED", "FAILED"].includes(remoteOrder.orderStatus) ? "failed" : "pending";
+    if (status === "failed" && request.status === "pending") {
+      const failed: PaymentRequestRecord = {
+        ...request,
+        status: "failed",
+        reviewedAt: new Date().toISOString(),
+        reviewedBy: "cashfree",
+        reviewNote: `Cashfree order ${remoteOrder.orderStatus.toLowerCase()}.`,
+      };
+      await firebasePut(`${paymentRequestsPath}/${encodeURIComponent(request.id)}`, failed);
+    }
     return { kind: "verified", status, accessActivated: false };
   }
 
@@ -1033,8 +1115,15 @@ function sendError(req: Request, res: Response, error: unknown, message: string)
 router.get("/account", requireAccountAuth, async (req, res): Promise<void> => {
   try {
     const { account, plans } = await ensureAccount(req);
+    const trialSettings = await loadTrialSettings();
     res.json({
-      account: publicAccount(account, plans),
+      account: publicAccount(
+        account,
+        plans,
+        account.trialOfferAvailable && !account.trialOfferClaimedAt
+          ? trialSettings.durationHours
+          : account.trialDurationHours || trialSettings.durationHours,
+      ),
       plans: Object.values(plans).filter((plan) => plan.active),
       supportLink: await getOwnerSupportLink(),
     });
@@ -1046,6 +1135,7 @@ router.get("/account", requireAccountAuth, async (req, res): Promise<void> => {
 router.post("/account/trial-offer/claim", requireAccountAuth, async (req, res): Promise<void> => {
   try {
     const { account, plans } = await ensureAccount(req);
+    const trialSettings = await loadTrialSettings();
     await withBillingLock(`trial-offer-claim:${account.id}`, async () => {
       const latest = await loadAccount(account.id);
       if (!latest) {
@@ -1053,18 +1143,18 @@ router.post("/account/trial-offer/claim", requireAccountAuth, async (req, res): 
         return;
       }
       if (latest.trialOfferClaimedAt) {
-        res.json({ account: publicAccount(latest, plans) });
+        res.json({ account: publicAccount(latest, plans, latest.trialDurationHours || trialSettings.durationHours) });
         return;
       }
       if (latest.trialOfferAvailable !== true) {
-        res.status(409).json({ error: "This 24-hour offer is not available for this account." });
+        res.status(409).json({ error: "This trial offer is not available for this account." });
         return;
       }
       if (!latest.phone) {
         res.status(409).json({ error: "Verify a mobile number in your profile before claiming this offer." });
         return;
       }
-      if (isActive(latest)) {
+      if (hasUnexpiredAccess(latest)) {
         res.status(409).json({ error: "This account already has active access, so the offer cannot be claimed." });
         return;
       }
@@ -1072,20 +1162,21 @@ router.post("/account/trial-offer/claim", requireAccountAuth, async (req, res): 
       const trial = plans["trial-1-day"] || defaultPlans[0];
       const startedAt = new Date();
       const startsAt = startedAt.toISOString();
-      const endsAt = new Date(startedAt.getTime() + dayMs).toISOString();
+      const endsAt = new Date(startedAt.getTime() + trialSettings.durationHours * hourMs).toISOString();
       const next: AccountRecord = {
         ...latest,
         trialOfferAvailable: false,
         trialOfferClaimedAt: startsAt,
         trialStartedAt: startsAt,
         trialEndsAt: endsAt,
+        trialDurationHours: trialSettings.durationHours,
         activePlanId: trial.id,
         accessEndsAt: endsAt,
         streamLimit: trial.streamLimit || 1,
-        streamsPerDay: trial.isTrial ? 1 : 100,
+        streamsPerDay: trialSettings.streamsPerDay,
         streamUsageDate: currentUsageDayKey(),
         streamsStartedToday: 0,
-        downloadsPerDay: trial.downloadsPerDay || 50,
+        downloadsPerDay: trialSettings.downloadsPerDay,
         downloadUsageDate: currentUsageDayKey(),
         downloadsUsedToday: 0,
         activeFeatures: trial.features || [],
@@ -1097,7 +1188,7 @@ router.post("/account/trial-offer/claim", requireAccountAuth, async (req, res): 
             at: startsAt,
             planName: trial.name,
             planId: trial.id,
-            days: 1,
+            durationHours: trialSettings.durationHours,
             startsAt,
             endsAt,
           },
@@ -1105,10 +1196,10 @@ router.post("/account/trial-offer/claim", requireAccountAuth, async (req, res): 
         ].slice(0, 50),
       };
       await firebasePut(accountPath(next.id), next);
-      res.json({ account: publicAccount(next, plans) });
+      res.json({ account: publicAccount(next, plans, trialSettings.durationHours) });
     });
   } catch (error) {
-    sendError(req, res, error, "Could not claim the 24-hour offer.");
+    sendError(req, res, error, "Could not claim the free trial.");
   }
 });
 
@@ -1263,6 +1354,7 @@ router.post("/account/payment-requests", requireAccountAuth, async (req, res): P
         amountRupees: quote.amountRupees,
         pricePerStreamDayPaise: quote.pricePerStreamDayPaise,
         pricePerDownloadPaise: quote.pricePerDownloadPaise,
+        dailyRentPaise: quote.dailyRentPaise,
         features: quote.features,
         paymentMethod: "upi",
         cashfreeOrderId: null,
@@ -1337,7 +1429,10 @@ router.post("/account/cashfree/orders", requireAccountAuth, async (req, res): Pr
           || paymentRequest.planId !== quote.planId
           || paymentRequest.durationDays !== quote.durationDays
           || paymentRequest.streamsPerDay !== quote.streamsPerDay
-          || paymentRequest.downloadsPerDay !== quote.downloadsPerDay) {
+          || paymentRequest.downloadsPerDay !== quote.downloadsPerDay
+          || paymentRequest.pricePerStreamDayPaise !== quote.pricePerStreamDayPaise
+          || paymentRequest.pricePerDownloadPaise !== quote.pricePerDownloadPaise
+          || paymentRequest.dailyRentPaise !== quote.dailyRentPaise) {
           res.status(409).json({ error: "The payment selection changed. Start a new checkout." });
           return;
         }
@@ -1369,6 +1464,7 @@ router.post("/account/cashfree/orders", requireAccountAuth, async (req, res): Pr
           amountRupees: quote.amountRupees,
           pricePerStreamDayPaise: quote.pricePerStreamDayPaise,
           pricePerDownloadPaise: quote.pricePerDownloadPaise,
+          dailyRentPaise: quote.dailyRentPaise,
           features: quote.features,
           paymentMethod: "cashfree",
           cashfreeOrderId: orderId,
@@ -1559,6 +1655,7 @@ router.patch("/owner/users/:userId/suspension", async (req, res): Promise<void> 
   }
   try {
     const userId = req.params.userId;
+    await withBillingLock(`billing-account:${userId}`, async () => {
     const account = await loadAccount(userId);
     if (!account) {
       res.status(404).json({ error: "User account not found." });
@@ -1578,6 +1675,81 @@ router.patch("/owner/users/:userId/suspension", async (req, res): Promise<void> 
     res.json({ user: ownerUserSummary(next, plans) });
   } catch (error) {
     sendError(req, res, error, "Could not update account suspension.");
+  }
+});
+
+router.patch("/owner/users/:userId/service-pause", async (req, res): Promise<void> => {
+  if (!(await requireAccountOwner(req, res))) return;
+  const parsed = UpdateOwnerUserServicePauseBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Choose whether the user's service should be paused." });
+    return;
+  }
+  try {
+    const userId = req.params.userId;
+    const account = await loadAccount(userId);
+    if (!account) {
+      res.status(404).json({ error: "User account not found." });
+      return;
+    }
+    if (account.role === "owner") {
+      res.status(403).json({ error: "Owner accounts cannot be paused." });
+      return;
+    }
+    const plans = await loadPlans();
+    if (parsed.data.paused === Boolean(account.servicePausedAt)) {
+      res.json({ user: ownerUserSummary(account, plans) });
+      return;
+    }
+    if (parsed.data.paused) {
+      if (!hasUnexpiredAccess(account)) {
+        res.status(409).json({ error: "Only a user with unexpired service access can be paused." });
+        return;
+      }
+      const pausedAt = new Date().toISOString();
+      const next: AccountRecord = {
+        ...account,
+        servicePausedAt: pausedAt,
+        history: [
+          { id: randomUUID(), type: "service_paused", message: "Service paused by owner", at: pausedAt },
+          ...(account.history || []),
+        ].slice(0, 50),
+      };
+      await firebasePut(accountPath(userId), next);
+      const { stopAccountStreams } = await import("./streaming");
+      stopAccountStreams(userId);
+      res.json({ user: ownerUserSummary(next, plans) });
+      return;
+    }
+
+    const now = Date.now();
+    const parsedPausedAt = Date.parse(account.servicePausedAt || "");
+    const pausedDurationMs = Number.isFinite(parsedPausedAt) ? Math.max(0, now - parsedPausedAt) : 0;
+    const oldAccessEnd = Date.parse(account.accessEndsAt);
+    const accessEndsAt = Number.isFinite(oldAccessEnd)
+      ? new Date(oldAccessEnd + pausedDurationMs).toISOString()
+      : account.accessEndsAt;
+    const trialEndsAt = account.activePlanId === "trial-1-day" && Number.isFinite(Date.parse(account.trialEndsAt))
+      ? new Date(Date.parse(account.trialEndsAt) + pausedDurationMs).toISOString()
+      : account.trialEndsAt;
+    const resumedAt = new Date(now).toISOString();
+    const next: AccountRecord = {
+      ...account,
+      servicePausedAt: undefined,
+      accessEndsAt,
+      trialEndsAt,
+      history: [
+        { id: randomUUID(), type: "service_resumed", message: "Service resumed by owner", at: resumedAt },
+        ...(account.history || []).map((item) => item.endsAt === account.accessEndsAt
+          ? { ...item, endsAt: accessEndsAt }
+          : item),
+      ].slice(0, 50),
+    };
+    await firebasePut(accountPath(userId), next);
+    res.json({ user: ownerUserSummary(next, plans) });
+    });
+  } catch (error) {
+    sendError(req, res, error, "Could not update the user's service pause.");
   }
 });
 
@@ -1713,6 +1885,7 @@ router.post("/owner/plans", async (req, res): Promise<void> => {
   const values = parsed.data;
   if (!Number.isInteger(values.durationDays) || !Number.isInteger(values.pricePerStreamDayPaise)
     || (values.pricePerDownloadPaise !== undefined && !Number.isInteger(values.pricePerDownloadPaise))
+    || (values.dailyRentPaise !== undefined && !Number.isInteger(values.dailyRentPaise))
     || !Number.isInteger(values.downloadsPerDay) || !Number.isInteger(values.streamLimit)) {
     res.status(400).json({ error: "Plan duration, price, stream limit, and download limit must be whole numbers." });
     return;
@@ -1724,9 +1897,14 @@ router.post("/owner/plans", async (req, res): Promise<void> => {
       name: values.name.trim(),
       description: values.description.trim(),
       durationDays: daysValue(values.durationDays, 1),
-      price: values.price.trim() || formatDailyPrice(values.pricePerStreamDayPaise),
+      price: values.price.trim() || formatCustomPlanPrice(
+        values.pricePerStreamDayPaise,
+        values.pricePerDownloadPaise ?? 0,
+        values.dailyRentPaise ?? 0,
+      ),
       pricePerStreamDayPaise: values.pricePerStreamDayPaise,
       pricePerDownloadPaise: values.pricePerDownloadPaise ?? 0,
+      dailyRentPaise: values.dailyRentPaise ?? 0,
       downloadsPerDay: values.downloadsPerDay,
       streamLimit: values.streamLimit,
       features: values.features.map((feature) => feature.trim()).filter(Boolean),
@@ -1752,6 +1930,7 @@ router.put("/owner/plans/:planId", async (req, res): Promise<void> => {
   if ((patch.durationDays !== undefined && !Number.isInteger(patch.durationDays))
     || (patch.pricePerStreamDayPaise !== undefined && !Number.isInteger(patch.pricePerStreamDayPaise))
     || (patch.pricePerDownloadPaise !== undefined && !Number.isInteger(patch.pricePerDownloadPaise))
+    || (patch.dailyRentPaise !== undefined && !Number.isInteger(patch.dailyRentPaise))
     || (patch.downloadsPerDay !== undefined && !Number.isInteger(patch.downloadsPerDay))
     || (patch.streamLimit !== undefined && !Number.isInteger(patch.streamLimit))) {
     res.status(400).json({ error: "Plan duration, price, stream limit, and download limit must be whole numbers." });
@@ -1770,10 +1949,17 @@ router.put("/owner/plans/:planId", async (req, res): Promise<void> => {
       description: patch.description === undefined ? current.description : patch.description.trim(),
       durationDays: patch.durationDays === undefined ? current.durationDays : daysValue(patch.durationDays, current.durationDays),
       price: patch.price?.trim() || (patch.pricePerStreamDayPaise === undefined
+        && patch.pricePerDownloadPaise === undefined
+        && patch.dailyRentPaise === undefined
         ? current.price
-        : formatDailyPrice(patch.pricePerStreamDayPaise)),
+        : formatCustomPlanPrice(
+          patch.pricePerStreamDayPaise ?? current.pricePerStreamDayPaise ?? 0,
+          patch.pricePerDownloadPaise ?? current.pricePerDownloadPaise ?? 0,
+          patch.dailyRentPaise ?? current.dailyRentPaise ?? 0,
+        )),
       pricePerStreamDayPaise: patch.pricePerStreamDayPaise ?? current.pricePerStreamDayPaise ?? 0,
       pricePerDownloadPaise: patch.pricePerDownloadPaise ?? current.pricePerDownloadPaise ?? 0,
+      dailyRentPaise: patch.dailyRentPaise ?? current.dailyRentPaise ?? 0,
       downloadsPerDay: patch.downloadsPerDay ?? current.downloadsPerDay ?? 50,
       streamLimit: patch.streamLimit ?? current.streamLimit ?? 1,
       features: patch.features === undefined ? current.features || [] : patch.features.map((feature) => feature.trim()).filter(Boolean),
@@ -1865,17 +2051,48 @@ router.put("/owner/payment-settings", async (req, res): Promise<void> => {
   }
 });
 
+router.get("/owner/trial-settings", async (req, res): Promise<void> => {
+  if (!(await requireAccountOwner(req, res))) return;
+  try {
+    res.json(await loadTrialSettings());
+  } catch (error) {
+    sendError(req, res, error, "Could not load trial settings.");
+  }
+});
+
+router.put("/owner/trial-settings", async (req, res): Promise<void> => {
+  if (!(await requireAccountOwner(req, res))) return;
+  const parsed = UpdateOwnerTrialSettingsBody.safeParse(req.body);
+  if (!parsed.success
+    || ![1, 2, 6, 24].includes(parsed.data.durationHours)
+    || !Number.isInteger(parsed.data.streamsPerDay)
+    || !Number.isInteger(parsed.data.downloadsPerDay)) {
+    res.status(400).json({ error: "Choose 1, 2, 6, or 24 hours and whole-number daily quotas." });
+    return;
+  }
+  try {
+    const settings: TrialSettingsRecord = {
+      ...parsed.data,
+      durationHours: parsed.data.durationHours as TrialDurationHours,
+      updatedAt: new Date().toISOString(),
+    };
+    await firebasePut(trialSettingsPath, settings);
+    res.json(settings);
+  } catch (error) {
+    sendError(req, res, error, "Could not save trial settings.");
+  }
+});
+
 router.get("/owner/payment-requests", async (req, res): Promise<void> => {
   if (!(await requireAccountOwner(req, res))) return;
   const status = typeof req.query.status === "string" ? req.query.status : "";
-  if (status && !["pending", "approved", "rejected"].includes(status)) {
+  if (status && !["pending", "approved", "rejected", "failed"].includes(status)) {
     res.status(400).json({ error: "Choose a valid payment request status." });
     return;
   }
   try {
     const requests = Object.values(await loadPaymentRequests())
-      .filter((request) => (!status || request.status === status)
-        && (status !== "pending" || request.paymentMethod === "upi"))
+      .filter((request) => !status || request.status === status)
       .sort((left, right) => right.createdAt.localeCompare(left.createdAt));
     const requestsWithImages = await Promise.all(requests.map(async (request) => {
       if (!request.screenshotPath) return { ...request, screenshotUrl: null };
@@ -2013,7 +2230,7 @@ export async function getAccountStreamAccess(userId: string): Promise<{
   const account = await loadAccount(userId);
   if (!account) return { active: false, streamLimit: 0, streamsPerDay: 0, streamsStartedToday: 0 };
   const plans = await loadPlans();
-  const streamsPerDay = typeof account.streamsPerDay === "number" && Number.isSafeInteger(account.streamsPerDay) && account.streamsPerDay > 0
+  const streamsPerDay = typeof account.streamsPerDay === "number" && Number.isSafeInteger(account.streamsPerDay) && account.streamsPerDay >= 0
     ? account.streamsPerDay
     : plans[account.activePlanId]?.isTrial ? 1 : 100;
   const dayKey = currentUsageDayKey();
@@ -2039,9 +2256,10 @@ export async function startAccountStreamWithQuota<T>(
     if (account.suspended && account.role !== "owner") {
       return { ok: false, status: 403, error: "Your account has been suspend. Please contact support." };
     }
+    if (account.servicePausedAt) return { ok: false, status: 403, error: "Your service is paused by the owner." };
     if (!isActive(account)) return { ok: false, status: 403, error: "Your access has ended. Please upgrade your plan." };
     const plans = await loadPlans();
-    const streamsPerDay = typeof account.streamsPerDay === "number" && Number.isSafeInteger(account.streamsPerDay) && account.streamsPerDay > 0
+    const streamsPerDay = typeof account.streamsPerDay === "number" && Number.isSafeInteger(account.streamsPerDay) && account.streamsPerDay >= 0
       ? account.streamsPerDay
       : plans[account.activePlanId]?.isTrial ? 1 : 100;
     const dayKey = currentUsageDayKey();
@@ -2084,6 +2302,9 @@ export async function reserveAccountDownload(userId: string, workspaceId: string
     const account = await loadAccount(userId);
     if (!account || account.workspaceId !== workspaceId) {
       return { ok: false, status: 403, error: "This workspace does not belong to the signed-in account." };
+    }
+    if (account.servicePausedAt) {
+      return { ok: false, status: 403, error: "Your service is paused by the owner." };
     }
     if (!isActive(account)) {
       return { ok: false, status: 403, error: "Your access has ended. Please upgrade your plan." };
