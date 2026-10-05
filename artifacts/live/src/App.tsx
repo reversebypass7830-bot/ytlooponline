@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useId, useMemo, useRef, useState, type CSSProperties, type ChangeEvent, type FormEvent, type PointerEvent as ReactPointerEvent, type ReactNode, type SyntheticEvent } from "react";
 import { Link, Redirect, Route, Switch, useLocation, Router as WouterRouter } from "wouter";
 import {
-  Activity as ActivityIcon, ArrowLeft, ArrowRight, BookOpen, Camera, Check, CircleHelp, Clipboard,
+  Activity as ActivityIcon, ArrowLeft, ArrowRight, BookOpen, Camera, Check, CircleHelp, Clipboard, ClipboardList,
   CalendarDays, Download, FileVideo, Filter, FolderOpen, Gauge, Gift, Instagram, LayoutDashboard,
   Image, Layers, Link2, Menu, MessageCircle, MonitorPlay, Pencil, Play, Plus, Radio, Scissors, Search, Send, Settings,
   UserRound, CreditCard, KeyRound, Mail, Receipt, Users,
@@ -18,7 +18,7 @@ import { GatewayPage, PricingPage } from "@/pages/public";
 import { FeedbackDetailPage, FeedbackGalleryPage } from "@/components/FeedbackShowcase";
 import { OwnerFeedbackPanel } from "@/pages/FeedbackAdmin";
 import { extractYoutubeChannelLinks, getStreamStatus, startStream, stopStream, trimMediaFile, updateStream } from "@workspace/api-client-react";
-import { ManualSubscriptionPage, OwnerPaymentPanel } from "./pages/ManualPayments";
+import { ManualSubscriptionPage, OwnerPaymentPanel, OwnerPaymentRequestsPanel } from "./pages/ManualPayments";
 import { TransactionsPage } from "./pages/Transactions";
 import { OwnerSettingsPanel, OwnerUsersPanel } from "./components/owner-users";
 import logoImage from "@assets/image_1788788255512.png";
@@ -2212,7 +2212,7 @@ function OwnerMobileNav({ active, onDashboard, onKeys }: { active: "dashboard" |
   </nav>;
 }
 
-type OwnerSection = "dashboard" | "folders" | "animations" | "users" | "keys" | "payments" | "feedback" | "settings";
+type OwnerSection = "dashboard" | "folders" | "animations" | "users" | "keys" | "payments" | "paymentRequests" | "feedback" | "settings";
 
 function OwnerDesktopSidebar({ active, onNavigate }: { active: OwnerSection; onNavigate: (section: OwnerSection) => void }) {
   const [collapsed, setCollapsed] = useState(() => localStorage.getItem("loop-owner-sidebar") === "collapsed");
@@ -2223,6 +2223,7 @@ function OwnerDesktopSidebar({ active, onNavigate }: { active: OwnerSection; onN
     { section: "users", label: "Users", icon: Users },
     { section: "keys", label: "Key", icon: ShieldCheck },
     { section: "payments", label: "Payments", icon: Receipt },
+    { section: "paymentRequests", label: "Payment Request", icon: ClipboardList },
     { section: "feedback", label: "Feedback", icon: MessageCircle },
     { section: "settings", label: "Settings", icon: Settings },
   ];
@@ -2234,7 +2235,7 @@ function OwnerDesktopSidebar({ active, onNavigate }: { active: OwnerSection; onN
   return <aside className={`owner-sidebar ${collapsed ? "collapsed" : ""}`} aria-label="Owner navigation">
     <div className="owner-sidebar-brand"><span className="owner-sidebar-mark">S</span><div className="owner-sidebar-brand-copy"><strong>Slash Owner</strong><small>Control room</small></div><button className="owner-sidebar-toggle" type="button" onClick={toggle} aria-label={collapsed ? "Expand owner navigation" : "Minimize owner navigation"} aria-expanded={!collapsed}><Menu size={17}/></button></div>
     <div className="owner-sidebar-label">Workspace</div>
-    <nav>{items.map(({ section, label, icon: Icon }) => <button key={section} className={active === section ? "active" : ""} onClick={() => onNavigate(section)} type="button"><Icon size={16}/><span>{label}</span></button>)}</nav>
+    <nav>{items.map(({ section, label, icon: Icon }) => <button key={section} className={active === section ? "active" : ""} aria-label={label} aria-current={active === section ? "page" : undefined} onClick={() => onNavigate(section)} type="button" data-testid={`owner-nav-${section}`}><Icon size={16}/><span>{label}</span></button>)}</nav>
     <div className="owner-sidebar-footer"><ShieldCheck size={14}/><span>Private owner access</span></div>
   </aside>;
 }
@@ -2261,7 +2262,7 @@ function OwnerKeysPanel({ tokens, tokenDraft, keyBusy, error, onDraftChange, onA
   </div>;
 }
 
-function OwnerDashboardPage({ ownerPassword, error, message, keyBusy, showIncludedAnimations, onFolder, onAnimations, onKeys, onUsers, onPayments, onFeedback, onSettings, onNavigate, onCloseAnimations }: {
+function OwnerDashboardPage({ ownerPassword, error, message, keyBusy, showIncludedAnimations, onFolder, onAnimations, onKeys, onUsers, onPayments, onPaymentRequests, onFeedback, onSettings, onNavigate, onCloseAnimations }: {
   ownerPassword: string;
   error: string;
   message: string;
@@ -2273,6 +2274,7 @@ function OwnerDashboardPage({ ownerPassword, error, message, keyBusy, showInclud
   onCloseAnimations: () => void;
   onUsers?: () => void;
   onPayments?: () => void;
+  onPaymentRequests?: () => void;
   onFeedback?: () => void;
   onSettings?: () => void;
   onNavigate?: (section: OwnerSection) => void;
@@ -2288,7 +2290,8 @@ function OwnerDashboardPage({ ownerPassword, error, message, keyBusy, showInclud
         <button className="owner-action-card animation" onClick={onAnimations}><span className="owner-action-icon"><Upload size={22}/></span><span><strong>Include Animation</strong><small>Add videos available to every active workspace.</small></span><ArrowRight size={17}/></button>
          <button className="owner-action-card system-key" onClick={onKeys} disabled={keyBusy}><span className="owner-action-icon"><ShieldCheck size={22}/></span><span><strong>Key</strong><small>Manage the secure downloader key pool.</small></span><ArrowRight size={17}/></button>
           {onUsers && <button className="owner-action-card users" onClick={onUsers}><span className="owner-action-icon"><Users size={22}/></span><span><strong>Users</strong><small>Review account identity, plans, status, and history.</small></span><ArrowRight size={17}/></button>}
-          {onPayments && <button className="owner-action-card payments" onClick={onPayments}><span className="owner-action-icon"><Receipt size={22}/></span><span><strong>Payments</strong><small>Configure UPI plans and review customer UTRs.</small></span><ArrowRight size={17}/></button>}
+           {onPayments && <button className="owner-action-card payments" onClick={onPayments}><span className="owner-action-icon"><Receipt size={22}/></span><span><strong>Payments</strong><small>Configure payment methods, pricing, and trial access.</small></span><ArrowRight size={17}/></button>}
+           {onPaymentRequests && <button type="button" className="owner-action-card payments" onClick={onPaymentRequests} data-testid="owner-action-payment-requests"><span className="owner-action-icon"><ClipboardList size={22}/></span><span><strong>Payment Request</strong><small>Review payment requests and decide whether to activate service.</small></span><ArrowRight size={17}/></button>}
           {onFeedback && <button className="owner-action-card feedback" onClick={onFeedback}><span className="owner-action-icon"><MessageCircle size={22}/></span><span><strong>Feedback</strong><small>Add and manage public channel examples.</small></span><ArrowRight size={17}/></button>}
            {onSettings && <button className="owner-action-card settings" onClick={onSettings}><span className="owner-action-icon"><Settings size={22}/></span><span><strong>Settings</strong><small>Choose the support link shown to suspended users.</small></span><ArrowRight size={17}/></button>}
       </section>
@@ -2358,9 +2361,10 @@ function OwnerConsolePage() {
   if (ownerView === "keys") return <OwnerKeysPanel tokens={vidKrakenTokens} tokenDraft={tokenDraft} keyBusy={keyBusy} error={error} onDraftChange={setTokenDraft} onAdd={(event) => void addToken(event)} onRemove={(token) => void removeToken(token)} onDashboard={goDashboard} onNavigate={navigateOwner} />;
   if (ownerView === "users") return <div className="owner-page owner-payment-page owner-users-view"><OwnerDesktopSidebar active="users" onNavigate={navigateOwner}/><header className="owner-topbar"><div className="owner-topbar-title"><span className="owner-topbar-kicker">Slash Owner</span><strong>Users</strong></div><button className="button secondary small owner-payment-mobile-back" onClick={goDashboard} type="button"><ArrowLeft size={14}/> Dashboard</button></header><main className="owner-content"><OwnerUsersPanel ownerPassword={authorizedPassword}/></main></div>;
   if (ownerView === "payments") return <div className="owner-page owner-payment-page"><OwnerDesktopSidebar active="payments" onNavigate={navigateOwner}/><header className="owner-topbar"><div className="owner-topbar-title"><span className="owner-topbar-kicker">Slash Owner</span><strong>Payments</strong></div><button className="button secondary small owner-payment-mobile-back" onClick={goDashboard} type="button"><ArrowLeft size={14}/> Dashboard</button></header><OwnerPaymentPanel ownerPassword={authorizedPassword}/></div>;
+  if (ownerView === "paymentRequests") return <div className="owner-page owner-payment-page owner-payment-request-page"><OwnerDesktopSidebar active="paymentRequests" onNavigate={navigateOwner}/><header className="owner-topbar"><div className="owner-topbar-title"><span className="owner-topbar-kicker">Slash Owner</span><strong>Payment Request</strong></div><button className="button secondary small owner-payment-mobile-back" onClick={goDashboard} type="button"><ArrowLeft size={14}/> Dashboard</button></header><OwnerPaymentRequestsPanel ownerPassword={authorizedPassword}/></div>;
   if (ownerView === "feedback") return <div className="owner-page owner-payment-page owner-feedback-page"><OwnerDesktopSidebar active="feedback" onNavigate={navigateOwner}/><header className="owner-topbar"><div className="owner-topbar-title"><span className="owner-topbar-kicker">Slash Owner</span><strong>Feedback</strong></div><button className="button secondary small owner-payment-mobile-back" onClick={goDashboard} type="button"><ArrowLeft size={14}/> Dashboard</button></header><OwnerFeedbackPanel ownerPassword={authorizedPassword}/></div>;
   if (ownerView === "settings") return <div className="owner-page owner-payment-page owner-settings-view"><OwnerDesktopSidebar active="settings" onNavigate={navigateOwner}/><header className="owner-topbar"><div className="owner-topbar-title"><span className="owner-topbar-kicker">Slash Owner</span><strong>Settings</strong></div><button className="button secondary small owner-payment-mobile-back" onClick={goDashboard} type="button"><ArrowLeft size={14}/> Dashboard</button></header><main className="owner-content"><OwnerSettingsPanel ownerPassword={authorizedPassword}/></main></div>;
-  return <OwnerDashboardPage ownerPassword={authorizedPassword} error={error} message={message} keyBusy={keyBusy} showIncludedAnimations={showIncludedAnimations} onFolder={() => setOwnerView("folders")} onAnimations={() => setShowIncludedAnimations(true)} onKeys={openKeys} onUsers={() => setOwnerView("users")} onPayments={() => setOwnerView("payments")} onFeedback={() => setOwnerView("feedback")} onSettings={() => setOwnerView("settings")} onNavigate={navigateOwner} onCloseAnimations={() => setShowIncludedAnimations(false)} />;
+  return <OwnerDashboardPage ownerPassword={authorizedPassword} error={error} message={message} keyBusy={keyBusy} showIncludedAnimations={showIncludedAnimations} onFolder={() => setOwnerView("folders")} onAnimations={() => setShowIncludedAnimations(true)} onKeys={openKeys} onUsers={() => setOwnerView("users")} onPayments={() => setOwnerView("payments")} onPaymentRequests={() => setOwnerView("paymentRequests")} onFeedback={() => setOwnerView("feedback")} onSettings={() => setOwnerView("settings")} onNavigate={navigateOwner} onCloseAnimations={() => setShowIncludedAnimations(false)} />;
 }
 
 function Metric({ label, value, detail, image, dim }: { label:string; value:string|number; detail:string; image?:string; dim?:boolean }) {

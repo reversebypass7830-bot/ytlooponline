@@ -399,16 +399,32 @@ const toDraft = (plan: BillingPlan): PlanDraft => ({
   dailyRentRupees: String((plan.dailyRentPaise || 0) / 100),
 });
 
-export function OwnerPaymentPanel({ ownerPassword }: { ownerPassword: string }) {
+export function OwnerPaymentPanel({ ownerPassword, view = "settings" }: {
+  ownerPassword: string;
+  view?: "settings" | "requests";
+}) {
   const queryClient = useQueryClient();
   const requestOpts = { headers: { "X-Owner-Password": ownerPassword } };
-  const plansQuery = useListBillingPlans({ request: requestOpts });
-  const settingsQuery = useGetOwnerPaymentSettings({ request: requestOpts });
-  const trialSettingsQuery = useGetOwnerTrialSettings({ request: requestOpts });
+  const plansQuery = useListBillingPlans({
+    request: requestOpts,
+    query: { queryKey: getListBillingPlansQueryKey(), enabled: view === "settings" },
+  });
+  const settingsQuery = useGetOwnerPaymentSettings({
+    request: requestOpts,
+    query: { queryKey: getGetOwnerPaymentSettingsQueryKey(), enabled: view === "settings" },
+  });
+  const trialSettingsQuery = useGetOwnerTrialSettings({
+    request: requestOpts,
+    query: { queryKey: getGetOwnerTrialSettingsQueryKey(), enabled: view === "settings" },
+  });
   const [status, setStatus] = useState<"pending" | "approved" | "rejected" | "failed" | undefined>("pending");
   const requestsQuery = useListOwnerPaymentRequests(status ? { status } : {}, {
     request: requestOpts,
-    query: { queryKey: getListOwnerPaymentRequestsQueryKey(status ? { status } : {}), refetchInterval: 20000 },
+    query: {
+      queryKey: getListOwnerPaymentRequestsQueryKey(status ? { status } : {}),
+      refetchInterval: 20000,
+      enabled: view === "requests",
+    },
   });
   const updatePlan = useUpdateBillingPlan({ request: requestOpts });
   const updateSettings = useUpdateOwnerPaymentSettings({ request: requestOpts });
@@ -577,8 +593,22 @@ export function OwnerPaymentPanel({ ownerPassword }: { ownerPassword: string }) 
   const selectedCashfreeReentryRequired = cashfreeEnvironment === "sandbox"
     ? settingsQuery.data?.cashfreeSandboxReentryRequired
     : settingsQuery.data?.cashfreeProductionReentryRequired;
+  const requestsSection = <section className="card owner-pay-card owner-review-card">
+    <div className="pay-section-title">
+      <div><span className="metric-kicker">Orders and review</span><h2>Payment requests</h2><p>Cashfree orders appear here while payment is pending. Verified payments activate automatically; owner approval can activate either payment method.</p></div>
+      <button className="button secondary small" type="button" onClick={() => void requestsQuery.refetch()} disabled={requestsQuery.isFetching} data-testid="button-refresh-owner-requests"><RefreshCw size={13} className={requestsQuery.isFetching ? "pay-spin" : ""}/> Refresh</button>
+    </div>
+    <div className="owner-review-tabs" role="tablist" aria-label="Filter payment requests">{([["pending","Pending"],["approved","Paid / approved"],["rejected","Rejected"],["failed","Failed"],["","All requests"]] as const).map(([value,label]) => <button type="button" role="tab" aria-selected={status === (value || undefined)} key={label} className={status === (value || undefined) ? "active" : ""} onClick={() => setStatus(value || undefined)} data-testid={`tab-owner-${value || "all"}`}>{label}</button>)}</div>
+    {requestsQuery.isLoading ? <div className="pay-loading-line"/> : requestsQuery.isError ? <div className="pay-empty"><XCircle size={20}/><strong>Could not load payment requests</strong><button className="button secondary small" type="button" onClick={() => void requestsQuery.refetch()}>Retry</button></div> : requests.length === 0 ? <div className="pay-empty"><FileText size={23}/><strong>No {status || ""} requests</strong><span>New customer submissions will appear in this queue.</span></div> : <div className="owner-review-list">{requests.map((request) => <OwnerPaymentRequestCard key={request.id} request={request} note={reviewNotes[request.id] ?? ""} onNote={(value) => setReviewNotes((current) => ({ ...current, [request.id]: value }))} onReview={(action) => void review(request.id, action)} busy={reviewRequest.isPending}/>)}</div>}
+  </section>;
+  if (view === "requests") return <main className="owner-content owner-payment-content">
+    <div className="page-head owner-page-heading"><div><p className="eyebrow">Admin / Payments</p><h1>Payment Request</h1><p className="subtle">Review UPI submissions and Cashfree orders, then approve or reject requests.</p></div><div className="owner-page-badge"><ShieldCheck size={16}/> Owner review</div></div>
+    {feedback && <div className="pay-alert success" role="status" data-testid="status-owner-feedback"><CheckCircle2 size={17}/><span>{feedback}</span><button className="pay-alert-close" type="button" onClick={() => setFeedback("")} aria-label="Dismiss notification"><X size={15}/></button></div>}
+    {error && <div className="pay-alert error" role="alert" data-testid="status-owner-error"><XCircle size={17}/><span>{error}</span><button className="pay-alert-close" type="button" onClick={() => setError("")} aria-label="Dismiss error"><X size={15}/></button></div>}
+    {requestsSection}
+  </main>;
   return <main className="owner-content owner-payment-content">
-    <div className="page-head owner-page-heading"><div><p className="eyebrow">Commerce / Billing</p><h1>Payments</h1><p className="subtle">Set usage rates and rent, configure checkout, manage trials, and review every order.</p></div><div className="owner-page-badge"><ShieldCheck size={16}/> Owner review</div></div>
+    <div className="page-head owner-page-heading"><div><p className="eyebrow">Commerce / Billing</p><h1>Payments</h1><p className="subtle">Set usage rates and rent, configure checkout, and manage trial access.</p></div><div className="owner-page-badge"><ShieldCheck size={16}/> Billing settings</div></div>
     {feedback && <div className="pay-alert success" role="status" data-testid="status-owner-feedback"><CheckCircle2 size={17}/><span>{feedback}</span><button className="pay-alert-close" onClick={() => setFeedback("")} aria-label="Dismiss notification"><X size={15}/></button></div>}
     {error && <div className="pay-alert error" role="alert" data-testid="status-owner-error"><XCircle size={17}/><span>{error}</span><button className="pay-alert-close" onClick={() => setError("")} aria-label="Dismiss error"><X size={15}/></button></div>}
     <div className="owner-payment-columns">
@@ -663,11 +693,11 @@ export function OwnerPaymentPanel({ ownerPassword }: { ownerPassword: string }) 
         {trialSettingsQuery.data?.updatedAt && <small className="owner-trial-updated">Last updated {new Date(trialSettingsQuery.data.updatedAt).toLocaleString()}</small>}
       </form>}
     </section>
-    <section className="card owner-pay-card owner-review-card"><div className="pay-section-title"><div><span className="metric-kicker">Orders and review</span><h2>Payment orders</h2><p>Cashfree orders appear here while payment is pending. Verified payments activate automatically; owner approval can activate either payment method.</p></div><button className="button secondary small" onClick={() => void requestsQuery.refetch()} disabled={requestsQuery.isFetching} data-testid="button-refresh-owner-requests"><RefreshCw size={13} className={requestsQuery.isFetching ? "pay-spin" : ""}/> Refresh</button></div>
-      <div className="owner-review-tabs" role="tablist" aria-label="Filter payment requests">{([["pending","Pending"],["approved","Paid / approved"],["rejected","Rejected"],["failed","Failed"],["","All requests"]] as const).map(([value,label]) => <button type="button" role="tab" aria-selected={status === (value || undefined)} key={label} className={status === (value || undefined) ? "active" : ""} onClick={() => setStatus(value || undefined)} data-testid={`tab-owner-${value || "all"}`}>{label}</button>)}</div>
-      {requestsQuery.isLoading ? <div className="pay-loading-line"/> : requestsQuery.isError ? <div className="pay-empty"><XCircle size={20}/><strong>Could not load payment requests</strong><button className="button secondary small" onClick={() => void requestsQuery.refetch()}>Retry</button></div> : requests.length === 0 ? <div className="pay-empty"><FileText size={23}/><strong>No {status || ""} requests</strong><span>New customer submissions will appear in this queue.</span></div> : <div className="owner-review-list">{requests.map((request) => <OwnerPaymentRequestCard key={request.id} request={request} note={reviewNotes[request.id] ?? ""} onNote={(value) => setReviewNotes((current) => ({ ...current, [request.id]: value }))} onReview={(action) => void review(request.id, action)} busy={reviewRequest.isPending}/>)}</div>}
-    </section>
   </main>;
+}
+
+export function OwnerPaymentRequestsPanel({ ownerPassword }: { ownerPassword: string }) {
+  return <OwnerPaymentPanel ownerPassword={ownerPassword} view="requests"/>;
 }
 
 function OwnerPaymentRequestCard({ request, note, onNote, onReview, busy }: { request: PaymentRequest; note: string; onNote: (value: string) => void; onReview: (action: "approve" | "reject") => void; busy: boolean }) {

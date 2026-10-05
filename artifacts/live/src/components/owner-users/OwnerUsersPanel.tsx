@@ -9,10 +9,11 @@ import {
   useUpdateOwnerUserSuspension,
   type OwnerUser,
 } from "@workspace/api-client-react";
-import { AlertTriangle, ChevronDown, ChevronUp, Search, Shield, Users, X } from "lucide-react";
+import { AlertTriangle, Eye, Search, Users, X } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import "./owner-users.css";
 
-type UserFilter = "all" | "active" | "paused" | "suspended" | "trial" | "expired";
+type UserFilter = "all" | "active" | "paused" | "suspended" | "trial" | "expired" | "paid";
 
 const date = (value?: string | null) => {
   if (!value) return "—";
@@ -27,6 +28,18 @@ const dateTime = (value?: string | null) => {
 };
 
 const accessIsActive = (user: OwnerUser) => user.active && !user.servicePausedAt && (!user.accessEndsAt || new Date(user.accessEndsAt).getTime() > Date.now());
+const isPaidUser = (user: OwnerUser) => {
+  if (user.role === "owner") return false;
+  const accessEndsAt = Date.parse(user.accessEndsAt);
+  const hasActivePaidPlan = Boolean(user.activePlan && !user.activePlan.isTrial && user.activePlan.id !== "trial-1-day"
+    && Number.isFinite(accessEndsAt) && accessEndsAt > Date.now());
+  const hasPaidPurchase = (user.history ?? []).some((item) =>
+    item.type === "purchase"
+      && (item.amountPaise == null || item.amountPaise > 0)
+      && !/manually activated by owner/i.test(item.message),
+  );
+  return hasActivePaidPlan || hasPaidPurchase;
+};
 const displayName = (user: OwnerUser) => user.displayName?.trim() || user.email || "Unnamed account";
 const errorText = (error: unknown, fallback: string) => error instanceof Error ? error.message : fallback;
 
@@ -39,7 +52,7 @@ export function OwnerUsersPanel({ ownerPassword }: OwnerUsersPanelProps) {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<UserFilter>("all");
   const [selected, setSelected] = useState<string[]>([]);
-  const [expanded, setExpanded] = useState<string | null>(null);
+  const [detailsUser, setDetailsUser] = useState<OwnerUser | null>(null);
   const [feedback, setFeedback] = useState<{ kind: "success" | "error"; text: string } | null>(null);
   const request = useMemo(() => ({ headers: { "X-Owner-Password": ownerPassword } }), [ownerPassword]);
   const usersQuery = useListOwnerUsers({ request });
@@ -106,7 +119,8 @@ export function OwnerUsersPanel({ ownerPassword }: OwnerUsersPanelProps) {
         || (filter === "paused" && !!user.servicePausedAt)
         || (filter === "suspended" && user.suspended)
         || (filter === "trial" && !!user.trialStartedAt && !!user.trialEndsAt)
-        || (filter === "expired" && !active && !user.suspended && !user.servicePausedAt);
+        || (filter === "expired" && !active && !user.suspended && !user.servicePausedAt)
+        || (filter === "paid" && isPaidUser(user));
       return matchesSearch && matchesFilter;
     });
   }, [users, search, filter]);
@@ -119,6 +133,7 @@ export function OwnerUsersPanel({ ownerPassword }: OwnerUsersPanelProps) {
     active: users.filter((user) => accessIsActive(user) && !user.suspended).length,
     paused: users.filter((user) => !!user.servicePausedAt).length,
     suspended: users.filter((user) => user.suspended).length,
+    paid: users.filter(isPaidUser).length,
   };
 
   const toggleSelected = (id: string) => setSelected((current) => current.includes(id) ? current.filter((item) => item !== id) : [...current, id]);
@@ -167,10 +182,10 @@ export function OwnerUsersPanel({ ownerPassword }: OwnerUsersPanelProps) {
         {search && <button type="button" aria-label="Clear search" onClick={() => setSearch("")}><X size={14}/></button>}
       </label>
       <div className="ou-filters" role="group" aria-label="Filter users">
-        {(["all", "active", "paused", "suspended", "trial", "expired"] as UserFilter[]).map((key) =>
+        {(["all", "active", "paused", "suspended", "trial", "expired", "paid"] as UserFilter[]).map((key) =>
           <button type="button" className={filter === key ? "selected" : ""} aria-pressed={filter === key} key={key} onClick={() => setFilter(key)} data-testid={`owner-users-filter-${key}`}>
-            {key === "all" ? "All" : key === "active" ? "Active" : key === "paused" ? "Paused" : key === "trial" ? "Trial" : key === "expired" ? "Expired" : "Suspended"}
-            {key === "all" && <span>{counts.all}</span>}{key === "active" && <span>{counts.active}</span>}{key === "paused" && <span>{counts.paused}</span>}{key === "suspended" && <span>{counts.suspended}</span>}
+            {key === "all" ? "All" : key === "active" ? "Active" : key === "paused" ? "Paused" : key === "trial" ? "Trial" : key === "expired" ? "Expired" : key === "paid" ? "Paid Users" : "Suspended"}
+            {key === "all" && <span>{counts.all}</span>}{key === "active" && <span>{counts.active}</span>}{key === "paused" && <span>{counts.paused}</span>}{key === "suspended" && <span>{counts.suspended}</span>}{key === "paid" && <span>{counts.paid}</span>}
           </button>)}
       </div>
     </div>
@@ -188,8 +203,8 @@ export function OwnerUsersPanel({ ownerPassword }: OwnerUsersPanelProps) {
         {[0, 1, 2, 3, 4].map((item) => <div className="ou-skeleton-row" key={item}><i/><span/><span/><span/><b/></div>)}
       </div> : usersQuery.isError ? null : visibleUsers.length === 0 ? <div className="ou-empty" data-testid="owner-users-empty">
         <div className="ou-empty-mark"><Users size={20}/></div>
-        <strong>{users.length ? "No accounts match these filters" : "No accounts yet"}</strong>
-        <span>{users.length ? "Try a different search or clear the selected filter." : "New registrations will appear here."}</span>
+        <strong>{users.length ? filter === "paid" ? "No paid users yet" : "No accounts match these filters" : "No accounts yet"}</strong>
+        <span>{users.length ? filter === "paid" ? "Users with an active paid plan or a completed purchase will appear here." : "Try a different search or clear the selected filter." : "New registrations will appear here."}</span>
         {users.length > 0 && (search || filter !== "all") && <button type="button" className="ou-button quiet" onClick={() => { setSearch(""); setFilter("all"); }}>Clear filters</button>}
       </div> : <div className="ou-table-scroll">
         <table className="ou-table">
@@ -198,13 +213,12 @@ export function OwnerUsersPanel({ ownerPassword }: OwnerUsersPanelProps) {
             <th>Account</th><th>Registered</th><th>Plan / access</th><th>Trial window</th><th>Live starts</th><th><span className="ou-sr-only">Actions</span></th>
           </tr></thead>
           <tbody>{visibleUsers.map((user) => {
-            const isExpanded = expanded === user.id;
             const isActive = accessIsActive(user);
             const planName = user.activePlan?.name || (user.activePlanId ? user.activePlanId : "No plan");
-            return <UserRows key={user.id} user={user} isExpanded={isExpanded} isActive={isActive} planName={planName}
+            return <UserRows key={user.id} user={user} isActive={isActive} planName={planName}
               selected={selected.includes(user.id)} busy={busy}
               onSelect={() => toggleSelected(user.id)}
-              onExpand={() => setExpanded(isExpanded ? null : user.id)}
+              onViewDetails={() => setDetailsUser(user)}
               onSuspension={() => { setFeedback(null); suspension.mutate({ userId: user.id, data: { suspended: !user.suspended } }); }}
                onServicePause={() => { setFeedback(null); servicePause.mutate({ userId: user.id, data: { paused: !user.servicePausedAt } }); }}
               onDelete={() => confirmDelete(user)}/>;
@@ -213,17 +227,16 @@ export function OwnerUsersPanel({ ownerPassword }: OwnerUsersPanelProps) {
       </div>}
     </div>
     <div className="ou-table-foot"><span>Showing <strong>{visibleUsers.length}</strong> of <strong>{users.length}</strong> accounts</span><span><i/> Owner accounts are protected from bulk actions</span></div>
+    {detailsUser && <UserDetailsDialog user={detailsUser} onClose={() => setDetailsUser(null)}/>}
   </section>;
 }
 
-function UserRows({ user, isExpanded, isActive, planName, selected, busy, onSelect, onExpand, onSuspension, onServicePause, onDelete }: {
-  user: OwnerUser; isExpanded: boolean; isActive: boolean; planName: string; selected: boolean; busy: boolean;
-  onSelect: () => void; onExpand: () => void; onSuspension: () => void; onServicePause: () => void; onDelete: () => void;
+function UserRows({ user, isActive, planName, selected, busy, onSelect, onViewDetails, onSuspension, onServicePause, onDelete }: {
+  user: OwnerUser; isActive: boolean; planName: string; selected: boolean; busy: boolean;
+  onSelect: () => void; onViewDetails: () => void; onSuspension: () => void; onServicePause: () => void; onDelete: () => void;
 }) {
   const protectedOwner = user.role === "owner";
-  const detailId = `owner-user-history-${user.id.replace(/[^a-zA-Z0-9_-]/g, "")}`;
-  return <>
-    <tr className={user.suspended ? "ou-user-suspended" : user.servicePausedAt ? "ou-user-paused" : ""} data-testid={`owner-user-row-${user.id}`}>
+  return <tr className={user.suspended ? "ou-user-suspended" : user.servicePausedAt ? "ou-user-paused" : ""} data-testid={`owner-user-row-${user.id}`}>
       <td className="ou-check-col">{!protectedOwner && <input type="checkbox" checked={selected} onChange={onSelect} aria-label={`Select ${displayName(user)}`} data-testid={`owner-user-select-${user.id}`}/>}</td>
       <td><div className="ou-account-cell">
         <div className={`ou-avatar ${user.suspended ? "suspended" : ""}`}>{(displayName(user)[0] || "U").toLocaleUpperCase()}</div>
@@ -237,34 +250,60 @@ function UserRows({ user, isExpanded, isActive, planName, selected, busy, onSele
       <td><div className="ou-trial-cell"><strong>{user.trialStartedAt || user.trialEndsAt ? "Trial" : "—"}</strong><span>{user.trialStartedAt ? date(user.trialStartedAt) : "Not started"}</span><small>{user.trialEndsAt ? `Ends ${date(user.trialEndsAt)}` : "No trial end"}</small></div></td>
       <td><span className="ou-live-count">{user.lifetimeLiveStarts.toLocaleString()}</span><small className="ou-live-caption">lifetime</small></td>
       <td><div className="ou-row-actions">
-        <button className="ou-icon-button details-button" type="button" aria-expanded={isExpanded} aria-controls={detailId} aria-label={`${isExpanded ? "Hide" : "View"} history for ${displayName(user)}`} onClick={onExpand} data-testid={`owner-user-history-toggle-${user.id}`}>{isExpanded ? <ChevronUp size={15}/> : <ChevronDown size={15}/>}</button>
+        <button type="button" className="ou-button quiet view-details-button" onClick={onViewDetails} data-testid={`owner-user-view-details-${user.id}`}><Eye size={14} aria-hidden="true"/> View Details</button>
         <button type="button" className={`ou-button ${user.suspended ? "restore" : "quiet"}`} disabled={busy || protectedOwner} onClick={onSuspension} title={protectedOwner ? "Owner access cannot be changed here" : undefined} data-testid={`owner-user-suspension-${user.id}`}>{user.suspended ? "Restore" : "Suspend"}</button>
          <button type="button" className={`ou-button ${user.servicePausedAt ? "restore" : "quiet"}`} disabled={busy || protectedOwner || (!user.servicePausedAt && !user.active)} onClick={onServicePause} title={protectedOwner ? "Owner service cannot be paused here" : user.servicePausedAt ? "Resume service and restore the frozen access time" : "Pause service without blocking sign-in"} data-testid={`owner-user-service-pause-${user.id}`}>{user.servicePausedAt ? "Resume service" : "Pause service"}</button>
         <button type="button" className="ou-icon-button delete-button" disabled={busy || protectedOwner} aria-label={`Delete ${displayName(user)}`} title={protectedOwner ? "Owner accounts are protected" : "Delete account"} onClick={onDelete} data-testid={`owner-user-delete-${user.id}`}><X size={15}/></button>
       </div></td>
     </tr>
-    {isExpanded && <tr className="ou-detail-row"><td colSpan={7}><div id={detailId} className="ou-detail-panel">
-       <div className="ou-detail-top"><div><span className="ou-detail-label">ACCOUNT DETAILS</span><strong>{displayName(user)}</strong></div><div className="ou-detail-metrics"><span><b>{user.streamsPerDay}</b> starts/day</span><span><b>{user.downloadsPerDay.toLocaleString()}</b> downloads/day</span><span><b>{user.streamLimit}</b> concurrent stream limit</span></div></div>
-      <div className="ou-detail-grid">
-        <div><small>Phone</small><strong>{user.phone || "Not provided"}</strong></div>
-        <div><small>Current plan</small><strong>{user.activePlan?.name || user.activePlanId || "No active plan"}</strong></div>
-         <div><small>Current service</small><strong>{user.suspended ? "Suspended" : user.servicePausedAt ? "Paused" : isActive ? "Active" : "Expired"}</strong></div>
-         <div><small>Daily stream starts</small><strong>{user.streamsPerDay}</strong></div>
-         <div><small>Daily downloads</small><strong>{user.downloadsPerDay.toLocaleString()}</strong></div>
-        <div><small>Trial started</small><strong>{date(user.trialStartedAt)}</strong></div>
-        <div><small>Trial ends</small><strong>{date(user.trialEndsAt)}</strong></div>
-        <div><small>Access ends</small><strong>{date(user.accessEndsAt)}</strong></div>
-        <div><small>Service pause</small><strong>{user.servicePausedAt ? `Paused ${dateTime(user.servicePausedAt)}` : "Not paused"}</strong></div>
-        <div><small>Registration date</small><strong>{dateTime(user.createdAt)}</strong></div>
+}
+
+function UserDetailsDialog({ user, onClose }: { user: OwnerUser; onClose: () => void }) {
+  const isActive = accessIsActive(user);
+  const accessEndsAt = Date.parse(user.accessEndsAt);
+  const hasCurrentPaidPlan = Boolean(user.activePlan && !user.activePlan.isTrial && user.activePlan.id !== "trial-1-day"
+    && Number.isFinite(accessEndsAt) && accessEndsAt > Date.now());
+  const paidStatus = hasCurrentPaidPlan ? "Active paid plan"
+    : isPaidUser(user) ? "Paid purchase history" : "No paid purchase";
+  const serviceStatus = user.suspended ? "Suspended" : user.servicePausedAt ? "Paused" : isActive ? "Active" : "Expired";
+  return <Dialog open onOpenChange={(open) => { if (!open) onClose(); }}>
+    <DialogContent className="ou-user-details-dialog" data-testid="owner-user-details-dialog">
+      <DialogHeader>
+        <DialogTitle>{displayName(user)}</DialogTitle>
+        <DialogDescription>{user.email || "No email address"} · Account ID: {user.id}</DialogDescription>
+      </DialogHeader>
+      <div className="ou-user-dialog-scroll" data-testid="owner-user-details-content">
+        <div className="ou-detail-top">
+          <div><span className="ou-detail-label">ACCOUNT OVERVIEW</span><strong>{paidStatus}</strong></div>
+          <div className="ou-detail-metrics">
+            <span><b>{user.streamsPerDay}</b> starts/day</span>
+            <span><b>{user.downloadsPerDay.toLocaleString()}</b> downloads/day</span>
+            <span><b>{user.streamLimit}</b> concurrent stream limit</span>
+          </div>
+        </div>
+        <div className="ou-detail-grid">
+          <div><small>Phone</small><strong>{user.phone || "Not provided"}</strong></div>
+          <div><small>Role</small><strong>{user.role}</strong></div>
+          <div><small>Current plan</small><strong>{user.activePlan?.name || user.activePlanId || "No active plan"}</strong></div>
+          <div><small>Current service</small><strong>{serviceStatus}</strong></div>
+          <div><small>Paid status</small><strong>{paidStatus}</strong></div>
+          <div><small>Daily stream starts</small><strong>{user.streamsPerDay}</strong></div>
+          <div><small>Daily downloads</small><strong>{user.downloadsPerDay.toLocaleString()}</strong></div>
+          <div><small>Trial started</small><strong>{date(user.trialStartedAt)}</strong></div>
+          <div><small>Trial ends</small><strong>{date(user.trialEndsAt)}</strong></div>
+          <div><small>Access ends</small><strong>{date(user.accessEndsAt)}</strong></div>
+          <div><small>Service pause</small><strong>{user.servicePausedAt ? `Paused ${dateTime(user.servicePausedAt)}` : "Not paused"}</strong></div>
+          <div><small>Registration date</small><strong>{dateTime(user.createdAt)}</strong></div>
+        </div>
+        <div className="ou-history-heading"><div><span className="ou-detail-label">SUBSCRIPTION HISTORY</span><strong>{user.history?.length ?? 0} events</strong></div><span>Newest activity first</span></div>
+        {!user.history?.length ? <p className="ou-no-history">No subscription activity recorded.</p> : <ol className="ou-history-list">
+          {[...user.history].sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime()).map((item) => <li key={item.id}>
+            <span className={`ou-history-dot ${item.type === "purchase" ? "purchase" : ""}`}/>
+            <div className="ou-history-copy"><strong>{item.message}</strong><span>{item.planName || item.planId || item.type}{item.days ? ` · ${item.days} days` : item.durationHours ? ` · ${item.durationHours} hours` : ""}{item.amountPaise != null ? ` · ${(item.amountPaise / 100).toLocaleString(undefined, { style: "currency", currency: "INR" })}` : ""}</span></div>
+            <time dateTime={item.at}>{dateTime(item.at)}</time>
+          </li>)}
+        </ol>}
       </div>
-      <div className="ou-history-heading"><div><span className="ou-detail-label">SUBSCRIPTION HISTORY</span><strong>{user.history?.length ?? 0} events</strong></div><span>Newest activity first</span></div>
-      {!user.history?.length ? <p className="ou-no-history">No subscription activity recorded.</p> : <ol className="ou-history-list">
-        {[...user.history].sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime()).map((item) => <li key={item.id}>
-          <span className={`ou-history-dot ${item.type === "purchase" ? "purchase" : ""}`}/>
-           <div className="ou-history-copy"><strong>{item.message}</strong><span>{item.planName || item.planId || item.type}{item.days ? ` · ${item.days} days` : item.durationHours ? ` · ${item.durationHours} hours` : ""}{item.amountPaise != null ? ` · ${(item.amountPaise / 100).toLocaleString(undefined, { style: "currency", currency: "INR" })}` : ""}</span></div>
-          <time dateTime={item.at}>{dateTime(item.at)}</time>
-        </li>)}
-      </ol>}
-    </div></td></tr>}
-  </>;
+    </DialogContent>
+  </Dialog>;
 }
