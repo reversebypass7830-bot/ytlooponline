@@ -1,10 +1,10 @@
 ---
-name: Manual UPI billing scope
-description: Product boundary and approval rule for the manual UPI purchase flow.
+name: Billing approval rules
+description: Payment activation rules for Manual UPI and Cashfree purchases in the Live Control Room.
 ---
 
-Manual UPI billing belongs to the Live Control Room, not Arroxy. A customer submits a UTR to create a pending request; submission alone must never activate access. Only explicit owner approval can apply the purchased access.
+Billing belongs to the Live Control Room, not Arroxy. Manual UPI requests stay pending until explicit owner approval. Cashfree orders activate automatically only after server verification, but they must also appear in the owner queue; an owner may explicitly approve a pending Cashfree order and activate service before payment is verified.
 
-**Why:** The user scoped this billing flow to the Live Control Room and required owner review before access changes.
+**Why:** The user requires verified Cashfree payments to activate automatically while preserving owner review and an explicit manual override for gateway orders.
 
-**How to apply:** Keep future billing changes within the Live Control Room and preserve the pending-until-approved rule across API, UI, and tests.
+**How to apply:** Keep billing changes in the Live Control Room, keep auto-verification for paid Cashfree orders, and preserve the owner-approval path and its unverified-payment warning. Do not double-apply access when Cashfree confirms after an owner approval.

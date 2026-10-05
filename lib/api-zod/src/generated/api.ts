@@ -1827,6 +1827,7 @@ export const GetOwnerTrialSettingsHeader = zod.object({
 export const getOwnerTrialSettingsResponseStreamsPerDayMin = 0;
 export const getOwnerTrialSettingsResponseStreamsPerDayMax = 100;
 
+export const getOwnerTrialSettingsResponseDownloadsPerDayMin = 0;
 export const getOwnerTrialSettingsResponseDownloadsPerDayMax = 1000000;
 
 
@@ -1834,7 +1835,7 @@ export const getOwnerTrialSettingsResponseDownloadsPerDayMax = 1000000;
 export const GetOwnerTrialSettingsResponse = zod.object({
   "durationHours": zod.union([zod.literal(1),zod.literal(2),zod.literal(6),zod.literal(24)]),
   "streamsPerDay": zod.number().min(getOwnerTrialSettingsResponseStreamsPerDayMin).max(getOwnerTrialSettingsResponseStreamsPerDayMax),
-  "downloadsPerDay": zod.number().min(1).max(getOwnerTrialSettingsResponseDownloadsPerDayMax),
+  "downloadsPerDay": zod.number().min(getOwnerTrialSettingsResponseDownloadsPerDayMin).max(getOwnerTrialSettingsResponseDownloadsPerDayMax),
   "updatedAt": zod.coerce.date().nullable()
 })
 
@@ -1849,6 +1850,7 @@ export const UpdateOwnerTrialSettingsHeader = zod.object({
 export const updateOwnerTrialSettingsBodyStreamsPerDayMin = 0;
 export const updateOwnerTrialSettingsBodyStreamsPerDayMax = 100;
 
+export const updateOwnerTrialSettingsBodyDownloadsPerDayMin = 0;
 export const updateOwnerTrialSettingsBodyDownloadsPerDayMax = 1000000;
 
 
@@ -1856,12 +1858,13 @@ export const updateOwnerTrialSettingsBodyDownloadsPerDayMax = 1000000;
 export const UpdateOwnerTrialSettingsBody = zod.object({
   "durationHours": zod.union([zod.literal(1),zod.literal(2),zod.literal(6),zod.literal(24)]),
   "streamsPerDay": zod.number().min(updateOwnerTrialSettingsBodyStreamsPerDayMin).max(updateOwnerTrialSettingsBodyStreamsPerDayMax),
-  "downloadsPerDay": zod.number().min(1).max(updateOwnerTrialSettingsBodyDownloadsPerDayMax)
+  "downloadsPerDay": zod.number().min(updateOwnerTrialSettingsBodyDownloadsPerDayMin).max(updateOwnerTrialSettingsBodyDownloadsPerDayMax)
 })
 
 export const updateOwnerTrialSettingsResponseStreamsPerDayMin = 0;
 export const updateOwnerTrialSettingsResponseStreamsPerDayMax = 100;
 
+export const updateOwnerTrialSettingsResponseDownloadsPerDayMin = 0;
 export const updateOwnerTrialSettingsResponseDownloadsPerDayMax = 1000000;
 
 
@@ -1869,7 +1872,7 @@ export const updateOwnerTrialSettingsResponseDownloadsPerDayMax = 1000000;
 export const UpdateOwnerTrialSettingsResponse = zod.object({
   "durationHours": zod.union([zod.literal(1),zod.literal(2),zod.literal(6),zod.literal(24)]),
   "streamsPerDay": zod.number().min(updateOwnerTrialSettingsResponseStreamsPerDayMin).max(updateOwnerTrialSettingsResponseStreamsPerDayMax),
-  "downloadsPerDay": zod.number().min(1).max(updateOwnerTrialSettingsResponseDownloadsPerDayMax),
+  "downloadsPerDay": zod.number().min(updateOwnerTrialSettingsResponseDownloadsPerDayMin).max(updateOwnerTrialSettingsResponseDownloadsPerDayMax),
   "updatedAt": zod.coerce.date().nullable()
 })
 

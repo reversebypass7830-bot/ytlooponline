@@ -7,8 +7,8 @@
 - [Live playlist refresh](live-playlist-refresh.md) — playlist edits during a broadcast are applied by restarting FFmpeg with the current ordered source list.
 - [Multi-animation stream compatibility](multi-animation-stream-compatibility.md) — a present animation layer list is authoritative, while old single-animation compositions still use the legacy fallback.
 - [Firebase licensing security](firebase-licensing-security.md) — public Realtime Database rules make app-level owner passwords non-secure; harden rules/auth before production.
-- [Manual UPI pricing](manual-upi-pricing.md) — use separate owner-set rates for each live-stream start/day and each video download, multiplied by selected quantities and term days.
-- [Manual UPI billing scope](manual-upi-billing-scope.md) — keep this purchase flow in the Live Control Room; a submitted UTR stays pending until an owner explicitly approves it.
+- [Custom access pricing](manual-upi-pricing.md) — apply per-day stream, download, and rent rates across the full access term.
+- [Billing approval rules](manual-upi-billing-scope.md) — verified Cashfree orders auto-activate; owners can also approve pending gateway or UPI requests.
 - [Cashfree owner credentials](cashfree-owner-credentials.md) — owner-entered keys are encrypted before Firebase storage; `SESSION_SECRET` must remain stable to decrypt them.
 - [Public media builds](public-media-builds.md) — ignored local media must not be statically imported by the frontend; clean public checkouts should use runtime uploads/API media.
 - [Media library recovery](media-library-recovery.md) — server media needs an index plus workspace rehydration so existing files and folder counts survive browser/license workspace drift.

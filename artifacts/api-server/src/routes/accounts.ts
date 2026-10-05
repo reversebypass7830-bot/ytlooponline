@@ -452,7 +452,7 @@ function publicAccount(
   const streamsStartedToday = account.streamUsageDate === currentUsageDayKey()
     ? Math.max(0, account.streamsStartedToday || 0)
     : 0;
-  const downloadsPerDay = account.downloadsPerDay || plan?.downloadsPerDay || 50;
+  const downloadsPerDay = account.downloadsPerDay ?? plan?.downloadsPerDay ?? 50;
   const downloadsUsedToday = account.downloadUsageDate === currentUsageDayKey()
     ? Math.max(0, account.downloadsUsedToday || 0)
     : 0;
@@ -576,7 +576,7 @@ async function ensureAccount(req: Request): Promise<{ account: AccountRecord; pl
       streamsStartedToday: Number.isSafeInteger(existing.streamsStartedToday) && (existing.streamsStartedToday ?? -1) >= 0
         ? existing.streamsStartedToday
         : 0,
-      downloadsPerDay: existing.downloadsPerDay || plans[existing.activePlanId]?.downloadsPerDay || 50,
+      downloadsPerDay: existing.downloadsPerDay ?? plans[existing.activePlanId]?.downloadsPerDay ?? 50,
       activeFeatures: existing.activeFeatures || plans[existing.activePlanId]?.features || [],
     };
     await firebasePut(accountPath(userId), next);
@@ -646,7 +646,7 @@ export async function ensureFirebaseAccount(identity: { userId: string; email: s
       streamsStartedToday: Number.isSafeInteger(existing.streamsStartedToday) && (existing.streamsStartedToday ?? -1) >= 0
         ? existing.streamsStartedToday
         : 0,
-      downloadsPerDay: existing.downloadsPerDay || plans[existing.activePlanId]?.downloadsPerDay || 50,
+      downloadsPerDay: existing.downloadsPerDay ?? plans[existing.activePlanId]?.downloadsPerDay ?? 50,
       activeFeatures: existing.activeFeatures || plans[existing.activePlanId]?.features || [],
     };
     await firebasePut(accountPath(existing.id), next);
@@ -814,7 +814,7 @@ async function loadTrialSettings(): Promise<TrialSettingsRecord> {
     ? stored!.streamsPerDay!
     : 1;
   const downloadsPerDay = Number.isSafeInteger(stored?.downloadsPerDay)
-    && (stored?.downloadsPerDay ?? 0) >= 1
+    && (stored?.downloadsPerDay ?? -1) >= 0
     && (stored?.downloadsPerDay ?? 1_000_001) <= 1_000_000
     ? stored!.downloadsPerDay!
     : 50;
@@ -921,7 +921,7 @@ async function paymentQuote(
   if (!Number.isInteger(currentStreamLimit) || currentStreamLimit < 1) return null;
   const unitChargesPaise = BigInt(pricePerStreamDayPaise) * BigInt(input.streamsPerDay)
     + BigInt(pricePerDownloadPaise) * BigInt(input.downloadsPerDay);
-  const amountPaise = Number(unitChargesPaise + BigInt(dailyRentPaise) * BigInt(input.durationDays));
+  const amountPaise = Number((unitChargesPaise + BigInt(dailyRentPaise)) * BigInt(input.durationDays));
   const totalDownloads = input.durationDays * input.downloadsPerDay;
   if (!Number.isSafeInteger(amountPaise) || amountPaise < 1 || amountPaise > 100_000_000_000 || !Number.isSafeInteger(totalDownloads)) return null;
   return {
@@ -977,7 +977,11 @@ async function approvePaymentRequest(
       const purchase: AccountHistoryItem = {
         id: requestId,
         type: "purchase",
-        message: `${latestRequest.planName} payment approved`,
+        message: latestRequest.paymentMethod === "cashfree"
+          && !options.cashfreePaymentId
+          && !latestRequest.cashfreePaymentId
+          ? `${latestRequest.planName} access manually activated by owner`
+          : `${latestRequest.planName} payment approved`,
         at: new Date(now).toISOString(),
         planName: latestRequest.planName,
         planId: latestRequest.planId,
@@ -1058,16 +1062,11 @@ async function verifyAndApplyCashfreeOrder(
   if (!request || request.paymentMethod !== "cashfree" || request.cashfreeOrderId !== orderId) {
     return { kind: "integrity-error" };
   }
-  if (request.status === "failed") {
+  if (request.status === "failed" || request.status === "rejected") {
     return { kind: "verified", status: "failed", accessActivated: false };
   }
-  if (request.status === "approved") {
-    const repaired = await approvePaymentRequest(orderRecord.paymentRequestId, "cashfree", {
-      cashfreePaymentId: request.cashfreePaymentId || undefined,
-    });
-    return repaired.kind === "approved"
-      ? { kind: "verified", status: "paid", accessActivated: true }
-      : { kind: "integrity-error" };
+  if (request.status === "approved" && request.cashfreePaymentId) {
+    return { kind: "verified", status: "paid", accessActivated: true };
   }
 
   const config = await getCashfreeConfigForEnvironment(orderRecord.environment);
@@ -1078,17 +1077,25 @@ async function verifyAndApplyCashfreeOrder(
     || remoteOrder.orderCurrency !== "INR") return { kind: "integrity-error" };
   if (remoteOrder.orderStatus !== "PAID") {
     const status = ["EXPIRED", "TERMINATED", "FAILED"].includes(remoteOrder.orderStatus) ? "failed" : "pending";
+    let latestRequest = request;
     if (status === "failed" && request.status === "pending") {
-      const failed: PaymentRequestRecord = {
-        ...request,
-        status: "failed",
-        reviewedAt: new Date().toISOString(),
-        reviewedBy: "cashfree",
-        reviewNote: `Cashfree order ${remoteOrder.orderStatus.toLowerCase()}.`,
-      };
-      await firebasePut(`${paymentRequestsPath}/${encodeURIComponent(request.id)}`, failed);
+      latestRequest = await withBillingLock(`payment-review:${request.id}`, async () => {
+        const latest = (await loadPaymentRequests())[request.id];
+        if (!latest || latest.status !== "pending") return latest ?? request;
+        const failed: PaymentRequestRecord = {
+          ...latest,
+          status: "failed",
+          reviewedAt: new Date().toISOString(),
+          reviewedBy: "cashfree",
+          reviewNote: `Cashfree order ${remoteOrder.orderStatus.toLowerCase()}.`,
+        };
+        await firebasePut(`${paymentRequestsPath}/${encodeURIComponent(request.id)}`, failed);
+        return failed;
+      });
+    } else {
+      latestRequest = (await loadPaymentRequests())[request.id] ?? request;
     }
-    return { kind: "verified", status, accessActivated: false };
+    return { kind: "verified", status, accessActivated: latestRequest.status === "approved" };
   }
 
   const successfulPayment = (await fetchCashfreePayments(config, orderId)).find((payment) =>
@@ -1102,6 +1109,9 @@ async function verifyAndApplyCashfreeOrder(
   });
   if (result.kind === "not-found" || result.kind === "account-missing" || result.kind === "not-pending") {
     const latest = (await loadPaymentRequests())[orderRecord.paymentRequestId];
+    if (latest?.status === "rejected" || latest?.status === "failed") {
+      return { kind: "verified", status: "failed", accessActivated: false };
+    }
     if (latest?.status !== "approved") return { kind: "integrity-error" };
   }
   return { kind: "verified", status: "paid", accessActivated: true };
@@ -1673,6 +1683,7 @@ router.patch("/owner/users/:userId/suspension", async (req, res): Promise<void> 
     }
     const plans = await loadPlans();
     res.json({ user: ownerUserSummary(next, plans) });
+    });
   } catch (error) {
     sendError(req, res, error, "Could not update account suspension.");
   }
@@ -1687,6 +1698,7 @@ router.patch("/owner/users/:userId/service-pause", async (req, res): Promise<voi
   }
   try {
     const userId = req.params.userId;
+    await withBillingLock(`billing-account:${userId}`, async () => {
     const account = await loadAccount(userId);
     if (!account) {
       res.status(404).json({ error: "User account not found." });
@@ -1711,7 +1723,7 @@ router.patch("/owner/users/:userId/service-pause", async (req, res): Promise<voi
         ...account,
         servicePausedAt: pausedAt,
         history: [
-          { id: randomUUID(), type: "service_paused", message: "Service paused by owner", at: pausedAt },
+          { id: randomUUID(), type: "service_paused" as const, message: "Service paused by owner", at: pausedAt },
           ...(account.history || []),
         ].slice(0, 50),
       };
@@ -1739,7 +1751,7 @@ router.patch("/owner/users/:userId/service-pause", async (req, res): Promise<voi
       accessEndsAt,
       trialEndsAt,
       history: [
-        { id: randomUUID(), type: "service_resumed", message: "Service resumed by owner", at: resumedAt },
+        { id: randomUUID(), type: "service_resumed" as const, message: "Service resumed by owner", at: resumedAt },
         ...(account.history || []).map((item) => item.endsAt === account.accessEndsAt
           ? { ...item, endsAt: accessEndsAt }
           : item),
@@ -1852,10 +1864,10 @@ router.post("/owner/users/:userId/grant", async (req, res): Promise<void> => {
       activePlanId: planId,
       accessEndsAt,
       streamLimit,
-      downloadsPerDay: plan?.downloadsPerDay || account.downloadsPerDay || 50,
+      downloadsPerDay: plan?.downloadsPerDay ?? account.downloadsPerDay ?? 50,
       activeFeatures: plan?.features || account.activeFeatures || [],
       history: [
-        { id: randomUUID(), type: "grant" as const, message: `Owner granted ${days} days of ${plan?.name || planId}`, at: new Date().toISOString(), planName: plan?.name || planId, planId, days, startsAt, endsAt: accessEndsAt, streamLimit, downloadsPerDay: plan?.downloadsPerDay || account.downloadsPerDay || 50 },
+        { id: randomUUID(), type: "grant" as const, message: `Owner granted ${days} days of ${plan?.name || planId}`, at: new Date().toISOString(), planName: plan?.name || planId, planId, days, startsAt, endsAt: accessEndsAt, streamLimit, downloadsPerDay: plan?.downloadsPerDay ?? account.downloadsPerDay ?? 50 },
         ...(account.history || []),
       ].slice(0, 50),
     };
@@ -2126,10 +2138,6 @@ router.post("/owner/payment-requests/:requestId/review", async (req, res): Promi
         res.status(404).json({ error: "Payment request not found." });
         return;
       }
-      if (request.paymentMethod !== "upi") {
-        res.status(409).json({ error: "Cashfree payments are verified automatically and cannot be reviewed manually." });
-        return;
-      }
       if (request.status !== "pending") {
         res.status(409).json({ error: "This payment request has already been reviewed." });
         return;
@@ -2169,7 +2177,9 @@ router.post("/owner/payment-requests/:requestId/review", async (req, res): Promi
         const purchase: AccountHistoryItem = {
           id: requestId,
           type: "purchase",
-          message: `${latestRequest.planName} payment approved`,
+          message: latestRequest.paymentMethod === "cashfree"
+            ? `${latestRequest.planName} access manually activated by owner`
+            : `${latestRequest.planName} payment approved`,
           at: new Date(now).toISOString(),
           planName: latestRequest.planName,
           planId: latestRequest.planId,
@@ -2310,7 +2320,7 @@ export async function reserveAccountDownload(userId: string, workspaceId: string
       return { ok: false, status: 403, error: "Your access has ended. Please upgrade your plan." };
     }
     const plans = await loadPlans();
-    const downloadsPerDay = account.downloadsPerDay || plans[account.activePlanId]?.downloadsPerDay || 50;
+    const downloadsPerDay = account.downloadsPerDay ?? plans[account.activePlanId]?.downloadsPerDay ?? 50;
     const dayKey = currentUsageDayKey();
     const used = account.downloadUsageDate === dayKey ? Math.max(0, account.downloadsUsedToday || 0) : 0;
     if (used >= downloadsPerDay) {

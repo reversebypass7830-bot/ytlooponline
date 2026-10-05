@@ -15,7 +15,7 @@ export interface TrialSettings {
      */
   streamsPerDay: number;
   /**
-     * @minimum 1
+     * @minimum 0
      * @maximum 1000000
      */
   downloadsPerDay: number;

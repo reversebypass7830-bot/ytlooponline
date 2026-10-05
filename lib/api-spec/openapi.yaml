@@ -2558,7 +2558,7 @@ components:
           maximum: 100
         downloadsPerDay:
           type: number
-          minimum: 1
+          minimum: 0
           maximum: 1000000
         updatedAt:
           type: ["string", "null"]
@@ -2576,7 +2576,7 @@ components:
           maximum: 100
         downloadsPerDay:
           type: number
-          minimum: 1
+          minimum: 0
           maximum: 1000000
       required: [durationHours, streamsPerDay, downloadsPerDay]
     BillingPlan:

@@ -244,10 +244,13 @@ function UserRows({ user, isExpanded, isActive, planName, selected, busy, onSele
       </div></td>
     </tr>
     {isExpanded && <tr className="ou-detail-row"><td colSpan={7}><div id={detailId} className="ou-detail-panel">
-      <div className="ou-detail-top"><div><span className="ou-detail-label">ACCOUNT DETAILS</span><strong>{displayName(user)}</strong></div><div className="ou-detail-metrics"><span><b>{user.streamLimit}</b> stream limit</span><span><b>{user.lifetimeLiveStarts}</b> lifetime starts</span></div></div>
+       <div className="ou-detail-top"><div><span className="ou-detail-label">ACCOUNT DETAILS</span><strong>{displayName(user)}</strong></div><div className="ou-detail-metrics"><span><b>{user.streamsPerDay}</b> starts/day</span><span><b>{user.downloadsPerDay.toLocaleString()}</b> downloads/day</span><span><b>{user.streamLimit}</b> concurrent stream limit</span></div></div>
       <div className="ou-detail-grid">
         <div><small>Phone</small><strong>{user.phone || "Not provided"}</strong></div>
         <div><small>Current plan</small><strong>{user.activePlan?.name || user.activePlanId || "No active plan"}</strong></div>
+         <div><small>Current service</small><strong>{user.suspended ? "Suspended" : user.servicePausedAt ? "Paused" : isActive ? "Active" : "Expired"}</strong></div>
+         <div><small>Daily stream starts</small><strong>{user.streamsPerDay}</strong></div>
+         <div><small>Daily downloads</small><strong>{user.downloadsPerDay.toLocaleString()}</strong></div>
         <div><small>Trial started</small><strong>{date(user.trialStartedAt)}</strong></div>
         <div><small>Trial ends</small><strong>{date(user.trialEndsAt)}</strong></div>
         <div><small>Access ends</small><strong>{date(user.accessEndsAt)}</strong></div>
