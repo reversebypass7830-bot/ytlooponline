@@ -1,0 +1,113 @@
+.maintenance-screen {
+  --maintenance-ink: #173c3b;
+  --maintenance-muted: #6c8580;
+  display: grid;
+  min-height: 100dvh;
+  place-items: center;
+  padding: clamp(22px, 5vw, 64px);
+  background:
+    radial-gradient(ellipse at 14% 12%, rgba(192, 226, 211, .75), transparent 35%),
+    radial-gradient(ellipse at 87% 88%, rgba(221, 235, 211, .72), transparent 34%),
+    #f3f7f1;
+  color: var(--maintenance-ink);
+}
+
+.maintenance-screen-card {
+  width: min(100%, 620px);
+  padding: clamp(28px, 7vw, 64px);
+  border: 1px solid rgba(54, 111, 99, .15);
+  border-radius: 24px;
+  background: rgba(255, 255, 250, .94);
+  box-shadow: 0 28px 90px rgba(32, 77, 66, .12);
+  text-align: center;
+}
+
+.maintenance-screen-mark {
+  display: grid;
+  width: 58px;
+  height: 58px;
+  place-items: center;
+  margin: 0 auto 22px;
+  border: 1px solid #d3e7d9;
+  border-radius: 18px;
+  background: #e9f4e9;
+  color: #32766c;
+}
+
+.maintenance-screen-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  margin: 0 0 16px;
+  color: #398277;
+  font: 700 11px/1.4 var(--app-font-mono, monospace);
+  letter-spacing: .11em;
+  text-transform: uppercase;
+}
+
+.maintenance-screen-status span {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #e1a654;
+  box-shadow: 0 0 0 4px #f7eddc;
+}
+
+.maintenance-screen-card h1 {
+  margin: 0;
+  color: var(--maintenance-ink);
+  font-size: clamp(32px, 7vw, 52px);
+  font-weight: 750;
+  letter-spacing: -.055em;
+  line-height: 1.06;
+}
+
+.maintenance-screen-message {
+  margin: 22px auto 0;
+  max-width: 470px;
+  color: #55716b;
+  font-size: clamp(15px, 2.4vw, 18px);
+  line-height: 1.7;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.maintenance-screen-link {
+  display: inline-flex;
+  min-height: 48px;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  margin-top: 26px;
+  padding: 0 20px;
+  border: 1px solid #285e58;
+  border-radius: 12px;
+  background: #285e58;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+  text-decoration: none;
+  transition: background .16s ease, transform .16s ease;
+}
+
+.maintenance-screen-link:hover {
+  transform: translateY(-1px);
+  background: #34756a;
+}
+
+.maintenance-screen-link:focus-visible {
+  outline: 3px solid rgba(57, 130, 119, .4);
+  outline-offset: 3px;
+}
+
+.maintenance-screen-foot {
+  margin: 28px 0 0;
+  color: var(--maintenance-muted);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .maintenance-screen-link { transition: none; }
+  .maintenance-screen-link:hover { transform: none; }
+}

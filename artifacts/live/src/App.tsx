@@ -17,10 +17,11 @@ import NotFound from "@/pages/not-found";
 import { GatewayPage, PricingPage } from "@/pages/public";
 import { FeedbackDetailPage, FeedbackGalleryPage } from "@/components/FeedbackShowcase";
 import { OwnerFeedbackPanel } from "@/pages/FeedbackAdmin";
-import { extractYoutubeChannelLinks, getStreamStatus, startStream, stopStream, trimMediaFile, updateStream } from "@workspace/api-client-react";
+import { extractYoutubeChannelLinks, getGetPublicMaintenanceQueryKey, getStreamStatus, startStream, stopStream, trimMediaFile, updateStream, useGetPublicMaintenance } from "@workspace/api-client-react";
 import { ManualSubscriptionPage, OwnerPaymentPanel, OwnerPaymentRequestsPanel } from "./pages/ManualPayments";
 import { TransactionsPage } from "./pages/Transactions";
 import { OwnerSettingsPanel, OwnerUsersPanel } from "./components/owner-users";
+import { MaintenanceScreen } from "./components/MaintenanceScreen";
 import logoImage from "@assets/image_1788788255512.png";
 import analyticsVideoIcon from "@assets/video_files_clay_icon_cutout_1790011470854.png";
 import analyticsFolderIcon from "@assets/folder_tag_clay_cutout_1790011484726.png";
@@ -2293,7 +2294,7 @@ function OwnerDashboardPage({ ownerPassword, error, message, keyBusy, showInclud
            {onPayments && <button className="owner-action-card payments" onClick={onPayments}><span className="owner-action-icon"><Receipt size={22}/></span><span><strong>Payments</strong><small>Configure payment methods, pricing, and trial access.</small></span><ArrowRight size={17}/></button>}
            {onPaymentRequests && <button type="button" className="owner-action-card payments" onClick={onPaymentRequests} data-testid="owner-action-payment-requests"><span className="owner-action-icon"><ClipboardList size={22}/></span><span><strong>Payment Request</strong><small>Review payment requests and decide whether to activate service.</small></span><ArrowRight size={17}/></button>}
           {onFeedback && <button className="owner-action-card feedback" onClick={onFeedback}><span className="owner-action-icon"><MessageCircle size={22}/></span><span><strong>Feedback</strong><small>Add and manage public channel examples.</small></span><ArrowRight size={17}/></button>}
-           {onSettings && <button className="owner-action-card settings" onClick={onSettings}><span className="owner-action-icon"><Settings size={22}/></span><span><strong>Settings</strong><small>Choose the support link shown to suspended users.</small></span><ArrowRight size={17}/></button>}
+           {onSettings && <button className="owner-action-card settings" onClick={onSettings}><span className="owner-action-icon"><Settings size={22}/></span><span><strong>Settings</strong><small>Manage support destinations and site maintenance notices.</small></span><ArrowRight size={17}/></button>}
       </section>
     </main>
     {showIncludedAnimations && <IncludedAnimationsModal ownerPassword={ownerPassword} onClose={onCloseAnimations} />}
@@ -5307,6 +5308,9 @@ function WorkspaceLoading({ label }: { label: string }) {
 }
 
 function App() {
+  const maintenanceQuery = useGetPublicMaintenance({
+    query: { queryKey: getGetPublicMaintenanceQueryKey(), refetchInterval: 15_000, refetchOnWindowFocus: true },
+  });
   const { user, loading: firebaseLoading, busy: firebaseBusy, error: firebaseError, signInWithGoogle, signOut } = useFirebaseAuth();
   const isSignedIn = Boolean(user);
   const workspaceClientId = useWorkspaceClientId();
@@ -5362,12 +5366,19 @@ function App() {
         : "Preparing your workspace…";
     return <WorkspaceLoading label={label} />;
   }
+  if (isOwnerRoute) return <OwnerConsolePage/>;
+  if (maintenanceQuery.data?.enabled && accountSession.account?.role !== "owner") {
+    return <MaintenanceScreen
+      message={maintenanceQuery.data.message}
+      linkUrl={maintenanceQuery.data.linkUrl}
+      linkLabel={maintenanceQuery.data.linkLabel}
+    />;
+  }
   if (location === "/feedback") return <FeedbackGalleryPage />;
   if (location.startsWith("/feedback/")) {
     const feedbackId = location.slice("/feedback/".length).split("/")[0];
     return <FeedbackDetailPage feedbackId={decodeURIComponent(feedbackId)} />;
   }
-  if (isOwnerRoute) return <OwnerConsolePage/>;
   if (accountSession.account?.suspended && accountSession.account.role !== "owner") {
     return <SuspendedAccountNotice supportLink={accountSession.supportLink} onSignOut={async () => {
       await apiJson("/api/mobile-auth/logout", { method: "POST" }).catch(() => undefined);

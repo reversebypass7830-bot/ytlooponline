@@ -2,6 +2,8 @@ import { firebaseGet } from "./firebase-rest";
 
 export const ownerSettingsPath = "ownerSettings";
 export const suspendedAccountNotice = "Your account has been suspend. Please contact support.";
+export const defaultMaintenanceMessage = "We’re carrying out scheduled maintenance to improve your experience. Please check back soon.";
+export const defaultMaintenanceLinkLabel = "Get Updates";
 
 type AccountAccessRecord = {
   role?: string;
@@ -10,9 +12,21 @@ type AccountAccessRecord = {
 
 type OwnerSettingsRecord = {
   supportLink?: string;
+  maintenanceEnabled?: boolean;
+  maintenanceMessage?: string;
+  maintenanceLinkUrl?: string;
+  maintenanceLinkLabel?: string;
 };
 
-export function safeSupportLink(value: unknown): string {
+export type OwnerSettings = {
+  supportLink: string;
+  maintenanceEnabled: boolean;
+  maintenanceMessage: string;
+  maintenanceLinkUrl: string;
+  maintenanceLinkLabel: string;
+};
+
+export function safeHttpLink(value: unknown): string {
   if (typeof value !== "string" || !value.trim()) return "";
   try {
     const url = new URL(value.trim());
@@ -22,9 +36,40 @@ export function safeSupportLink(value: unknown): string {
   }
 }
 
-export async function getOwnerSupportLink(): Promise<string> {
+export const safeSupportLink = safeHttpLink;
+
+export async function getOwnerSettings(): Promise<OwnerSettings> {
   const settings = await firebaseGet<OwnerSettingsRecord | null>(ownerSettingsPath);
-  return safeSupportLink(settings?.supportLink);
+  return {
+    supportLink: safeHttpLink(settings?.supportLink),
+    maintenanceEnabled: settings?.maintenanceEnabled === true,
+    maintenanceMessage: typeof settings?.maintenanceMessage === "string"
+      ? settings.maintenanceMessage.slice(0, 500)
+      : "",
+    maintenanceLinkUrl: safeHttpLink(settings?.maintenanceLinkUrl),
+    maintenanceLinkLabel: typeof settings?.maintenanceLinkLabel === "string"
+      ? settings.maintenanceLinkLabel.trim().slice(0, 60)
+      : "",
+  };
+}
+
+export async function getOwnerSupportLink(): Promise<string> {
+  return (await getOwnerSettings()).supportLink;
+}
+
+export async function getPublicMaintenance(): Promise<{
+  enabled: boolean;
+  message: string;
+  linkUrl: string;
+  linkLabel: string;
+}> {
+  const settings = await getOwnerSettings();
+  return {
+    enabled: settings.maintenanceEnabled,
+    message: settings.maintenanceMessage.trim() || defaultMaintenanceMessage,
+    linkUrl: settings.maintenanceLinkUrl,
+    linkLabel: settings.maintenanceLinkLabel || defaultMaintenanceLinkLabel,
+  };
 }
 
 export async function getSuspendedAccountSupport(userId: string): Promise<{ supportLink: string } | null> {

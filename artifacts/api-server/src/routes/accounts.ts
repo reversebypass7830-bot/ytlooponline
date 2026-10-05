@@ -9,12 +9,22 @@ import {
   QuoteAccountPaymentBody,
   ReviewOwnerPaymentRequestBody,
   UpdateBillingPlanBody,
+  GetOwnerSettingsResponse,
+  GetPublicMaintenanceResponse,
   UpdateOwnerPaymentSettingsBody,
+  UpdateOwnerSettingsBody,
+  UpdateOwnerSettingsResponse,
   UpdateOwnerTrialSettingsBody,
   UpdateOwnerUserServicePauseBody,
 } from "@workspace/api-zod";
 import { firebaseDelete, firebaseGet, firebasePut } from "../lib/firebase-rest";
-import { getOwnerSupportLink, ownerSettingsPath, safeSupportLink } from "../lib/account-access";
+import {
+  getOwnerSettings,
+  getOwnerSupportLink,
+  getPublicMaintenance,
+  ownerSettingsPath,
+  safeHttpLink,
+} from "../lib/account-access";
 import { ObjectStorageService } from "../lib/objectStorage";
 import { accountIdentity, accountUserId, clerkSessionClaims, requireAccountAuth, requireClerkAuth } from "../middlewares/requireClerkAuth";
 import { clerkOwnerAuthorized, ownerAuthorized } from "../lib/owner-auth";
@@ -1813,10 +1823,18 @@ router.post("/owner/users/bulk-delete", async (req, res): Promise<void> => {
   res.json({ deletedUserIds, failedUserIds });
 });
 
+router.get("/public/maintenance", async (req, res): Promise<void> => {
+  try {
+    res.json(GetPublicMaintenanceResponse.parse(await getPublicMaintenance()));
+  } catch (error) {
+    sendError(req, res, error, "Could not load maintenance status.");
+  }
+});
+
 router.get("/owner/settings", async (req, res): Promise<void> => {
   if (!(await requireAccountOwner(req, res))) return;
   try {
-    res.json({ supportLink: await getOwnerSupportLink() });
+    res.json(GetOwnerSettingsResponse.parse(await getOwnerSettings()));
   } catch (error) {
     sendError(req, res, error, "Could not load owner settings.");
   }
@@ -1824,19 +1842,34 @@ router.get("/owner/settings", async (req, res): Promise<void> => {
 
 router.put("/owner/settings", async (req, res): Promise<void> => {
   if (!(await requireAccountOwner(req, res))) return;
-  const rawSupportLink = typeof req.body?.supportLink === "string" ? req.body.supportLink.trim() : "";
-  if (rawSupportLink.length > 2048) {
-    res.status(400).json({ error: "Support link must be 2048 characters or fewer." });
+  const parsed = UpdateOwnerSettingsBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.message });
     return;
   }
-  const supportLink = rawSupportLink ? safeSupportLink(rawSupportLink) : "";
-  if (rawSupportLink && !supportLink) {
+  const supportInput = parsed.data.supportLink.trim();
+  const maintenanceLinkInput = parsed.data.maintenanceLinkUrl.trim();
+  const supportLink = supportInput ? safeHttpLink(supportInput) : "";
+  const maintenanceLinkUrl = maintenanceLinkInput ? safeHttpLink(maintenanceLinkInput) : "";
+  if (supportInput && !supportLink) {
     res.status(400).json({ error: "Enter a valid HTTP or HTTPS support link, or leave it blank." });
     return;
   }
+  if (maintenanceLinkInput && !maintenanceLinkUrl) {
+    res.status(400).json({ error: "Enter a valid HTTP or HTTPS maintenance link, or leave it blank." });
+    return;
+  }
+  const settings = {
+    supportLink,
+    maintenanceEnabled: parsed.data.maintenanceEnabled,
+    maintenanceMessage: parsed.data.maintenanceMessage.trim(),
+    maintenanceLinkUrl,
+    maintenanceLinkLabel: parsed.data.maintenanceLinkLabel.trim(),
+  };
   try {
-    await firebasePut(ownerSettingsPath, { supportLink });
-    res.json({ supportLink });
+    const existing = await firebaseGet<Record<string, unknown> | null>(ownerSettingsPath);
+    await firebasePut(ownerSettingsPath, { ...existing, ...settings });
+    res.json(UpdateOwnerSettingsResponse.parse(settings));
   } catch (error) {
     sendError(req, res, error, "Could not save owner settings.");
   }

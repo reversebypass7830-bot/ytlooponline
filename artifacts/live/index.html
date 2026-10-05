@@ -14,6 +14,74 @@
     })
     .catch(() => undefined);
 </script>
+<script>
+  fetch("/api/public/maintenance", { cache: "no-store", headers: { Accept: "application/json" } })
+    .then(async (response) => response.ok ? response.json() : null)
+    .then((maintenance) => {
+      if (!maintenance?.enabled) return;
+      const showNotice = () => {
+        if (!document.body) return;
+        const style = document.createElement("style");
+        style.textContent = `
+          html,body{min-height:100%;margin:0}
+          .site-maintenance{box-sizing:border-box;display:grid;min-height:100vh;place-items:center;padding:24px;background:radial-gradient(ellipse at 14% 12%,rgba(192,226,211,.75),transparent 35%),radial-gradient(ellipse at 87% 88%,rgba(221,235,211,.72),transparent 34%),#f3f7f1;color:#173c3b;font-family:Inter,system-ui,sans-serif}
+          .site-maintenance *{box-sizing:border-box}
+          .site-maintenance-card{width:min(100%,620px);padding:clamp(28px,7vw,64px);border:1px solid rgba(54,111,99,.15);border-radius:24px;background:rgba(255,255,250,.96);box-shadow:0 28px 90px rgba(32,77,66,.12);text-align:center}
+          .site-maintenance-mark{display:grid;width:58px;height:58px;place-items:center;margin:0 auto 22px;border:1px solid #d3e7d9;border-radius:18px;background:#e9f4e9;color:#32766c;font-size:24px}
+          .site-maintenance-status{display:inline-flex;align-items:center;gap:9px;margin:0 0 16px;color:#398277;font-size:11px;font-weight:700;letter-spacing:.11em;text-transform:uppercase}
+          .site-maintenance-status:before{width:8px;height:8px;border-radius:50%;background:#e1a654;box-shadow:0 0 0 4px #f7eddc;content:""}
+          .site-maintenance h1{margin:0;color:#173c3b;font-size:clamp(32px,7vw,52px);font-weight:750;letter-spacing:-.055em;line-height:1.06}
+          .site-maintenance-message{max-width:470px;margin:22px auto 0;color:#55716b;font-size:clamp(15px,2.4vw,18px);line-height:1.7;white-space:pre-wrap;overflow-wrap:anywhere}
+          .site-maintenance-link{display:inline-flex;min-height:48px;align-items:center;justify-content:center;margin-top:26px;padding:0 20px;border:1px solid #285e58;border-radius:12px;background:#285e58;color:white;font-size:14px;font-weight:700;text-decoration:none}
+          .site-maintenance-foot{margin:28px 0 0;color:#6c8580;font-size:12px;line-height:1.6}
+          .site-maintenance-link:focus-visible{outline:3px solid rgba(57,130,119,.4);outline-offset:3px}
+        `;
+        document.head.append(style);
+        const main = document.createElement("main");
+        main.className = "site-maintenance";
+        main.setAttribute("data-testid", "maintenance-screen");
+        const card = document.createElement("section");
+        card.className = "site-maintenance-card";
+        const mark = document.createElement("div");
+        mark.className = "site-maintenance-mark";
+        mark.setAttribute("aria-hidden", "true");
+        mark.textContent = "YT";
+        const status = document.createElement("p");
+        status.className = "site-maintenance-status";
+        status.textContent = "Maintenance in progress";
+        const title = document.createElement("h1");
+        title.textContent = "We’ll be back soon";
+        const message = document.createElement("p");
+        message.className = "site-maintenance-message";
+        message.textContent = maintenance.message || "We’re carrying out scheduled maintenance to improve your experience. Please check back soon.";
+        card.append(mark, status, title, message);
+        if (typeof maintenance.linkUrl === "string" && maintenance.linkUrl) {
+          try {
+            const linkUrl = new URL(maintenance.linkUrl, window.location.href);
+            if (linkUrl.protocol === "https:" || linkUrl.protocol === "http:") {
+              const link = document.createElement("a");
+              link.className = "site-maintenance-link";
+              link.href = linkUrl.toString();
+              link.textContent = maintenance.linkLabel || "Get Updates";
+              card.append(link);
+            }
+          } catch {
+            // The public API already validates URLs; ignore malformed legacy values.
+          }
+        }
+        const foot = document.createElement("p");
+        foot.className = "site-maintenance-foot";
+        foot.textContent = "Thanks for your patience while we make improvements.";
+        card.append(foot);
+        main.append(card);
+        document.body.replaceChildren(main);
+        document.title = "Maintenance | YT Loop";
+      };
+      if (document.body) showNotice();
+      else document.addEventListener("DOMContentLoaded", showNotice, { once: true });
+    })
+    .catch(() => undefined);
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
