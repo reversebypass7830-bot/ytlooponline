@@ -907,11 +907,35 @@ export interface OwnerUsersBulkDeleteResponse {
 export interface OwnerSettings {
   /** @maxLength 2048 */
   supportLink: string;
+  maintenanceEnabled: boolean;
+  /** @maxLength 500 */
+  maintenanceMessage: string;
+  /** @maxLength 2048 */
+  maintenanceLinkUrl: string;
+  /** @maxLength 60 */
+  maintenanceLinkLabel: string;
 }
 
 export interface OwnerSettingsInput {
   /** @maxLength 2048 */
   supportLink: string;
+  maintenanceEnabled: boolean;
+  /** @maxLength 500 */
+  maintenanceMessage: string;
+  /** @maxLength 2048 */
+  maintenanceLinkUrl: string;
+  /** @maxLength 60 */
+  maintenanceLinkLabel: string;
+}
+
+export interface PublicMaintenance {
+  enabled: boolean;
+  /** @maxLength 500 */
+  message: string;
+  /** @maxLength 2048 */
+  linkUrl: string;
+  /** @maxLength 60 */
+  linkLabel: string;
 }
 
 export type TrialSettingsDurationHours = typeof TrialSettingsDurationHours[keyof typeof TrialSettingsDurationHours];

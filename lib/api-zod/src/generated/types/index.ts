@@ -104,6 +104,7 @@ export * from './paymentSettingsInputPaymentMode';
 export * from './paymentSettingsPaymentMode';
 export * from './publicFeedback';
 export * from './publicFeedbackListResponse';
+export * from './publicMaintenance';
 export * from './streamCompositionInput';
 export * from './streamCompositionInputAnimationLayersItem';
 export * from './streamCompositionInputAnimationPreset';

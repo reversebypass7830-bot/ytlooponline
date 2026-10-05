@@ -2268,7 +2268,26 @@ export const BulkDeleteOwnerUsersResponse = zod.object({
 
 
 /**
- * @summary Get owner-configured support link
+ * @summary Get public maintenance status and notice
+ */
+export const getPublicMaintenanceResponseMessageMax = 500;
+
+export const getPublicMaintenanceResponseLinkUrlMax = 2048;
+
+export const getPublicMaintenanceResponseLinkLabelMax = 60;
+
+
+
+export const GetPublicMaintenanceResponse = zod.object({
+  "enabled": zod.boolean(),
+  "message": zod.string().max(getPublicMaintenanceResponseMessageMax),
+  "linkUrl": zod.string().max(getPublicMaintenanceResponseLinkUrlMax),
+  "linkLabel": zod.string().max(getPublicMaintenanceResponseLinkLabelMax)
+})
+
+
+/**
+ * @summary Get owner-configured support and maintenance settings
  */
 export const GetOwnerSettingsHeader = zod.object({
   "X-Owner-Password": zod.string()
@@ -2276,15 +2295,25 @@ export const GetOwnerSettingsHeader = zod.object({
 
 export const getOwnerSettingsResponseSupportLinkMax = 2048;
 
+export const getOwnerSettingsResponseMaintenanceMessageMax = 500;
+
+export const getOwnerSettingsResponseMaintenanceLinkUrlMax = 2048;
+
+export const getOwnerSettingsResponseMaintenanceLinkLabelMax = 60;
+
 
 
 export const GetOwnerSettingsResponse = zod.object({
-  "supportLink": zod.string().max(getOwnerSettingsResponseSupportLinkMax)
+  "supportLink": zod.string().max(getOwnerSettingsResponseSupportLinkMax),
+  "maintenanceEnabled": zod.boolean(),
+  "maintenanceMessage": zod.string().max(getOwnerSettingsResponseMaintenanceMessageMax),
+  "maintenanceLinkUrl": zod.string().max(getOwnerSettingsResponseMaintenanceLinkUrlMax),
+  "maintenanceLinkLabel": zod.string().max(getOwnerSettingsResponseMaintenanceLinkLabelMax)
 })
 
 
 /**
- * @summary Save the support link shown to suspended accounts
+ * @summary Save owner support and maintenance settings
  */
 export const UpdateOwnerSettingsHeader = zod.object({
   "X-Owner-Password": zod.string()
@@ -2292,18 +2321,38 @@ export const UpdateOwnerSettingsHeader = zod.object({
 
 export const updateOwnerSettingsBodySupportLinkMax = 2048;
 
+export const updateOwnerSettingsBodyMaintenanceMessageMax = 500;
+
+export const updateOwnerSettingsBodyMaintenanceLinkUrlMax = 2048;
+
+export const updateOwnerSettingsBodyMaintenanceLinkLabelMax = 60;
+
 
 
 export const UpdateOwnerSettingsBody = zod.object({
-  "supportLink": zod.string().max(updateOwnerSettingsBodySupportLinkMax)
+  "supportLink": zod.string().max(updateOwnerSettingsBodySupportLinkMax),
+  "maintenanceEnabled": zod.boolean(),
+  "maintenanceMessage": zod.string().max(updateOwnerSettingsBodyMaintenanceMessageMax),
+  "maintenanceLinkUrl": zod.string().max(updateOwnerSettingsBodyMaintenanceLinkUrlMax),
+  "maintenanceLinkLabel": zod.string().max(updateOwnerSettingsBodyMaintenanceLinkLabelMax)
 })
 
 export const updateOwnerSettingsResponseSupportLinkMax = 2048;
 
+export const updateOwnerSettingsResponseMaintenanceMessageMax = 500;
+
+export const updateOwnerSettingsResponseMaintenanceLinkUrlMax = 2048;
+
+export const updateOwnerSettingsResponseMaintenanceLinkLabelMax = 60;
+
 
 
 export const UpdateOwnerSettingsResponse = zod.object({
-  "supportLink": zod.string().max(updateOwnerSettingsResponseSupportLinkMax)
+  "supportLink": zod.string().max(updateOwnerSettingsResponseSupportLinkMax),
+  "maintenanceEnabled": zod.boolean(),
+  "maintenanceMessage": zod.string().max(updateOwnerSettingsResponseMaintenanceMessageMax),
+  "maintenanceLinkUrl": zod.string().max(updateOwnerSettingsResponseMaintenanceLinkUrlMax),
+  "maintenanceLinkLabel": zod.string().max(updateOwnerSettingsResponseMaintenanceLinkLabelMax)
 })
 
 

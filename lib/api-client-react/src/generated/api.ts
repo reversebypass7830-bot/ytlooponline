@@ -85,6 +85,7 @@ import type {
   PaymentSettings,
   PaymentSettingsInput,
   PublicFeedbackListResponse,
+  PublicMaintenance,
   StreamControlResponse,
   StreamStartInput,
   StreamStopInput,
@@ -4463,6 +4464,83 @@ export const useBulkDeleteOwnerUsers = <TError = ErrorType<void>,
       return useMutation(getBulkDeleteOwnerUsersMutationOptions(options));
     }
 
+export const getGetPublicMaintenanceUrl = () => {
+
+
+
+
+  return `/api/public/maintenance`
+}
+
+/**
+ * @summary Get public maintenance status and notice
+ */
+export const getPublicMaintenance = async ( options?: Parameters<typeof customFetch>[1]): Promise<PublicMaintenance> => {
+
+  return customFetch<PublicMaintenance>(getGetPublicMaintenanceUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetPublicMaintenanceQueryKey = () => {
+    return [
+    `/api/public/maintenance`
+    ] as const;
+    }
+
+
+export const getGetPublicMaintenanceQueryOptions = <TData = Awaited<ReturnType<typeof getPublicMaintenance>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPublicMaintenance>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetPublicMaintenanceQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getPublicMaintenance>>> = ({ signal }) => getPublicMaintenance({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getPublicMaintenance>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetPublicMaintenanceQueryResult = NonNullable<Awaited<ReturnType<typeof getPublicMaintenance>>>
+export type GetPublicMaintenanceQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Get public maintenance status and notice
+ */
+
+export function useGetPublicMaintenance<TData = Awaited<ReturnType<typeof getPublicMaintenance>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPublicMaintenance>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetPublicMaintenanceQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
 export const getGetOwnerSettingsUrl = () => {
 
 
@@ -4472,7 +4550,7 @@ export const getGetOwnerSettingsUrl = () => {
 }
 
 /**
- * @summary Get owner-configured support link
+ * @summary Get owner-configured support and maintenance settings
  */
 export const getOwnerSettings = async ( options?: Parameters<typeof customFetch>[1]): Promise<OwnerSettings> => {
 
@@ -4519,7 +4597,7 @@ export type GetOwnerSettingsQueryError = ErrorType<void>
 
 
 /**
- * @summary Get owner-configured support link
+ * @summary Get owner-configured support and maintenance settings
  */
 
 export function useGetOwnerSettings<TData = Awaited<ReturnType<typeof getOwnerSettings>>, TError = ErrorType<void>>(
@@ -4549,7 +4627,7 @@ export const getUpdateOwnerSettingsUrl = () => {
 }
 
 /**
- * @summary Save the support link shown to suspended accounts
+ * @summary Save owner support and maintenance settings
  */
 export const updateOwnerSettings = async (ownerSettingsInput: OwnerSettingsInput, options?: Parameters<typeof customFetch>[1]): Promise<OwnerSettings> => {
 
@@ -4598,7 +4676,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type UpdateOwnerSettingsMutationError = ErrorType<void>
 
     /**
- * @summary Save the support link shown to suspended accounts
+ * @summary Save owner support and maintenance settings
  */
 export const useUpdateOwnerSettings = <TError = ErrorType<void>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateOwnerSettings>>, TError,{data: BodyType<OwnerSettingsInput>}, TContext>, request?: SecondParameter<typeof customFetch>}

@@ -1362,11 +1362,23 @@ paths:
                 $ref: "#/components/schemas/OwnerUsersBulkDeleteResponse"
         "400":
           description: Invalid user selection
+  /public/maintenance:
+    get:
+      operationId: getPublicMaintenance
+      tags: [accounts]
+      summary: Get public maintenance status and notice
+      responses:
+        "200":
+          description: Current maintenance status and visitor-facing notice
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PublicMaintenance"
   /owner/settings:
     get:
       operationId: getOwnerSettings
       tags: [accounts]
-      summary: Get owner-configured support link
+      summary: Get owner-configured support and maintenance settings
       parameters:
         - $ref: "#/components/parameters/OwnerPassword"
       responses:
@@ -1381,7 +1393,7 @@ paths:
     put:
       operationId: updateOwnerSettings
       tags: [accounts]
-      summary: Save the support link shown to suspended accounts
+      summary: Save owner support and maintenance settings
       parameters:
         - $ref: "#/components/parameters/OwnerPassword"
       requestBody:
@@ -1398,7 +1410,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/OwnerSettings"
         "400":
-          description: Support link must be a valid HTTP or HTTPS URL, or blank
+          description: URLs must be valid HTTP or HTTPS URLs, or blank
 components:
   parameters:
     OwnerPassword:
@@ -2538,14 +2550,51 @@ components:
         supportLink:
           type: string
           maxLength: 2048
-      required: [supportLink]
+        maintenanceEnabled:
+          type: boolean
+        maintenanceMessage:
+          type: string
+          maxLength: 500
+        maintenanceLinkUrl:
+          type: string
+          maxLength: 2048
+        maintenanceLinkLabel:
+          type: string
+          maxLength: 60
+      required: [supportLink, maintenanceEnabled, maintenanceMessage, maintenanceLinkUrl, maintenanceLinkLabel]
     OwnerSettingsInput:
       type: object
       properties:
         supportLink:
           type: string
           maxLength: 2048
-      required: [supportLink]
+        maintenanceEnabled:
+          type: boolean
+        maintenanceMessage:
+          type: string
+          maxLength: 500
+        maintenanceLinkUrl:
+          type: string
+          maxLength: 2048
+        maintenanceLinkLabel:
+          type: string
+          maxLength: 60
+      required: [supportLink, maintenanceEnabled, maintenanceMessage, maintenanceLinkUrl, maintenanceLinkLabel]
+    PublicMaintenance:
+      type: object
+      properties:
+        enabled:
+          type: boolean
+        message:
+          type: string
+          maxLength: 500
+        linkUrl:
+          type: string
+          maxLength: 2048
+        linkLabel:
+          type: string
+          maxLength: 60
+      required: [enabled, message, linkUrl, linkLabel]
     TrialSettings:
       type: object
       properties:

@@ -9,4 +9,11 @@
 export interface OwnerSettingsInput {
   /** @maxLength 2048 */
   supportLink: string;
+  maintenanceEnabled: boolean;
+  /** @maxLength 500 */
+  maintenanceMessage: string;
+  /** @maxLength 2048 */
+  maintenanceLinkUrl: string;
+  /** @maxLength 60 */
+  maintenanceLinkLabel: string;
 }
