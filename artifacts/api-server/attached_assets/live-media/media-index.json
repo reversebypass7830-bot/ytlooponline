@@ -194,5 +194,19 @@
     "quality": "edited",
     "createdAt": "2026-09-10T21:21:11.466Z",
     "sizeBytes": 1681805439
+  },
+  {
+    "fileId": "2013f9eb-b729-4432-9e8c-6c91f2ee8a57",
+    "filename": "2013f9eb-b729-4432-9e8c-6c91f2ee8a57__spider-man-takes-on-spiral-bridge-stunt-ride-on-motorcyc.mp4",
+    "sourcePath": "/home/runner/workspace/artifacts/api-server/attached_assets/live-media/gta-5/anam-muzu/2013f9eb-b729-4432-9e8c-6c91f2ee8a57__spider-man-takes-on-spiral-bridge-stunt-ride-on-motorcyc.mp4",
+    "playbackUrl": "/api/media/files/2013f9eb-b729-4432-9e8c-6c91f2ee8a57",
+    "title": "SPIDER MAN Takes on Spiral Bridge Stunt Ride on Motorcycle🦺🥽بطال الخارقين على القضبان دوامة قمع جس",
+    "duration": "39:34",
+    "licenseId": "workspace-6e4969e9-6f73-4c44-af3a-b1754691f555",
+    "licenseName": "ANAM MUZU",
+    "folderName": "gta 5",
+    "quality": "1080p",
+    "createdAt": "2026-10-05T07:37:44.029Z",
+    "sizeBytes": 568093936
   }
 ]
