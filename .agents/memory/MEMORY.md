@@ -46,3 +46,4 @@
 - [Workflow restart port collisions](workflow-restart-port-collisions.md) — stale child processes may keep artifact ports bound after restart; clear them before retrying.
 - [Account workspace migration](account-workspace-migration.md) — removing license keys must reuse each account's legacy workspace namespace so saved data stays attached.
 - [Landing hero sizing](landing-hero-sizing.md) — keep the original mobile and desktop hero image sizing; mobile-only caps made the artwork look wrong.
+- [Git source-control guard](git-source-control-guard.md) — authorized Git pushes in this workspace may require the explicit `DANGEROUSLY_ALLOW_GIT=1` prefix.
