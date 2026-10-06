@@ -5,7 +5,5 @@ export const modules: ModuleMap = {
   "./components/mockups/feedback-cards/ScrollAndStats.tsx": () => import("../components/mockups/feedback-cards/ScrollAndStats.tsx"),
   "./components/mockups/transactions-page/Current.tsx": () => import("../components/mockups/transactions-page/Current.tsx"),
   "./components/mockups/transactions-page/Refined.tsx": () => import("../components/mockups/transactions-page/Refined.tsx"),
-  "./components/mockups/transactions-page/TransactionsPreview.tsx": () => import("../components/mockups/transactions-page/TransactionsPreview.tsx"),
-  "./components/mockups/video-editor/Current.tsx": () => import("../components/mockups/video-editor/Current.tsx"),
-  "./components/mockups/video-editor/Refined.tsx": () => import("../components/mockups/video-editor/Refined.tsx")
+  "./components/mockups/transactions-page/TransactionsPreview.tsx": () => import("../components/mockups/transactions-page/TransactionsPreview.tsx")
 };
