@@ -10305,6 +10305,145 @@ select { height: 41px; }
   }
 }
 
+/* Keep the editor's preview surfaces and primary controls in the light app palette. */
+.shell.video-editor-surface .editor-canvas,
+.shell.video-editor-surface .editor-canvas:fullscreen {
+  border-color: #e5e7eb;
+  background: #f3f4f6;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .75);
+}
+
+.shell.video-editor-surface .editor-preview-video {
+  background: #f3f4f6;
+}
+
+.shell.video-editor-surface .editor-empty {
+  color: #6b7280;
+}
+
+.shell.video-editor-surface .editor-empty strong {
+  color: #111827;
+}
+
+.shell.video-editor-surface .editor-empty span {
+  color: #6b7280;
+}
+
+.shell.video-editor-surface .editor-canvas-hint,
+.shell.video-editor-surface .editor-canvas-zoom,
+.shell.video-editor-surface .editor-canvas-button {
+  border: 1px solid #e5e7eb;
+  color: #374151;
+  background: rgba(255, 255, 255, .94);
+  box-shadow: 0 4px 14px rgba(17, 24, 39, .08);
+}
+
+.shell.video-editor-surface .editor-canvas-zoom button {
+  color: #374151;
+}
+
+.shell.video-editor-surface .editor-canvas-zoom button:hover,
+.shell.video-editor-surface .editor-canvas-button:hover {
+  border-color: #d1d5db;
+  color: #111827;
+  background: #f9fafb;
+}
+
+.shell.video-editor-surface .editor-canvas-zoom button:focus-visible,
+.shell.video-editor-surface .editor-canvas-button:focus-visible {
+  outline: 2px solid #287f7a;
+  outline-offset: 2px;
+}
+
+.shell.video-editor-surface .editor-export-button,
+.shell.video-editor-surface .editor-preview-actions .button,
+.shell.video-editor-surface .editor-render-button {
+  border-color: #214e4d;
+  color: #ffffff;
+  background: #214e4d;
+}
+
+.shell.video-editor-surface .editor-export-button:hover,
+.shell.video-editor-surface .editor-preview-actions .button:hover,
+.shell.video-editor-surface .editor-render-button:hover {
+  border-color: #173f3e;
+  background: #173f3e;
+}
+
+.shell.video-editor-surface .editor-export-button:disabled,
+.shell.video-editor-surface .editor-render-button:disabled {
+  cursor: not-allowed;
+  opacity: .46;
+}
+
+.shell.video-editor-surface .editor-tool-button.active,
+.shell.video-editor-surface .editor-library-tabs button.active,
+.shell.video-editor-surface .editor-layer-tabs button.active,
+.shell.video-editor-surface .mobile-editor-tabs button.active,
+.shell.video-editor-surface .editor-step.active b {
+  border-color: #214e4d;
+  color: #ffffff;
+  background: #214e4d;
+}
+
+.shell.video-editor-surface .editor-step.active {
+  color: #214e4d;
+}
+
+.shell.video-editor-surface .editor-clip-check input,
+.shell.video-editor-surface .editor-control-row input[type="range"],
+.shell.video-editor-surface .editor-panel input[type="range"] {
+  accent-color: #287f7a;
+}
+
+.shell.video-editor-surface .editor-timeline-playhead {
+  background: #287f7a;
+}
+
+.shell.video-editor-surface .editor-timeline-playhead span {
+  box-shadow: 0 0 0 1px #287f7a;
+}
+
+.shell.video-editor-surface .editor-focus-backdrop {
+  background: rgba(17, 24, 39, .42);
+}
+
+.shell.video-editor-surface .editor-focus-window {
+  border-color: #e5e7eb;
+  background: #ffffff;
+  box-shadow: 0 24px 80px rgba(17, 24, 39, .18);
+}
+
+.shell.video-editor-surface .editor-focus-head,
+.shell.video-editor-surface .editor-focus-controls {
+  border-color: #e5e7eb;
+}
+
+.shell.video-editor-surface .editor-focus-head strong {
+  color: #111827;
+}
+
+.shell.video-editor-surface .editor-focus-head > div > span:last-child,
+.shell.video-editor-surface .editor-focus-head .metric-kicker {
+  color: #6b7280;
+}
+
+.shell.video-editor-surface .editor-focus-close {
+  border-color: #e5e7eb;
+  color: #374151;
+  background: #ffffff;
+}
+
+.shell.video-editor-surface .editor-focus-close:hover {
+  border-color: #d1d5db;
+  color: #111827;
+  background: #f9fafb;
+}
+
+.shell.video-editor-surface .editor-focus-stage {
+  background: #f9fafb;
+}
+
 /* Subscription and Profile: shared white account surfaces. */
 .shell.subscription-surface,
 .shell.profile-surface {
